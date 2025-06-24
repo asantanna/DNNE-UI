@@ -644,22 +644,31 @@ class PromptServer():
 
             if "prompt" in json_data:
                 prompt = json_data["prompt"]
-                valid = execution.validate_prompt(prompt)
-                extra_data = {}
-                if "extra_data" in json_data:
-                    extra_data = json_data["extra_data"]
+                 # DISABLED: No execution in UI
+                return web.json_response({
+                    "error": "Direct execution is disabled. Please use Export to generate Python script.",
+                    "node_errors": {}
+                }, status=501)  # 501 Not Implemented
+            
+                # Original execution code commented out:
 
-                if "client_id" in json_data:
-                    extra_data["client_id"] = json_data["client_id"]
-                if valid[0]:
-                    prompt_id = str(uuid.uuid4())
-                    outputs_to_execute = valid[2]
-                    self.prompt_queue.put((number, prompt_id, prompt, extra_data, outputs_to_execute))
-                    response = {"prompt_id": prompt_id, "number": number, "node_errors": valid[3]}
-                    return web.json_response(response)
-                else:
-                    logging.warning("invalid prompt: {}".format(valid[1]))
-                    return web.json_response({"error": valid[1], "node_errors": valid[3]}, status=400)
+                # valid = execution.validate_prompt(prompt)
+                # extra_data = {}
+                # if "extra_data" in json_data:
+                #     extra_data = json_data["extra_data"]
+
+                # if "client_id" in json_data:
+                #     extra_data["client_id"] = json_data["client_id"]
+                # if valid[0]:
+                #     prompt_id = str(uuid.uuid4())
+                #     outputs_to_execute = valid[2]
+                #     self.prompt_queue.put((number, prompt_id, prompt, extra_data, outputs_to_execute))
+                #     response = {"prompt_id": prompt_id, "number": number, "node_errors": valid[3]}
+                #     return web.json_response(response)
+                # else:
+                #     logging.warning("invalid prompt: {}".format(valid[1]))
+                #     return web.json_response({"error": valid[1], "node_errors": valid[3]}, status=400)
+                
             else:
                 error = {
                     "type": "no_prompt",

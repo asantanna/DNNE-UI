@@ -12,6 +12,19 @@ import traceback
 import numpy as np
 from typing import Any, Dict, List, Tuple, Optional
 
+# Define valid types for the node system
+VALID_TYPES = {
+    "STRING": "STRING",
+    "INT": "INT", 
+    "FLOAT": "FLOAT",
+    "BOOLEAN": "BOOLEAN",
+    "*": "*",  # Wildcard type for "any" connections
+}
+
+# Add to ComfyUI's type registry
+from custom_nodes.robotics_nodes.robotics_types import ROBOTICS_TYPES
+VALID_TYPES.update(ROBOTICS_TYPES)
+
 # Base node class
 class DNNENode:
     """Base class for all DNNE nodes"""
