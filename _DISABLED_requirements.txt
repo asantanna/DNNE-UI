@@ -1,0 +1,19 @@
+# DNNE-UI Core Requirements
+torch>=2.0.0
+torchvision  
+numpy
+Pillow
+psutil
+tqdm
+safetensors
+websockets
+
+# Robotics (add as needed)
+# opencv-python
+# pybullet  
+# numpy-quaternion
+
+# Development
+# pytest
+# black
+# mypy
