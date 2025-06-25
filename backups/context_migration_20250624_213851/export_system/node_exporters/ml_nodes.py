@@ -104,7 +104,8 @@ class GetBatchExporter(ExportableNode):
         
         return {
             "NODE_ID": f"node_{node_id}",
-            "DATALOADER_VAR": dataloader_var
+            "DATALOADER_VAR": dataloader_var,
+            "CONTEXT_VAR": "context"
         }
     
     @classmethod
