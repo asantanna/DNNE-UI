@@ -1,185 +1,145 @@
+#!/usr/bin/env python3
 """
-Exporters for ML nodes
+Exporters for ML nodes using queue-based templates
 """
 
-import sys
-from pathlib import Path
-
-# Handle imports whether run as module or directly
-try:
-    from ..graph_exporter import ExportableNode
-except ImportError:
-    # If relative import fails, try absolute
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from graph_exporter import ExportableNode
-
-class LinearLayerExporter(ExportableNode):
-    @classmethod
-    def get_template_name(cls):
-        return "nodes/linear_layer_template.py"
-    
-    @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
-        params = node_data.get("inputs", {})
-        
-        return {
-            "NODE_ID": f"node_{node_id}",
-            "INPUT_SIZE": -1,  # Infer from input
-            "OUTPUT_SIZE": params.get("output_size", 128),
-            "ACTIVATION": params.get("activation", "relu"),
-            "DROPOUT": params.get("dropout", 0.0),
-            "BIAS": params.get("bias", True),
-            "WEIGHT_INIT": params.get("weight_init", "xavier")
-        }
-    
-    @classmethod
-    def get_imports(cls):
-        return [
-            "import torch.nn as nn",
-            "import torch.nn.functional as F"
-        ]
+from ..graph_exporter import ExportableNode
 
 class MNISTDatasetExporter(ExportableNode):
     @classmethod
     def get_template_name(cls):
-        return "nodes/mnist_dataset_template.py"
+        return "nodes/mnist_dataset_queue.py"
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections):
         params = node_data.get("inputs", {})
         return {
-            "NODE_ID": f"node_{node_id}",
+            "NODE_ID": node_id,
+            "CLASS_NAME": "MNISTDatasetNode",
             "DATA_PATH": params.get("data_path", "./data"),
             "TRAIN": params.get("train", True),
-            "DOWNLOAD": params.get("download", True)
-        }
-    
-    @classmethod
-    def get_imports(cls):
-        return [
-            "from torchvision import datasets, transforms"
-        ]
-
-class BatchSamplerExporter(ExportableNode):
-    @classmethod
-    def get_template_name(cls):
-        return "nodes/batch_sampler_template.py"
-    
-    @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
-        params = node_data.get("inputs", {})
-        
-        # Get dataset variable from connections
-        dataset_var = "dataset"  # default
-        if node_id in connections and "input_0" in connections[node_id]:
-            source_info = connections[node_id]["input_0"]
-            dataset_var = source_info["source_var"]
-        
-        return {
-            "NODE_ID": f"node_{node_id}",
-            "DATASET_VAR": dataset_var,
+            "DOWNLOAD": params.get("download", True),
             "BATCH_SIZE": params.get("batch_size", 32),
-            "SHUFFLE": params.get("shuffle", True),
-            "NUM_WORKERS": 0
+            "EMIT_RATE": params.get("emit_rate", 10.0)  # Batches per second
         }
     
     @classmethod
     def get_imports(cls):
         return [
-            "from torch.utils.data import DataLoader"
+            "import torch",
+            "from torch.utils.data import DataLoader",
+            "from torchvision import datasets, transforms",
         ]
 
-class GetBatchExporter(ExportableNode):
+
+class LinearLayerExporter(ExportableNode):
     @classmethod
     def get_template_name(cls):
-        return "nodes/get_batch_template.py"
+        return "nodes/linear_layer_queue.py"
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections):
-        # Get dataloader from connections
-        dataloader_var = "dataloader"
-        if node_id in connections and "input_0" in connections[node_id]:
-            source_info = connections[node_id]["input_0"]
-            dataloader_var = source_info["source_var"]
-        
+        params = node_data.get("inputs", {})
         return {
-            "NODE_ID": f"node_{node_id}",
-            "DATALOADER_VAR": dataloader_var
+            "NODE_ID": node_id,
+            "CLASS_NAME": "LinearLayerNode",
+            "INPUT_SIZE": params.get("input_size", 784),  # Default for MNIST
+            "OUTPUT_SIZE": params.get("output_size", 128),
+            "ACTIVATION": params.get("activation", "relu"),
+            "DROPOUT": params.get("dropout", 0.0),
+            "BIAS": params.get("bias", True)
         }
     
     @classmethod
     def get_imports(cls):
-        return []
+        return [
+            "import torch",
+            "import torch.nn as nn",
+            "import torch.nn.functional as F",
+        ]
 
-class CrossEntropyLossExporter(ExportableNode):
+
+class LossExporter(ExportableNode):
     @classmethod
     def get_template_name(cls):
-        return "nodes/cross_entropy_template.py"
+        return "nodes/loss_queue.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections):
+        params = node_data.get("inputs", {})
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "LossNode",
+            "LOSS_TYPE": params.get("loss_type", "cross_entropy")
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return [
+            "import torch",
+            "import torch.nn as nn",
+        ]
+
+
+class OptimizerExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/optimizer_queue.py"
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections):
         params = node_data.get("inputs", {})
         
+        # Extract model nodes from connections
+        model_nodes = []
+        # TODO: Parse from connections to find upstream model nodes
+        
         return {
-            "NODE_ID": f"node_{node_id}",
-            "PREDICTIONS_VAR": "predictions",
-            "LABELS_VAR": "labels"
+            "NODE_ID": node_id,
+            "CLASS_NAME": "OptimizerNode",
+            "OPTIMIZER_TYPE": params.get("optimizer", "adam"),
+            "LEARNING_RATE": params.get("learning_rate", 0.001),
+            "MODEL_NODES": str(model_nodes)  # Will be a list
         }
     
     @classmethod
     def get_imports(cls):
-        return ["import torch.nn.functional as F"]
+        return [
+            "import torch",
+            "import torch.optim as optim",
+        ]
 
-class SGDOptimizerExporter(ExportableNode):
+
+class DisplayExporter(ExportableNode):
     @classmethod
     def get_template_name(cls):
-        return "nodes/sgd_optimizer_template.py"
+        return "nodes/display_queue.py"
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections):
         params = node_data.get("inputs", {})
-        
         return {
-            "NODE_ID": f"node_{node_id}",
-            "LEARNING_RATE": params.get("learning_rate", 0.01),
-            "MOMENTUM": params.get("momentum", 0.9),
-            "WEIGHT_DECAY": params.get("weight_decay", 0.0)
-        }
-    
-    @classmethod
-    def get_imports(cls):
-        return ["import torch.optim"]
-
-class AccuracyExporter(ExportableNode):
-    @classmethod
-    def get_template_name(cls):
-        return "nodes/accuracy_template.py"
-    
-    @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
-        return {
-            "NODE_ID": f"node_{node_id}",
-            "PREDICTIONS_VAR": "predictions",
-            "LABELS_VAR": "labels"
+            "NODE_ID": node_id,
+            "CLASS_NAME": "DisplayNode",
+            "DISPLAY_TYPE": params.get("display_type", "tensor_stats"),
+            "LOG_INTERVAL": params.get("log_interval", 10)  # Log every N inputs
         }
     
     @classmethod
     def get_imports(cls):
         return []
 
-class TrainingStepExporter(ExportableNode):
-    @classmethod
-    def get_template_name(cls):
-        return "nodes/training_step_template.py"
+
+# Registration function
+def register_ml_exporters(exporter):
+    """Register all ML node exporters"""
+    exporter.register_node("MNISTDataset", MNISTDatasetExporter)
+    exporter.register_node("LinearLayer", LinearLayerExporter)
+    exporter.register_node("Loss", LossExporter)
+    exporter.register_node("Optimizer", OptimizerExporter)
+    exporter.register_node("Display", DisplayExporter)
     
-    @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
-        return {
-            "NODE_ID": f"node_{node_id}",
-            "LOSS_VAR": "loss",
-            "OPTIMIZER_VAR": "optimizer"
-        }
-    
-    @classmethod
-    def get_imports(cls):
-        return []
+    # Aliases for compatibility
+    exporter.register_node("Linear", LinearLayerExporter)
+    exporter.register_node("CrossEntropyLoss", LossExporter)
+    exporter.register_node("BatchSampler", MNISTDatasetExporter)  # Combined with dataset

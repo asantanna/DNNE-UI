@@ -1,34 +1,56 @@
 """
-Node exporter classes that handle code generation
+Node exporter classes that handle code generation using queue-based templates
 """
 
-# Direct imports - simpler and more reliable
 from .ml_nodes import (
-    LinearLayerExporter, 
-    MNISTDatasetExporter, 
-    BatchSamplerExporter, 
-    GetBatchExporter,
-    CrossEntropyLossExporter, 
-    SGDOptimizerExporter,
-    AccuracyExporter, 
-    TrainingStepExporter
+    MNISTDatasetExporter,
+    LinearLayerExporter,
+    LossExporter,
+    OptimizerExporter,
+    DisplayExporter,
+    register_ml_exporters
+)
+
+from .robotics_nodes import (
+    CameraSensorExporter,
+    IMUSensorExporter,
+    VisionNetworkExporter,
+    SoundNetworkExporter,
+    DecisionNetworkExporter,
+    RobotControllerExporter,
+    IsaacGymEnvExporter,
+    register_robotics_exporters
 )
 
 # Register all exporters
 def register_all_exporters(exporter):
     """Register all node exporters with the graph exporter"""
-    # Data nodes
-    exporter.register_node("MNISTDataset", MNISTDatasetExporter)
-    exporter.register_node("BatchSampler", BatchSamplerExporter) 
-    exporter.register_node("GetBatch", GetBatchExporter)
+    register_ml_exporters(exporter)
+    register_robotics_exporters(exporter)
     
-    # Layer nodes
-    exporter.register_node("LinearLayer", LinearLayerExporter)
-    
-    # Training nodes
-    exporter.register_node("CrossEntropyLoss", CrossEntropyLossExporter)
-    exporter.register_node("SGDOptimizer", SGDOptimizerExporter)
-    exporter.register_node("TrainingStep", TrainingStepExporter)
-    exporter.register_node("Accuracy", AccuracyExporter)
-    
-    # Add more as implemented
+    # Log registration summary
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Registered {len(exporter.node_registry)} node types for export")
+
+# Export all classes for direct access
+__all__ = [
+    # ML nodes
+    'MNISTDatasetExporter',
+    'LinearLayerExporter', 
+    'LossExporter',
+    'OptimizerExporter',
+    'DisplayExporter',
+    # Robotics nodes
+    'CameraSensorExporter',
+    'IMUSensorExporter',
+    'VisionNetworkExporter',
+    'SoundNetworkExporter',
+    'DecisionNetworkExporter',
+    'RobotControllerExporter',
+    'IsaacGymEnvExporter',
+    # Registration functions
+    'register_all_exporters',
+    'register_ml_exporters',
+    'register_robotics_exporters'
+]
