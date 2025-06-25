@@ -23,4 +23,6 @@ web_custom_versions/
 openapi.yaml
 filtered-openapi.yaml
 uv.lock
+# DNNE
 "_DISABLED_*"  
+*.backup*
