@@ -20,16 +20,16 @@ class LinearLayerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections):
-        # TODO: Extract parameters from node_data
-        # TODO: Determine input variable names from connections
+        params = node_data.get("inputs", {})
+        
         return {
             "NODE_ID": f"node_{node_id}",
-            "INPUT_VAR": "input_tensor",
-            "OUTPUT_SIZE": 128,
-            "ACTIVATION": "relu",
-            "DROPOUT": 0.0,
-            "BIAS": True,
-            "WEIGHT_INIT": "xavier"
+            "INPUT_SIZE": -1,  # Infer from input
+            "OUTPUT_SIZE": params.get("output_size", 128),
+            "ACTIVATION": params.get("activation", "relu"),
+            "DROPOUT": params.get("dropout", 0.0),
+            "BIAS": params.get("bias", True),
+            "WEIGHT_INIT": params.get("weight_init", "xavier")
         }
     
     @classmethod
@@ -89,4 +89,98 @@ class BatchSamplerExporter(ExportableNode):
             "from torch.utils.data import DataLoader"
         ]
 
-# TODO: Add more exporters for other node types
+class GetBatchExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/get_batch_template.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections):
+        # Get dataloader from connections
+        dataloader_var = "dataloader"
+        if node_id in connections and "input_0" in connections[node_id]:
+            source_info = connections[node_id]["input_0"]
+            dataloader_var = source_info["source_var"]
+        
+        return {
+            "NODE_ID": f"node_{node_id}",
+            "DATALOADER_VAR": dataloader_var,
+            "CONTEXT_VAR": "context"
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return []
+
+class CrossEntropyLossExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/cross_entropy_template.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections):
+        params = node_data.get("inputs", {})
+        
+        return {
+            "NODE_ID": f"node_{node_id}",
+            "PREDICTIONS_VAR": "predictions",
+            "LABELS_VAR": "labels"
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return ["import torch.nn.functional as F"]
+
+class SGDOptimizerExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/sgd_optimizer_template.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections):
+        params = node_data.get("inputs", {})
+        
+        return {
+            "NODE_ID": f"node_{node_id}",
+            "LEARNING_RATE": params.get("learning_rate", 0.01),
+            "MOMENTUM": params.get("momentum", 0.9),
+            "WEIGHT_DECAY": params.get("weight_decay", 0.0)
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return ["import torch.optim"]
+
+class AccuracyExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/accuracy_template.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections):
+        return {
+            "NODE_ID": f"node_{node_id}",
+            "PREDICTIONS_VAR": "predictions",
+            "LABELS_VAR": "labels"
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return []
+
+class TrainingStepExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/training_step_template.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections):
+        return {
+            "NODE_ID": f"node_{node_id}",
+            "LOSS_VAR": "loss",
+            "OPTIMIZER_VAR": "optimizer"
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return []

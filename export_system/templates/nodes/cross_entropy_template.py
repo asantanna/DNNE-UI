@@ -1,14 +1,25 @@
 # Template variables - replaced during export
 template_vars = {
-    "NODE_ID": "loss_1",
+    "NODE_ID": "node_5",
     "PREDICTIONS_VAR": "predictions",
     "LABELS_VAR": "labels"
 }
 
-# Cross Entropy Loss: {NODE_ID}
-{NODE_ID} = F.cross_entropy(
-    eval(template_vars["PREDICTIONS_VAR"]),
-    eval(template_vars["LABELS_VAR"])
-)
+# Extract variables
+NODE_ID = template_vars["NODE_ID"]
+PREDICTIONS_VAR = template_vars["PREDICTIONS_VAR"]
+LABELS_VAR = template_vars["LABELS_VAR"]
 
-{NODE_ID}_value = {NODE_ID}.item()
+# Cross Entropy Loss function
+def compute_cross_entropy_loss(predictions, labels):
+    """Compute cross entropy loss"""
+    return F.cross_entropy(predictions, labels)
+
+# Store function reference
+globals()[NODE_ID] = compute_cross_entropy_loss
+globals()[f"{NODE_ID}_inputs"] = {
+    "predictions": PREDICTIONS_VAR,
+    "labels": LABELS_VAR
+}
+
+print(f"Created cross entropy loss function '{NODE_ID}'")

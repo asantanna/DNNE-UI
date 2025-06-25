@@ -199,11 +199,12 @@ class GraphExporter:
         # Add node sections
         script_parts.extend(node_sections)
         
-        # Add basic execution
+        # Add basic execution  
+        main_check = 'if __name__ == "__main__":'
         script_parts.extend([
             "",
             "# Execution",
-            'if __name__ == "__main__":',
+            main_check,
             '    print("DNNE exported script")',
             '    print(f"Loaded {len(context.memory)} components")',
         ])
