@@ -4,10 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**DNNE-UI** (Deep Neural Network Environment - UI) is a specialized fork of ComfyUI designed for machine learning and robotics workflows. The project transforms ComfyUI's visual node-based interface from a diffusion model platform into a comprehensive ML/robotics development environment with code export capabilities.
+**DNNE** (Drag and Drop Neural Network Environment) is a visual programming environment for building neural networks and robotics control systems. It's based on ComfyUI's architecture but adapted for machine learning and robotics applications instead of image generation. The project transforms ComfyUI's visual node-based interface from a diffusion model platform into a comprehensive ML/robotics development environment with code export capabilities.
 
 ### Key Innovation
-The primary innovation is the **export system** that converts visual node graphs into standalone, production-ready Python modules that can run on WSL2, GPU cloud providers (like Lambda), or integrate with robotics simulators like IsaacGym.
+The primary innovation is the **export system** that converts visual node graphs into standalone, production-ready Python modules that can run on WSL2, GPU cloud providers (like Lambda), or integrate with robotics simulators like NVIDIA Isaac Gym. Unlike ComfyUI, DNNE doesn't execute graphs directly - instead, it exports them as Python scripts designed to run in tight loops with simulators.
+
+### Repository Structure
+
+#### Backend Repository (This Repository)
+Contains the main DNNE-UI backend with:
+- `server.py` - Modified ComfyUI server that handles export functionality
+- `custom_nodes/` - Node implementations for ML and robotics
+- `export_system/` - Export system that converts visual graphs to Python code
+
+#### Frontend Repository
+**GitHub**: https://github.com/asantanna/DNNE-UI-Frontend.git
+Vue.js-based frontend providing the visual graph editor interface (replaces original ComfyUI frontend).
 
 ## Development Commands
 
@@ -73,11 +85,17 @@ The export system is the project's most sophisticated feature, converting visual
 - **Queue Templates**: Generate async queue-based code for real-time robotics applications
 - **Training Runners**: Complete training loop implementations
 
+### System Components
+The system has three main components:
+1. **Builder UI (DNNE-UI)**: Visual graph editor where users drag and drop nodes to create neural network architectures
+2. **Export System**: Converts the visual graph into standalone Python scripts
+3. **Runner**: The exported Python script that runs independently with NVIDIA Isaac Gym
+
 ### Data Flow
-1. **Visual Design**: Users create workflows in the ComfyUI interface
+1. **Visual Design**: Users create workflows in the visual graph editor
 2. **Node Graph**: System represents workflows as connected node graphs
-3. **Code Generation**: Export system converts graphs to Python modules
-4. **Execution**: Generated code runs independently on target platforms
+3. **Code Generation**: Export system converts graphs to Python modules (saved to `export_system/exports/{workflow_name}/runner.py`)
+4. **Execution**: Generated code runs independently on target platforms with async queue-based architecture
 
 ## Important Development Notes
 
@@ -91,6 +109,8 @@ The export system is the project's most sophisticated feature, converting visual
 - Templates use string formatting for parameter injection
 - Generated code follows queue-based reactive patterns for robotics applications
 - All exports include proper import management and error handling
+- Export functionality accessible via "Export" button (renamed from "Run")
+- All node communication uses async queue-based design similar to ROS (Robot Operating System)
 
 ### Testing Approach
 - Unit tests in `tests-unit/` directory
@@ -117,6 +137,12 @@ The project recently underwent a context removal migration:
 - **PyTorch**: Deep learning framework (≥2.0.0)
 - **torchvision**: Computer vision utilities
 - **numpy**: Numerical computing
+- **Python**: 3.10+ with async/await support
+
+### Target Runtime
+- **NVIDIA Isaac Gym**: Primary target for robotics simulation
+- **WSL2**: Development environment support
+- **GPU Cloud Providers**: Lambda and similar platforms
 
 ### ComfyUI Infrastructure
 - **websockets**: Real-time communication
@@ -138,3 +164,36 @@ The `user/default/workflows/MNIST Test.json` provides a complete example showing
 - Training step execution
 
 This workflow demonstrates the full ML pipeline from data loading through training, and serves as a reference for implementing similar patterns.
+
+## Known Issues and Current Development State
+
+### What's Working
+- Basic export functionality via the "Export" button (renamed from "Run")
+- Node system with ML nodes (LinearLayer, MNISTDataset, Loss, etc.)
+- Template-based code generation
+- Exports save to `export_system/exports/{workflow_name}/runner.py`
+
+### Current Issues
+- **Template Inconsistencies**: Some nodes still use old configuration-style templates instead of queue-based templates
+- **Syntax Errors in Generated Code**:
+  - Variable names starting with numbers (e.g., `10_node`) - should use `node_10` instead
+  - Incorrect bias parameters (`bias=relu` instead of `bias=True`)
+  - Missing class definitions for some nodes
+- **Missing Node Templates**: TrainingStep node needs a queue-based template
+- **Template Variable Processing**: Some templates show raw template code instead of processed values
+
+### Immediate Development Priorities
+1. Convert all remaining nodes to use queue-based templates exclusively
+2. Fix variable naming issue in main execution template (use `node_10` instead of `10_node`)
+3. Fix parameter processing in templates (especially bias parameter in LinearLayer)
+4. Ensure all template variables are properly replaced during export
+5. Complete TrainingStep node queue-based template implementation
+
+### Technical Context
+- Built on ComfyUI's architecture but heavily modified
+- Uses Python 3.10+ with async/await
+- Target runtime is NVIDIA Isaac Gym for robotics simulation
+- Frontend uses Vue.js instead of ComfyUI's vanilla JavaScript
+- All node communication is async queue-based for real-time performance
+
+The main challenge is ensuring the export system generates clean, executable Python code that correctly implements the visual graph's logic while maintaining the async queue-based architecture needed for real-time robotics applications.

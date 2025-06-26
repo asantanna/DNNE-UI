@@ -625,10 +625,10 @@ class PromptServer():
             queue_info['queue_running'] = current_queue[0]
             queue_info['queue_pending'] = current_queue[1]
             return web.json_response(queue_info)
-
+        
         @routes.post("/prompt")
         async def post_prompt(request):
-            logging.info("got prompt")
+            logging.info("got prompt - exporting workflow")
             json_data =  await request.json()
             json_data = self.trigger_on_prompt(json_data)
 
@@ -644,40 +644,106 @@ class PromptServer():
 
             if "prompt" in json_data:
                 prompt = json_data["prompt"]
-                 # DISABLED: No execution in UI
-                return web.json_response({
-                    "error": "Direct execution is disabled. Please use Export to generate Python script.",
-                    "node_errors": {}
-                }, status=501)  # 501 Not Implemented
-            
-                # Original execution code commented out:
-
-                # valid = execution.validate_prompt(prompt)
-                # extra_data = {}
-                # if "extra_data" in json_data:
-                #     extra_data = json_data["extra_data"]
-
-                # if "client_id" in json_data:
-                #     extra_data["client_id"] = json_data["client_id"]
-                # if valid[0]:
-                #     prompt_id = str(uuid.uuid4())
-                #     outputs_to_execute = valid[2]
-                #     self.prompt_queue.put((number, prompt_id, prompt, extra_data, outputs_to_execute))
-                #     response = {"prompt_id": prompt_id, "number": number, "node_errors": valid[3]}
-                #     return web.json_response(response)
-                # else:
-                #     logging.warning("invalid prompt: {}".format(valid[1]))
-                #     return web.json_response({"error": valid[1], "node_errors": valid[3]}, status=400)
                 
-            else:
-                error = {
-                    "type": "no_prompt",
-                    "message": "No prompt provided",
-                    "details": "No prompt provided",
-                    "extra_info": {}
-                }
-                return web.json_response({"error": error, "node_errors": {}}, status=400)
+                # EXPORT WORKFLOW INSTEAD OF EXECUTE
+                try:
+                    # Import the export system
+                    import os
+                    from datetime import datetime
+                    from export_system.graph_exporter import GraphExporter
+                    from export_system.node_exporters import register_all_exporters
+                    
+                    # Create exporter
+                    exporter = GraphExporter()
+                    register_all_exporters(exporter)
 
+                    # For now, just use a timestamp-based name since title isn't in the data
+                    workflow_name = f"workflow_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+                    #TODO: use title of workflow if available
+
+                    logging.info(f"Final workflow name: {workflow_name}")
+                    
+                    # Sanitize workflow name for filesystem
+                    import re
+                    safe_name = re.sub(r'[^\w\s-]', '', workflow_name)
+                    safe_name = re.sub(r'[-\s]+', '-', safe_name)
+                    if not safe_name:
+                        safe_name = "workflow"
+                    
+                    # Create workflow structure from prompt
+                    workflow = {
+                        "nodes": [],
+                        "links": [],
+                        "metadata": {
+                            "export_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "workflow_id": str(number),
+                            "workflow_name": workflow_name
+                        }
+                    }
+                    
+                    # Convert prompt format to workflow format
+                    # The prompt is a dict of node_id -> node_data
+                    for node_id, node_data in prompt.items():
+                        workflow["nodes"].append({
+                            "id": node_id,
+                            "class_type": node_data.get("class_type", "Unknown"),
+                            "inputs": node_data.get("inputs", {})
+                        })
+                    
+                    # Extract links from node inputs
+                    link_id = 1
+                    for node_id, node_data in prompt.items():
+                        inputs = node_data.get("inputs", {})
+                        for input_name, input_value in inputs.items():
+                            # Check if input is a link (usually a list like [node_id, slot])
+                            if isinstance(input_value, list) and len(input_value) == 2:
+                                source_node_id, source_slot = input_value
+                                # Find target slot index (you may need to adjust this)
+                                target_slot = 0  # Default, might need mapping
+                                workflow["links"].append([
+                                    link_id,
+                                    str(source_node_id),
+                                    source_slot,
+                                    str(node_id),
+                                    target_slot
+                                ])
+                                link_id += 1
+                    
+                    # Export the workflow
+                    script = exporter.export_workflow(workflow)
+                    
+                    # Create export directory structure
+                    export_base_dir = os.path.join("export_system", "exports")
+                    workflow_export_dir = os.path.join(export_base_dir, safe_name)
+                    
+                    # Create directories
+                    os.makedirs(workflow_export_dir, exist_ok=True)
+                    
+                    # Save the main runner script
+                    runner_path = os.path.join(workflow_export_dir, "runner.py")
+                    with open(runner_path, "w", encoding="utf-8") as f:
+                        f.write(script)
+                    
+                    logging.info(f"Export saved to: {workflow_export_dir}")
+                    
+                    # Return success with file location
+                    return web.json_response({
+                        "success": True,
+                        "export_path": workflow_export_dir,
+                        "files": ["runner.py"],
+                        "message": f"Workflow exported to: {workflow_export_dir}"
+                    })
+                    
+                except Exception as e:
+                    logging.error(f"Export failed: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    return web.json_response({
+                        "error": f"Export failed: {str(e)}",
+                        "details": traceback.format_exc()
+                    }, status=500)
+                
         @routes.post("/queue")
         async def post_queue(request):
             json_data =  await request.json()

@@ -129,6 +129,59 @@ class DisplayExporter(ExportableNode):
     def get_imports(cls):
         return []
 
+class GetBatchExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/get_batch_queue.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections):
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "GetBatchNode"
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return []
+
+class SGDOptimizerExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/sgd_optimizer_queue.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections):
+        params = node_data.get("inputs", {})
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "SGDOptimizerNode",
+            "LEARNING_RATE": params.get("learning_rate", 0.01),
+            "MOMENTUM": params.get("momentum", 0.9),
+            "WEIGHT_DECAY": params.get("weight_decay", 0.0)
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return ["import torch.optim as optim"]
+
+
+class TrainingStepExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/training_step_queue.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections):
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "TrainingStepNode"
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return []
+    
 
 # Registration function
 def register_ml_exporters(exporter):
@@ -138,7 +191,9 @@ def register_ml_exporters(exporter):
     exporter.register_node("Loss", LossExporter)
     exporter.register_node("Optimizer", OptimizerExporter)
     exporter.register_node("Display", DisplayExporter)
-    
+    exporter.register_node("GetBatch", GetBatchExporter)
+    exporter.register_node("SGDOptimizer", SGDOptimizerExporter)
+    exporter.register_node("TrainingStep", TrainingStepExporter)
     # Aliases for compatibility
     exporter.register_node("Linear", LinearLayerExporter)
     exporter.register_node("CrossEntropyLoss", LossExporter)
