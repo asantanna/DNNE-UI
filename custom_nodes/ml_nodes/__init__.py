@@ -5,7 +5,7 @@ ML Nodes for DNNE
 # Import all node classes
 from .data_nodes import MNISTDatasetNode, BatchSamplerNode, GetBatchNode
 from .layer_nodes import (
-    LinearLayerNode, Conv2DLayerNode, ActivationNode, 
+    NetworkNode, LinearLayerNode, Conv2DLayerNode, ActivationNode, 
     DropoutNode, BatchNormNode, FlattenNode
 )
 from .training_nodes import (
@@ -23,6 +23,7 @@ NODE_CLASS_MAPPINGS = {
     "GetBatch": GetBatchNode,
 
     # Layer nodes
+    "Network": NetworkNode,
     "LinearLayer": LinearLayerNode,
     "Conv2DLayer": Conv2DLayerNode,
     "Activation": ActivationNode,
@@ -49,6 +50,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "MNISTDataset": "MNIST Dataset",
     "BatchSampler": "Batch Sampler",
     "GetBatch": "Get Batch",
+    "Network": "Neural Network",
     "LinearLayer": "Linear Layer",
     "Conv2DLayer": "Conv2D Layer",
     "Activation": "Activation",

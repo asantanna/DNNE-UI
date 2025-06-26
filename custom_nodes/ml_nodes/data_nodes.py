@@ -20,8 +20,8 @@ class MNISTDatasetNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("DATASET", "INT", "INT")
-    RETURN_NAMES = ("dataset", "num_samples", "num_classes")
+    RETURN_TYPES = ("DATASET", "SCHEMA")
+    RETURN_NAMES = ("dataset", "schema")
     FUNCTION = "load_dataset"
     CATEGORY = "ml/data"
 
@@ -40,8 +40,27 @@ class MNISTDatasetNode(RoboticsNodeBase):
             download=download,
             transform=transform
         )
+        
+        # Create schema describing the dataset
+        schema = {
+            "outputs": {
+                "images": {
+                    "type": "tensor",
+                    "shape": (28, 28),
+                    "flattened_size": 784,
+                    "dtype": "float32"
+                },
+                "labels": {
+                    "type": "tensor", 
+                    "shape": (),
+                    "num_classes": 10,
+                    "dtype": "int64"
+                }
+            },
+            "num_samples": len(dataset)
+        }
 
-        return (dataset, len(dataset), 10)  # MNIST has 10 classes
+        return (dataset, schema)
 
 
 class BatchSamplerNode(RoboticsNodeBase):
@@ -52,18 +71,19 @@ class BatchSamplerNode(RoboticsNodeBase):
         return {
             "required": {
                 "dataset": ("DATASET",),
+                "schema": ("SCHEMA",),
                 "batch_size": ("INT", {"default": 32, "min": 1, "max": 512}),
                 "shuffle": ("BOOLEAN", {"default": True}),
                 "seed": ("INT", {"default": -1}),  # -1 means random
             }
         }
 
-    RETURN_TYPES = ("DATALOADER",)
-    RETURN_NAMES = ("dataloader",)
+    RETURN_TYPES = ("DATALOADER", "SCHEMA")
+    RETURN_NAMES = ("dataloader", "schema")
     FUNCTION = "create_dataloader"
     CATEGORY = "ml/data"
 
-    def create_dataloader(self, dataset, batch_size, shuffle, seed):
+    def create_dataloader(self, dataset, schema, batch_size, shuffle, seed):
         # Set seed if specified
         generator = None
         if seed >= 0:
@@ -79,7 +99,8 @@ class BatchSamplerNode(RoboticsNodeBase):
             pin_memory=True if torch.cuda.is_available() else False
         )
 
-        return (dataloader,)
+        # Pass through the schema unchanged
+        return (dataloader, schema)
 
 
 class GetBatchNode(RoboticsNodeBase):
@@ -89,7 +110,8 @@ class GetBatchNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "dataloader": ("DATALOADER",)
+                "dataloader": ("DATALOADER",),
+                "schema": ("SCHEMA",)
             }
         }
 
@@ -98,7 +120,7 @@ class GetBatchNode(RoboticsNodeBase):
     FUNCTION = "get_batch"
     CATEGORY = "ml/data"
 
-    def get_batch(self, dataloader):
+    def get_batch(self, dataloader, schema):
         context = get_context()
         
         # Get or create iterator in context

@@ -26,6 +26,7 @@ ML_TYPES = {
     "DATALOADER": "DATALOADER",
     "OPTIMIZER": "OPTIMIZER",
     "IMAGE": "IMAGE",
+    "SCHEMA": "SCHEMA",
 }
 
 # Combine all custom types

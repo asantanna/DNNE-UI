@@ -19,7 +19,8 @@ class ExportableNode:
     
     @classmethod
     def prepare_template_vars(cls, node_id: str, node_data: Dict, 
-                            connections: Dict) -> Dict[str, Any]:
+                            connections: Dict, node_registry: Dict = None, 
+                            all_nodes: List = None, all_links: List = None) -> Dict[str, Any]:
         """Prepare variables for template substitution"""
         raise NotImplementedError
     
@@ -27,6 +28,166 @@ class ExportableNode:
     def get_imports(cls) -> List[str]:
         """Return list of import statements needed by this node"""
         return []
+    
+    @classmethod
+    def get_output_names(cls) -> List[str]:
+        """Return list of output names for this node type"""
+        return ["output"]
+    
+    @classmethod
+    def get_input_names(cls) -> List[str]:
+        """Return list of input names for this node type"""
+        return ["input"]
+    
+    @classmethod
+    def get_input_name_for_slot(cls, slot: int) -> str:
+        """Get input name for a specific slot number"""
+        input_names = cls.get_input_names()
+        if slot < len(input_names):
+            return input_names[slot]
+        return f"input_{slot}"
+    
+    @classmethod
+    def get_output_schema(cls, node_data: Dict) -> Dict[str, Any]:
+        """Return schema describing the outputs of this node type"""
+        return {
+            "outputs": {
+                "output": {
+                    "type": "unknown",
+                    "shape": None
+                }
+            },
+            "num_samples": 1
+        }
+    
+    @classmethod
+    def get_output_tensor_size(cls, node_data: Dict, output_name: str, connections: Dict) -> int:
+        """Get the tensor size for a specific output, potentially querying connected nodes"""
+        schema = cls.get_output_schema(node_data)
+        if output_name in schema.get("outputs", {}):
+            output_info = schema["outputs"][output_name]
+            if "flattened_size" in output_info:
+                return output_info["flattened_size"]
+            elif "shape" in output_info and output_info["shape"]:
+                # Calculate flattened size from shape
+                shape = output_info["shape"]
+                if isinstance(shape, (list, tuple)) and len(shape) > 0:
+                    size = 1
+                    for dim in shape:
+                        size *= dim
+                    return size
+        
+        raise ValueError(f"Cannot determine tensor size for output '{output_name}' of node type {cls.__name__}")
+    
+    @classmethod
+    def query_input_tensor_size(cls, input_name: str, connections: Dict, node_registry: Dict, all_nodes: List, all_links: List = None) -> int:
+        """Query the tensor size from a connected input source"""
+        if not connections or "inputs" not in connections or input_name not in connections["inputs"]:
+            raise ValueError(f"No input connection found for '{input_name}' in {cls.__name__}")
+            
+        input_info = connections["inputs"][input_name]
+        source_node_id = input_info["from_node"]
+        source_output_slot = input_info["from_slot"]
+        
+        # Find the source node data
+        source_node_data = None
+        source_node_type = None
+        for node in all_nodes:
+            if str(node["id"]) == source_node_id:
+                source_node_data = node
+                source_node_type = node["class_type"]
+                break
+                
+        if not source_node_data:
+            raise ValueError(f"Source node {source_node_id} not found for input '{input_name}'")
+            
+        if source_node_type not in node_registry:
+            raise ValueError(f"Unknown source node type '{source_node_type}' for input '{input_name}'")
+            
+        source_node_class = node_registry[source_node_type]
+        
+        # Get the source node's output names
+        source_outputs = source_node_class.get_output_names()
+        if source_output_slot >= len(source_outputs):
+            raise ValueError(f"Invalid output slot {source_output_slot} for node {source_node_id} (has {len(source_outputs)} outputs)")
+            
+        source_output_name = source_outputs[source_output_slot]
+        
+        # Query the source node's schema for this output
+        schema = source_node_class.get_output_schema(source_node_data)
+        
+        # Handle pass-through nodes (like Network)
+        if schema == "pass_through":
+            # For pass-through nodes, query their input connection instead
+            if not all_links:
+                raise ValueError(f"Cannot query pass-through node {source_node_id} without links data")
+                
+            # Create a temporary exporter to use _get_node_connections
+            temp_exporter = GraphExporter()
+            temp_exporter.node_registry = node_registry
+            source_connections = temp_exporter._get_node_connections(source_node_id, all_links, all_nodes)
+            
+            if "inputs" not in source_connections or "input" not in source_connections["inputs"]:
+                raise ValueError(f"Pass-through node {source_node_id} has no 'input' connection to query")
+            
+            # Recursively query the node connected to this pass-through node's input
+            input_info = source_connections["inputs"]["input"]
+            upstream_node_id = input_info["from_node"]
+            upstream_output_slot = input_info["from_slot"]
+            
+            # Find the upstream node data
+            upstream_node_data = None
+            for node in all_nodes:
+                if str(node["id"]) == upstream_node_id:
+                    upstream_node_data = node
+                    break
+            
+            if not upstream_node_data:
+                raise ValueError(f"Cannot find upstream node {upstream_node_id} for pass-through query")
+            
+            upstream_node_type = upstream_node_data["class_type"]
+            upstream_node_class = node_registry.get(upstream_node_type)
+            
+            if not upstream_node_class:
+                raise ValueError(f"No exporter found for upstream node type {upstream_node_type}")
+            
+            # Query the upstream node's schema
+            upstream_schema = upstream_node_class.get_output_schema(upstream_node_data)
+            upstream_outputs = upstream_node_class.get_output_names()
+            
+            if upstream_output_slot >= len(upstream_outputs):
+                raise ValueError(f"Invalid upstream output slot {upstream_output_slot}")
+            
+            upstream_output_name = upstream_outputs[upstream_output_slot]
+            
+            if "outputs" not in upstream_schema or upstream_output_name not in upstream_schema["outputs"]:
+                raise ValueError(f"No schema found for upstream output '{upstream_output_name}' of node {upstream_node_id}")
+            
+            upstream_output_info = upstream_schema["outputs"][upstream_output_name]
+            
+            if "flattened_size" in upstream_output_info:
+                return upstream_output_info["flattened_size"]
+            elif "contains" in upstream_output_info and "images" in upstream_output_info["contains"]:
+                images_info = upstream_output_info["contains"]["images"]
+                if "flattened_size" in images_info:
+                    return images_info["flattened_size"]
+            
+            raise ValueError(f"Cannot determine tensor size from upstream node {upstream_node_id} output '{upstream_output_name}'")
+        
+        if "outputs" not in schema or source_output_name not in schema["outputs"]:
+            raise ValueError(f"No schema found for output '{source_output_name}' of node {source_node_id}")
+            
+        output_info = schema["outputs"][source_output_name]
+        
+        if "flattened_size" in output_info:
+            return output_info["flattened_size"]
+        elif "contains" in output_info and "images" in output_info["contains"]:
+            # For datasets, look inside the contained data
+            images_info = output_info["contains"]["images"]
+            if "flattened_size" in images_info:
+                return images_info["flattened_size"]
+                
+        raise ValueError(f"Cannot determine tensor size for output '{source_output_name}' of node {source_node_id}")
 
 
 class GraphExporter:
@@ -75,7 +236,8 @@ class GraphExporter:
                 # Get template and prepare variables
                 template_name = node_class.get_template_name()
                 template_vars = node_class.prepare_template_vars(
-                    node_id, node, self._get_node_connections(node_id, links, nodes)
+                    node_id, node, self._get_node_connections(node_id, links, nodes), 
+                    self.node_registry, nodes, links
                 )
                 
                 # Load and process template
@@ -86,7 +248,14 @@ class GraphExporter:
                 # Create instance with valid Python variable name
                 class_name = template_vars.get("CLASS_NAME", node_type + "Node")
                 instance_name = f"node_{node_id}"
-                node_instances.append(f'{instance_name} = {class_name}_{node_id}("{node_id}")')
+                
+                # Check if node has custom instance code
+                if hasattr(node_class, 'get_instance_code'):
+                    node_connections = self._get_node_connections(node_id, links, nodes)
+                    instance_code = node_class.get_instance_code(node_id, node, node_connections)
+                    node_instances.append(instance_code)
+                else:
+                    node_instances.append(f'{instance_name} = {class_name}_{node_id}("{node_id}")')
                 
                 # Add imports
                 imports.update(node_class.get_imports())
@@ -173,6 +342,17 @@ class GraphExporter:
             "outputs": {}
         }
         
+        # Get the node type and class to map slot numbers to names
+        node_data = None
+        node_type = None
+        for node in nodes:
+            if str(node["id"]) == node_id:
+                node_data = node
+                node_type = node["class_type"]
+                break
+        
+        node_class = self.node_registry.get(node_type) if node_type else None
+        
         for link in links:
             # Link format: [link_id, from_node, from_slot, to_node, to_slot]
             if len(link) >= 5:
@@ -180,8 +360,22 @@ class GraphExporter:
                 to_node = str(link[3])
                 
                 if to_node == node_id:
-                    # Incoming connection
-                    connections["inputs"][link[4]] = {
+                    # Incoming connection - map slot number to input name
+                    to_slot = link[4]
+                    input_name = None
+                    
+                    if node_class and hasattr(node_class, 'get_input_name_for_slot'):
+                        input_name = node_class.get_input_name_for_slot(to_slot)
+                    elif node_class and hasattr(node_class, 'get_input_names'):
+                        input_names = node_class.get_input_names()
+                        if to_slot < len(input_names):
+                            input_name = input_names[to_slot]
+                    
+                    # Error if name mapping fails
+                    if input_name is None:
+                        raise ValueError(f"Cannot map input slot {to_slot} to input name for node {node_id} of type {node_type}")
+                    
+                    connections["inputs"][input_name] = {
                         "from_node": from_node,
                         "from_slot": link[2]
                     }
@@ -200,40 +394,17 @@ class GraphExporter:
         """Generate connection tuples for wire_nodes"""
         connections = []
         
-        # Map node types to their output names
-        node_outputs = {}
+        # Build a map of node_id to node_type and exporter class
+        node_info = {}
         for node in nodes:
             node_id = str(node["id"])
             node_type = node["class_type"]
-            
-            # Default output names based on node type
-            if node_type == "MNISTDataset":
-                node_outputs[node_id] = ["batch_data", "batch_labels"]
-            elif node_type == "LinearLayer":
-                node_outputs[node_id] = ["output_tensor"]
-            elif node_type == "CameraSensor":
-                node_outputs[node_id] = ["image", "timestamp"]
-            elif node_type == "AudioSensor":
-                node_outputs[node_id] = ["audio_data", "timestamp"]
-            elif node_type == "IMUSensor":
-                node_outputs[node_id] = ["acceleration", "angular_velocity", "orientation"]
-            elif node_type == "VisionNetwork":
-                node_outputs[node_id] = ["vision_features"]
-            elif node_type == "SoundNetwork":
-                node_outputs[node_id] = ["sound_features"]
-            elif node_type == "DecisionNetwork":
-                node_outputs[node_id] = ["action", "confidence"]
-            elif node_type == "Loss":
-                node_outputs[node_id] = ["loss", "accuracy"]
-            elif node_type == "Display":
-                node_outputs[node_id] = []  # No outputs
-            elif node_type == "RobotController":
-                node_outputs[node_id] = ["joint_commands", "status"]
-            elif node_type == "Optimizer":
-                node_outputs[node_id] = ["step_complete"]
-            # Add more as needed
-            else:
-                node_outputs[node_id] = [f"output_{i}" for i in range(3)]
+            node_class = self.node_registry.get(node_type)
+            node_info[node_id] = {
+                "type": node_type,
+                "class": node_class,
+                "outputs": node_class.get_output_names() if node_class else [f"output_{i}" for i in range(3)]
+            }
         
         for link in links:
             if len(link) >= 5:
@@ -243,11 +414,19 @@ class GraphExporter:
                 to_slot = link[4]
                 
                 # Get actual output name
-                outputs = node_outputs.get(from_node, [])
+                outputs = node_info[from_node]["outputs"]
                 output_name = outputs[from_slot] if from_slot < len(outputs) else f"output_{from_slot}"
                 
-                # Input names are more standardized
-                input_name = self._get_input_name_for_slot(nodes, to_node, to_slot)
+                # Get input name
+                to_node_class = node_info[to_node]["class"]
+                if to_node_class and hasattr(to_node_class, 'get_input_names'):
+                    input_names = to_node_class.get_input_names()
+                    if to_slot < len(input_names):
+                        input_name = input_names[to_slot]
+                    else:
+                        raise ValueError(f"Input slot {to_slot} out of range for node {to_node} of type {node_info[to_node]['type']}. Available inputs: {input_names}")
+                else:
+                    raise ValueError(f"Cannot determine input name for slot {to_slot} on node {to_node} of type {node_info[to_node]['type']}")
                 
                 connections.append(
                     f'("{from_node}", "{output_name}", "{to_node}", "{input_name}")'
@@ -255,33 +434,6 @@ class GraphExporter:
         
         return connections
     
-    def _get_input_name_for_slot(self, nodes: List, node_id: str, slot: int) -> str:
-        """Get input name for a given slot"""
-        # Find node type
-        for node in nodes:
-            if str(node["id"]) == node_id:
-                node_type = node["class_type"]
-                
-                # Map based on node type
-                if node_type == "LinearLayer":
-                    return "input_tensor"
-                elif node_type == "VisionNetwork":
-                    return "camera_data"
-                elif node_type == "SoundNetwork":
-                    return "audio_data"
-                elif node_type == "DecisionNetwork":
-                    return ["vision_features", "sound_features"][slot] if slot < 2 else f"input_{slot}"
-                elif node_type == "Loss":
-                    return ["predictions", "labels"][slot] if slot < 2 else f"input_{slot}"
-                elif node_type == "Display":
-                    return "input_0"
-                elif node_type == "Optimizer":
-                    return "loss"
-                elif node_type == "RobotController":
-                    return "action"
-                # Add more mappings as needed
-                
-        return f"input_{slot}"
     
     def _generate_placeholder_node(self, node_id: str, node_type: str) -> str:
         """Generate placeholder for unknown node types"""

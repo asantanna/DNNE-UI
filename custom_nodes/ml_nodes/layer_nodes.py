@@ -8,6 +8,29 @@ import torch.nn.functional as F
 from .base import RoboticsNodeBase, get_context
 
 
+class NetworkNode(RoboticsNodeBase):
+    """Neural network container for multiple layers"""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "input": ("TENSOR",),
+                "output": ("TENSOR",),  # Loop-back connection from last layer
+            }
+        }
+
+    RETURN_TYPES = ("TENSOR", "TENSOR")
+    RETURN_NAMES = ("layers", "network_output")
+    FUNCTION = "forward"
+    CATEGORY = "ml/networks"
+
+    def forward(self, input, output):
+        # This is just for UI - actual implementation happens in export
+        # The network structure is defined by the connected layers
+        return (None, output)  # layers output is just for connectivity
+
+
 class LinearLayerNode(RoboticsNodeBase):
     """Fully connected linear layer"""
 
