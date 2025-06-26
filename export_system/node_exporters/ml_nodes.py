@@ -45,9 +45,9 @@ class LinearLayerExporter(ExportableNode):
             "CLASS_NAME": "LinearLayerNode",
             "INPUT_SIZE": params.get("input_size", 784),  # Default for MNIST
             "OUTPUT_SIZE": params.get("output_size", 128),
-            "ACTIVATION": params.get("activation", "relu"),
+            "ACTIVATION_VALUE": params.get("activation", "relu"),
             "DROPOUT": params.get("dropout", 0.0),
-            "BIAS": params.get("bias", True)
+            "BIAS_VALUE": params.get("bias", True)
         }
     
     @classmethod

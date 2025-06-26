@@ -4,7 +4,7 @@ template_vars = {
     "CLASS_NAME": "GetBatchNode"
 }
 
-class GetBatchNode_{NODE_ID}(QueueNode):
+class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """Get batch from dataloader"""
     
     def __init__(self, node_id: str):

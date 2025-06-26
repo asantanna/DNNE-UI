@@ -7,7 +7,7 @@ template_vars = {
     "WEIGHT_DECAY": 0.0
 }
 
-class SGDOptimizerNode_{NODE_ID}(QueueNode):
+class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """SGD Optimizer node"""
     
     def __init__(self, node_id: str):

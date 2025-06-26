@@ -165,6 +165,7 @@ class PromptServer():
         self.messages = asyncio.Queue()
         self.client_session:Optional[aiohttp.ClientSession] = None
         self.number = 0
+        self.current_workflow_name = None  # Track currently loaded workflow
 
         middlewares = [cache_control]
         if args.enable_compress_response_body:
@@ -657,10 +658,13 @@ class PromptServer():
                     exporter = GraphExporter()
                     register_all_exporters(exporter)
 
-                    # For now, just use a timestamp-based name since title isn't in the data
-                    workflow_name = f"workflow_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-
-                    #TODO: use title of workflow if available
+                    # Use the tracked workflow name if available, otherwise use timestamp
+                    if self.current_workflow_name:
+                        workflow_name = self.current_workflow_name
+                        logging.info(f"Using tracked workflow name: {workflow_name}")
+                    else:
+                        workflow_name = f"workflow_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                        logging.info(f"No tracked workflow, using timestamp: {workflow_name}")
 
                     logging.info(f"Final workflow name: {workflow_name}")
                     

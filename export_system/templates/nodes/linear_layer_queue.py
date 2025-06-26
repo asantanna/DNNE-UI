@@ -18,9 +18,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.setup_outputs(["output_tensor"])
         
         # Create layer
-        self.linear = nn.Linear({INPUT_SIZE}, {OUTPUT_SIZE}, bias={BIAS})
+        self.linear = nn.Linear({INPUT_SIZE}, {OUTPUT_SIZE}, bias={BIAS_VALUE})
         self.dropout = nn.Dropout({DROPOUT}) if {DROPOUT} > 0 else None
-        self.activation = "{ACTIVATION}"
+        self.activation = "{ACTIVATION_VALUE}"
         
         # Move to GPU if available
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

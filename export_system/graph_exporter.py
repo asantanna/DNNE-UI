@@ -83,9 +83,9 @@ class GraphExporter:
                 node_code = self._process_template(template_content, template_vars)
                 node_implementations.append(node_code)
                 
-                # Create instance
+                # Create instance with valid Python variable name
                 class_name = template_vars.get("CLASS_NAME", node_type + "Node")
-                instance_name = f"{node_id}_node"
+                instance_name = f"node_{node_id}"
                 node_instances.append(f'{instance_name} = {class_name}_{node_id}("{node_id}")')
                 
                 # Add imports
@@ -95,7 +95,7 @@ class GraphExporter:
                 # Generate placeholder
                 placeholder_code = self._generate_placeholder_node(node_id, node_type)
                 node_implementations.append(placeholder_code)
-                node_instances.append(f'{node_id}_node = PlaceholderNode_{node_id}("{node_id}")')
+                node_instances.append(f'node_{node_id} = PlaceholderNode_{node_id}("{node_id}")')
         
         # Load base framework template
         base_framework = self._load_template("base/queue_framework.py")

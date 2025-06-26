@@ -323,6 +323,22 @@ class UserManager():
             if not isinstance(path, str):
                 return path
 
+            # Check if this is a workflow file being loaded
+            file_param = request.match_info.get("file", "")
+            if (file_param.endswith('.json') and 
+                'workflows' in path and 
+                os.path.exists(path)):
+                
+                # Extract workflow name from filename (remove .json extension)
+                workflow_filename = os.path.basename(path)
+                workflow_name = os.path.splitext(workflow_filename)[0]
+                
+                # Store in PromptServer instance if available
+                from server import PromptServer
+                if hasattr(PromptServer, 'instance') and PromptServer.instance:
+                    PromptServer.instance.current_workflow_name = workflow_name
+                    logging.info(f"Loaded workflow: {workflow_name}")
+
             return web.FileResponse(path)
 
         @routes.post("/userdata/{file}")
