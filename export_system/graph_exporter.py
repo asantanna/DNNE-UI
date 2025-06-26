@@ -209,6 +209,10 @@ class GraphExporter:
         links = workflow.get("links", [])
         metadata = workflow.get("metadata", {})
         
+        # WORKAROUND: Fix corrupted to_slot values by reading original JSON
+        # ComfyUI pipeline corrupts all to_slot values to 0, so we restore them
+        links = self._fix_corrupted_slots(links, metadata)
+        
         # Collect all imports
         imports = {
             "import asyncio",
@@ -222,6 +226,18 @@ class GraphExporter:
             "logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(message)s')",
         }
         
+        # First pass: identify nodes that are part of networks to skip individual layer processing
+        network_consumed_nodes = set()
+        for node in nodes:
+            if node["class_type"] == "Network":
+                network_id = str(node["id"])
+                # Find which layer nodes this network consumes
+                network_class = self.node_registry.get("Network")
+                if network_class:
+                    consumed_layers = network_class._detect_network_layers(network_id, nodes, links)
+                    for layer_info in consumed_layers:
+                        network_consumed_nodes.add(layer_info["node_id"])
+        
         # Generate node implementations
         node_implementations = []
         node_instances = []
@@ -229,6 +245,11 @@ class GraphExporter:
         for node in nodes:
             node_id = str(node["id"])
             node_type = node["class_type"]
+            
+            # Skip individual layer nodes that are consumed by Network nodes
+            if node_id in network_consumed_nodes and node_type == "LinearLayer":
+                self.logger.info(f"Skipping LinearLayer node {node_id} - consumed by Network node")
+                continue
             
             if node_type in self.node_registry:
                 node_class = self.node_registry[node_type]
@@ -266,6 +287,8 @@ class GraphExporter:
                 node_implementations.append(placeholder_code)
                 node_instances.append(f'node_{node_id} = PlaceholderNode_{node_id}("{node_id}")')
         
+        # Note: SGD optimizer references are now handled through UI connections
+        
         # Load base framework template
         base_framework = self._load_template("base/queue_framework.py")
         
@@ -290,6 +313,84 @@ class GraphExporter:
             self.logger.info(f"Exported script to: {output_path}")
         
         return script
+    
+    def _fix_corrupted_slots(self, links: List, workflow_metadata: Dict = None) -> List:
+        """WORKAROUND: Fix to_slot values corrupted by ComfyUI pipeline"""
+        try:
+            # Try to find the correct workflow JSON file
+            from pathlib import Path
+            import json
+            
+            # Try to get workflow name from metadata
+            workflow_name = None
+            if workflow_metadata:
+                workflow_name = workflow_metadata.get("workflow_name")
+            
+            # List of possible workflow files to try
+            workflow_dir = Path("user/default/workflows")
+            possible_files = []
+            
+            if workflow_name:
+                possible_files.append(workflow_dir / f"{workflow_name}.json")
+            
+            # Also try common files
+            possible_files.extend([
+                workflow_dir / "Minimal.json",
+                workflow_dir / "MNIST Test.json"
+            ])
+            
+            # Try each possible file
+            for workflow_path in possible_files:
+                if workflow_path.exists():
+                    self.logger.info(f"Reading original workflow from: {workflow_path}")
+                    with open(workflow_path, 'r') as f:
+                        original_workflow = json.load(f)
+                    original_links = original_workflow.get("links", [])
+                    
+                    # Create a mapping from connection pattern to correct to_slot value
+                    # Use (from_node, from_slot, to_node) as key since link IDs might not match
+                    slot_corrections = {}
+                    for link in original_links:
+                        if len(link) >= 5:
+                            from_node, from_slot, to_node, to_slot = str(link[1]), link[2], str(link[3]), link[4]
+                            connection_key = (from_node, from_slot, to_node)
+                            slot_corrections[connection_key] = to_slot
+                    
+                    # Apply corrections to the corrupted links
+                    fixed_links = []
+                    fixes_applied = 0
+                    for link in links:
+                        if len(link) >= 5:
+                            link_id = link[0]
+                            from_node, from_slot, to_node, corrupted_to_slot = str(link[1]), link[2], str(link[3]), link[4]
+                            connection_key = (from_node, from_slot, to_node)
+                            
+                            if connection_key in slot_corrections:
+                                correct_to_slot = slot_corrections[connection_key]
+                                if corrupted_to_slot != correct_to_slot:
+                                    # Fix the to_slot value
+                                    fixed_link = list(link)
+                                    fixed_link[4] = correct_to_slot
+                                    fixed_links.append(fixed_link)
+                                    fixes_applied += 1
+                                    self.logger.info(f"Fixed connection {from_node}.{from_slot}→{to_node}: to_slot {corrupted_to_slot} → {correct_to_slot}")
+                                else:
+                                    fixed_links.append(link)
+                            else:
+                                # Connection not found in original, keep as-is
+                                fixed_links.append(link)
+                        else:
+                            fixed_links.append(link)
+                    
+                    self.logger.info(f"Applied {fixes_applied} slot corrections from {workflow_path}")
+                    return fixed_links
+            
+            self.logger.warning("Could not find any workflow JSON files for slot correction")
+            return links
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to fix corrupted slots: {e}")
+            return links
     
     def _load_template(self, template_name: str) -> str:
         """Load template file content"""
@@ -394,6 +495,17 @@ class GraphExporter:
         """Generate connection tuples for wire_nodes"""
         connections = []
         
+        # First, identify which nodes are being skipped (consumed by networks)
+        network_consumed_nodes = set()
+        for node in nodes:
+            if node["class_type"] == "Network":
+                network_id = str(node["id"])
+                network_class = self.node_registry.get("Network")
+                if network_class:
+                    consumed_layers = network_class._detect_network_layers(network_id, nodes, links)
+                    for layer_info in consumed_layers:
+                        network_consumed_nodes.add(layer_info["node_id"])
+        
         # Build a map of node_id to node_type and exporter class
         node_info = {}
         for node in nodes:
@@ -403,7 +515,8 @@ class GraphExporter:
             node_info[node_id] = {
                 "type": node_type,
                 "class": node_class,
-                "outputs": node_class.get_output_names() if node_class else [f"output_{i}" for i in range(3)]
+                "outputs": node_class.get_output_names() if node_class else [f"output_{i}" for i in range(3)],
+                "inputs": node_class.get_input_names() if node_class else []
             }
         
         for link in links:
@@ -413,11 +526,24 @@ class GraphExporter:
                 to_node = str(link[3])
                 to_slot = link[4]
                 
+                # Skip connections to/from consumed nodes
+                if from_node in network_consumed_nodes or to_node in network_consumed_nodes:
+                    self.logger.info(f"Skipping connection from {from_node} to {to_node} - involves consumed node")
+                    continue
+                
                 # Get actual output name
+                if from_node not in node_info:
+                    self.logger.warning(f"From node {from_node} not in node_info, skipping connection")
+                    continue
+                    
                 outputs = node_info[from_node]["outputs"]
                 output_name = outputs[from_slot] if from_slot < len(outputs) else f"output_{from_slot}"
                 
                 # Get input name
+                if to_node not in node_info:
+                    self.logger.warning(f"To node {to_node} not in node_info, skipping connection")
+                    continue
+                    
                 to_node_class = node_info[to_node]["class"]
                 if to_node_class and hasattr(to_node_class, 'get_input_names'):
                     input_names = to_node_class.get_input_names()
@@ -451,6 +577,7 @@ class PlaceholderNode_{node_id}(QueueNode):
         self.logger.info(f"Placeholder compute for {node_type}")
         return {{"output_0": inputs.get("input_0", None)}}
 '''
+    
     
     def _assemble_script(self, imports: List[str], base_framework: str,
                         node_implementations: List[str], node_instances: List[str],

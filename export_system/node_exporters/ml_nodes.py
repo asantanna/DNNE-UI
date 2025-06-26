@@ -80,7 +80,7 @@ class LinearLayerExporter(ExportableNode):
         inputs = node_data.get("inputs", {})
         
         # Query input size from connected source node
-        input_size = cls.query_input_tensor_size("input", connections, node_registry, all_nodes, all_links)
+        input_size = cls.query_input_tensor_size("input_tensor", connections, node_registry, all_nodes, all_links)
         
         # LinearLayer widget values in inputs
         if "output_size" not in inputs:
@@ -115,7 +115,7 @@ class LinearLayerExporter(ExportableNode):
     
     @classmethod
     def get_input_names(cls):
-        return ["input"]
+        return ["input_tensor"]
     
     @classmethod
     def get_output_schema(cls, node_data):
@@ -306,10 +306,6 @@ class SGDOptimizerExporter(ExportableNode):
     def get_imports(cls):
         return ["import torch.optim as optim"]
     
-    @classmethod
-    def get_instance_code(cls, node_id, node_data, connections):
-        """Custom instance creation for optimizer"""
-        return f'node_{node_id} = SGDOptimizerNode_{node_id}("{node_id}", [node_10, node_16])'
     
     @classmethod
     def get_output_names(cls):
@@ -317,7 +313,7 @@ class SGDOptimizerExporter(ExportableNode):
     
     @classmethod
     def get_input_names(cls):
-        return []  # No inputs since we collect parameters directly
+        return ["network"]  # Connection from Network node
 
 
 class CrossEntropyLossExporter(ExportableNode):
@@ -423,11 +419,11 @@ class NetworkExporter(ExportableNode):
     
     @classmethod
     def get_output_names(cls):
-        return ["layers", "network_output"]
+        return ["layers", "output", "model"]
     
     @classmethod
     def get_input_names(cls):
-        return ["input", "output"]  # "output" is for the loop-back connection
+        return ["input", "to_output"]  # "to_output" is for loop-back connection
     
     @classmethod
     def get_output_schema(cls, node_data):

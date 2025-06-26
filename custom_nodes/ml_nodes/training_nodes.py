@@ -63,6 +63,7 @@ class SGDOptimizerNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
+                "network": ("MODEL",),  # Connection from Network node's model output
                 "learning_rate": ("FLOAT", {"default": 0.01, "min": 0.0001, "max": 1.0, "step": 0.01}),
                 "momentum": ("FLOAT", {"default": 0.9, "min": 0.0, "max": 0.99, "step": 0.01}),
             }
@@ -73,10 +74,11 @@ class SGDOptimizerNode(RoboticsNodeBase):
     FUNCTION = "create_optimizer"
     CATEGORY = "ml/optimization"
 
-    def create_optimizer(self, learning_rate, momentum):
+    def create_optimizer(self, network, learning_rate, momentum):
         context = get_context()
         
-        # Collect all parameters from stored layers
+        # The network input is just for UI connectivity - we still collect parameters from context
+        # In the future, this could be improved to use the specific network connection
         parameters = []
         for key, module in context.memory.items():
             if isinstance(module, nn.Module):

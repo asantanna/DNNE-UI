@@ -165,35 +165,25 @@ The `user/default/workflows/MNIST Test.json` provides a complete example showing
 
 This workflow demonstrates the full ML pipeline from data loading through training, and serves as a reference for implementing similar patterns.
 
-## Known Issues and Current Development State
+## Technical Context
 
-### What's Working
-- Basic export functionality via the "Export" button (renamed from "Run")
-- Node system with ML nodes (LinearLayer, MNISTDataset, Loss, etc.)
-- Template-based code generation
-- Exports save to `export_system/exports/{workflow_name}/runner.py`
-
-### Current Issues
-- **Template Inconsistencies**: Some nodes still use old configuration-style templates instead of queue-based templates
-- **Syntax Errors in Generated Code**:
-  - Variable names starting with numbers (e.g., `10_node`) - should use `node_10` instead
-  - Incorrect bias parameters (`bias=relu` instead of `bias=True`)
-  - Missing class definitions for some nodes
-- **Missing Node Templates**: TrainingStep node needs a queue-based template
-- **Template Variable Processing**: Some templates show raw template code instead of processed values
-
-### Immediate Development Priorities
-1. Convert all remaining nodes to use queue-based templates exclusively
-2. Fix variable naming issue in main execution template (use `node_10` instead of `10_node`)
-3. Fix parameter processing in templates (especially bias parameter in LinearLayer)
-4. Ensure all template variables are properly replaced during export
-5. Complete TrainingStep node queue-based template implementation
-
-### Technical Context
+### Architecture Overview
 - Built on ComfyUI's architecture but heavily modified
-- Uses Python 3.10+ with async/await
+- Uses Python 3.10+ with async/await for modern async programming
 - Target runtime is NVIDIA Isaac Gym for robotics simulation
 - Frontend uses Vue.js instead of ComfyUI's vanilla JavaScript
 - All node communication is async queue-based for real-time performance
 
-The main challenge is ensuring the export system generates clean, executable Python code that correctly implements the visual graph's logic while maintaining the async queue-based architecture needed for real-time robotics applications.
+### Export System Design
+The export system generates clean, executable Python code that correctly implements the visual graph's logic while maintaining the async queue-based architecture needed for real-time robotics applications. Key features include:
+- Queue-based templates for all nodes
+- Proper variable naming (e.g., `node_10` format)
+- Correct parameter processing in templates
+- Full template variable substitution during export
+- Exports save to `export_system/exports/{workflow_name}/runner.py`
+
+### Current Capabilities
+- Basic export functionality via the "Export" button (renamed from "Run")
+- Complete node system with ML nodes (LinearLayer, MNISTDataset, Loss, etc.)
+- Template-based code generation with queue-based async execution
+- Support for complex workflows like MNIST training pipelines

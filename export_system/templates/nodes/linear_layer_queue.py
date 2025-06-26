@@ -14,8 +14,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=["input_tensor"])
-        self.setup_outputs(["output_tensor"])
+        self.setup_inputs(required=["input"])
+        self.setup_outputs(["output"])
         
         # Create layer
         self.linear = nn.Linear({INPUT_SIZE}, {OUTPUT_SIZE}, bias={BIAS_VALUE})
@@ -26,9 +26,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.linear = self.linear.to(self.device)
         
-    async def compute(self, input_tensor) -> Dict[str, Any]:
+    def get_parameters(self):
+        """Return model parameters for optimizer"""
+        return self.linear.parameters()
+        
+    async def compute(self, input) -> Dict[str, Any]:
         # Ensure input is on correct device
-        x = input_tensor.to(self.device)
+        x = input.to(self.device)
         
         # Flatten if needed (for MNIST)
         if x.dim() > 2:
@@ -49,4 +53,4 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if self.dropout is not None:
             x = self.dropout(x)
         
-        return {{"output_tensor": x}}
+        return {{"output": x}}

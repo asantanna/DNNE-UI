@@ -23,6 +23,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.criterion = nn.L1Loss()
     
     async def compute(self, predictions, labels) -> Dict[str, Any]:
+        # Ensure tensors are on the same device
+        labels = labels.to(predictions.device)
+        
         # Compute loss
         loss = self.criterion(predictions, labels)
         

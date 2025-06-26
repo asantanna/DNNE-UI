@@ -16,19 +16,21 @@ class NetworkNode(RoboticsNodeBase):
         return {
             "required": {
                 "input": ("TENSOR",),
-                "output": ("TENSOR",),  # Loop-back connection from last layer
+                "to_output": ("TENSOR",),  # Loop-back connection from last layer
             }
         }
 
-    RETURN_TYPES = ("TENSOR", "TENSOR")
-    RETURN_NAMES = ("layers", "network_output")
+    RETURN_TYPES = ("TENSOR", "TENSOR", "MODEL")
+    RETURN_NAMES = ("layers", "output", "model")
     FUNCTION = "forward"
     CATEGORY = "ml/networks"
 
-    def forward(self, input, output):
+    def forward(self, input, to_output):
         # This is just for UI - actual implementation happens in export
         # The network structure is defined by the connected layers
-        return (None, output)  # layers output is just for connectivity
+        # Return: (layers, output, model)
+        # The model output can be connected to SGD optimizer
+        return (None, to_output, self)  # layers output is just for connectivity, self represents the model
 
 
 class LinearLayerNode(RoboticsNodeBase):
