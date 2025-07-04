@@ -23,6 +23,17 @@ Vue.js-based frontend providing the visual graph editor interface (replaces orig
 
 ## Development Commands
 
+### Environment Setup
+The project requires a properly configured conda environment with PyTorch. To activate it:
+```bash
+conda activate DNNE_PY38
+```
+
+If the conda environment is not activated, you may encounter errors like:
+- `ModuleNotFoundError: No module named 'torch'`
+- Issues with CUDA/GPU detection
+- Missing dependencies that are installed in the conda environment
+
 ### Starting the Application
 ```bash
 python main.py
@@ -41,6 +52,14 @@ python test_generated_queue.py
 python test_camera_queue.py
 python test_multisensor_queue.py
 ```
+
+### Running Exported Scripts
+After exporting a workflow, run the generated script:
+```bash
+cd export_system/exports/{workflow_name}
+python runner.py
+```
+Note: Ensure the conda environment is activated before running exported scripts.
 
 ### Common Development Tasks
 - **Export workflows to Python**: Use the export system via the UI or programmatically through `export_system/graph_exporter.py`
@@ -81,7 +100,6 @@ The export system is the project's most sophisticated feature, converting visual
 - **Node Exporters** (`node_exporters/`): Handles code generation for specific node categories
 
 #### Export Patterns
-- **Standard Templates**: Generate synchronous code for training pipelines
 - **Queue Templates**: Generate async queue-based code for real-time robotics applications
 - **Training Runners**: Complete training loop implementations
 
@@ -89,12 +107,12 @@ The export system is the project's most sophisticated feature, converting visual
 The system has three main components:
 1. **Builder UI (DNNE-UI)**: Visual graph editor where users drag and drop nodes to create neural network architectures
 2. **Export System**: Converts the visual graph into standalone Python scripts
-3. **Runner**: The exported Python script that runs independently with NVIDIA Isaac Gym
+3. **Runner**: The exported Python script entry that runs independently with NVIDIA Isaac Gym
 
 ### Data Flow
 1. **Visual Design**: Users create workflows in the visual graph editor
 2. **Node Graph**: System represents workflows as connected node graphs
-3. **Code Generation**: Export system converts graphs to Python modules (saved to `export_system/exports/{workflow_name}/runner.py`)
+3. **Code Generation**: Export system converts graphs to Python modules (saved to `export_system/exports/{workflow_name}/runner.py and potentially other files in that directory`)
 4. **Execution**: Generated code runs independently on target platforms with async queue-based architecture
 
 ## Important Development Notes
@@ -102,10 +120,10 @@ The system has three main components:
 ### Node Implementation Patterns
 - All custom nodes inherit from base classes in their respective modules
 - Nodes must provide both UI execution and export template generation
-- Context is now implicit (global) - no explicit context connections needed
+- Context used by nodes is now implicit (global) - no explicit context connections needed
 
 ### Export System Guidelines
-- Each node type requires both a standard template and queue template
+- Each node type requires a queue template only (standard templates are obsoleted)
 - Templates use string formatting for parameter injection
 - Generated code follows queue-based reactive patterns for robotics applications
 - All exports include proper import management and error handling
@@ -119,8 +137,7 @@ The system has three main components:
 - Queue-based tests validate real-time execution patterns
 
 ### File Structure Conventions
-- Templates end with `_template.py` for standard execution
-- Queue variants end with `_queue.py` for async execution
+- Queue templates end with `_queue.py` for async execution
 - Node exporters mirror the custom_nodes directory structure
 - Generated code follows consistent naming and structure patterns
 
@@ -180,10 +197,33 @@ The export system generates clean, executable Python code that correctly impleme
 - Proper variable naming (e.g., `node_10` format)
 - Correct parameter processing in templates
 - Full template variable substitution during export
-- Exports save to `export_system/exports/{workflow_name}/runner.py`
+- Exports save to `export_system/exports/{workflow_name}/runner.py` and potentially other files in that directory
 
-### Current Capabilities
-- Basic export functionality via the "Export" button (renamed from "Run")
-- Complete node system with ML nodes (LinearLayer, MNISTDataset, Loss, etc.)
-- Template-based code generation with queue-based async execution
-- Support for complex workflows like MNIST training pipelines
+### Current Capabilities (As of June 2025)
+- **Fully Functional Export System**: Export functionality via "Export" button working correctly
+- **Complete ML Node System**: LinearLayer, MNISTDataset, BatchSampler, Network, SGDOptimizer, CrossEntropyLoss, TrainingStep, EpochTracker, GetBatch nodes all implemented
+- **Queue-Based Async Architecture**: All nodes use async queue-based execution for real-time performance
+- **Network Node Pattern**: Network nodes consolidate multiple LinearLayer nodes into sequential PyTorch models
+- **Training Progress Display**: EpochTracker and enhanced loss nodes provide comprehensive training statistics
+- **Slot Mapping Resolution**: Fixed ComfyUI slot corruption issue with JSON-based workaround
+- **Template System**: Complete template-based code generation with proper variable substitution
+- **MNIST Classification Pipeline**: Full working example achieving standard ML performance benchmarks
+
+### Recent Major Achievements (June 2025)
+1. **Slot Mapping Fix**: Resolved critical issue where ComfyUI pipeline corrupted all `to_slot` values to 0, implemented JSON-based workaround that reads original workflow to restore correct connections
+2. **Network Node Implementation**: Successfully implemented Network node pattern that consolidates multiple LinearLayer nodes into unified PyTorch Sequential models
+3. **Training Progress System**: Added EpochTracker, enhanced GetBatch and CrossEntropyLoss nodes to provide real-time training statistics and epoch summaries
+4. **MNIST Optimization**: Implemented and tested optimized MNIST training with proper learning rate (0.1), momentum (0.9), achieving expected training behavior
+5. **Device Compatibility**: Fixed GPU/CPU device mismatch issues in loss computation templates
+6. **Export Registration**: Completed node exporter registration system for all ML nodes
+
+### Export System Architecture Details
+- **Graph Exporter** (`graph_exporter.py`): Core export logic with slot corruption workaround via `_fix_corrupted_slots()` method
+- **Node Templates** (`templates/nodes/*_queue.py`): Queue-based templates for all node types
+- **Node Exporters** (`node_exporters/ml_nodes.py`): Handles parameter extraction and template variable preparation
+- **Queue Framework**: Complete async queue framework with SensorNode, QueueNode base classes and GraphRunner orchestration
+- **Connection System**: Robust connection mapping that survives ComfyUI pipeline processing
+
+## Workflow
+- **TODO.md** (`TODO.md`): Whenever you change your internal to-do list, update TODO.md also. This file is meant to be a permanent record of cumulative to-do items created and completed during the lifetime of the project. This file is divided into two sections.  The first has a header "OPEN TO-DO ITEMS" followed by open todo items only.  After a line separator, a header says "COMPLETED TO-DO ITEMS" followed by a listing of all the completed todo items.  Use a strike-through font on completed items.
+- **TASKS.md** (`TASKS.md`): This file is updated by the developers with high-level features and any other concerns to be addressed at a later time.
