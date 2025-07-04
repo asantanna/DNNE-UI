@@ -250,7 +250,7 @@ class GetBatchExporter(ExportableNode):
     
     @classmethod
     def get_output_names(cls):
-        return ["images", "labels", "epoch_complete"]
+        return ["images", "labels", "epoch_complete", "epoch_stats"]
     
     @classmethod
     def get_input_names(cls):
@@ -367,6 +367,37 @@ class TrainingStepExporter(ExportableNode):
     @classmethod
     def get_input_names(cls):
         return ["loss", "optimizer"]
+
+
+class EpochTrackerExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/epoch_tracker_queue.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
+        # Get max epochs from node parameters (default to 10)
+        max_epochs = 10
+        if "inputs" in node_data and "max_epochs" in node_data["inputs"]:
+            max_epochs = node_data["inputs"]["max_epochs"]
+        
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "EpochTrackerNode",
+            "MAX_EPOCHS": max_epochs
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return []
+    
+    @classmethod
+    def get_output_names(cls):
+        return ["training_summary"]
+    
+    @classmethod
+    def get_input_names(cls):
+        return ["epoch_stats", "loss", "accuracy", "max_epochs"]
 
 
 class NetworkExporter(ExportableNode):
@@ -548,6 +579,7 @@ def register_ml_exporters(exporter):
     exporter.register_node("GetBatch", GetBatchExporter)
     exporter.register_node("SGDOptimizer", SGDOptimizerExporter)
     exporter.register_node("TrainingStep", TrainingStepExporter)
+    exporter.register_node("EpochTracker", EpochTrackerExporter)
     exporter.register_node("BatchSampler", BatchSamplerExporter)
     exporter.register_node("CrossEntropyLoss", CrossEntropyLossExporter)
     exporter.register_node("Network", NetworkExporter)

@@ -10,7 +10,7 @@ from .layer_nodes import (
 )
 from .training_nodes import (
     CrossEntropyLossNode, AccuracyNode, 
-    SGDOptimizerNode, TrainingStepNode
+    SGDOptimizerNode, TrainingStepNode, EpochTrackerNode
 )
 from .control_nodes import CreateContextNode, SetModeNode
 from .visualization_nodes import TensorVisualizerNode
@@ -36,6 +36,7 @@ NODE_CLASS_MAPPINGS = {
     "Accuracy": AccuracyNode,
     "SGDOptimizer": SGDOptimizerNode,
     "TrainingStep": TrainingStepNode,
+    "EpochTracker": EpochTrackerNode,
 
     # Control nodes
     "CreateContext": CreateContextNode,
@@ -61,6 +62,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Accuracy": "Accuracy",
     "SGDOptimizer": "SGD Optimizer",
     "TrainingStep": "Training Step",
+    "EpochTracker": "Epoch Tracker",
     "CreateContext": "Create Context",
     "SetMode": "Set Mode",
     "TensorVisualizer": "Tensor Visualizer",

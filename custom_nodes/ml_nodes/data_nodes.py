@@ -115,27 +115,42 @@ class GetBatchNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("TENSOR", "TENSOR", "BOOLEAN")
-    RETURN_NAMES = ("images", "labels", "epoch_complete")
+    RETURN_TYPES = ("TENSOR", "TENSOR", "BOOLEAN", "DICT")
+    RETURN_NAMES = ("images", "labels", "epoch_complete", "epoch_stats")
     FUNCTION = "get_batch"
     CATEGORY = "ml/data"
 
     def get_batch(self, dataloader, schema):
         context = get_context()
         
-        # Get or create iterator in context
+        # Initialize tracking variables
         if "dataloader_iter" not in context.memory:
             context.memory["dataloader_iter"] = iter(dataloader)
             context.memory["epoch_complete"] = False
+            context.memory["current_epoch"] = 0
+            context.memory["batch_in_epoch"] = 0
+            context.memory["total_batches_per_epoch"] = len(dataloader)
 
         try:
             images, labels = next(context.memory["dataloader_iter"])
+            context.memory["batch_in_epoch"] += 1
             epoch_complete = False
         except StopIteration:
-            # Reset iterator for next epoch
+            # End of epoch
             context.memory["dataloader_iter"] = iter(dataloader)
             images, labels = next(context.memory["dataloader_iter"])
             epoch_complete = True
+            context.memory["current_epoch"] += 1
+            context.memory["batch_in_epoch"] = 1
             context.episode_count += 1
 
-        return (images, labels, epoch_complete)
+        # Create epoch stats
+        epoch_stats = {
+            "epoch": context.memory["current_epoch"],
+            "batch": context.memory["batch_in_epoch"],
+            "total_batches": context.memory["total_batches_per_epoch"],
+            "progress": context.memory["batch_in_epoch"] / context.memory["total_batches_per_epoch"],
+            "completed": epoch_complete
+        }
+
+        return (images, labels, epoch_complete, epoch_stats)

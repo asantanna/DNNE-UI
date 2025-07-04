@@ -204,7 +204,7 @@ class GraphExporter:
         self.logger.info(f"Registered node type: {node_type}")
     
     def export_workflow(self, workflow: Dict, output_path: Optional[Path] = None) -> str:
-        """Convert workflow JSON to queue-based Python script"""
+        """Convert workflow JSON to modular Python package"""
         nodes = workflow.get("nodes", [])
         links = workflow.get("links", [])
         metadata = workflow.get("metadata", {})
@@ -213,18 +213,21 @@ class GraphExporter:
         # ComfyUI pipeline corrupts all to_slot values to 0, so we restore them
         links = self._fix_corrupted_slots(links, metadata)
         
-        # Collect all imports
-        imports = {
-            "import asyncio",
-            "import time",
-            "import logging",
-            "from typing import Dict, Any, List, Optional",
-            "from abc import ABC, abstractmethod",
-            "from asyncio import Queue",
-            "",
-            "# Configure logging",
-            "logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(message)s')",
-        }
+        if output_path:
+            output_path = Path(output_path)
+            # For modular export, output_path should be a directory, not a file
+            if output_path.suffix == '.py':
+                output_path = output_path.parent
+        else:
+            # Default to a temporary directory if no path provided
+            from tempfile import mkdtemp
+            output_path = Path(mkdtemp())
+        
+        # Create package structure
+        framework_dir, nodes_dir = self._create_package_structure(output_path)
+        
+        # Export framework
+        self._export_framework(framework_dir)
         
         # First pass: identify nodes that are part of networks to skip individual layer processing
         network_consumed_nodes = set()
@@ -238,8 +241,8 @@ class GraphExporter:
                     for layer_info in consumed_layers:
                         network_consumed_nodes.add(layer_info["node_id"])
         
-        # Generate node implementations
-        node_implementations = []
+        # Track node information for __init__.py generation
+        node_classes = []
         node_instances = []
         
         for node in nodes:
@@ -264,10 +267,15 @@ class GraphExporter:
                 # Load and process template
                 template_content = self._load_template(template_name)
                 node_code = self._process_template(template_content, template_vars)
-                node_implementations.append(node_code)
                 
-                # Create instance with valid Python variable name
-                class_name = template_vars.get("CLASS_NAME", node_type + "Node")
+                # Get node-specific imports
+                node_imports = list(node_class.get_imports())
+                
+                # Export node to file and get class name
+                class_name = self._export_node_to_file(nodes_dir, node_id, node_type, node_code, node_imports)
+                node_classes.append((node_id, node_type, class_name))
+                
+                # Create instance
                 instance_name = f"node_{node_id}"
                 
                 # Check if node has custom instance code
@@ -276,43 +284,32 @@ class GraphExporter:
                     instance_code = node_class.get_instance_code(node_id, node, node_connections)
                     node_instances.append(instance_code)
                 else:
-                    node_instances.append(f'{instance_name} = {class_name}_{node_id}("{node_id}")')
+                    node_instances.append(f'{instance_name} = {class_name}("{node_id}")')
                 
-                # Add imports
-                imports.update(node_class.get_imports())
             else:
                 self.logger.warning(f"Unknown node type: {node_type}")
                 # Generate placeholder
                 placeholder_code = self._generate_placeholder_node(node_id, node_type)
-                node_implementations.append(placeholder_code)
-                node_instances.append(f'node_{node_id} = PlaceholderNode_{node_id}("{node_id}")')
+                class_name = f"PlaceholderNode_{node_id}"
+                
+                # Export placeholder to file
+                self._export_node_to_file(nodes_dir, node_id, node_type, placeholder_code, [])
+                node_classes.append((node_id, node_type, class_name))
+                node_instances.append(f'node_{node_id} = {class_name}("{node_id}")')
         
-        # Note: SGD optimizer references are now handled through UI connections
-        
-        # Load base framework template
-        base_framework = self._load_template("base/queue_framework.py")
+        # Generate nodes/__init__.py
+        self._generate_node_init(nodes_dir, node_classes)
         
         # Generate connections
         connections = self._generate_connections(links, nodes)
         
-        # Assemble final script
-        script = self._assemble_script(
-            sorted(list(imports)),
-            base_framework,
-            node_implementations,
-            node_instances,
-            connections,
-            metadata
-        )
+        # Generate minimal runner.py
+        self._generate_minimal_runner(output_path, node_instances, connections, metadata)
         
-        # Save if output path provided
-        if output_path:
-            output_path = Path(output_path)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_text(script, encoding='utf-8')
-            self.logger.info(f"Exported script to: {output_path}")
+        self.logger.info(f"Exported modular package to: {output_path}")
         
-        return script
+        # Return the path to the runner for backward compatibility
+        return str(output_path / "runner.py")
     
     def _fix_corrupted_slots(self, links: List, workflow_metadata: Dict = None) -> List:
         """WORKAROUND: Fix to_slot values corrupted by ComfyUI pipeline"""
@@ -684,3 +681,206 @@ class PlaceholderNode_{node_id}(QueueNode):
         ])
         
         return "\n".join(script_parts)
+    
+    def _create_package_structure(self, output_path: Path):
+        """Create the package directory structure"""
+        # Create main directories
+        output_path.mkdir(parents=True, exist_ok=True)
+        framework_dir = output_path / "framework"
+        framework_dir.mkdir(exist_ok=True)
+        nodes_dir = output_path / "nodes"
+        nodes_dir.mkdir(exist_ok=True)
+        
+        # Create __init__.py files
+        (output_path / "__init__.py").write_text("# DNNE Generated Package\n", encoding='utf-8')
+        (framework_dir / "__init__.py").write_text("from .base import QueueNode, SensorNode, GraphRunner\n", encoding='utf-8')
+        
+        return framework_dir, nodes_dir
+    
+    def _export_framework(self, framework_dir: Path):
+        """Export the queue framework to framework/base.py"""
+        base_framework = self._load_template("base/queue_framework.py")
+        
+        # Add proper module header
+        framework_content = [
+            '"""Queue-Based Node Framework"""',
+            "import asyncio",
+            "import time",
+            "import logging",
+            "from typing import Dict, Any, List, Optional",
+            "from abc import ABC, abstractmethod",
+            "from asyncio import Queue",
+            "",
+            base_framework
+        ]
+        
+        (framework_dir / "base.py").write_text("\n".join(framework_content), encoding='utf-8')
+    
+    def _export_node_to_file(self, nodes_dir: Path, node_id: str, node_type: str, 
+                            node_code: str, node_imports: List[str]) -> str:
+        """Export a single node to its own file and return the class name"""
+        # Generate filename based on node type and ID
+        node_type_snake = node_type.lower().replace(" ", "_")
+        filename = f"{node_type_snake}_{node_id}.py"
+        
+        # Extract class name from the node code
+        import re
+        class_match = re.search(r'class (\w+)\(', node_code)
+        if not class_match:
+            raise ValueError(f"Could not extract class name from node {node_id}")
+        class_name = class_match.group(1)
+        
+        # Prepare the file content
+        file_content = [
+            f'"""Node implementation for {node_type} (ID: {node_id})"""'
+        ]
+        
+        # Check if node code uses Dict, Any, asyncio, or time and add necessary imports
+        code_needs_dict_any = 'Dict[' in node_code or 'Any]' in node_code or '-> Dict' in node_code
+        code_needs_asyncio = 'asyncio.' in node_code or 'await asyncio' in node_code
+        code_needs_time = 'time.time()' in node_code or 'time.sleep' in node_code
+        
+        # Add standard imports first
+        if code_needs_asyncio:
+            file_content.append("import asyncio")
+        if code_needs_time:
+            file_content.append("import time")
+        if code_needs_dict_any:
+            file_content.append("from typing import Dict, Any")
+        
+        # Add node-specific imports
+        file_content.extend(node_imports)
+        file_content.append("from framework.base import QueueNode, SensorNode")
+        file_content.append("")
+        
+        # Add the node implementation (without template_vars section)
+        lines = node_code.split('\n')
+        skip_template_vars = False
+        brace_count = 0
+        
+        for line in lines:
+            if line.strip().startswith('template_vars = {'):
+                skip_template_vars = True
+                brace_count = 1
+                continue
+            elif skip_template_vars:
+                brace_count += line.count('{') - line.count('}')
+                if brace_count <= 0:
+                    skip_template_vars = False
+                continue
+            else:
+                file_content.append(line)
+        
+        # Write the file
+        (nodes_dir / filename).write_text("\n".join(file_content).strip() + "\n", encoding='utf-8')
+        
+        return class_name
+    
+    def _generate_node_init(self, nodes_dir: Path, node_classes: List[tuple]):
+        """Generate nodes/__init__.py with all node imports"""
+        init_content = ['"""DNNE Generated Nodes"""', ""]
+        
+        for node_id, node_type, class_name in node_classes:
+            node_type_snake = node_type.lower().replace(" ", "_")
+            filename = f"{node_type_snake}_{node_id}"
+            init_content.append(f"from .{filename} import {class_name}")
+        
+        init_content.extend([
+            "",
+            "__all__ = [",
+        ])
+        
+        for _, _, class_name in node_classes:
+            init_content.append(f'    "{class_name}",')
+        
+        init_content.append("]")
+        
+        (nodes_dir / "__init__.py").write_text("\n".join(init_content) + "\n", encoding='utf-8')
+    
+    def _generate_minimal_runner(self, output_path: Path, node_instances: List[str], 
+                               connections: List[str], metadata: Dict):
+        """Generate a minimal runner.py that imports and wires nodes"""
+        runner_content = [
+            "#!/usr/bin/env python3",
+            '"""',
+            "Generated by DNNE - Main Entry Point",
+            f"Metadata: {json.dumps(metadata, indent=2) if metadata else 'None'}",
+            '"""',
+            "",
+            "import sys",
+            "from pathlib import Path",
+            "",
+            "# Add current directory to Python path for imports",
+            "sys.path.insert(0, str(Path(__file__).parent))",
+            "",
+            "import asyncio",
+            "import logging",
+            "",
+            "# Configure logging",
+            "logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(message)s')",
+            "",
+            "from framework.base import GraphRunner",
+            "from nodes import *",
+            "",
+            "",
+            "async def main():",
+            '    """Main execution function"""',
+            '    print("🚀 Starting DNNE Queue-Based Execution")',
+            '    print("=" * 60)',
+            "",
+            "    # Create nodes",
+        ]
+        
+        # Add node instances
+        for instance in node_instances:
+            runner_content.append(f"    {instance}")
+        
+        runner_content.extend([
+            "",
+            "    # Create runner",
+            "    runner = GraphRunner()",
+            "",
+            "    # Add nodes to runner",
+        ])
+        
+        # Add nodes to runner
+        for instance in node_instances:
+            node_var = instance.split(" = ")[0].strip()
+            runner_content.append(f"    runner.add_node({node_var})")
+        
+        runner_content.extend([
+            "",
+            "    # Wire connections",
+            "    connections = [",
+        ])
+        
+        # Add connections
+        for conn in connections:
+            runner_content.append(f"        {conn},")
+        
+        runner_content.extend([
+            "    ]",
+            "    runner.wire_nodes(connections)",
+            "",
+            "    # Run the graph",
+            "    try:",
+            "        # Run indefinitely (Ctrl+C to stop)",
+            "        await runner.run()",
+            "        # Or run for specific duration:",
+            "        # await runner.run(duration=10.0)  # Run for 10 seconds",
+            "    except KeyboardInterrupt:",
+            "        print('\\n🛑 Stopped by user')",
+            "",
+            "    # Show final statistics",
+            "    print('\\n📊 Final Statistics:')",
+            "    stats = runner.get_stats()",
+            "    for node_id, node_stats in stats.items():",
+            "        print(f'  {node_id}: {node_stats[\"compute_count\"]} computations, '",
+            "              f'avg time: {node_stats[\"last_compute_time\"]:.3f}s')",
+            "",
+            "",
+            "if __name__ == '__main__':",
+            "    asyncio.run(main())",
+        ])
+        
+        (output_path / "runner.py").write_text("\n".join(runner_content), encoding='utf-8')

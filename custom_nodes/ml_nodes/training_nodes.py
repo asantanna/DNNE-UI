@@ -20,14 +20,21 @@ class CrossEntropyLossNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("TENSOR",)
-    RETURN_NAMES = ("loss",)
+    RETURN_TYPES = ("TENSOR", "FLOAT")
+    RETURN_NAMES = ("loss", "accuracy")
     FUNCTION = "compute_loss"
     CATEGORY = "ml/loss"
 
     def compute_loss(self, predictions, labels):
         loss = F.cross_entropy(predictions, labels)
-        return (loss,)
+        
+        # Calculate accuracy
+        _, predicted = torch.max(predictions, 1)
+        total = labels.size(0)
+        correct = (predicted == labels).sum().item()
+        accuracy = correct / total if total > 0 else 0.0
+        
+        return (loss, accuracy)
 
 
 class AccuracyNode(RoboticsNodeBase):
@@ -121,3 +128,29 @@ class TrainingStepNode(RoboticsNodeBase):
         
         # Training step complete
         return ()
+
+
+class EpochTrackerNode(RoboticsNodeBase):
+    """Track training progress across epochs"""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "epoch_stats": ("DICT",),
+                "loss": ("TENSOR",),
+                "accuracy": ("*",),
+            },
+            "optional": {
+                "max_epochs": ("INT", {"default": 10, "min": 1, "max": 1000}),
+            }
+        }
+
+    RETURN_TYPES = ("DICT",)
+    RETURN_NAMES = ("training_summary",)
+    FUNCTION = "track_progress"
+    CATEGORY = "ml/training"
+
+    def track_progress(self, epoch_stats, loss, accuracy, max_epochs=10):
+        # This is a placeholder for UI - actual logic is in the template
+        return ({"epoch": 0, "avg_loss": 0.0, "avg_accuracy": 0.0},)
