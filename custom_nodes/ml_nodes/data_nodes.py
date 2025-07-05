@@ -111,7 +111,8 @@ class GetBatchNode(RoboticsNodeBase):
         return {
             "required": {
                 "dataloader": ("DATALOADER",),
-                "schema": ("SCHEMA",)
+                "schema": ("SCHEMA",),
+                "trigger": ("SYNC",)
             }
         }
 
@@ -120,7 +121,7 @@ class GetBatchNode(RoboticsNodeBase):
     FUNCTION = "get_batch"
     CATEGORY = "ml/data"
 
-    def get_batch(self, dataloader, schema):
+    def get_batch(self, dataloader, schema, trigger):
         context = get_context()
         
         # Initialize tracking variables

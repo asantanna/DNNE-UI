@@ -12,15 +12,16 @@ class MNISTDatasetExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        params = node_data.get("inputs", {})
+        # ComfyUI workflow format uses widgets_values list, not inputs dict
+        widget_values = node_data.get("widgets_values", ["./data", True, True])
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "MNISTDatasetNode",
-            "DATA_PATH": params.get("data_path", "./data"),
-            "TRAIN": params.get("train", True),
-            "DOWNLOAD": params.get("download", True),
-            "BATCH_SIZE": params.get("batch_size", 32),
-            "EMIT_RATE": params.get("emit_rate", 10.0)  # Batches per second
+            "DATA_PATH": widget_values[0] if len(widget_values) > 0 else "./data",
+            "TRAIN": widget_values[1] if len(widget_values) > 1 else True,
+            "DOWNLOAD": widget_values[2] if len(widget_values) > 2 else True,
+            "BATCH_SIZE": 32,  # Fixed for MNIST
+            "EMIT_RATE": 10.0  # Batches per second
         }
     
     @classmethod
@@ -76,20 +77,17 @@ class LinearLayerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Extract values from inputs field (widget values are stored here)
-        inputs = node_data.get("inputs", {})
+        # ComfyUI workflow format uses widgets_values list
+        widget_values = node_data.get("widgets_values", [128, True, "relu", 0.0])
         
         # Query input size from connected source node
-        input_size = cls.query_input_tensor_size("input_tensor", connections, node_registry, all_nodes, all_links)
+        input_size = cls.query_input_tensor_size("input", connections, node_registry, all_nodes, all_links)
         
-        # LinearLayer widget values in inputs
-        if "output_size" not in inputs:
-            raise ValueError(f"LinearLayer node {node_id} missing required 'output_size' parameter in inputs: {inputs}")
-        
-        output_size = inputs["output_size"]   # User-set output size
-        bias_value = inputs.get("bias", True)    # User-set bias (boolean or string)
-        activation = inputs.get("activation", "none")    # User-set activation function
-        dropout = inputs.get("dropout", 0.0)       # User-set dropout rate
+        # LinearLayer widget values from widgets_values list
+        output_size = widget_values[0] if len(widget_values) > 0 else 128
+        bias_value = widget_values[1] if len(widget_values) > 1 else True
+        activation = widget_values[2] if len(widget_values) > 2 else "relu"
+        dropout = widget_values[3] if len(widget_values) > 3 else 0.0
         
         return {
             "NODE_ID": node_id,
@@ -115,16 +113,13 @@ class LinearLayerExporter(ExportableNode):
     
     @classmethod
     def get_input_names(cls):
-        return ["input_tensor"]
+        return ["input"]
     
     @classmethod
     def get_output_schema(cls, node_data):
-        # Get output size from inputs
-        inputs = node_data.get("inputs", {})
-        if "output_size" not in inputs:
-            raise ValueError(f"LinearLayer node missing required 'output_size' parameter in inputs")
-        
-        output_size = inputs["output_size"]
+        # Get output size from widgets_values (ComfyUI workflow format)
+        widget_values = node_data.get("widgets_values", [128, True, "relu", 0.0])
+        output_size = widget_values[0] if len(widget_values) > 0 else 128
         
         return {
             "outputs": {
@@ -254,7 +249,7 @@ class GetBatchExporter(ExportableNode):
     
     @classmethod
     def get_input_names(cls):
-        return ["dataloader", "schema"]
+        return ["dataloader", "schema", "trigger"]
     
     @classmethod
     def get_output_schema(cls, node_data):
@@ -287,12 +282,12 @@ class SGDOptimizerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Extract values from inputs field (widget values are stored here)
-        inputs = node_data.get("inputs", {})
+        # ComfyUI workflow format uses widgets_values list
+        widget_values = node_data.get("widgets_values", [0.01, 0.9])
         
-        # SGD Optimizer widget values in inputs
-        learning_rate = inputs.get("learning_rate", 0.01)  # User-set learning rate
-        momentum = inputs.get("momentum", 0.9)       # User-set momentum
+        # SGD Optimizer widget values from widgets_values list
+        learning_rate = widget_values[0] if len(widget_values) > 0 else 0.01
+        momentum = widget_values[1] if len(widget_values) > 1 else 0.9
         
         return {
             "NODE_ID": node_id,
@@ -358,11 +353,14 @@ class TrainingStepExporter(ExportableNode):
     
     @classmethod
     def get_imports(cls):
-        return []
+        return [
+            "import torch",
+            "import asyncio"
+        ]
     
     @classmethod
     def get_output_names(cls):
-        return ["step_complete"]
+        return ["ready", "step_complete"]
     
     @classmethod
     def get_input_names(cls):
@@ -454,7 +452,7 @@ class NetworkExporter(ExportableNode):
     
     @classmethod
     def get_input_names(cls):
-        return ["input", "to_output"]  # "to_output" is for loop-back connection
+        return ["input"]
     
     @classmethod
     def get_output_schema(cls, node_data):
@@ -494,17 +492,19 @@ class NetworkExporter(ExportableNode):
                     node_data = node
                     break
             
-            if not node_data or node_data.get("class_type") != "LinearLayer":
+            # Check both class_type and type for LinearLayer
+            node_type = node_data.get("class_type") or node_data.get("type")
+            if not node_data or node_type != "LinearLayer":
                 break
             
-            # Extract layer information
-            inputs = node_data.get("inputs", {})
+            # Extract layer information from widgets_values (ComfyUI workflow format)
+            widget_values = node_data.get("widgets_values", [128, True, "relu", 0.0])
             layer_info = {
                 "node_id": current_node,
-                "output_size": inputs.get("output_size", 128),
-                "bias": inputs.get("bias", True),
-                "activation": inputs.get("activation", "none"),
-                "dropout": inputs.get("dropout", 0.0)
+                "output_size": widget_values[0] if len(widget_values) > 0 else 128,
+                "bias": widget_values[1] if len(widget_values) > 1 else True,
+                "activation": widget_values[2] if len(widget_values) > 2 else "none",
+                "dropout": widget_values[3] if len(widget_values) > 3 else 0.0
             }
             layers.append(layer_info)
             
@@ -541,15 +541,15 @@ class BatchSamplerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Extract values from inputs field (widget values are stored here)
-        inputs = node_data.get("inputs", {})
+        # ComfyUI workflow format uses widgets_values list
+        widget_values = node_data.get("widgets_values", [32, True, 42, "randomize"])
         
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "BatchSamplerNode",
-            "BATCH_SIZE": inputs.get("batch_size", 32),
-            "SHUFFLE": inputs.get("shuffle", True),
-            "SEED": inputs.get("seed", 42)
+            "BATCH_SIZE": widget_values[0] if len(widget_values) > 0 else 32,
+            "SHUFFLE": widget_values[1] if len(widget_values) > 1 else True,
+            "SEED": widget_values[2] if len(widget_values) > 2 else 42
         }
     
     @classmethod
@@ -566,6 +566,24 @@ class BatchSamplerExporter(ExportableNode):
     @classmethod
     def get_input_names(cls):
         return ["dataset", "schema"]
+    
+    @classmethod
+    def get_output_schema(cls, node_data):
+        """BatchSampler passes through dataset schema but wraps data in DataLoader"""
+        return {
+            "outputs": {
+                "dataloader": {
+                    "type": "dataloader",
+                    "batch_size": node_data.get("inputs", {}).get("batch_size", 32),
+                    "shuffle": node_data.get("inputs", {}).get("shuffle", True),
+                    "contains_schema": True  # Indicates this contains schema information
+                },
+                "schema": {
+                    "type": "schema",
+                    "description": "Dataset schema passed through from input"
+                }
+            }
+        }
     
 
 # Registration function

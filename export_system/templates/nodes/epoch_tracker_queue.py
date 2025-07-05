@@ -27,14 +27,14 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             avg_loss = sum(self.epoch_losses) / len(self.epoch_losses)
             avg_accuracy = sum(self.epoch_accuracies) / len(self.epoch_accuracies)
             
-            # Display epoch summary
+            # Display epoch summary (always show, regardless of verbose mode)
             epoch_num = epoch_stats["epoch"]
-            self.logger.info("=" * 60)
-            self.logger.info(f"📊 EPOCH {epoch_num} COMPLETE")
-            self.logger.info(f"   Batches: {len(self.epoch_losses)}")
-            self.logger.info(f"   Avg Loss: {avg_loss:.4f}")
-            self.logger.info(f"   Avg Accuracy: {avg_accuracy:.2%}")
-            self.logger.info("=" * 60)
+            print("=" * 60)
+            print(f"📊 EPOCH {epoch_num} COMPLETE")
+            print(f"   Batches: {len(self.epoch_losses)}")
+            print(f"   Avg Loss: {avg_loss:.4f}")
+            print(f"   Avg Accuracy: {avg_accuracy:.2%}")
+            print("=" * 60)
             
             # Reset for next epoch
             summary = {
@@ -51,14 +51,16 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             
             # Check if training should stop
             if self.current_epoch >= self.total_epochs:
-                self.logger.info(f"🎯 TRAINING COMPLETE! Reached {self.total_epochs} epochs")
+                print(f"🎯 TRAINING COMPLETE! Reached {self.total_epochs} epochs")
                 summary["training_complete"] = True
             
             return {"training_summary": summary}
         else:
-            # Show batch progress
-            progress = epoch_stats.get("progress", 0)
-            if self.batch_count % 10 == 0:  # Show progress every 10 batches
-                self.logger.info(f"Epoch {epoch_stats['epoch']} - Batch {epoch_stats['batch']}/{epoch_stats['total_batches']} ({progress:.1%}) - Loss: {self.epoch_losses[-1]:.4f}, Acc: {self.epoch_accuracies[-1]:.2%}")
+            # Show batch progress only in verbose mode
+            import builtins
+            if hasattr(builtins, 'VERBOSE') and builtins.VERBOSE:
+                progress = epoch_stats.get("progress", 0)
+                if self.batch_count % 10 == 0:  # Show progress every 10 batches
+                    self.logger.info(f"Epoch {epoch_stats['epoch']} - Batch {epoch_stats['batch']}/{epoch_stats['total_batches']} ({progress:.1%}) - Loss: {self.epoch_losses[-1]:.4f}, Acc: {self.epoch_accuracies[-1]:.2%}")
             
             return {"training_summary": None}

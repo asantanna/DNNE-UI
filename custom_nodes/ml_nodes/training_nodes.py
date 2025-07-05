@@ -110,7 +110,8 @@ class TrainingStepNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ()
+    RETURN_TYPES = ("SYNC",)
+    RETURN_NAMES = ("ready",)
     FUNCTION = "training_step"
     CATEGORY = "ml/training"
 
@@ -126,8 +127,16 @@ class TrainingStepNode(RoboticsNodeBase):
         # Update weights
         optimizer.step()
         
-        # Training step complete
-        return ()
+        # Create ready signal for synchronization
+        import time
+        ready_signal = {
+            "signal_type": "ready",
+            "timestamp": time.time(),
+            "source_node": "training_step",
+            "metadata": {"phase": "training_complete"}
+        }
+        
+        return (ready_signal,)
 
 
 class EpochTrackerNode(RoboticsNodeBase):

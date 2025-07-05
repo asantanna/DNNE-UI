@@ -24,7 +24,10 @@ class LossNode_{NODE_ID}(QueueNode):
         total = labels.size(0)
         accuracy = correct / total if total > 0 else 0.0
         
-        self.logger.info(f"Loss: {loss.item():.4f}, Accuracy: {accuracy:.2%}")
+        # Only log in verbose mode - EpochTracker will show summaries
+        import builtins
+        if hasattr(builtins, 'VERBOSE') and builtins.VERBOSE:
+            self.logger.info(f"Loss: {loss.item():.4f}, Accuracy: {accuracy:.2%}")
         
         return {
             "loss": loss,

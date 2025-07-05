@@ -64,7 +64,7 @@ class NetworkNode_{NODE_ID}(QueueNode):
         
         # Flatten if needed (for MNIST)
         if x.dim() > 2:
-            x = x.view(x.size(0), -1)
+            x = x.reshape(x.size(0), -1)
         
         # Forward pass through the entire network
         output = self.network(x)

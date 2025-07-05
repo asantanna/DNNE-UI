@@ -95,7 +95,7 @@ class ExportableNode:
         for node in all_nodes:
             if str(node["id"]) == source_node_id:
                 source_node_data = node
-                source_node_type = node["class_type"]
+                source_node_type = node.get("class_type") or node.get("type")
                 break
                 
         if not source_node_data:
@@ -145,7 +145,7 @@ class ExportableNode:
             if not upstream_node_data:
                 raise ValueError(f"Cannot find upstream node {upstream_node_id} for pass-through query")
             
-            upstream_node_type = upstream_node_data["class_type"]
+            upstream_node_type = upstream_node_data.get("class_type") or upstream_node_data.get("type")
             upstream_node_class = node_registry.get(upstream_node_type)
             
             if not upstream_node_class:
@@ -198,6 +198,10 @@ class GraphExporter:
         self.node_registry = {}  # Maps node types to exportable classes
         self.logger = logging.getLogger(__name__)
         
+        # Register all available node exporters
+        from .node_exporters import register_all_exporters
+        register_all_exporters(self)
+        
     def register_node(self, node_type: str, node_class: type):
         """Register an exportable node type"""
         self.node_registry[node_type] = node_class
@@ -232,7 +236,9 @@ class GraphExporter:
         # First pass: identify nodes that are part of networks to skip individual layer processing
         network_consumed_nodes = set()
         for node in nodes:
-            if node["class_type"] == "Network":
+            # Handle both ComfyUI formats: "type" and "class_type"
+            node_type = node.get("class_type") or node.get("type")
+            if node_type == "Network":
                 network_id = str(node["id"])
                 # Find which layer nodes this network consumes
                 network_class = self.node_registry.get("Network")
@@ -247,7 +253,7 @@ class GraphExporter:
         
         for node in nodes:
             node_id = str(node["id"])
-            node_type = node["class_type"]
+            node_type = node.get("class_type") or node.get("type")
             
             # Skip individual layer nodes that are consumed by Network nodes
             if node_id in network_consumed_nodes and node_type == "LinearLayer":
@@ -446,7 +452,7 @@ class GraphExporter:
         for node in nodes:
             if str(node["id"]) == node_id:
                 node_data = node
-                node_type = node["class_type"]
+                node_type = node.get("class_type") or node.get("type")
                 break
         
         node_class = self.node_registry.get(node_type) if node_type else None
@@ -495,7 +501,7 @@ class GraphExporter:
         # First, identify which nodes are being skipped (consumed by networks)
         network_consumed_nodes = set()
         for node in nodes:
-            if node["class_type"] == "Network":
+            if (node.get("class_type") or node.get("type")) == "Network":
                 network_id = str(node["id"])
                 network_class = self.node_registry.get("Network")
                 if network_class:
@@ -507,7 +513,7 @@ class GraphExporter:
         node_info = {}
         for node in nodes:
             node_id = str(node["id"])
-            node_type = node["class_type"]
+            node_type = node.get("class_type") or node.get("type")
             node_class = self.node_registry.get(node_type)
             node_info[node_id] = {
                 "type": node_type,
@@ -808,6 +814,7 @@ class PlaceholderNode_{node_id}(QueueNode):
             '"""',
             "",
             "import sys",
+            "import argparse",
             "from pathlib import Path",
             "",
             "# Add current directory to Python path for imports",
@@ -816,16 +823,35 @@ class PlaceholderNode_{node_id}(QueueNode):
             "import asyncio",
             "import logging",
             "",
-            "# Configure logging",
-            "logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(message)s')",
-            "",
             "from framework.base import GraphRunner",
             "from nodes import *",
             "",
+            "def configure_logging(verbose=False):",
+            '    """Configure logging based on verbose flag"""',
+            "    if verbose:",
+            "        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(message)s')",
+            "    else:",
+            "        # Only show WARNING and above for quiet mode",
+            "        logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(name)s - %(message)s')",
             "",
             "async def main():",
             '    """Main execution function"""',
+            "    # Parse command line arguments",
+            "    parser = argparse.ArgumentParser(description='DNNE Generated Training')",
+            "    parser.add_argument('--verbose', '-v', action='store_true',",
+            "                       help='Enable verbose batch-level logging')",
+            "    args = parser.parse_args()",
+            "",
+            "    # Set global verbose flag for nodes to access",
+            "    import builtins",
+            "    builtins.VERBOSE = args.verbose",
+            "    configure_logging(args.verbose)",
+            "",
             '    print("🚀 Starting DNNE Queue-Based Execution")',
+            "    if args.verbose:",
+            '        print("📝 Verbose mode enabled - showing all batch details")',
+            "    else:",
+            '        print("📊 Quiet mode - showing epoch summaries only")',
             '    print("=" * 60)',
             "",
             "    # Create nodes",

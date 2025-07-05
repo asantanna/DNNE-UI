@@ -43,6 +43,12 @@ This file contains larger features, system improvements, and architectural consi
    - ONNX export capabilities
    - Model versioning system
 
+3. **GetBatch Rate Limiting Widget**:
+   - Add optional rate limiting widget to GetBatch node
+   - Default setting: "off" (no rate limiting)
+   - Allow users to set specific Hz for robotics applications
+   - Widget should be clearly labeled as "for robotics timing only"
+
 ## System Maintenance
 
 ### Export System Health

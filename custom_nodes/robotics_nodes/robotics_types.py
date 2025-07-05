@@ -17,7 +17,7 @@ ROBOTICS_TYPES = {
     "ACTION": "ACTION",
     "CONTEXT": "CONTEXT",
     "SIM_HANDLE": "SIM_HANDLE",  # For Isaac Gym integration
-    "CONTEXT": "CONTEXT",  # Stub for backwards compatibility
+    "SYNC": "SYNC",  # For node synchronization and training coordination
 }
 
 # ML-specific types
@@ -211,6 +211,21 @@ class SimHandle:
     def is_valid(self) -> bool:
         return self.sim is not None
 
+@dataclass
+class SyncSignal:
+    """Synchronization signal for coordinating node execution"""
+    signal_type: str  # "start", "ready", "complete", "epoch_complete", etc.
+    timestamp: float
+    source_node: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def is_completion_signal(self) -> bool:
+        """Check if this is a completion/ready signal"""
+        return self.signal_type in ["ready", "complete", "epoch_complete"]
+    
+    def __repr__(self) -> str:
+        return f"SyncSignal({self.signal_type}, {self.source_node})"
+
 # Type validation functions for ComfyUI integration
 def validate_tensor_connection(output_type: str, input_type: str) -> bool:
     """Check if tensor types are compatible for connection"""
@@ -229,6 +244,7 @@ def validate_tensor_connection(output_type: str, input_type: str) -> bool:
         ("ACTION", "TENSOR"),
         ("TENSOR", "ACTION"),
         ("TENSOR", "ROBOT_STATE"),
+        ("SYNC", "SYNC"),  # SYNC can only connect to SYNC
     }
     
     return (output_type, input_type) in allowed_conversions

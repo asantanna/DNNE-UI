@@ -1,11 +1,11 @@
 # Template variables - replaced during export
 
-class GetBatchNode_{NODE_ID}(SensorNode):
-    """Get batch from dataloader at fixed rate"""
+class GetBatchNode_{NODE_ID}(QueueNode):
+    """Get batch from dataloader as fast as possible"""
     
     def __init__(self, node_id: str):
-        super().__init__(node_id, update_rate=10.0)  # 10 batches per second
-        self.setup_inputs(required=["dataloader", "schema"])
+        super().__init__(node_id)
+        self.setup_inputs(required=["dataloader", "schema", "trigger"])
         self.setup_outputs(["images", "labels", "epoch_complete", "epoch_stats"])
         self.dataloader = None
         self.schema = None
@@ -15,7 +15,7 @@ class GetBatchNode_{NODE_ID}(SensorNode):
         self.total_batches_per_epoch = 0
         
     async def run(self):
-        """Override run to wait for dataloader and schema first"""
+        """Override run to wait for dataloader, schema, and triggers"""
         self.running = True
         self.logger.info(f"Starting node {self.node_id}")
         
@@ -31,10 +31,19 @@ class GetBatchNode_{NODE_ID}(SensorNode):
                 img_info = self.schema["outputs"]["images"]
                 self.logger.info(f"Received dataloader with image shape: {img_info.get('shape')}, flattened_size: {img_info.get('flattened_size')}")
             
-            self.logger.info(f"Received dataloader with {self.total_batches_per_epoch} batches per epoch, starting batch generation")
+            self.logger.info(f"Received dataloader with {self.total_batches_per_epoch} batches per epoch, waiting for trigger signals")
             
-            # Now run the sensor loop
-            await super().run()
+            # Wait for trigger signals before generating batches
+            while self.running:
+                # Wait for trigger signal
+                trigger_signal = await self.input_queues["trigger"].get()
+                self.logger.info(f"Received trigger signal: {trigger_signal.get('signal_type', 'unknown')}")
+                
+                # Generate batch when triggered
+                outputs = await self.compute()
+                if outputs:
+                    for output_name, value in outputs.items():
+                        await self.send_output(output_name, value)
             
         except asyncio.CancelledError:
             self.logger.info(f"Node {self.node_id} cancelled")

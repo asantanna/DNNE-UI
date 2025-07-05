@@ -2,6 +2,7 @@ import os
 import sys
 import asyncio
 import traceback
+from pathlib import Path
 
 import nodes
 import folder_paths
@@ -714,20 +715,20 @@ class PromptServer():
                                 ])
                                 link_id += 1
                     
-                    # Export the workflow
-                    script = exporter.export_workflow(workflow)
-                    
                     # Create export directory structure
                     export_base_dir = os.path.join("export_system", "exports")
                     workflow_export_dir = os.path.join(export_base_dir, safe_name)
+                    workflow_export_path = Path(workflow_export_dir)
                     
                     # Create directories
                     os.makedirs(workflow_export_dir, exist_ok=True)
                     
-                    # Save the main runner script
-                    runner_path = os.path.join(workflow_export_dir, "runner.py")
-                    with open(runner_path, "w", encoding="utf-8") as f:
-                        f.write(script)
+                    # Export the workflow to the target directory
+                    exported_runner_path = exporter.export_workflow(workflow, workflow_export_path)
+                    
+                    # Verify the export was successful
+                    if not os.path.exists(exported_runner_path):
+                        raise Exception(f"Export failed: runner.py not found at {exported_runner_path}")
                     
                     logging.info(f"Export saved to: {workflow_export_dir}")
                     

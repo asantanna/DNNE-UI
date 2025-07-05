@@ -10,13 +10,13 @@ For larger features and architectural considerations not currently being worked 
 ## OPEN TO-DO ITEMS
 
 ### High Priority
-1. **Performance Optimization**: Current MNIST training takes ~3+ minutes per epoch (1875 batches at 10Hz). Consider:
-   - Increasing batch processing rate for training scenarios
-   - Adding configurable update rates per node type
-   - Implementing batch size optimization recommendations
+1. **Test SYNC-based synchronized training loop**: Verify that the new SYNC type and training synchronization fixes the tensor gradient computation error:
+   - Test the updated MNIST workflow with TrainingStep.ready → GetBatch.trigger connection
+   - Confirm no "tensor modified by inplace operation" errors
+   - Validate performance maintains reasonable training speed
 
 2. **Training Validation**: Complete full MNIST training runs to validate 90%+ accuracy achievement:
-   - Run full 5-epoch training cycles
+   - Run full 5-epoch training cycles  
    - Compare against standard PyTorch MNIST benchmarks
    - Document performance characteristics
 
@@ -92,3 +92,8 @@ For larger features and architectural considerations not currently being worked 
 - ~~Variable naming issues (node_10 vs 10_node format)~~
 - ~~Bias parameter processing in LinearLayer templates~~
 - ~~Abstract method implementations in optimizer templates~~
+- ~~**SYNC Data Type Implementation**: Created SYNC type for node synchronization and training coordination~~
+- ~~**Training Loop Synchronization**: Implemented TrainingStep.ready → GetBatch.trigger synchronization to fix tensor gradient computation errors~~
+- ~~**Queue-Based SYNC Signals**: Modified templates to send/receive SYNC signals for proper training sequence control~~
+- ~~**UI Node Updates**: Added SYNC inputs/outputs to TrainingStep and GetBatch node definitions~~
+- ~~**Export System Updates**: Updated node exporters to handle new SYNC-based inputs and outputs~~
