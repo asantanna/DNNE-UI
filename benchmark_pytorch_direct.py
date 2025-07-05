@@ -128,7 +128,6 @@ def main():
         epoch_accuracy = 100. * correct / total
         current_lr = optimizer.param_groups[0]['lr']
         
-        print("=" * 60)
         print(f"📊 EPOCH {epoch} COMPLETE")
         print(f"   Time: {epoch_time:.2f}s")
         print(f"   Batches: {len(train_loader)}")
