@@ -5,7 +5,7 @@ Debug version of MNIST runner with enhanced logging
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path("export_system/exports/MNIST-Test")))
+sys.path.insert(0, str(Path("../export_system/exports/MNIST-Test")))
 
 import asyncio
 import logging

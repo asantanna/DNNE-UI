@@ -16,6 +16,7 @@ Contains the main DNNE-UI backend with:
 - `server.py` - Modified ComfyUI server that handles export functionality
 - `custom_nodes/` - Node implementations for ML and robotics
 - `export_system/` - Export system that converts visual graphs to Python code
+- `claude_scripts/` - Claude-created utility and test scripts for development
 
 #### Frontend Repository
 **GitHub**: https://github.com/asantanna/DNNE-UI-Frontend.git
@@ -50,9 +51,10 @@ pip install -r requirements.txt
 ```bash
 python export_system/test_export.py
 python export_system/test_exporter_linear.py
-python test_generated_queue.py
-python test_camera_queue.py
-python test_multisensor_queue.py
+python claude_scripts/test_modular_export.py
+python claude_scripts/test_modular_run.py
+python claude_scripts/debug_runner.py
+python claude_scripts/benchmark_pytorch_direct.py
 ```
 
 ### Running Exported Scripts
@@ -67,7 +69,8 @@ Note: Ensure the conda environment is activated before running exported scripts.
 - **Export workflows to Python**: Use the export system via the UI or programmatically through `export_system/graph_exporter.py`
 - **Add new node types**: Implement in `custom_nodes/ml_nodes/` or `custom_nodes/robotics_nodes/`
 - **Test node templates**: Use the test files in `export_system/`
-- **Debug execution**: Use `test_debug.py` for troubleshooting
+- **Debug execution**: Use scripts in `claude_scripts/` for troubleshooting and testing
+- **Benchmark performance**: Use `claude_scripts/benchmark_pytorch_direct.py` for performance comparisons
 
 ## Architecture Overview
 

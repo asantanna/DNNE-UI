@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 # Add the export directory to Python path
-export_dir = Path("export_system/exports/MNIST-Test")
+export_dir = Path("../export_system/exports/MNIST-Test")
 sys.path.insert(0, str(export_dir))
 
 # Now we can import and run

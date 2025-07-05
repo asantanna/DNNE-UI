@@ -8,8 +8,8 @@ from pathlib import Path
 import sys
 import os
 
-# Add export_system to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add project root to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from export_system.graph_exporter import GraphExporter
 from export_system.node_exporters import register_all_exporters
