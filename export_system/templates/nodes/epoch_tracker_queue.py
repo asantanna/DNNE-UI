@@ -29,8 +29,7 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             
             # Display epoch summary (always show, regardless of verbose mode)
             epoch_num = epoch_stats["epoch"]
-            print("=" * 60)
-            print(f"📊 EPOCH {epoch_num} COMPLETE")
+            print(f"📊 EPOCH {epoch_num}/{self.total_epochs} COMPLETE")
             print(f"   Batches: {len(self.epoch_losses)}")
             print(f"   Avg Loss: {avg_loss:.4f}")
             print(f"   Avg Accuracy: {avg_accuracy:.2%}")
