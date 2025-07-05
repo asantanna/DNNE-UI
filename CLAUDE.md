@@ -26,8 +26,10 @@ Vue.js-based frontend providing the visual graph editor interface (replaces orig
 ### Environment Setup
 The project requires a properly configured conda environment with PyTorch. To activate it:
 ```bash
-conda activate DNNE_PY38
+source /home/asantanna/miniconda/bin/activate DNNE_PY38
 ```
+
+**Note**: The standard `conda activate DNNE_PY38` command may not work in all shell contexts. Use the full path activation method above for reliable environment activation.
 
 If the conda environment is not activated, you may encounter errors like:
 - `ModuleNotFoundError: No module named 'torch'`
