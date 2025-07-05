@@ -374,15 +374,22 @@ class EpochTrackerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Get max epochs from node parameters (default to 10)
-        max_epochs = 10
-        if "inputs" in node_data and "max_epochs" in node_data["inputs"]:
-            max_epochs = node_data["inputs"]["max_epochs"]
+        # Get max epochs from widget_values (ComfyUI workflow format)
+        widget_values = node_data.get("widgets_values")
+        if not widget_values:
+            raise ValueError(f"EpochTracker node {node_id}: missing widgets_values in node_data: {node_data}")
+        
+        if len(widget_values) < 1:
+            raise ValueError(f"EpochTracker node {node_id}: widgets_values too short, expected at least 1 value, got: {widget_values}")
+        
+        max_epochs = widget_values[0]
+        if not isinstance(max_epochs, (int, float)) or max_epochs <= 0:
+            raise ValueError(f"EpochTracker node {node_id}: max_epochs must be a positive number, got: {max_epochs}")
         
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "EpochTrackerNode",
-            "MAX_EPOCHS": max_epochs
+            "MAX_EPOCHS": int(max_epochs)
         }
     
     @classmethod

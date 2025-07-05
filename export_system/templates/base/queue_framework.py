@@ -145,8 +145,8 @@ class GraphRunner:
                 await asyncio.sleep(duration)
                 self.logger.info(f"Stopping after {duration}s")
             else:
-                # Run until cancelled
-                await asyncio.gather(*self.tasks)
+                # Run until cancelled or training completes
+                await self._run_until_completion()
         except KeyboardInterrupt:
             self.logger.info("Interrupted by user")
         finally:
@@ -157,6 +157,51 @@ class GraphRunner:
             # Wait for cancellation
             await asyncio.gather(*self.tasks, return_exceptions=True)
             self.logger.info("All nodes stopped")
+    
+    async def _run_until_completion(self):
+        """Run until training completion or cancellation"""
+        epoch_tracker = None
+        for node in self.nodes.values():
+            if "EpochTracker" in node.__class__.__name__:
+                epoch_tracker = node
+                break
+        
+        if not epoch_tracker:
+            # No epoch tracker, run indefinitely
+            await asyncio.gather(*self.tasks)
+            return
+        
+        # Create a completion monitoring task
+        completion_task = asyncio.create_task(self._monitor_completion(epoch_tracker))
+        all_tasks = self.tasks + [completion_task]
+        
+        try:
+            # Wait for either completion or all tasks to finish
+            done, pending = await asyncio.wait(all_tasks, return_when=asyncio.FIRST_COMPLETED)
+            
+            if completion_task in done:
+                self.logger.info("Training completed - stopping execution")
+            else:
+                self.logger.info("Training tasks completed")
+                
+        except Exception as e:
+            self.logger.error(f"Error during execution: {e}")
+        finally:
+            # Cancel any remaining tasks
+            for task in all_tasks:
+                if not task.done():
+                    task.cancel()
+    
+    async def _monitor_completion(self, epoch_tracker):
+        """Monitor epoch tracker for completion signal"""
+        while True:
+            await asyncio.sleep(1.0)  # Check every second
+            
+            # Check if epoch tracker has signaled completion
+            if hasattr(epoch_tracker, 'current_epoch') and hasattr(epoch_tracker, 'total_epochs'):
+                if epoch_tracker.current_epoch >= epoch_tracker.total_epochs:
+                    self.logger.info(f"Training completion detected: {epoch_tracker.current_epoch}/{epoch_tracker.total_epochs}")
+                    return
     
     def get_stats(self) -> Dict[str, Dict[str, Any]]:
         """Get execution statistics"""
