@@ -11,7 +11,7 @@ The primary innovation is the **export system** that converts visual node graphs
 
 ### Repository Structure
 
-## Code Locations
+#### Code Locations
 - Backend code is checked out to: `/mnt/e/ALS-Projects/DNNE/DNNE-UI`
 - Front end code is checked out to: `/mnt/e/ALS-Projects/DNNE/DNNE-UI-Frontend`
 
