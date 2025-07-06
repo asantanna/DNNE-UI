@@ -41,6 +41,14 @@ If the conda environment is not activated, you may encounter errors like:
 - Issues with CUDA/GPU detection
 - Missing dependencies that are installed in the conda environment
 
+### Isaac Gym Integration
+IsaacGym and IsaacGymEnvs are installed and verified working:
+- **IsaacGym**: `~/isaacgym` - Core physics simulation library
+- **IsaacGymEnvs**: `~/IsaacGymEnvs` - Pre-built reinforcement learning environments
+- **Import Order**: Always import `isaacgym` before `torch` to avoid conflicts
+- **GPU Support**: Verified working with CUDA and GPU PhysX acceleration
+- **Environment Testing**: Cartpole and other environments tested successfully
+
 ### Starting the Application
 ```bash
 python main.py
@@ -166,7 +174,8 @@ The project recently underwent a context removal migration:
 - **Python**: 3.10+ with async/await support
 
 ### Target Runtime
-- **NVIDIA Isaac Gym**: Primary target for robotics simulation
+- **NVIDIA Isaac Gym**: Primary target for robotics simulation (installed at `~/isaacgym`)
+- **IsaacGymEnvs**: Reinforcement learning environments (installed at `~/IsaacGymEnvs`)
 - **WSL2**: Development environment support
 - **GPU Cloud Providers**: Lambda and similar platforms
 
