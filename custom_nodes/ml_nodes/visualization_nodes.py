@@ -4,10 +4,23 @@ Visualization nodes for tensors and training metrics
 
 import torch
 import numpy as np
-import matplotlib.pyplot as plt
 import io
-from PIL import Image
 from .base import RoboticsNodeBase
+
+# Optional imports for visualization
+try:
+    import matplotlib.pyplot as plt
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    plt = None
+    MATPLOTLIB_AVAILABLE = False
+
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    Image = None
+    PIL_AVAILABLE = False
 
 
 class TensorVisualizerNode(RoboticsNodeBase):
@@ -29,6 +42,10 @@ class TensorVisualizerNode(RoboticsNodeBase):
     OUTPUT_NODE = True
 
     def visualize(self, tensor, title):
+        if not MATPLOTLIB_AVAILABLE:
+            print(f"Visualization skipped: matplotlib not available. Title: {title}")
+            return (f"Visualization unavailable: {title}",)
+            
         # Convert tensor to numpy
         if isinstance(tensor, torch.Tensor):
             data = tensor.detach().cpu().numpy()

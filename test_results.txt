@@ -1,0 +1,488 @@
+============================= test session starts ==============================
+platform linux -- Python 3.8.20, pytest-8.3.5, pluggy-1.5.0 -- /home/asantanna/miniconda/envs/DNNE_PY38/bin/python
+cachedir: .pytest_cache
+benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: /mnt/e/ALS-Projects/DNNE/DNNE-UI
+configfile: pytest.ini
+plugins: hydra-core-1.3.2, asyncio-0.24.0, benchmark-4.0.0, cov-5.0.0, mock-3.14.1, sugar-1.0.0, clarity-1.0.1, xdist-3.6.1
+asyncio: mode=strict, default_loop_scope=function
+collecting ... Initializing DNNE Robotics Nodes...
+Registered custom types: ['TENSOR', 'ROBOT_STATE', 'SENSOR_DATA', 'ACTION', 'CONTEXT', 'SIM_HANDLE', 'SYNC', 'DATASET', 'DATALOADER', 'OPTIMIZER', 'IMAGE', 'SCHEMA']
+Loaded 6 robotics nodes
+collected 163 items
+
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTWorkflowLoading::test_load_mnist_workflow_file FAILED
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTWorkflowLoading::test_minimal_training_workflow_structure PASSED
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTWorkflowExport::test_minimal_mnist_export PASSED
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTWorkflowExport::test_full_mnist_workflow_export PASSED
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTWorkflowExport::test_export_consistency PASSED
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTCodeExecution::test_exported_code_syntax_validation PASSED
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTCodeExecution::test_exported_mnist_execution SKIPPED
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTCodeExecution::test_import_resolution_in_exported_code Import OK: import sys
+Import OK: from framework.base import GraphRunner
+Import OK: import argparse
+Import OK: from nodes import *
+Import OK: import logging
+PASSED
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTWorkflowPerformance::test_export_performance MNIST export completed in 0.04s
+PASSED
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTWorkflowPerformance::test_multiple_exports_performance Export times: [0.03947019577026367, 0.03821253776550293, 0.03993701934814453]
+Average: 0.04s, Max: 0.04s
+PASSED
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTWorkflowIntegration::test_end_to_end_mnist_pipeline FAILED
+tests-dnne/integration/test_mnist_workflow.py::TestMNISTWorkflowIntegration::test_mnist_workflow_robustness Workflow variant 0 exported successfully
+Workflow variant 1 exported successfully
+Workflow variant 2 exported successfully
+PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestGraphExporter::test_exporter_initialization PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestGraphExporter::test_node_registry_registration FAILED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestGraphExporter::test_register_all_exporters PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestGraphExporter::test_workflow_validation FAILED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestWorkflowParsing::test_minimal_workflow_parsing PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestWorkflowParsing::test_complex_workflow_parsing PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestWorkflowParsing::test_connection_analysis PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestWorkflowParsing::test_slot_corruption_handling PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestCodeGeneration::test_export_directory_creation Export directory test: No input connection found for 'input' in LinearLayerExporter
+PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestCodeGeneration::test_runner_file_generation Runner generation test: No input connection found for 'input' in LinearLayerExporter
+PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestCodeGeneration::test_framework_directory_generation Framework directory test: No input connection found for 'input' in LinearLayerExporter
+PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestErrorHandling::test_invalid_workflow_handling PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestErrorHandling::test_missing_node_exporter_handling PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestErrorHandling::test_invalid_export_path_handling FAILED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestExportIntegration::test_mnist_workflow_export PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestExportIntegration::test_export_performance PASSED
+tests-dnne/unit/export_system/test_graph_exporter.py::TestExportIntegration::test_export_result_format PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestExportableNodeBase::test_exporter_interface PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestMNISTDatasetExporter::test_template_name PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestMNISTDatasetExporter::test_template_vars_preparation PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestMNISTDatasetExporter::test_imports PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestMNISTDatasetExporter::test_parameter_extraction FAILED
+tests-dnne/unit/export_system/test_node_exporters.py::TestLinearLayerExporter::test_template_name PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestLinearLayerExporter::test_dimension_parameter_extraction FAILED
+tests-dnne/unit/export_system/test_node_exporters.py::TestLinearLayerExporter::test_imports PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestNetworkExporter::test_template_name PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestNetworkExporter::test_network_parameter_extraction FAILED
+tests-dnne/unit/export_system/test_node_exporters.py::TestNetworkExporter::test_connection_handling FAILED
+tests-dnne/unit/export_system/test_node_exporters.py::TestSGDOptimizerExporter::test_template_name PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestSGDOptimizerExporter::test_optimizer_parameter_extraction FAILED
+tests-dnne/unit/export_system/test_node_exporters.py::TestSGDOptimizerExporter::test_imports PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestCrossEntropyLossExporter::test_template_name PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestCrossEntropyLossExporter::test_loss_parameter_extraction PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestTrainingStepExporter::test_template_name PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestTrainingStepExporter::test_training_parameter_extraction PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestTrainingStepExporter::test_trigger_signal_generation PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestNodeExporterIntegration::test_all_exporters_registered PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestNodeExporterIntegration::test_template_variable_consistency FAILED
+tests-dnne/unit/export_system/test_node_exporters.py::TestNodeExporterIntegration::test_import_statement_validity PASSED
+tests-dnne/unit/export_system/test_node_exporters.py::TestNodeExporterIntegration::test_parameter_type_handling FAILED
+tests-dnne/unit/export_system/test_node_exporters.py::TestNodeExporterIntegration::test_connection_parameter_handling FAILED
+tests-dnne/unit/export_system/test_template_generation.py::TestTemplateLoading::test_template_directory_exists PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestTemplateLoading::test_queue_templates_exist PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestTemplateLoading::test_template_file_format PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestTemplateLoading::test_base_template_framework PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestTemplateVariableSubstitution::test_basic_variable_substitution PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestTemplateVariableSubstitution::test_complex_variable_substitution PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestTemplateVariableSubstitution::test_missing_variable_handling PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestTemplateVariableSubstitution::test_actual_template_substitution SKIPPED
+tests-dnne/unit/export_system/test_template_generation.py::TestGeneratedCodeValidation::test_generated_code_syntax PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestGeneratedCodeValidation::test_generated_code_imports PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestGeneratedCodeValidation::test_queue_node_class_structure PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestGeneratedCodeValidation::test_async_method_patterns FAILED
+tests-dnne/unit/export_system/test_template_generation.py::TestCodeExecution::test_simple_runner_execution PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestCodeExecution::test_queue_framework_execution PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestCodeExecution::test_import_resolution PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestTemplateIntegration::test_complete_template_workflow PASSED
+tests-dnne/unit/export_system/test_template_generation.py::TestTemplateIntegration::test_error_handling_in_generated_code PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestMNISTDatasetNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestMNISTDatasetNode::test_return_types PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestMNISTDatasetNode::test_dataset_creation PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestMNISTDatasetNode::test_category PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestBatchSamplerNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestBatchSamplerNode::test_return_types PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestBatchSamplerNode::test_batch_sampler_creation PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestBatchSamplerNode::test_trigger_handling PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestGetBatchNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestGetBatchNode::test_return_types PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestGetBatchNode::test_batch_retrieval PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestGetBatchNode::test_trigger_coordination PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestDataNodeIntegration::test_data_flow_coordination PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestDataNodeIntegration::test_node_categories PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestDataNodeIntegration::test_node_display_names PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestDataNodeIntegration::test_error_handling PASSED
+tests-dnne/unit/ml_nodes/test_data_nodes.py::TestDataNodeIntegration::test_batch_size_handling PASSED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLinearLayerNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLinearLayerNode::test_return_types PASSED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLinearLayerNode::test_linear_layer_creation FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLinearLayerNode::test_layer_forward_pass FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLinearLayerNode::test_different_dimensions FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestNetworkNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestNetworkNode::test_return_types PASSED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestNetworkNode::test_network_forward_pass FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestNetworkNode::test_device_placement FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestActivationNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestActivationNode::test_activation_functions FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestConv2DLayerNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestConv2DLayerNode::test_conv2d_creation FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestDropoutNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestDropoutNode::test_dropout_training_mode FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestDropoutNode::test_dropout_eval_mode FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestBatchNormNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestBatchNormNode::test_batch_norm_creation FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestFlattenNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestFlattenNode::test_flatten_operation FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestFlattenNode::test_flatten_different_shapes FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLayerNodeIntegration::test_layer_chaining FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLayerNodeIntegration::test_layer_node_categories PASSED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLayerNodeIntegration::test_large_tensor_handling FAILED
+tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLayerNodeIntegration::test_error_handling_invalid_dimensions FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestCrossEntropyLossNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestCrossEntropyLossNode::test_return_types PASSED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestCrossEntropyLossNode::test_loss_computation FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestCrossEntropyLossNode::test_accuracy_computation FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestCrossEntropyLossNode::test_device_consistency FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestAccuracyNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestAccuracyNode::test_accuracy_computation FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestAccuracyNode::test_zero_accuracy FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestSGDOptimizerNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestSGDOptimizerNode::test_return_types PASSED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestSGDOptimizerNode::test_optimizer_creation FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestSGDOptimizerNode::test_optimizer_parameter_update FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingStepNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingStepNode::test_return_types PASSED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingStepNode::test_training_step_execution FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingStepNode::test_ready_signal_generation FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingStepNode::test_gradient_clearing FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestEpochTrackerNode::test_input_types PASSED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestEpochTrackerNode::test_return_types PASSED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestEpochTrackerNode::test_epoch_tracking FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestEpochTrackerNode::test_training_completion_detection FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingNodeIntegration::test_training_loop_coordination FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingNodeIntegration::test_trigger_signal_format FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingNodeIntegration::test_training_performance FAILED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingNodeIntegration::test_training_node_categories PASSED
+tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingNodeIntegration::test_error_handling_invalid_inputs FAILED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestQueueNodeBase::test_queue_node_initialization PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestQueueNodeBase::test_input_setup PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestQueueNodeBase::test_output_setup PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestQueueNodeBase::test_basic_compute PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestAsyncCommunication::test_queue_put_get PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestAsyncCommunication::test_queue_communication_between_nodes PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestAsyncCommunication::test_queue_size_limits PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestAsyncCommunication::test_queue_fifo_ordering PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestTriggerCoordination::test_trigger_signal_format PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestTriggerCoordination::test_trigger_based_execution PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestTriggerCoordination::test_multi_step_trigger_chain PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestConcurrentExecution::test_concurrent_node_execution PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestConcurrentExecution::test_producer_consumer_pattern PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestConcurrentExecution::test_backpressure_handling PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestErrorHandling::test_node_error_handling PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestErrorHandling::test_queue_timeout_handling PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestErrorHandling::test_queue_full_timeout PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestQueueFrameworkIntegration::test_training_loop_simulation PASSED
+tests-dnne/unit/queue_framework/test_queue_nodes.py::TestQueueFrameworkIntegration::test_queue_performance PASSED
+tests-dnne/unit/robotics_nodes/test_isaac_gym_nodes.py::test_isaac_gym_availability SKIPPED
+tests-dnne/unit/robotics_nodes/test_isaac_gym_nodes.py::test_isaac_gym_env_node_structure SKIPPED
+tests-dnne/unit/robotics_nodes/test_isaac_gym_nodes.py::test_isaac_gym_step_node_structure SKIPPED
+tests-dnne/unit/robotics_nodes/test_isaac_gym_nodes.py::test_or_node_structure PASSED
+tests-dnne/unit/robotics_nodes/test_isaac_gym_nodes.py::test_robotics_node_categories PASSED
+tests-dnne/unit/robotics_nodes/test_isaac_gym_nodes.py::test_isaac_gym_import_order_awareness PASSED
+
+=================================== FAILURES ===================================
+____________ TestMNISTWorkflowLoading.test_load_mnist_workflow_file ____________
+tests-dnne/integration/test_mnist_workflow.py:36: in test_load_mnist_workflow_file
+    assert validate_workflow_structure(sample_mnist_workflow)
+E   AssertionError: assert False
+E    +  where False = validate_workflow_structure({'config': {}, 'extra': {'ds': {'offset': [-81.06652956798777, 0.838634503070188], 'scale': 0.9090909090909091}}, 'groups': [], 'id': '6609784a-48ca-4f8f-b210-8d93aa6c97da', ...})
+_________ TestMNISTWorkflowIntegration.test_end_to_end_mnist_pipeline __________
+tests-dnne/integration/test_mnist_workflow.py:479: in test_end_to_end_mnist_pipeline
+    assert validate_workflow_structure(workflow)
+E   AssertionError: assert False
+E    +  where False = validate_workflow_structure({'config': {}, 'extra': {'ds': {'offset': [-81.06652956798777, 0.838634503070188], 'scale': 0.9090909090909091}}, 'groups': [], 'id': '6609784a-48ca-4f8f-b210-8d93aa6c97da', ...})
+______________ TestGraphExporter.test_node_registry_registration _______________
+tests-dnne/unit/export_system/test_graph_exporter.py:46: in test_node_registry_registration
+    assert len(exporter.node_registry) == 0
+E   AssertionError: assert 25 == 0
+E    +  where 25 = len({'AudioSensor': <class 'export_system.node_exporters.robotics_nodes.CameraSensorExporter'>, 'BatchSampler': <class 'export_system.node_exporters.ml_nodes.BatchSamplerExporter'>, 'CameraSensor': <class 'export_system.node_exporters.robotics_nodes.CameraSensorExporter'>, 'CrossEntropyLoss': <class 'export_system.node_exporters.ml_nodes.CrossEntropyLossExporter'>, ...})
+E    +    where {'AudioSensor': <class 'export_system.node_exporters.robotics_nodes.CameraSensorExporter'>, 'BatchSampler': <class 'export_system.node_exporters.ml_nodes.BatchSamplerExporter'>, 'CameraSensor': <class 'export_system.node_exporters.robotics_nodes.CameraSensorExporter'>, 'CrossEntropyLoss': <class 'export_system.node_exporters.ml_nodes.CrossEntropyLossExporter'>, ...} = <export_system.graph_exporter.GraphExporter object at 0x739dcd220f10>.node_registry
+__________________ TestGraphExporter.test_workflow_validation __________________
+tests-dnne/unit/export_system/test_graph_exporter.py:91: in test_workflow_validation
+    assert not validate_workflow_structure(INVALID_WORKFLOW)
+E   AssertionError: assert not True
+E    +  where True = validate_workflow_structure({'links': [['1', 'output', '999', 'input']], 'nodes': [{'id': '1', 'inputs': {}, 'type': 'NonExistentNode', 'widgets': {}}]})
+_____________ TestErrorHandling.test_invalid_export_path_handling ______________
+tests-dnne/unit/export_system/test_graph_exporter.py:381: in test_invalid_export_path_handling
+    result = exporter.export_workflow(workflow, invalid_path)
+export_system/graph_exporter.py:277: in export_workflow
+    template_vars = node_class.prepare_template_vars(
+export_system/node_exporters/ml_nodes.py:84: in prepare_template_vars
+    input_size = cls.query_input_tensor_size("input", connections, node_registry, all_nodes, all_links)
+export_system/graph_exporter.py:86: in query_input_tensor_size
+    raise ValueError(f"No input connection found for '{input_name}' in {cls.__name__}")
+E   ValueError: No input connection found for 'input' in LinearLayerExporter
+
+During handling of the above exception, another exception occurred:
+tests-dnne/unit/export_system/test_graph_exporter.py:390: in test_invalid_export_path_handling
+    assert any(keyword in error_msg for keyword in
+E   assert False
+E    +  where False = any(<generator object TestErrorHandling.test_invalid_export_path_handling.<locals>.<genexpr> at 0x739df41f4f20>)
+______________ TestMNISTDatasetExporter.test_parameter_extraction ______________
+tests-dnne/unit/export_system/test_node_exporters.py:115: in test_parameter_extraction
+    assert template_vars["BATCH_SIZE"] == 64
+E   assert 32 == 64
+_________ TestLinearLayerExporter.test_dimension_parameter_extraction __________
+tests-dnne/unit/export_system/test_node_exporters.py:153: in test_dimension_parameter_extraction
+    template_vars = LinearLayerExporter.prepare_template_vars(
+export_system/node_exporters/ml_nodes.py:84: in prepare_template_vars
+    input_size = cls.query_input_tensor_size("input", connections, node_registry, all_nodes, all_links)
+export_system/graph_exporter.py:86: in query_input_tensor_size
+    raise ValueError(f"No input connection found for '{input_name}' in {cls.__name__}")
+E   ValueError: No input connection found for 'input' in LinearLayerExporter
+____________ TestNetworkExporter.test_network_parameter_extraction _____________
+tests-dnne/unit/export_system/test_node_exporters.py:214: in test_network_parameter_extraction
+    template_vars = NetworkExporter.prepare_template_vars(
+export_system/node_exporters/ml_nodes.py:416: in prepare_template_vars
+    network_layers = cls._detect_network_layers(node_id, all_nodes, all_links)
+export_system/node_exporters/ml_nodes.py:478: in _detect_network_layers
+    for link in all_links:
+E   TypeError: 'NoneType' object is not iterable
+_________________ TestNetworkExporter.test_connection_handling _________________
+tests-dnne/unit/export_system/test_node_exporters.py:238: in test_connection_handling
+    template_vars = NetworkExporter.prepare_template_vars(
+export_system/node_exporters/ml_nodes.py:416: in prepare_template_vars
+    network_layers = cls._detect_network_layers(node_id, all_nodes, all_links)
+export_system/node_exporters/ml_nodes.py:478: in _detect_network_layers
+    for link in all_links:
+E   TypeError: 'NoneType' object is not iterable
+_________ TestSGDOptimizerExporter.test_optimizer_parameter_extraction _________
+tests-dnne/unit/export_system/test_node_exporters.py:279: in test_optimizer_parameter_extraction
+    assert template_vars["LEARNING_RATE"] == 0.001
+E   assert 0.01 == 0.001
+________ TestNodeExporterIntegration.test_template_variable_consistency ________
+tests-dnne/unit/export_system/test_node_exporters.py:454: in test_template_variable_consistency
+    template_vars = exporter_class.prepare_template_vars(
+export_system/node_exporters/ml_nodes.py:84: in prepare_template_vars
+    input_size = cls.query_input_tensor_size("input", connections, node_registry, all_nodes, all_links)
+export_system/graph_exporter.py:86: in query_input_tensor_size
+    raise ValueError(f"No input connection found for '{input_name}' in {cls.__name__}")
+E   ValueError: No input connection found for 'input' in LinearLayerExporter
+___________ TestNodeExporterIntegration.test_parameter_type_handling ___________
+tests-dnne/unit/export_system/test_node_exporters.py:520: in test_parameter_type_handling
+    template_vars = LinearLayerExporter.prepare_template_vars(
+export_system/node_exporters/ml_nodes.py:84: in prepare_template_vars
+    input_size = cls.query_input_tensor_size("input", connections, node_registry, all_nodes, all_links)
+export_system/graph_exporter.py:86: in query_input_tensor_size
+    raise ValueError(f"No input connection found for '{input_name}' in {cls.__name__}")
+E   ValueError: No input connection found for 'input' in LinearLayerExporter
+________ TestNodeExporterIntegration.test_connection_parameter_handling ________
+tests-dnne/unit/export_system/test_node_exporters.py:556: in test_connection_parameter_handling
+    template_vars = exporter_class.prepare_template_vars(
+export_system/node_exporters/ml_nodes.py:416: in prepare_template_vars
+    network_layers = cls._detect_network_layers(node_id, all_nodes, all_links)
+export_system/node_exporters/ml_nodes.py:478: in _detect_network_layers
+    for link in all_links:
+E   TypeError: 'NoneType' object is not iterable
+____________ TestGeneratedCodeValidation.test_async_method_patterns ____________
+tests-dnne/fixtures/test_utils.py:221: in assert_valid_python_code
+    compile(code, "<string>", "exec")
+E     File "<string>", line 4
+E       pass
+E       ^
+E   IndentationError: expected an indented block
+
+During handling of the above exception, another exception occurred:
+tests-dnne/unit/export_system/test_template_generation.py:317: in test_async_method_patterns
+    assert_valid_python_code(full_code)
+tests-dnne/fixtures/test_utils.py:223: in assert_valid_python_code
+    raise AssertionError(f"Generated code has syntax error: {e}")
+E   AssertionError: Generated code has syntax error: expected an indented block (<string>, line 4)
+________________ TestLinearLayerNode.test_linear_layer_creation ________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:64: in test_linear_layer_creation
+    result = node.execute(
+E   AttributeError: 'LinearLayerNode' object has no attribute 'execute'
+_________________ TestLinearLayerNode.test_layer_forward_pass __________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:86: in test_layer_forward_pass
+    result = node.execute(
+E   AttributeError: 'LinearLayerNode' object has no attribute 'execute'
+________________ TestLinearLayerNode.test_different_dimensions _________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:116: in test_different_dimensions
+    result = node.execute(
+E   AttributeError: 'LinearLayerNode' object has no attribute 'execute'
+__________________ TestNetworkNode.test_network_forward_pass ___________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:168: in test_network_forward_pass
+    result = node.execute(
+E   AttributeError: 'NetworkNode' object has no attribute 'execute'
+____________________ TestNetworkNode.test_device_placement _____________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:194: in test_device_placement
+    result = node.execute(
+E   AttributeError: 'NetworkNode' object has no attribute 'execute'
+_________________ TestActivationNode.test_activation_functions _________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:233: in test_activation_functions
+    result = node.execute(
+E   AttributeError: 'ActivationNode' object has no attribute 'execute'
+
+During handling of the above exception, another exception occurred:
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:248: in test_activation_functions
+    assert any(keyword in error_msg for keyword in
+E   assert False
+E    +  where False = any(<generator object TestActivationNode.test_activation_functions.<locals>.<genexpr> at 0x739de1eeaa50>)
+___________________ TestConv2DLayerNode.test_conv2d_creation ___________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:274: in test_conv2d_creation
+    result = node.execute(
+E   AttributeError: 'Conv2DLayerNode' object has no attribute 'execute'
+__________________ TestDropoutNode.test_dropout_training_mode __________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:314: in test_dropout_training_mode
+    result = node.execute(
+E   AttributeError: 'DropoutNode' object has no attribute 'execute'
+____________________ TestDropoutNode.test_dropout_eval_mode ____________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:339: in test_dropout_eval_mode
+    result = node.execute(
+E   AttributeError: 'DropoutNode' object has no attribute 'execute'
+__________________ TestBatchNormNode.test_batch_norm_creation __________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:374: in test_batch_norm_creation
+    result = node.execute(
+E   AttributeError: 'BatchNormNode' object has no attribute 'execute'
+____________________ TestFlattenNode.test_flatten_operation ____________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:416: in test_flatten_operation
+    result = node.execute(input=sample_input)
+E   AttributeError: 'FlattenNode' object has no attribute 'execute'
+________________ TestFlattenNode.test_flatten_different_shapes _________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:442: in test_flatten_different_shapes
+    result = node.execute(input=sample_input)
+E   AttributeError: 'FlattenNode' object has no attribute 'execute'
+_________________ TestLayerNodeIntegration.test_layer_chaining _________________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:468: in test_layer_chaining
+    layer1_result = linear1.execute(
+E   AttributeError: 'LinearLayerNode' object has no attribute 'execute'
+_____________ TestLayerNodeIntegration.test_large_tensor_handling ______________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:534: in test_large_tensor_handling
+    result = linear_node.execute(
+E   AttributeError: 'LinearLayerNode' object has no attribute 'execute'
+_______ TestLayerNodeIntegration.test_error_handling_invalid_dimensions ________
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:562: in test_error_handling_invalid_dimensions
+    result = linear_node.execute(**case, bias=True)
+E   AttributeError: 'LinearLayerNode' object has no attribute 'execute'
+
+During handling of the above exception, another exception occurred:
+tests-dnne/unit/ml_nodes/test_layer_nodes.py:569: in test_error_handling_invalid_dimensions
+    assert any(keyword in error_msg for keyword in
+E   assert False
+E    +  where False = any(<generator object TestLayerNodeIntegration.test_error_handling_invalid_dimensions.<locals>.<genexpr> at 0x739de1d7af90>)
+________________ TestCrossEntropyLossNode.test_loss_computation ________________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:71: in test_loss_computation
+    result = node.execute(
+E   AttributeError: 'CrossEntropyLossNode' object has no attribute 'execute'
+______________ TestCrossEntropyLossNode.test_accuracy_computation ______________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:104: in test_accuracy_computation
+    result = node.execute(
+E   AttributeError: 'CrossEntropyLossNode' object has no attribute 'execute'
+_______________ TestCrossEntropyLossNode.test_device_consistency _______________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:133: in test_device_consistency
+    result = node.execute(
+E   AttributeError: 'CrossEntropyLossNode' object has no attribute 'execute'
+__________________ TestAccuracyNode.test_accuracy_computation __________________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:171: in test_accuracy_computation
+    result = node.execute(
+E   AttributeError: 'AccuracyNode' object has no attribute 'execute'
+_____________________ TestAccuracyNode.test_zero_accuracy ______________________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:194: in test_zero_accuracy
+    result = node.execute(
+E   AttributeError: 'AccuracyNode' object has no attribute 'execute'
+_________________ TestSGDOptimizerNode.test_optimizer_creation _________________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:247: in test_optimizer_creation
+    result = node.execute(
+E   AttributeError: 'SGDOptimizerNode' object has no attribute 'execute'
+_____________ TestSGDOptimizerNode.test_optimizer_parameter_update _____________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:277: in test_optimizer_parameter_update
+    result = node.execute(
+E   AttributeError: 'SGDOptimizerNode' object has no attribute 'execute'
+______________ TestTrainingStepNode.test_training_step_execution _______________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:350: in test_training_step_execution
+    result = node.execute(
+E   AttributeError: 'TrainingStepNode' object has no attribute 'execute'
+______________ TestTrainingStepNode.test_ready_signal_generation _______________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:374: in test_ready_signal_generation
+    result = node.execute(
+E   AttributeError: 'TrainingStepNode' object has no attribute 'execute'
+_________________ TestTrainingStepNode.test_gradient_clearing __________________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:417: in test_gradient_clearing
+    result = node.execute(
+E   AttributeError: 'TrainingStepNode' object has no attribute 'execute'
+___________________ TestEpochTrackerNode.test_epoch_tracking ___________________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:473: in test_epoch_tracking
+    result = node.execute(
+E   AttributeError: 'EpochTrackerNode' object has no attribute 'execute'
+___________ TestEpochTrackerNode.test_training_completion_detection ____________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:502: in test_training_completion_detection
+    result = node.execute(
+E   AttributeError: 'EpochTrackerNode' object has no attribute 'execute'
+_________ TestTrainingNodeIntegration.test_training_loop_coordination __________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:539: in test_training_loop_coordination
+    optimizer_result = optimizer_node.execute(
+E   AttributeError: 'SGDOptimizerNode' object has no attribute 'execute'
+____________ TestTrainingNodeIntegration.test_trigger_signal_format ____________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:584: in test_trigger_signal_format
+    result = training_step_node.execute(
+E   AttributeError: 'TrainingStepNode' object has no attribute 'execute'
+____________ TestTrainingNodeIntegration.test_training_performance _____________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:620: in test_training_performance
+    result = loss_node.execute(
+E   AttributeError: 'CrossEntropyLossNode' object has no attribute 'execute'
+________ TestTrainingNodeIntegration.test_error_handling_invalid_inputs ________
+tests-dnne/unit/ml_nodes/test_training_nodes.py:656: in test_error_handling_invalid_inputs
+    result = loss_node.execute(
+E   AttributeError: 'CrossEntropyLossNode' object has no attribute 'execute'
+
+During handling of the above exception, another exception occurred:
+tests-dnne/unit/ml_nodes/test_training_nodes.py:666: in test_error_handling_invalid_inputs
+    assert any(keyword in error_msg for keyword in
+E   assert False
+E    +  where False = any(<generator object TestTrainingNodeIntegration.test_error_handling_invalid_inputs.<locals>.<genexpr> at 0x739de1d72ba0>)
+=========================== short test summary info ============================
+FAILED tests-dnne/integration/test_mnist_workflow.py::TestMNISTWorkflowLoading::test_load_mnist_workflow_file
+FAILED tests-dnne/integration/test_mnist_workflow.py::TestMNISTWorkflowIntegration::test_end_to_end_mnist_pipeline
+FAILED tests-dnne/unit/export_system/test_graph_exporter.py::TestGraphExporter::test_node_registry_registration
+FAILED tests-dnne/unit/export_system/test_graph_exporter.py::TestGraphExporter::test_workflow_validation
+FAILED tests-dnne/unit/export_system/test_graph_exporter.py::TestErrorHandling::test_invalid_export_path_handling
+FAILED tests-dnne/unit/export_system/test_node_exporters.py::TestMNISTDatasetExporter::test_parameter_extraction
+FAILED tests-dnne/unit/export_system/test_node_exporters.py::TestLinearLayerExporter::test_dimension_parameter_extraction
+FAILED tests-dnne/unit/export_system/test_node_exporters.py::TestNetworkExporter::test_network_parameter_extraction
+FAILED tests-dnne/unit/export_system/test_node_exporters.py::TestNetworkExporter::test_connection_handling
+FAILED tests-dnne/unit/export_system/test_node_exporters.py::TestSGDOptimizerExporter::test_optimizer_parameter_extraction
+FAILED tests-dnne/unit/export_system/test_node_exporters.py::TestNodeExporterIntegration::test_template_variable_consistency
+FAILED tests-dnne/unit/export_system/test_node_exporters.py::TestNodeExporterIntegration::test_parameter_type_handling
+FAILED tests-dnne/unit/export_system/test_node_exporters.py::TestNodeExporterIntegration::test_connection_parameter_handling
+FAILED tests-dnne/unit/export_system/test_template_generation.py::TestGeneratedCodeValidation::test_async_method_patterns
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLinearLayerNode::test_linear_layer_creation
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLinearLayerNode::test_layer_forward_pass
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLinearLayerNode::test_different_dimensions
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestNetworkNode::test_network_forward_pass
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestNetworkNode::test_device_placement
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestActivationNode::test_activation_functions
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestConv2DLayerNode::test_conv2d_creation
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestDropoutNode::test_dropout_training_mode
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestDropoutNode::test_dropout_eval_mode
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestBatchNormNode::test_batch_norm_creation
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestFlattenNode::test_flatten_operation
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestFlattenNode::test_flatten_different_shapes
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLayerNodeIntegration::test_layer_chaining
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLayerNodeIntegration::test_large_tensor_handling
+FAILED tests-dnne/unit/ml_nodes/test_layer_nodes.py::TestLayerNodeIntegration::test_error_handling_invalid_dimensions
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestCrossEntropyLossNode::test_loss_computation
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestCrossEntropyLossNode::test_accuracy_computation
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestCrossEntropyLossNode::test_device_consistency
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestAccuracyNode::test_accuracy_computation
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestAccuracyNode::test_zero_accuracy
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestSGDOptimizerNode::test_optimizer_creation
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestSGDOptimizerNode::test_optimizer_parameter_update
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingStepNode::test_training_step_execution
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingStepNode::test_ready_signal_generation
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingStepNode::test_gradient_clearing
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestEpochTrackerNode::test_epoch_tracking
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestEpochTrackerNode::test_training_completion_detection
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingNodeIntegration::test_training_loop_coordination
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingNodeIntegration::test_trigger_signal_format
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingNodeIntegration::test_training_performance
+FAILED tests-dnne/unit/ml_nodes/test_training_nodes.py::TestTrainingNodeIntegration::test_error_handling_invalid_inputs
+================== 45 failed, 113 passed, 5 skipped in 39.76s ==================

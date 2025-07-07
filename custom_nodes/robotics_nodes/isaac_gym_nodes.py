@@ -19,7 +19,7 @@ try:
     from isaacgym.torch_utils import *
     ISAAC_GYM_AVAILABLE = True
 except ImportError as e:
-    print(f"Isaac Gym not available: {e}")
+    # Isaac Gym not available - robotics nodes will be disabled
     ISAAC_GYM_AVAILABLE = False
     # Mock objects for when Isaac Gym isn't available
     gymapi = None
