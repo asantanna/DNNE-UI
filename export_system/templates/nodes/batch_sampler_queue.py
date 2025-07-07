@@ -23,7 +23,7 @@ class BatchSamplerNode_{NODE_ID}(QueueNode):
             generator=torch.Generator().manual_seed(self.seed) if self.shuffle else None
         )
         
-        self.logger.info(f"Created dataloader with batch_size={self.batch_size}, shuffle={self.shuffle}")
+        self.logger.info(f"Created dataloader with batch_size={{self.batch_size}}, shuffle={{self.shuffle}}")
         
         # Pass through the schema unchanged
         return {

@@ -31,6 +31,8 @@ async def main():
     parser = argparse.ArgumentParser(description='DNNE Generated Training')
     parser.add_argument('--verbose', '-v', action='store_true',
                        help='Enable verbose batch-level logging')
+    parser.add_argument('--test-mode', action='store_true',
+                       help='Run in test mode with limited duration and performance tracking')
     args = parser.parse_args()
 
     # Set global verbose flag for nodes to access
@@ -61,10 +63,16 @@ async def main():
 
     # Run the graph
     try:
-        # Run indefinitely (Ctrl+C to stop)
-        await runner.run()
-        # Or run for specific duration:
-        # await runner.run(duration=10.0)  # Run for 10 seconds
+        if args.test_mode:
+            print('🧪 Test mode: Running for 30 seconds with performance tracking')
+            import time
+            start_time = time.time()
+            await runner.run(duration=30.0)  # Run for 30 seconds in test mode
+            end_time = time.time()
+            print(f'✅ Test mode completed in {end_time - start_time:.1f} seconds')
+        else:
+            # Run indefinitely (Ctrl+C to stop)
+            await runner.run()
     except KeyboardInterrupt:
         print('\n🛑 Stopped by user')
 

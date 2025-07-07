@@ -182,30 +182,35 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         template_dir = Path("export_system/templates/nodes")
         template_files = list(template_dir.glob("*_queue.py"))
         
-        if len(template_files) == 0:
-            pytest.skip("No template files found")
+        assert len(template_files) > 0, f"Template files must exist in {template_dir}. Missing template files indicates broken test environment."
         
         # Test with first available template
         template_file = template_files[0]
         template_content = template_file.read_text()
         
-        # Use sample template variables
-        sample_vars = SAMPLE_TEMPLATE_VARS["linear_layer"]
+        # Use appropriate sample template variables based on template name
+        template_name = template_file.stem  # Remove .py extension
+        if "batch_sampler" in template_name:
+            sample_vars = SAMPLE_TEMPLATE_VARS["batch_sampler"]
+        elif "mnist_dataset" in template_name:
+            sample_vars = SAMPLE_TEMPLATE_VARS["mnist_dataset"]
+        elif "network" in template_name:
+            sample_vars = SAMPLE_TEMPLATE_VARS["network"]
+        else:
+            # Default to linear_layer for other templates
+            sample_vars = SAMPLE_TEMPLATE_VARS["linear_layer"]
         
-        try:
-            generated_code = template_content.format(**sample_vars)
-            
-            # Generated code should be valid
-            assert_valid_python_code(generated_code)
-            
-            # Should contain substituted values
-            assert sample_vars["NODE_ID"] in generated_code
-            assert sample_vars["CLASS_NAME"] in generated_code
-            
-        except KeyError as e:
-            # Template might require variables not in our sample
-            missing_var = str(e).strip("'\"")
-            pytest.skip(f"Template {template_file.name} requires variable {missing_var}")
+        # Generate code using graph exporter's template processing - KeyError should cause test failure, not skip
+        from export_system.graph_exporter import GraphExporter
+        exporter = GraphExporter()
+        generated_code = exporter._process_template(template_content, sample_vars)
+        
+        # Generated code should be valid
+        assert_valid_python_code(generated_code)
+        
+        # Should contain substituted values
+        assert sample_vars["NODE_ID"] in generated_code
+        assert sample_vars["CLASS_NAME"] in generated_code
 
 
 class TestGeneratedCodeValidation:

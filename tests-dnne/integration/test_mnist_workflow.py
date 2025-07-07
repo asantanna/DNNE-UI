@@ -260,12 +260,18 @@ class TestMNISTCodeExecution:
     
     @pytest.mark.integration
     @pytest.mark.slow
-    def test_exported_mnist_execution(self):
-        """Test execution of exported MNIST training script."""
+    @pytest.mark.timeout(300)  # 5 minute timeout for full training
+    def test_exported_mnist_execution(self, sample_mnist_workflow):
+        """Test execution of exported MNIST training script with performance validation."""
         exporter = GraphExporter()
         register_all_exporters(exporter)
         
-        workflow = MINIMAL_TRAINING_WORKFLOW
+        # Use real MNIST workflow if available, otherwise fallback to minimal
+        if sample_mnist_workflow is not None:
+            workflow = sample_mnist_workflow
+        else:
+            workflow = MINIMAL_TRAINING_WORKFLOW
+            
         export_path = create_temp_export_dir()
         
         try:
@@ -277,20 +283,46 @@ class TestMNISTCodeExecution:
                 if runner_file.exists():
                     # Try to execute the generated script
                     try:
-                        # Run with timeout to prevent hanging
+                        # Track test execution time
+                        test_start_time = time.time()
+                        
+                        # Run with timeout to prevent hanging - 5 minutes for full training
                         execution_result = subprocess.run(
-                            [sys.executable, str(runner_file)],
+                            [sys.executable, str(runner_file), "--test-mode"],
                             capture_output=True,
                             text=True,
-                            timeout=30,  # 30 second timeout
+                            timeout=300,  # 5 minute timeout
                             cwd=export_path  # Run in export directory
                         )
                         
+                        test_end_time = time.time()
+                        test_duration = test_end_time - test_start_time
+                        
                         # Check execution results
                         if execution_result.returncode == 0:
-                            # Successful execution
-                            assert len(execution_result.stdout) >= 0
-                            print(f"MNIST execution succeeded: {execution_result.stdout}")
+                            # Parse training output for performance metrics
+                            stdout = execution_result.stdout
+                            print(f"MNIST training output:\n{stdout}")
+                            
+                            # Check for early output (training started)
+                            if len(stdout) < 100:
+                                raise AssertionError("Script produced minimal output - may not be training")
+                            
+                            # Parse final training metrics
+                            final_accuracy, final_loss = self._parse_training_metrics(stdout)
+                            
+                            # Validate training performance - only check accuracy > 90%
+                            if final_accuracy is not None:
+                                assert final_accuracy > 0.90, f"Training accuracy {final_accuracy:.3f} < 90%"
+                                print(f"✓ Training achieved {final_accuracy:.1%} accuracy")
+                            else:
+                                raise AssertionError("Could not parse final accuracy from output")
+                            
+                            # Print test summary with runtime, accuracy, and loss
+                            print(f"\n📊 MNIST Test Summary:")
+                            print(f"   Runtime: {test_duration:.1f} seconds")
+                            print(f"   Final Accuracy: {final_accuracy:.1%}" if final_accuracy else "   Final Accuracy: Not available")
+                            print(f"   Final Loss: {final_loss:.3f}" if final_loss else "   Final Loss: Not available")
                             
                         else:
                             # Execution failed - check if it's due to missing dependencies
@@ -310,11 +342,10 @@ class TestMNISTCodeExecution:
                                 print(f"STDOUT: {execution_result.stdout}")
                                 print(f"STDERR: {execution_result.stderr}")
                                 
-                                # Don't fail the test immediately - generated code issues are expected
                                 raise AssertionError(f"MNIST execution failed: {stderr}")
                                 
                     except subprocess.TimeoutExpired:
-                        raise AssertionError("MNIST execution timed out - may be working but slow")
+                        raise AssertionError("MNIST training timed out after 5 minutes")
                         
                     except Exception as e:
                         raise AssertionError(f"MNIST execution error: {e}")
@@ -327,6 +358,51 @@ class TestMNISTCodeExecution:
                 
         finally:
             cleanup_export_dir(export_path)
+    
+    def _parse_training_metrics(self, output: str) -> tuple:
+        """Parse final training accuracy and loss from output."""
+        import re
+        
+        # Look for patterns like "Accuracy: 91.52%" or "Loss: 0.2918"
+        accuracy_pattern = r'(?:avg\s+accuracy|accuracy):\s*(\d+\.?\d*)%?'
+        loss_pattern = r'(?:avg\s+loss|loss):\s*(\d+\.?\d*)'
+        
+        # Also look for epoch summary patterns
+        epoch_summary_pattern = r'epoch\s*\d+.*?accuracy[:\s]*(\d+\.?\d*)%?.*?loss[:\s]*(\d+\.?\d*)'
+        
+        final_accuracy = None
+        final_loss = None
+        
+        # Parse accuracy
+        accuracy_matches = re.findall(accuracy_pattern, output.lower())
+        if accuracy_matches:
+            accuracy_value = float(accuracy_matches[-1])  # Take last (final) accuracy
+            # Convert percentage to decimal if needed (91.52% -> 0.9152)
+            if accuracy_value > 1.0:
+                final_accuracy = accuracy_value / 100.0
+            else:
+                final_accuracy = accuracy_value
+            
+        # Parse loss
+        loss_matches = re.findall(loss_pattern, output.lower())
+        if loss_matches:
+            final_loss = float(loss_matches[-1])  # Take last (final) loss
+            
+        # Try epoch summary pattern as fallback
+        epoch_matches = re.findall(epoch_summary_pattern, output.lower(), re.DOTALL)
+        if epoch_matches and (final_accuracy is None or final_loss is None):
+            last_epoch = epoch_matches[-1]
+            if final_accuracy is None:
+                accuracy_value = float(last_epoch[0])
+                # Convert percentage to decimal if needed
+                if accuracy_value > 1.0:
+                    final_accuracy = accuracy_value / 100.0
+                else:
+                    final_accuracy = accuracy_value
+            if final_loss is None:
+                final_loss = float(last_epoch[1])
+        
+        return final_accuracy, final_loss
     
     @pytest.mark.integration
     def test_import_resolution_in_exported_code(self):

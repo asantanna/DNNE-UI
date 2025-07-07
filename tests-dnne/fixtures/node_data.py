@@ -148,6 +148,13 @@ SAMPLE_TEMPLATE_VARS = {
         "DEVICE": "cpu",
         "INPUT_SHAPE": [1, 28, 28],
         "NUM_CLASSES": 10
+    },
+    "batch_sampler": {
+        "NODE_ID": "node_4",
+        "CLASS_NAME": "BatchSamplerNode",
+        "BATCH_SIZE": 32,
+        "SHUFFLE": True,
+        "SEED": 42
     }
 }
 

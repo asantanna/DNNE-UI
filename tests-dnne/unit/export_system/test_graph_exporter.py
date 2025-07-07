@@ -417,8 +417,7 @@ class TestExportIntegration:
     @pytest.mark.integration
     def test_mnist_workflow_export(self, sample_mnist_workflow):
         """Test export of actual MNIST workflow if available."""
-        if sample_mnist_workflow is None:
-            pytest.skip("MNIST workflow not available")
+        assert sample_mnist_workflow is not None, "MNIST workflow must be available - missing workflow file indicates broken test environment"
             
         exporter = GraphExporter()
         register_all_exporters(exporter)
