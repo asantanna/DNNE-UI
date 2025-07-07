@@ -26,4 +26,5 @@ uv.lock
 # DNNE
 "_DISABLED_*"  
 *.backup*
-export_system/exports/workflow*
+export_system/exports/*
+
