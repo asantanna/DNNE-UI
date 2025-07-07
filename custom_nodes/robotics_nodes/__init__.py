@@ -31,6 +31,13 @@ NODE_DISPLAY_NAME_MAPPINGS["IsaacGymStepNode"] = "Isaac Gym Step"
 NODE_CLASS_MAPPINGS["ORNode"] = ORNode
 NODE_DISPLAY_NAME_MAPPINGS["ORNode"] = "OR/ANY Router"
 
+# Register Cartpole-specific nodes
+NODE_CLASS_MAPPINGS["CartpoleActionNode"] = CartpoleActionNode
+NODE_DISPLAY_NAME_MAPPINGS["CartpoleActionNode"] = "Cartpole Action Converter"
+
+NODE_CLASS_MAPPINGS["CartpoleRewardNode"] = CartpoleRewardNode
+NODE_DISPLAY_NAME_MAPPINGS["CartpoleRewardNode"] = "Cartpole Reward Calculator"
+
 # As you create more nodes, add them here:
 # NODE_CLASS_MAPPINGS["RoboticsCameraNode"] = CameraNode
 # NODE_DISPLAY_NAME_MAPPINGS["RoboticsCameraNode"] = "Camera Sensor"
