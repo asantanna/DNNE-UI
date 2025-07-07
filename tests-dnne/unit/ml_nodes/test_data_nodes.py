@@ -80,8 +80,23 @@ class TestMNISTDatasetNode:
         dataset, schema = result
         assert dataset is not None
         assert isinstance(schema, dict)
-        assert 'input_size' in schema
-        assert 'num_classes' in schema
+        
+        # Check schema structure
+        assert 'num_samples' in schema
+        assert 'outputs' in schema
+        assert 'images' in schema['outputs']
+        assert 'labels' in schema['outputs']
+        
+        # Check image schema
+        image_schema = schema['outputs']['images']
+        assert image_schema['flattened_size'] == 784  # 28*28
+        assert image_schema['shape'] == (28, 28)
+        assert image_schema['dtype'] == 'float32'
+        
+        # Check label schema  
+        label_schema = schema['outputs']['labels']
+        assert label_schema['num_classes'] == 10
+        assert label_schema['dtype'] == 'int64'
         
         # Verify dataset has correct size
         assert len(dataset) > 0

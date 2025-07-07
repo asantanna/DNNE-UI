@@ -18,11 +18,11 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, AsyncMock
 
-# Strict dependency imports - fail if not available
-import torch
+# Strict dependency imports - ISAAC GYM MUST BE FIRST
+import isaacgym       # Must be imported before torch to avoid import order conflicts
+import torch          # Now safe to import after Isaac Gym
 import torchvision
 import numpy as np
-# Note: Isaac Gym import order matters - it must be imported before torch in actual usage
 
 # Add project root to Python path
 PROJECT_ROOT = Path(__file__).parent.parent

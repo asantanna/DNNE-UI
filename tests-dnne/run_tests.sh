@@ -91,24 +91,8 @@ run_test_category() {
 # Track overall success
 all_passed=true
 
-# Run ML unit tests - 30s timeout per test, 10min total
-run_test_category "ML Unit" "tests-dnne/unit/ml_nodes tests-dnne/unit/export_system tests-dnne/unit/queue_framework" "10m" "30" || all_passed=false
-
-# Run Isaac Gym tests separately to avoid import order issues
-echo "=== Running Isaac Gym tests (separate process) ==="
-echo "Note: Isaac Gym must be imported before PyTorch"
-echo ""
-timeout 5m python -m pytest tests-dnne/unit/robotics_nodes/ \
-    --timeout=30 \
-    --timeout-method=thread \
-    -v \
-    --tb=short \
-    --no-header || {
-    echo ""
-    echo "❌ Isaac Gym tests failed!"
-    echo "This may be due to import order issues - Isaac Gym must be imported before PyTorch"
-    all_passed=false
-}
+# Run all unit tests - 30s timeout per test, 15min total
+run_test_category "Unit Tests" "tests-dnne/unit/" "15m" "30" || all_passed=false
 
 # Run integration tests - 2min timeout per test, 20min total  
 run_test_category "Integration" "tests-dnne/integration/" "20m" "120" || all_passed=false

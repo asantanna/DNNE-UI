@@ -111,11 +111,11 @@ def validate_workflow_structure(workflow: Dict[str, Any]) -> bool:
     for node in workflow["nodes"]:
         if not isinstance(node, dict):
             return False
-        node_required_keys = ["id", "type", "inputs", "widgets"]
-        for key in node_required_keys:
-            if key not in node:
-                return False
         
+        # Check for required node fields (both test format and ComfyUI format)
+        if "id" not in node or "type" not in node:
+            return False
+            
         # Collect node IDs for connection validation
         node_ids.add(str(node["id"]))
         
@@ -129,11 +129,21 @@ def validate_workflow_structure(workflow: Dict[str, Any]) -> bool:
         return False
         
     for link in workflow["links"]:
-        if not isinstance(link, list) or len(link) != 4:
+        # ComfyUI format: [link_id, from_node, from_slot, to_node, to_slot, type]
+        # Test format: [from_node, from_output, to_node, to_input]
+        if not isinstance(link, list):
+            return False
+            
+        if len(link) == 4:
+            # Test format
+            from_node, from_output, to_node, to_input = link
+        elif len(link) == 6:
+            # ComfyUI format
+            link_id, from_node, from_slot, to_node, to_slot, link_type = link
+        else:
             return False
         
         # Check that linked nodes exist
-        from_node, from_output, to_node, to_input = link
         if str(from_node) not in node_ids or str(to_node) not in node_ids:
             return False
     
