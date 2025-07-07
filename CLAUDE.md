@@ -153,6 +153,14 @@ The system has three main components:
 - Integration tests use example workflows like "MNIST Test.json"
 - Queue-based tests validate real-time execution patterns
 
+### **CRITICAL TESTING RULE**
+**NEVER mark a test as complete unless it actually runs successfully.**
+- If export fails → test is INCOMPLETE, not complete
+- If generated code crashes → test is FAILED, not complete
+- If functionality is missing → test is PENDING, not complete
+- Only mark tests complete when they execute successfully from start to finish
+- Document failures honestly - partial success is not success
+
 ### File Structure Conventions
 - Queue templates end with `_queue.py` for async execution
 - Node exporters mirror the custom_nodes directory structure
