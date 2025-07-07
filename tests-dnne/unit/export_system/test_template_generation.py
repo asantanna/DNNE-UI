@@ -300,21 +300,31 @@ class TestNode_node_1(QueueNode):
     @pytest.mark.export
     def test_async_method_patterns(self):
         """Test async method patterns in generated code."""
-        async_code_patterns = [
-            "async def compute(self, **kwargs):",
-            "await self.input_queues['input'].get()",
-            "await self.output_queues['output'].put(result)",
-            "return {\"output\": result}"
+        # Test individual async patterns with proper indentation
+        async_patterns = [
+            # Async method definition pattern
+            """
+async def compute(self, **kwargs):
+    pass
+""",
+            # Async queue operations
+            """
+async def test_method(self):
+    result = await self.input_queues['input'].get()
+    await self.output_queues['output'].put(result)
+    return {"output": result}
+""",
+            # Complete async compute pattern
+            """
+async def compute(self, input_data):
+    result = self.process_data(input_data)
+    return {"output": result}
+"""
         ]
         
-        for pattern in async_code_patterns:
+        for pattern in async_patterns:
             # Each pattern should be valid Python syntax
-            full_code = f"""
-async def test_method(self):
-    {pattern}
-    pass
-"""
-            assert_valid_python_code(full_code)
+            assert_valid_python_code(pattern.strip())
 
 
 class TestCodeExecution:

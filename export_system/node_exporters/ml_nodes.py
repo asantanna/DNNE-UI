@@ -475,12 +475,13 @@ class NetworkExporter(ExportableNode):
         
         # Find the "layers" output connection from the network node
         layers_connection = None
-        for link in all_links:
-            if len(link) >= 5:
-                from_node, from_slot, to_node, to_slot = str(link[1]), link[2], str(link[3]), link[4]
-                if from_node == network_node_id and from_slot == 0:  # "layers" output (slot 0)
-                    layers_connection = (to_node, to_slot)
-                    break
+        if all_links:
+            for link in all_links:
+                if len(link) >= 5:
+                    from_node, from_slot, to_node, to_slot = str(link[1]), link[2], str(link[3]), link[4]
+                    if from_node == network_node_id and from_slot == 0:  # "layers" output (slot 0)
+                        layers_connection = (to_node, to_slot)
+                        break
         
         if not layers_connection:
             return []
@@ -517,17 +518,18 @@ class NetworkExporter(ExportableNode):
             
             # Find the next layer in the chain
             next_node = None
-            for link in all_links:
-                if len(link) >= 5:
-                    from_node, to_node = str(link[1]), str(link[3])
-                    if from_node == current_node:
-                        # Check if this goes to another LinearLayer or back to network
-                        if to_node == network_node_id:
-                            # Loop back to network - we're done
-                            break
-                        else:
-                            next_node = to_node
-                            break
+            if all_links:
+                for link in all_links:
+                    if len(link) >= 5:
+                        from_node, to_node = str(link[1]), str(link[3])
+                        if from_node == current_node:
+                            # Check if this goes to another LinearLayer or back to network
+                            if to_node == network_node_id:
+                                # Loop back to network - we're done
+                                break
+                            else:
+                                next_node = to_node
+                                break
             
             current_node = next_node
         

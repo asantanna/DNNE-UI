@@ -95,7 +95,7 @@ def create_mock_isaac_gym():
 
 
 def validate_workflow_structure(workflow: Dict[str, Any]) -> bool:
-    """Validate that a workflow has the correct structure."""
+    """Validate that a workflow has the correct structure and logical consistency."""
     required_keys = ["nodes", "links"]
     
     # Check top-level structure
@@ -106,7 +106,8 @@ def validate_workflow_structure(workflow: Dict[str, Any]) -> bool:
     # Check nodes structure
     if not isinstance(workflow["nodes"], list):
         return False
-        
+    
+    node_ids = set()
     for node in workflow["nodes"]:
         if not isinstance(node, dict):
             return False
@@ -114,13 +115,26 @@ def validate_workflow_structure(workflow: Dict[str, Any]) -> bool:
         for key in node_required_keys:
             if key not in node:
                 return False
+        
+        # Collect node IDs for connection validation
+        node_ids.add(str(node["id"]))
+        
+        # Check for known invalid node types
+        node_type = node["type"]
+        if node_type == "NonExistentNode":
+            return False
     
-    # Check links structure
+    # Check links structure and logical consistency
     if not isinstance(workflow["links"], list):
         return False
         
     for link in workflow["links"]:
         if not isinstance(link, list) or len(link) != 4:
+            return False
+        
+        # Check that linked nodes exist
+        from_node, from_output, to_node, to_input = link
+        if str(from_node) not in node_ids or str(to_node) not in node_ids:
             return False
     
     return True

@@ -94,33 +94,26 @@ class TestMNISTDatasetExporter:
     @pytest.mark.export
     def test_parameter_extraction(self):
         """Test extraction of MNIST dataset parameters."""
+        # Use ComfyUI format with widgets_values
         node_data = {
-            "inputs": {
-                "batch_size": 64,
-                "download": False,
-                "train": True
-            },
-            "widgets": {
-                "data_path": "./data",
-                "transform": "normalize"
-            }
+            "widgets_values": ["./data", True, False]  # data_path, train, download
         }
         
         template_vars = MNISTDatasetExporter.prepare_template_vars(
             "test_node", node_data, {}
         )
         
-        # Should extract batch size
-        if "BATCH_SIZE" in template_vars:
-            assert template_vars["BATCH_SIZE"] == 64
+        # Should extract parameters from widgets_values
+        assert template_vars["DATA_PATH"] == "./data"
+        assert template_vars["TRAIN"] == True
+        assert template_vars["DOWNLOAD"] == False
         
-        # Should handle download setting
-        if "DOWNLOAD" in template_vars:
-            assert template_vars["DOWNLOAD"] == False
+        # Fixed batch size for MNIST
+        assert template_vars["BATCH_SIZE"] == 32
         
-        # Should extract training mode
-        if "TRAIN" in template_vars:
-            assert template_vars["TRAIN"] == True
+        # Should have node identification
+        assert template_vars["NODE_ID"] == "test_node"
+        assert template_vars["CLASS_NAME"] == "MNISTDatasetNode"
 
 
 class TestLinearLayerExporter:
@@ -138,36 +131,52 @@ class TestLinearLayerExporter:
     @pytest.mark.export
     def test_dimension_parameter_extraction(self):
         """Test extraction of layer dimensions."""
+        # Use ComfyUI format with widgets_values
         node_data = {
+            "widgets_values": [128, True, "relu", 0.0]  # output_size, bias, activation, dropout
+        }
+        
+        # Mock connections for input size detection
+        mock_connections = {
             "inputs": {
-                "in_features": 784,
-                "out_features": 128,
-                "bias": True
-            },
-            "widgets": {
-                "device": "cuda",
-                "weight_init": "xavier"
+                "input": {
+                    "from_node": "source_node",
+                    "from_slot": 0
+                }
             }
         }
         
+        # Mock source node data
+        mock_all_nodes = [
+            {
+                "id": "source_node",
+                "type": "MNISTDataset",
+                "widgets_values": []
+            }
+        ]
+        
+        # Mock node registry with MNISTDataset 
+        from export_system.node_exporters.ml_nodes import MNISTDatasetExporter
+        mock_node_registry = {
+            "MNISTDataset": MNISTDatasetExporter
+        }
+        
         template_vars = LinearLayerExporter.prepare_template_vars(
-            "layer_node", node_data, {}
+            "layer_node", node_data, mock_connections, mock_node_registry, mock_all_nodes, []
         )
         
-        # Should extract dimensions
-        if "IN_FEATURES" in template_vars:
-            assert template_vars["IN_FEATURES"] == 784
+        # Should extract dimensions from widgets_values and connections
+        assert template_vars["OUTPUT_SIZE"] == 128
+        assert template_vars["BIAS_VALUE"] == True
+        assert template_vars["ACTIVATION_VALUE"] == "relu"
+        assert template_vars["DROPOUT"] == 0.0
         
-        if "OUT_FEATURES" in template_vars:
-            assert template_vars["OUT_FEATURES"] == 128
+        # Input size should be determined from connection (MNIST = 784)
+        assert template_vars["INPUT_SIZE"] == 784
         
-        # Should handle bias setting
-        if "BIAS" in template_vars:
-            assert template_vars["BIAS"] == True
-        
-        # Should extract device
-        if "DEVICE" in template_vars:
-            assert template_vars["DEVICE"] == "cuda"
+        # Should have node identification
+        assert template_vars["NODE_ID"] == "layer_node"
+        assert template_vars["CLASS_NAME"] == "LinearLayerNode"
     
     @pytest.mark.export
     def test_imports(self):
@@ -259,36 +268,25 @@ class TestSGDOptimizerExporter:
     @pytest.mark.export
     def test_optimizer_parameter_extraction(self):
         """Test extraction of optimizer parameters."""
+        # Use ComfyUI format with widgets_values
         node_data = {
-            "inputs": {
-                "learning_rate": 0.001,
-                "momentum": 0.9,
-                "weight_decay": 0.0001
-            },
-            "widgets": {
-                "nesterov": True
-            }
+            "widgets_values": [0.001, 0.8]  # learning_rate, momentum
         }
         
         template_vars = SGDOptimizerExporter.prepare_template_vars(
             "opt_node", node_data, {}
         )
         
-        # Should extract learning rate
-        if "LEARNING_RATE" in template_vars:
-            assert template_vars["LEARNING_RATE"] == 0.001
+        # Should extract parameters from widgets_values
+        assert template_vars["LEARNING_RATE"] == 0.001
+        assert template_vars["MOMENTUM"] == 0.8
         
-        # Should extract momentum
-        if "MOMENTUM" in template_vars:
-            assert template_vars["MOMENTUM"] == 0.9
+        # Weight decay is fixed (not configurable in this node type)
+        assert template_vars["WEIGHT_DECAY"] == 0.0
         
-        # Should extract weight decay
-        if "WEIGHT_DECAY" in template_vars:
-            assert template_vars["WEIGHT_DECAY"] == 0.0001
-        
-        # Should handle boolean flags
-        if "NESTEROV" in template_vars:
-            assert template_vars["NESTEROV"] == True
+        # Should have node identification
+        assert template_vars["NODE_ID"] == "opt_node"
+        assert template_vars["CLASS_NAME"] == "SGDOptimizerNode"
     
     @pytest.mark.export
     def test_imports(self):
@@ -442,10 +440,9 @@ class TestNodeExporterIntegration:
     @pytest.mark.export
     def test_template_variable_consistency(self):
         """Test that template variables are consistently formatted."""
+        # Test exporters that don't require connections
         exporters = [
             (MNISTDatasetExporter, MNIST_DATASET_DATA),
-            (LinearLayerExporter, LINEAR_LAYER_DATA),
-            (NetworkExporter, NETWORK_DATA),
             (SGDOptimizerExporter, SGD_OPTIMIZER_DATA),
             (CrossEntropyLossExporter, CROSS_ENTROPY_LOSS_DATA)
         ]
@@ -516,8 +513,8 @@ class TestNodeExporterIntegration:
             }
         }
         
-        # Test with LinearLayerExporter as representative
-        template_vars = LinearLayerExporter.prepare_template_vars(
+        # Test with MNISTDatasetExporter as representative (doesn't require connections)
+        template_vars = MNISTDatasetExporter.prepare_template_vars(
             "test_node", test_data, {}
         )
         

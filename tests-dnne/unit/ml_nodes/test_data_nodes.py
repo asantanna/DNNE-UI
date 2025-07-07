@@ -8,7 +8,8 @@ batch generation, and trigger-based coordination.
 import pytest
 import torch
 import numpy as np
-from unittest.mock import Mock, patch, MagicMock
+import os
+from unittest.mock import Mock, MagicMock
 from pathlib import Path
 
 # Import nodes to test
@@ -59,20 +60,15 @@ class TestMNISTDatasetNode:
         assert has_dataset, f"Should have dataset output. Types: {return_types}, Names: {return_names}"
     
     @pytest.mark.ml
-    @patch('torchvision.datasets.MNIST')
-    def test_dataset_creation(self, mock_mnist):
-        """Test dataset creation with mocked MNIST data."""
-        # Setup mocks
-        mock_dataset = Mock()
-        mock_dataset.__len__ = Mock(return_value=1000)
-        mock_mnist.return_value = mock_dataset
-        
+    @pytest.mark.timeout(60)  # Allow time for download if needed
+    def test_dataset_creation(self, mnist_config):
+        """Test dataset creation with configurable download."""
         node = MNISTDatasetNode()
         
-        # Test with basic parameters
+        # Test with configurable parameters
         result = node.load_dataset(
-            data_path="./data",
-            download=False,
+            data_path=mnist_config['data_path'],
+            download=mnist_config['download'],
             train=True
         )
         
@@ -80,13 +76,15 @@ class TestMNISTDatasetNode:
         assert result is not None
         assert len(result) >= 2  # Dataset and schema
         
-        # Verify MNIST was called with correct parameters
-        mock_mnist.assert_called()
-        
         # Check that result contains dataset and schema
         dataset, schema = result
-        assert dataset == mock_dataset
+        assert dataset is not None
         assert isinstance(schema, dict)
+        assert 'input_size' in schema
+        assert 'num_classes' in schema
+        
+        # Verify dataset has correct size
+        assert len(dataset) > 0
     
     @pytest.mark.ml
     def test_category(self):
@@ -289,64 +287,58 @@ class TestDataNodeIntegration:
     
     @pytest.mark.ml
     @pytest.mark.integration
-    def test_data_flow_coordination(self):
+    @pytest.mark.timeout(90)  # Allow time for dataset operations
+    def test_data_flow_coordination(self, mnist_config):
         """Test data flow between MNISTDataset -> BatchSampler -> GetBatch."""
         # Create nodes
         dataset_node = MNISTDatasetNode()
         sampler_node = BatchSamplerNode()
         batch_node = GetBatchNode()
         
-        # Mock MNIST dataset to avoid download
-        with patch('torchvision.datasets.MNIST') as mock_mnist:
-            mock_dataset = Mock()
-            mock_dataset.__len__ = Mock(return_value=1000)
-            mock_mnist.return_value = mock_dataset
-            
-            # Create dataset
-            dataset_result = dataset_node.load_dataset(
-                data_path="./test_data",
-                download=False,
-                train=True
-            )
-            
-            assert dataset_result is not None
-            
-            # Create sampler from dataset
-            mock_schema = dataset_result[1] if len(dataset_result) > 1 else {"input_size": 784, "num_classes": 10}
-            sampler_result = sampler_node.create_dataloader(
-                dataset=dataset_result[0] if len(dataset_result) > 0 else mock_dataset,
-                schema=mock_schema,
-                batch_size=32,
-                shuffle=True,
-                seed=42
-            )
-            
-            assert sampler_result is not None
-            
-            # Create batch from sampler (simplified test)
-            # Use a simple mock dataloader that yields sample data
-            def mock_batch_iter():
-                yield create_sample_mnist_batch(32)
-            
-            mock_batch_dataloader = Mock()
-            mock_batch_dataloader.__iter__ = Mock(return_value=mock_batch_iter())
-            mock_batch_dataloader.__len__ = Mock(return_value=10)
-            
-            # Clear context for clean test
-            from custom_nodes.ml_nodes.base import get_context
-            context = get_context()
-            if hasattr(context, 'memory'):
-                context.memory.clear()
-            
-            mock_batch_schema = {"input_size": 784, "num_classes": 10}
-            mock_trigger = {"signal_type": "ready"}
-            batch_result = batch_node.get_batch(
-                dataloader=mock_batch_dataloader,
-                schema=mock_batch_schema,
-                trigger=mock_trigger
-            )
-            
-            assert batch_result is not None
+        # Create dataset with real data
+        dataset_result = dataset_node.load_dataset(
+            data_path=mnist_config['data_path'],
+            download=mnist_config['download'],
+            train=True
+        )
+        
+        assert dataset_result is not None
+        dataset, schema = dataset_result
+        
+        # Create sampler from dataset
+        sampler_result = sampler_node.create_dataloader(
+            dataset=dataset,
+            schema=schema,
+            batch_size=32,
+            shuffle=True,
+            seed=42
+        )
+        
+        assert sampler_result is not None
+        
+        # For get_batch test, we still need to mock the dataloader iteration
+        # since the actual dataloader might not work in test context
+        def mock_batch_iter():
+            yield create_sample_mnist_batch(32)
+        
+        mock_batch_dataloader = Mock()
+        mock_batch_dataloader.__iter__ = Mock(return_value=mock_batch_iter())
+        mock_batch_dataloader.__len__ = Mock(return_value=10)
+        
+        # Clear context for clean test
+        from custom_nodes.ml_nodes.base import get_context
+        context = get_context()
+        if hasattr(context, 'memory'):
+            context.memory.clear()
+        
+        trigger = {"signal_type": "ready"}
+        batch_result = batch_node.get_batch(
+            dataloader=mock_batch_dataloader,
+            schema=schema,
+            trigger=trigger
+        )
+        
+        assert batch_result is not None
     
     @pytest.mark.ml
     def test_node_categories(self):
@@ -405,23 +397,21 @@ class TestDataNodeIntegration:
     
     @pytest.mark.ml
     @pytest.mark.performance
-    def test_batch_size_handling(self):
+    @pytest.mark.timeout(120)  # Allow time for multiple dataset operations
+    def test_batch_size_handling(self, mnist_config):
         """Test handling of different batch sizes."""
         dataset_node = MNISTDatasetNode()
         
-        batch_sizes = [1, 16, 32, 128, 1024]
+        # Test with a smaller set of batch sizes for real data
+        batch_sizes = [1, 32, 128]
         
         for batch_size in batch_sizes:
-            with patch('torchvision.datasets.MNIST') as mock_mnist:
-                mock_dataset = Mock()
-                mock_dataset.__len__ = Mock(return_value=10000)
-                mock_mnist.return_value = mock_dataset
-                
-                result = dataset_node.load_dataset(
-                    data_path="./test_data",
-                    download=False,
-                    train=True
-                )
-                
-                assert result is not None
-                # Verify batch size is properly handled (no crashes)
+            result = dataset_node.load_dataset(
+                data_path=mnist_config['data_path'],
+                download=mnist_config['download'],
+                train=True
+            )
+            
+            assert result is not None
+            dataset, schema = result
+            assert len(dataset) > batch_size  # Ensure dataset is large enough

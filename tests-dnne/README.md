@@ -4,14 +4,45 @@ Comprehensive testing for DNNE-specific features, focusing on ML nodes, robotics
 
 ## Quick Start
 
+### Important: Strict Dependency Policy
+**All dependencies are required** - tests will fail immediately if any dependency is missing:
+- PyTorch and torchvision must be installed
+- Isaac Gym must be installed for robotics tests
+- No mocking of core dependencies
+- No skipping tests due to missing dependencies
+
 ### Install Test Dependencies
 ```bash
 pip install -r tests-dnne/requirements.txt
 ```
 
 ### Run All DNNE Tests
+
+#### Option 1: Using the Test Runner Script (Recommended)
 ```bash
-pytest tests-dnne/
+# Run with default configuration
+bash tests-dnne/run_tests.sh
+
+# Run with custom data path and no downloads
+DNNE_TEST_DATA_PATH=/custom/path DNNE_TEST_DOWNLOAD=false bash tests-dnne/run_tests.sh
+```
+
+The test runner script includes:
+- Automatic dependency checking
+- Conda environment activation
+- Timeout protection for all tests
+- Coverage report generation
+
+#### Option 2: Direct pytest execution
+```bash
+# Activate environment first
+source /home/asantanna/miniconda/bin/activate DNNE_PY38
+
+# Check dependencies
+python tests-dnne/check_dependencies.py
+
+# Run tests with timeout protection
+pytest tests-dnne/ --timeout=60 -v
 ```
 
 ## Test Categories
@@ -129,11 +160,39 @@ Ensure you're in the correct conda environment:
 source /home/asantanna/miniconda/bin/activate DNNE_PY38
 ```
 
-### Isaac Gym (Optional)
+### Isaac Gym (Required)
 For robotics tests requiring Isaac Gym:
 1. Ensure Isaac Gym is installed at `~/isaacgym`
-2. Set `ISAAC_GYM_ROOT_DIR` environment variable if needed
-3. Tests will be skipped automatically if Isaac Gym is not available
+2. Tests will fail if Isaac Gym is not available (no skipping)
+
+### MNIST Data Configuration
+
+Tests use MNIST dataset which can be configured via environment variables:
+
+```bash
+# Use existing data at default path (./data)
+pytest tests-dnne/
+
+# Use custom data path
+DNNE_TEST_DATA_PATH=/path/to/data pytest tests-dnne/
+
+# Force download even if data exists
+DNNE_TEST_DOWNLOAD=true pytest tests-dnne/
+
+# Never download (fail if data missing)
+DNNE_TEST_DOWNLOAD=false pytest tests-dnne/
+```
+
+Default behavior:
+- `download=True` - Will download if data not found (standard PyTorch behavior)
+- `data_path=./data` - Relative to current directory
+
+For faster local testing with existing data:
+```bash
+export DNNE_TEST_DATA_PATH=/mnt/e/ALS-Projects/DNNE/DNNE-UI/data
+export DNNE_TEST_DOWNLOAD=false
+pytest tests-dnne/
+```
 
 ## Test Execution Options
 

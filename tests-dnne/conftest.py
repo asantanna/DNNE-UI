@@ -3,9 +3,10 @@ Pytest configuration and fixtures for DNNE tests.
 
 Provides common fixtures for:
 - Sample workflows
-- Mock nodes
 - Test data
 - Environment setup
+
+Strict dependency requirements - no mocking of core dependencies.
 """
 
 import os
@@ -16,6 +17,12 @@ import asyncio
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, AsyncMock
+
+# Strict dependency imports - fail if not available
+import torch
+import torchvision
+import numpy as np
+# Note: Isaac Gym import order matters - it must be imported before torch in actual usage
 
 # Add project root to Python path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -80,26 +87,16 @@ def temp_export_dir():
         yield Path(temp_dir)
 
 
-@pytest.fixture
-def mock_torch():
-    """Mock PyTorch for tests that don't need actual tensor operations."""
-    mock_torch = Mock()
-    mock_torch.nn = Mock()
-    mock_torch.optim = Mock()
-    mock_torch.device = Mock(return_value="cpu")
-    mock_torch.cuda = Mock()
-    mock_torch.cuda.is_available = Mock(return_value=False)
-    return mock_torch
+# Mock fixtures for core dependencies removed - use real implementations only
 
 
 @pytest.fixture
-def mock_isaac_gym():
-    """Mock Isaac Gym for robotics tests."""
-    mock_gym = Mock()
-    mock_gym.acquire_gym = Mock()
-    mock_gym.create_sim = Mock()
-    mock_gym.load_asset = Mock()
-    return mock_gym
+def mnist_config():
+    """Provide MNIST configuration for tests."""
+    return {
+        'data_path': os.environ.get('DNNE_TEST_DATA_PATH', './data'),
+        'download': os.environ.get('DNNE_TEST_DOWNLOAD', 'true').lower() == 'true'
+    }
 
 
 @pytest.fixture 
@@ -142,32 +139,14 @@ def export_test_registry():
     return exporter
 
 
-# Pytest markers for conditional skipping
+# Pytest markers - no conditional skipping, tests fail if dependencies missing
 def pytest_configure(config):
-    """Configure pytest with custom markers."""
+    """Configure pytest with custom markers and timeout settings."""
     config.addinivalue_line("markers", "slow: mark test as slow running")
     config.addinivalue_line("markers", "gpu: mark test as requiring GPU")
     config.addinivalue_line("markers", "isaac_gym: mark test as requiring Isaac Gym")
-
-
-def pytest_collection_modifyitems(config, items):
-    """Modify test collection to handle conditional skips."""
-    # Skip GPU tests if CUDA not available
-    try:
-        import torch
-        if not torch.cuda.is_available():
-            skip_gpu = pytest.mark.skip(reason="CUDA not available")
-            for item in items:
-                if "gpu" in item.keywords:
-                    item.add_marker(skip_gpu)
-    except ImportError:
-        pass
-    
-    # Skip Isaac Gym tests if not installed
-    try:
-        import isaacgym
-    except ImportError:
-        skip_isaac = pytest.mark.skip(reason="Isaac Gym not installed")
-        for item in items:
-            if "isaac_gym" in item.keywords:
-                item.add_marker(skip_isaac)
+    config.addinivalue_line("markers", "ml: mark test as ML-related")
+    config.addinivalue_line("markers", "robotics: mark test as robotics-related")
+    config.addinivalue_line("markers", "export: mark test as export system related")
+    config.addinivalue_line("markers", "integration: mark test as integration test")
+    config.addinivalue_line("markers", "performance: mark test as performance benchmark")

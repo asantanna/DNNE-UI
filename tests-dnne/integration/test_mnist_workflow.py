@@ -27,10 +27,10 @@ class TestMNISTWorkflowLoading:
     """Test loading and validation of MNIST workflow."""
     
     @pytest.mark.integration
+    @pytest.mark.timeout(30)
     def test_load_mnist_workflow_file(self, sample_mnist_workflow):
         """Test loading actual MNIST Test.json workflow file."""
-        if sample_mnist_workflow is None:
-            pytest.skip("MNIST Test.json workflow not found")
+        assert sample_mnist_workflow is not None, "MNIST Test.json workflow not found"
         
         # Validate workflow structure
         assert validate_workflow_structure(sample_mnist_workflow)
@@ -120,7 +120,7 @@ class TestMNISTWorkflowExport:
             if not has_expected_error:
                 pytest.fail(f"Unexpected export error: {e}")
             else:
-                pytest.skip(f"Export failed due to missing components: {e}")
+                raise AssertionError(f"Export failed due to missing components: {e}")
                 
         finally:
             cleanup_export_dir(export_path)
@@ -128,8 +128,7 @@ class TestMNISTWorkflowExport:
     @pytest.mark.integration
     def test_full_mnist_workflow_export(self, sample_mnist_workflow):
         """Test export of full MNIST Test.json workflow."""
-        if sample_mnist_workflow is None:
-            pytest.skip("MNIST Test.json workflow not available")
+        assert sample_mnist_workflow is not None, "MNIST Test.json workflow not available"
         
         exporter = GraphExporter()
         register_all_exporters(exporter)
@@ -158,7 +157,7 @@ class TestMNISTWorkflowExport:
         except Exception as e:
             error_msg = str(e).lower()
             if any(err in error_msg for err in ["template", "missing", "not found"]):
-                pytest.skip(f"Export skipped due to missing components: {e}")
+                raise AssertionError(f"Export failed due to missing components: {e}")
             else:
                 raise
                 
@@ -202,7 +201,7 @@ class TestMNISTWorkflowExport:
                     
         except Exception as e:
             if "template" in str(e).lower() or "missing" in str(e).lower():
-                pytest.skip(f"Export consistency test skipped: {e}")
+                raise AssertionError(f"Export consistency test failed: {e}")
             else:
                 raise
                 
@@ -252,7 +251,7 @@ class TestMNISTCodeExecution:
                             
         except Exception as e:
             if "template" in str(e).lower():
-                pytest.skip(f"Syntax validation skipped: {e}")
+                raise AssertionError(f"Syntax validation failed: {e}")
             else:
                 raise
                 
@@ -304,7 +303,7 @@ class TestMNISTCodeExecution:
                             has_expected_error = any(err in stderr for err in expected_errors)
                             
                             if has_expected_error:
-                                pytest.skip(f"MNIST execution skipped due to missing deps: {stderr}")
+                                raise AssertionError(f"MNIST execution failed due to missing deps: {stderr}")
                             else:
                                 # Unexpected error - should investigate
                                 print(f"MNIST execution failed unexpectedly:")
@@ -312,17 +311,17 @@ class TestMNISTCodeExecution:
                                 print(f"STDERR: {execution_result.stderr}")
                                 
                                 # Don't fail the test immediately - generated code issues are expected
-                                pytest.skip(f"MNIST execution failed: {stderr}")
+                                raise AssertionError(f"MNIST execution failed: {stderr}")
                                 
                     except subprocess.TimeoutExpired:
-                        pytest.skip("MNIST execution timed out - may be working but slow")
+                        raise AssertionError("MNIST execution timed out - may be working but slow")
                         
                     except Exception as e:
-                        pytest.skip(f"MNIST execution error: {e}")
+                        raise AssertionError(f"MNIST execution error: {e}")
                         
         except Exception as e:
             if "template" in str(e).lower():
-                pytest.skip(f"MNIST execution test skipped: {e}")
+                raise AssertionError(f"MNIST execution test failed: {e}")
             else:
                 raise
                 
@@ -366,7 +365,7 @@ class TestMNISTCodeExecution:
                         
         except Exception as e:
             if "template" in str(e).lower():
-                pytest.skip(f"Import resolution test skipped: {e}")
+                raise AssertionError(f"Import resolution test failed: {e}")
             else:
                 raise
                 
@@ -407,7 +406,7 @@ class TestMNISTWorkflowPerformance:
             assert export_duration < 10.0, f"Export failure took too long: {export_duration}s"
             
             if "template" in str(e).lower():
-                pytest.skip(f"Performance test skipped: {e}")
+                raise AssertionError(f"Performance test failed: {e}")
             else:
                 raise
                 
@@ -451,7 +450,7 @@ class TestMNISTWorkflowPerformance:
             
         except Exception as e:
             if "template" in str(e).lower():
-                pytest.skip(f"Multiple exports test skipped: {e}")
+                raise AssertionError(f"Multiple exports test failed: {e}")
             else:
                 raise
                 
@@ -505,16 +504,16 @@ class TestMNISTWorkflowIntegration:
                         f"Python compilation failed: {exec_result.stderr}"
                     
                 except subprocess.TimeoutExpired:
-                    pytest.skip("Compilation check timed out")
+                    raise AssertionError("Compilation check timed out")
                 
                 print("End-to-end MNIST pipeline test completed successfully")
                 
             else:
-                pytest.skip("Export did not produce complete output")
+                raise AssertionError("Export did not produce complete output")
                 
         except Exception as e:
             if "template" in str(e).lower() or "missing" in str(e).lower():
-                pytest.skip(f"End-to-end test skipped: {e}")
+                raise AssertionError(f"End-to-end test failed: {e}")
             else:
                 raise
                 

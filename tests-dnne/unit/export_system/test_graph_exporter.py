@@ -375,7 +375,18 @@ class TestErrorHandling:
         exporter = GraphExporter()
         register_all_exporters(exporter)
         
-        workflow = MINIMAL_LINEAR_WORKFLOW
+        # Use a workflow with nodes that don't require connections
+        workflow = {
+            "nodes": [
+                {
+                    "id": "1",
+                    "type": "MNISTDataset",
+                    "inputs": {},
+                    "widgets": {}
+                }
+            ],
+            "links": []
+        }
         
         # Test with invalid path
         invalid_paths = [
