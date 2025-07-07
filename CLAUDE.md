@@ -134,6 +134,12 @@ The system has three main components:
 
 ## Important Development Notes
 
+### **Base Class Design Principles**
+- **No Default Guessing**: Base classes should never implement "guessed" default values when subclasses forget to implement required methods. This creates hard-to-debug issues where the wrong behavior is silently used instead of failing fast.
+- **Fail Fast with NotImplementedError**: When a base class method requires subclass implementation, throw `NotImplementedError` with a clear message about what needs to be implemented.
+- **Example**: Instead of `return ["input"]` as a default for `get_input_names()`, throw `NotImplementedError(f"Subclass {cls.__name__} must implement get_input_names() method")`
+- **Benefits**: Immediate feedback when methods are missing, prevents silent wrong behavior, makes debugging much easier
+
 ### Node Implementation Patterns
 - All custom nodes inherit from base classes in their respective modules
 - Nodes must provide both UI execution and export template generation

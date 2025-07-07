@@ -32,12 +32,12 @@ class ExportableNode:
     @classmethod
     def get_output_names(cls) -> List[str]:
         """Return list of output names for this node type"""
-        return ["output"]
+        raise NotImplementedError(f"Subclass {cls.__name__} must implement get_output_names() method")
     
     @classmethod
     def get_input_names(cls) -> List[str]:
         """Return list of input names for this node type"""
-        return ["input"]
+        raise NotImplementedError(f"Subclass {cls.__name__} must implement get_input_names() method")
     
     @classmethod
     def get_input_name_for_slot(cls, slot: int) -> str:
@@ -127,11 +127,19 @@ class ExportableNode:
             temp_exporter.node_registry = node_registry
             source_connections = temp_exporter._get_node_connections(source_node_id, all_links, all_nodes)
             
-            if "inputs" not in source_connections or "input" not in source_connections["inputs"]:
-                raise ValueError(f"Pass-through node {source_node_id} has no 'input' connection to query")
+            # Try to find a connected input - try common input names
+            possible_input_names = ["input", "input_a", "input_b", "input_c"]
+            input_info = None
+            
+            for input_name in possible_input_names:
+                if "inputs" in source_connections and input_name in source_connections["inputs"]:
+                    input_info = source_connections["inputs"][input_name]
+                    break
+            
+            if input_info is None:
+                raise ValueError(f"Pass-through node {source_node_id} has no connected inputs to query (tried: {possible_input_names})")
             
             # Recursively query the node connected to this pass-through node's input
-            input_info = source_connections["inputs"]["input"]
             upstream_node_id = input_info["from_node"]
             upstream_output_slot = input_info["from_slot"]
             
@@ -173,6 +181,7 @@ class ExportableNode:
                     return images_info["flattened_size"]
             
             raise ValueError(f"Cannot determine tensor size from upstream node {upstream_node_id} output '{upstream_output_name}'")
+        
         
         if "outputs" not in schema or source_output_name not in schema["outputs"]:
             raise ValueError(f"No schema found for output '{source_output_name}' of node {source_node_id}")
