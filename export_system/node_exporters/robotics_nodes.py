@@ -181,9 +181,12 @@ class IsaacGymEnvExporter(ExportableNode):
             "NODE_ID": node_id,
             "CLASS_NAME": "IsaacGymEnvNode",
             "ENV_NAME": params.get("env_name", "Cartpole"),
-            "NUM_ENVS": params.get("num_envs", 1),
+            "NUM_ENVS": params.get("num_envs", 64),
+            "ISAAC_GYM_PATH": params.get("isaac_gym_path", "/home/asantanna/isaacgym"),
+            "ISAAC_GYM_ENVS_PATH": params.get("isaac_gym_envs_path", "/home/asantanna/IsaacGymEnvs"),
+            "HEADLESS": params.get("headless", True),
             "DEVICE": params.get("device", "cuda"),
-            "HEADLESS": params.get("headless", False)
+            "PHYSICS_ENGINE": params.get("physics_engine", "physx")
         }
     
     @classmethod
@@ -191,7 +194,51 @@ class IsaacGymEnvExporter(ExportableNode):
         return [
             "import torch",
             "import numpy as np",
-            "# from isaacgym import gymapi  # Uncomment when Isaac Gym is available",
+            "import os",
+            "# Isaac Gym imports are handled at runtime in the template",
+        ]
+
+
+class IsaacGymStepExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/isaac_gym_step_queue.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections):
+        params = node_data.get("inputs", {})
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "IsaacGymStepNode"
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return [
+            "import torch",
+            "import numpy as np",
+            "# Isaac Gym imports are handled at runtime in the template",
+        ]
+
+
+class ORNodeExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/or_node_queue.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections):
+        params = node_data.get("inputs", {})
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "ORNode"
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return [
+            "import torch",
+            "from typing import Dict, Any, Optional",
         ]
 
 
@@ -213,3 +260,9 @@ def register_robotics_exporters(exporter):
     
     # Isaac Gym
     exporter.register_node("IsaacGymEnv", IsaacGymEnvExporter)
+    exporter.register_node("IsaacGymEnvNode", IsaacGymEnvExporter)
+    exporter.register_node("IsaacGymStep", IsaacGymStepExporter)
+    exporter.register_node("IsaacGymStepNode", IsaacGymStepExporter)
+    
+    # Utility nodes
+    exporter.register_node("ORNode", ORNodeExporter)

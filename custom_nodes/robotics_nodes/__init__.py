@@ -11,7 +11,7 @@ from .base_node import *
 # Import specific node implementations as you create them
 # from .sensor_nodes import *
 # from .controller_nodes import *
-# from .isaac_gym_nodes import *
+from .isaac_gym_nodes import *
 
 # This is the standard ComfyUI way to register custom nodes
 NODE_CLASS_MAPPINGS = {}
@@ -20,6 +20,16 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 # Register the example node from base_node.py
 NODE_CLASS_MAPPINGS["RoboticsExampleIMU"] = ExampleSensorNode
 NODE_DISPLAY_NAME_MAPPINGS["RoboticsExampleIMU"] = "IMU Sensor"
+
+# Register Isaac Gym nodes
+NODE_CLASS_MAPPINGS["IsaacGymEnvNode"] = IsaacGymEnvNode
+NODE_DISPLAY_NAME_MAPPINGS["IsaacGymEnvNode"] = "Isaac Gym Environment"
+
+NODE_CLASS_MAPPINGS["IsaacGymStepNode"] = IsaacGymStepNode
+NODE_DISPLAY_NAME_MAPPINGS["IsaacGymStepNode"] = "Isaac Gym Step"
+
+NODE_CLASS_MAPPINGS["ORNode"] = ORNode
+NODE_DISPLAY_NAME_MAPPINGS["ORNode"] = "OR/ANY Router"
 
 # As you create more nodes, add them here:
 # NODE_CLASS_MAPPINGS["RoboticsCameraNode"] = CameraNode
