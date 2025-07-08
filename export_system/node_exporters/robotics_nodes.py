@@ -194,10 +194,10 @@ class IsaacGymEnvExporter(ExportableNode):
     @classmethod
     def get_imports(cls):
         return [
+            "import isaacgym",  # MUST BE FIRST - before torch
             "import torch",
             "import numpy as np",
-            "import os",
-            "# Isaac Gym imports are handled at runtime in the template",
+            "import os"
         ]
     
     @classmethod

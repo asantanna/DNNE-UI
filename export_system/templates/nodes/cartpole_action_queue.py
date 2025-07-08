@@ -18,13 +18,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         self.logger.info(f"CartpoleActionNode {node_id} initialized with max_push_effort={self.max_push_effort}")
         
-    async def compute(self, network_output, context=None) -> Dict[str, Any]:
+    async def compute(self, network_output) -> Dict[str, Any]:
         """
         Convert neural network output to Isaac Gym ACTION format for Cartpole
         
         Args:
-            network_output: Raw network output tensor [1] or [1, 1] (single force value)
-            context: Optional context dictionary
+            network_output: Raw network output (dict or tensor) containing action/policy_output
             
         Returns:
             action: ACTION object with forces for Isaac Gym
@@ -34,6 +33,20 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import torch
         
         try:
+            # Handle network_output - it might be a dict or tensor
+            if isinstance(network_output, dict):
+                # Extract the actual tensor from the dict
+                if "policy_output" in network_output:
+                    network_output = network_output["policy_output"]
+                elif "action" in network_output:
+                    network_output = network_output["action"] 
+                else:
+                    # Take the first tensor-like value
+                    for key, value in network_output.items():
+                        if hasattr(value, 'dim'):
+                            network_output = value
+                            break
+            
             # Ensure network_output is properly shaped
             if network_output.dim() > 1:
                 network_output = network_output.squeeze()
@@ -56,9 +69,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "torques": None          # Not used for Cartpole
             }
             
-            # Update context
-            if context is None:
-                context = {}
+            # Create context
+            context = {}
             context["last_action_force"] = scaled_force.item()
             context["max_push_effort"] = self.max_push_effort
             
@@ -79,5 +91,5 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             }
             return {
                 "action": default_action,
-                "context": context if context is not None else {}
+                "context": {}
             }

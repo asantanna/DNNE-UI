@@ -167,6 +167,18 @@ The system has three main components:
 - Only mark tests complete when they execute successfully from start to finish
 - Document failures honestly - partial success is not success
 
+### **CRITICAL FILE ORGANIZATION RULE**
+**⚠️ ABSOLUTE PROHIBITION: NEVER create ANY files in the project root directory (/mnt/e/ALS-Projects/DNNE/DNNE-UI/) ⚠️**
+
+**EXPORTS MUST GO TO**: `export_system/exports/{workflow_name}/` ONLY
+**TEST FILES MUST GO TO**: `claude_scripts/` or `tests-dnne/` directories ONLY
+
+**REPEATED VIOLATIONS**: Creating files in project root has happened multiple times. 
+**ALWAYS double-check export paths before running ANY export command.**
+**The export system default behavior exports to project root - you MUST override this.**
+- **Project root**: Keep clean of temporary/test files
+- Before creating ANY file, verify you're in the correct directory
+
 ### File Structure Conventions
 - Queue templates end with `_queue.py` for async execution
 - Node exporters mirror the custom_nodes directory structure

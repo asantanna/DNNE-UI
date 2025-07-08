@@ -9,44 +9,80 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=[], optional=["input_a", "input_b", "input_c"])
+        # Special setup: OR node creates input queues but doesn't require all inputs
+        self.setup_inputs(required=[])  # No required inputs
         self.setup_outputs(["output"])
+        
+        # Manually create input queues for OR node
+        self.input_queues["input_a"] = asyncio.Queue(maxsize=2)
+        self.input_queues["input_b"] = asyncio.Queue(maxsize=2)
+        self.input_queues["input_c"] = asyncio.Queue(maxsize=2)
         
         # State tracking
         self.last_input_source = None
         self.output_count = 0
         
-    async def compute(self, input_a=None, input_b=None, input_c=None) -> Dict[str, Any]:
-        """Route the first available input to output"""
+    async def run(self):
+        """Custom run method: execute when ANY input becomes available"""
+        import asyncio
+        import time
+        self.running = True
+        self.logger.info(f"Starting OR node {self.node_id}")
+        
+        try:
+            while self.running:
+                # Wait for ANY input to become available
+                input_tasks = [
+                    asyncio.create_task(self.input_queues["input_a"].get(), name="input_a"),
+                    asyncio.create_task(self.input_queues["input_b"].get(), name="input_b"),
+                    asyncio.create_task(self.input_queues["input_c"].get(), name="input_c")
+                ]
+                
+                # Wait for first available input
+                done, pending = await asyncio.wait(input_tasks, return_when=asyncio.FIRST_COMPLETED)
+                
+                # Cancel remaining tasks
+                for task in pending:
+                    task.cancel()
+                
+                # Process the first completed input
+                completed_task = list(done)[0]
+                input_data = completed_task.result()
+                input_name = completed_task.get_name()
+                
+                # Execute compute with the available input
+                start_time = time.time()
+                outputs = await self.compute_single_input(input_name, input_data)
+                self.last_compute_time = time.time() - start_time
+                self.compute_count += 1
+                
+                # Send outputs
+                for output_name, value in outputs.items():
+                    await self.send_output(output_name, value)
+                    
+        except asyncio.CancelledError:
+            self.logger.info(f"OR Node {self.node_id} cancelled")
+            raise
+        finally:
+            self.running = False
+    
+    async def compute(self, **inputs) -> Dict[str, Any]:
+        """Required by abstract base class - not used since we override run()"""
+        # This method is required by QueueNode abstract base class
+        # but not actually called since we override run() method
+        raise NotImplementedError("OR node uses custom run() method, not compute()")
+    
+    async def compute_single_input(self, input_name: str, input_data) -> Dict[str, Any]:
+        """Handle single input for OR node"""
         import torch
         
-        # Check inputs in order of priority (A, B, C)
-        if input_a is not None:
-            self.last_input_source = "A"
-            self.output_count += 1
-            self.logger.info(f"OR Node: Routing input A (shape: {{input_a.shape if hasattr(input_a, 'shape') else 'unknown'}}) - output #{{self.output_count}}")
-            return {{
-                "output": input_a
-            }}
+        # Route the input based on which one arrived
+        self.last_input_source = input_name.upper()
+        self.output_count += 1
         
-        elif input_b is not None:
-            self.last_input_source = "B"
-            self.output_count += 1
-            self.logger.info(f"OR Node: Routing input B (shape: {{input_b.shape if hasattr(input_b, 'shape') else 'unknown'}}) - output #{{self.output_count}}")
-            return {{
-                "output": input_b
-            }}
+        shape_info = input_data.shape if hasattr(input_data, 'shape') else 'unknown'
+        self.logger.info(f"OR Node: Routing {input_name} (shape: {shape_info}) - output #{self.output_count}")
         
-        elif input_c is not None:
-            self.last_input_source = "C"
-            self.output_count += 1
-            self.logger.info(f"OR Node: Routing input C (shape: {{input_c.shape if hasattr(input_c, 'shape') else 'unknown'}}) - output #{{self.output_count}}")
-            return {{
-                "output": input_c
-            }}
-        
-        else:
-            # No inputs available - this shouldn't happen in normal operation
-            # In async queue system, this node should only execute when at least one input is available
-            self.logger.error("OR Node: No inputs available - this should not happen in queue system")
-            raise RuntimeError("OR Node: No inputs available")
+        return {
+            "output": input_data
+        }

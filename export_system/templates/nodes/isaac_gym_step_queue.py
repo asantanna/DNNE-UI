@@ -9,7 +9,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=["sim_handle", "actions"], optional=["trigger"])
+        self.setup_inputs(required=["sim_handle", "actions", "trigger"])
         self.setup_outputs(["observations", "rewards", "done", "info", "next_observations"])
         
         # Step tracking
@@ -21,7 +21,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.cached_done = None
         self.cached_info = None
         
-    async def compute(self, sim_handle, actions, trigger=None) -> Dict[str, Any]:
+    async def compute(self, sim_handle, actions, trigger) -> Dict[str, Any]:
         """Execute one simulation step with RL interface and state caching"""
         try:
             # Import Isaac Gym at runtime

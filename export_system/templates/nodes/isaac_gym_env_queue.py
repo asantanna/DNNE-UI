@@ -17,7 +17,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     def __init__(self, node_id: str):
         super().__init__(node_id)
         self.setup_inputs(required=[])
-        self.setup_outputs(["observations"])
+        self.setup_outputs(["observations", "sim_handle"])
         
         # Configuration
         self.env_name = "{ENV_NAME}"
@@ -347,7 +347,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         observations = self._get_initial_observations()
         
         return {{
-            "observations": observations
+            "observations": observations,
+            "sim_handle": self  # Pass the environment node itself as sim_handle
         }}
     
     def _apply_actions(self, actions):
