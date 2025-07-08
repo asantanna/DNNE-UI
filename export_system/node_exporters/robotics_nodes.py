@@ -11,7 +11,7 @@ class CameraSensorExporter(ExportableNode):
         return "nodes/camera_sensor_queue.py"
     
     @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
         params = node_data.get("inputs", {})
         
         # Parse resolution
@@ -42,7 +42,7 @@ class IMUSensorExporter(ExportableNode):
         return "nodes/imu_sensor_queue.py"
     
     @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
         params = node_data.get("inputs", {})
         return {
             "NODE_ID": node_id,
@@ -65,7 +65,7 @@ class VisionNetworkExporter(ExportableNode):
         return "nodes/vision_network_queue.py"
     
     @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
         params = node_data.get("inputs", {})
         return {
             "NODE_ID": node_id,
@@ -91,7 +91,7 @@ class SoundNetworkExporter(ExportableNode):
         return "nodes/sound_network_queue.py"
     
     @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
         params = node_data.get("inputs", {})
         return {
             "NODE_ID": node_id,
@@ -115,7 +115,7 @@ class DecisionNetworkExporter(ExportableNode):
         return "nodes/decision_network_queue.py"
     
     @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
         params = node_data.get("inputs", {})
         
         # Count input connections to determine input dimension
@@ -144,7 +144,7 @@ class RobotControllerExporter(ExportableNode):
         return "nodes/robot_controller_queue.py"
     
     @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
         params = node_data.get("inputs", {})
         
         # Parse joint limits
@@ -175,18 +175,20 @@ class IsaacGymEnvExporter(ExportableNode):
         return "nodes/isaac_gym_env_queue.py"
     
     @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
-        params = node_data.get("inputs", {})
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
+        # ComfyUI workflow format uses widgets_values list
+        widget_values = node_data.get("widgets_values", ["Cartpole", 1, "/home/asantanna/isaacgym", "/home/asantanna/IsaacGymEnvs", True, "cuda", "physx"])
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "IsaacGymEnvNode",
-            "ENV_NAME": params.get("env_name", "Cartpole"),
-            "NUM_ENVS": params.get("num_envs", 64),
-            "ISAAC_GYM_PATH": params.get("isaac_gym_path", "/home/asantanna/isaacgym"),
-            "ISAAC_GYM_ENVS_PATH": params.get("isaac_gym_envs_path", "/home/asantanna/IsaacGymEnvs"),
-            "HEADLESS": params.get("headless", True),
-            "DEVICE": params.get("device", "cuda"),
-            "PHYSICS_ENGINE": params.get("physics_engine", "physx")
+            "ENV_NAME": widget_values[0] if len(widget_values) > 0 else "Cartpole",
+            "NUM_ENVS": widget_values[1] if len(widget_values) > 1 else 1,
+            "ISAAC_GYM_PATH": widget_values[2] if len(widget_values) > 2 else "/home/asantanna/isaacgym",
+            "ISAAC_GYM_ENVS_PATH": widget_values[3] if len(widget_values) > 3 else "/home/asantanna/IsaacGymEnvs",
+            "HEADLESS": widget_values[4] if len(widget_values) > 4 else True,
+            "DEVICE": widget_values[5] if len(widget_values) > 5 else "cuda",
+            "PHYSICS_ENGINE": widget_values[6] if len(widget_values) > 6 else "physx"
         }
     
     @classmethod
@@ -197,6 +199,14 @@ class IsaacGymEnvExporter(ExportableNode):
             "import os",
             "# Isaac Gym imports are handled at runtime in the template",
         ]
+    
+    @classmethod
+    def get_input_names(cls):
+        return []  # No inputs - runs at startup
+    
+    @classmethod
+    def get_output_names(cls):
+        return ["sim_handle", "observations", "context"]
 
 
 class IsaacGymStepExporter(ExportableNode):
@@ -205,8 +215,10 @@ class IsaacGymStepExporter(ExportableNode):
         return "nodes/isaac_gym_step_queue.py"
     
     @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
-        params = node_data.get("inputs", {})
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
+        # ComfyUI workflow format uses widgets_values list
+        widget_values = node_data.get("widgets_values", [])
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "IsaacGymStepNode"
@@ -219,6 +231,14 @@ class IsaacGymStepExporter(ExportableNode):
             "import numpy as np",
             "# Isaac Gym imports are handled at runtime in the template",
         ]
+    
+    @classmethod
+    def get_input_names(cls):
+        return ["sim_handle", "actions", "context", "trigger"]
+    
+    @classmethod
+    def get_output_names(cls):
+        return ["observations", "rewards", "done", "info", "next_observations", "context"]
 
 
 class ORNodeExporter(ExportableNode):
@@ -227,7 +247,7 @@ class ORNodeExporter(ExportableNode):
         return "nodes/or_node_queue.py"
     
     @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections):
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
         params = node_data.get("inputs", {})
         return {
             "NODE_ID": node_id,
@@ -240,6 +260,80 @@ class ORNodeExporter(ExportableNode):
             "import torch",
             "from typing import Dict, Any, Optional",
         ]
+    
+    @classmethod
+    def get_input_names(cls):
+        return ["input_a", "input_b", "input_c"]
+    
+    @classmethod
+    def get_output_names(cls):
+        return ["output"]
+
+
+class CartpoleActionNodeExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/cartpole_action_queue.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
+        # ComfyUI workflow format uses widgets_values list
+        widget_values = node_data.get("widgets_values", [10.0])
+        
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "CartpoleActionNode",
+            "MAX_PUSH_EFFORT": widget_values[0] if len(widget_values) > 0 else 10.0
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return [
+            "import torch",
+            "from typing import Dict, Any, Optional",
+        ]
+    
+    @classmethod
+    def get_input_names(cls):
+        return ["network_output"]
+    
+    @classmethod
+    def get_output_names(cls):
+        return ["action"]
+
+
+class CartpoleRewardNodeExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/cartpole_reward_queue.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
+        # ComfyUI workflow format uses widgets_values list
+        widget_values = node_data.get("widgets_values", [2.0, True])
+        
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "CartpoleRewardNode",
+            "RESET_DIST": widget_values[0] if len(widget_values) > 0 else 2.0,
+            "INVERT_FOR_LOSS": widget_values[1] if len(widget_values) > 1 else True
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return [
+            "import torch",
+            "import numpy as np",
+            "from typing import Dict, Any, Optional",
+        ]
+    
+    @classmethod
+    def get_input_names(cls):
+        return ["observations"]
+    
+    @classmethod
+    def get_output_names(cls):
+        return ["reward_or_loss", "done", "info_dict"]
 
 
 # Registration function
@@ -266,3 +360,7 @@ def register_robotics_exporters(exporter):
     
     # Utility nodes
     exporter.register_node("ORNode", ORNodeExporter)
+    
+    # Cartpole RL nodes
+    exporter.register_node("CartpoleActionNode", CartpoleActionNodeExporter)
+    exporter.register_node("CartpoleRewardNode", CartpoleRewardNodeExporter)
