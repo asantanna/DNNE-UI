@@ -33,17 +33,24 @@ This file contains larger features, system improvements, and architectural consi
    - Validation dataset splitting
 
 ### Low Priority
-1. **Visualization Improvements**:
+1. **4-Node PPO Implementation**:
+   - Decompose PPO algorithm into 4 separate nodes for better visibility
+   - ActorCriticNetwork, ActionSampler, PPOBuffer, PPOTrainer nodes
+   - Provides more granular control and visual understanding of algorithm
+   - Trade-off: More async overhead vs better algorithm visibility
+   - Current 2-node implementation should be optimized first
+
+2. **Visualization Improvements**:
    - Real-time loss/accuracy plotting nodes
    - Network architecture visualization
    - Training progress dashboards
 
-2. **Model Export/Import**:
+3. **Model Export/Import**:
    - Save/load trained model weights
    - ONNX export capabilities
    - Model versioning system
 
-3. **GetBatch Rate Limiting Widget**:
+4. **GetBatch Rate Limiting Widget**:
    - Add optional rate limiting widget to GetBatch node
    - Default setting: "off" (no rate limiting)
    - Allow users to set specific Hz for robotics applications

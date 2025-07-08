@@ -22,11 +22,18 @@ from .robotics_nodes import (
     register_robotics_exporters
 )
 
+from .rl_nodes import (
+    PPOAgentExporter,
+    PPOTrainerExporter,
+    register_rl_exporters
+)
+
 # Register all exporters
 def register_all_exporters(exporter):
     """Register all node exporters with the graph exporter"""
     register_ml_exporters(exporter)
     register_robotics_exporters(exporter)
+    register_rl_exporters(exporter)
     
     # Log registration summary
     import logging
@@ -49,8 +56,12 @@ __all__ = [
     'DecisionNetworkExporter',
     'RobotControllerExporter',
     'IsaacGymEnvExporter',
+    # RL nodes
+    'PPOAgentExporter',
+    'PPOTrainerExporter',
     # Registration functions
     'register_all_exporters',
     'register_ml_exporters',
-    'register_robotics_exporters'
+    'register_robotics_exporters',
+    'register_rl_exporters'
 ]

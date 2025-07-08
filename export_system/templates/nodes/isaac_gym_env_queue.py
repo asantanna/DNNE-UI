@@ -16,7 +16,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=[], optional=["actions"])
+        self.setup_inputs(required=[])
         self.setup_outputs(["observations"])
         
         # Configuration
@@ -52,7 +52,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Isaac Gym must be imported before torch
             import isaacgym
             from isaacgym import gymapi, gymutil, gymtorch
-            from isaacgym.torch_utils import *
+            import isaacgym.torch_utils as torch_utils
             
             # Validate paths
             import os
