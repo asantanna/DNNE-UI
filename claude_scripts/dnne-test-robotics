@@ -1,0 +1,9 @@
+#!/bin/bash
+# DNNE Test Suite - Robotics Tests Only
+# Run only robotics/Isaac Gym tests
+
+# Source the command functions
+source "$(dirname "${BASH_SOURCE[0]}")/dnne_test_commands.sh"
+
+# Run robotics tests
+dnne_test_robotics "$@"

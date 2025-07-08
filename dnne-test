@@ -1,0 +1,120 @@
+#!/bin/bash
+# DNNE Test Suite Command Dispatcher
+# Usage: dnne-test [command] [options]
+
+set -e
+
+# Source the existing command functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/claude_scripts/dnne_test_commands.sh"
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+show_help() {
+    echo -e "${BLUE}DNNE Test Suite${NC}"
+    echo "================================================================"
+    echo ""
+    echo "Usage: dnne-test [command] [options]"
+    echo ""
+    echo -e "${GREEN}Core Commands:${NC}"
+    echo "  help           Show this help (default when no args)"
+    echo "  quick          Unit tests only (~5-10 seconds)"
+    echo "  unit           All unit tests (~10-15 seconds)"
+    echo "  integration    Integration tests only (~30+ seconds)"  
+    echo "  full           Complete test suite (~45+ seconds)"
+    echo ""
+    echo -e "${GREEN}Specialized Commands:${NC}"
+    echo "  ml             ML node tests only (~15-20 seconds)"
+    echo "  robotics       Robotics/Isaac Gym tests only (~10-15 seconds)"
+    echo "  export         Export system tests only (~15-20 seconds)"
+    echo "  coverage       Tests with coverage report (~60+ seconds)"
+    echo ""
+    echo -e "${GREEN}Helper Commands:${NC}"
+    echo "  deps           Check dependencies only (~30 seconds)"
+    echo "  verbose        Run with maximum verbosity (varies)"
+    echo ""
+    echo -e "${GREEN}Configuration:${NC}"
+    echo "  Environment variables:"
+    echo "    DNNE_TEST_DATA_PATH    Custom data directory (default: ./data)"
+    echo "    DNNE_TEST_DOWNLOAD     Enable/disable downloads (default: true)"
+    echo ""
+    echo -e "${GREEN}Examples:${NC}"
+    echo "  dnne-test              # Show this help"
+    echo "  dnne-test quick        # Quick unit tests (~5-10 sec)"
+    echo "  dnne-test full         # Complete test suite (~45+ sec)"
+    echo "  dnne-test unit -v      # Unit tests with verbose output"
+    echo "  dnne-test ml           # ML node tests only"
+    echo "  dnne-test deps         # Check dependencies"
+    echo ""
+    echo "All additional arguments are passed to the underlying test commands."
+}
+
+# Main command dispatcher
+case "${1:-}" in
+    "help"|"-h"|"--help")
+        show_help
+        ;;
+    "unit")
+        shift
+        echo -e "${BLUE}🧪 Running DNNE Unit Tests${NC}"
+        dnne_test_unit "$@"
+        ;;
+    "integration")
+        shift  
+        echo -e "${BLUE}🔗 Running DNNE Integration Tests${NC}"
+        dnne_test_integration "$@"
+        ;;
+    "quick")
+        shift
+        echo -e "${BLUE}⚡ Running DNNE Quick Tests${NC}"
+        dnne_test_quick "$@"
+        ;;
+    "ml")
+        shift
+        echo -e "${BLUE}🧠 Running DNNE ML Tests${NC}"
+        dnne_test_ml "$@"
+        ;;
+    "robotics")
+        shift
+        echo -e "${BLUE}🤖 Running DNNE Robotics Tests${NC}"
+        dnne_test_robotics "$@"
+        ;;
+    "export")
+        shift
+        echo -e "${BLUE}📦 Running DNNE Export Tests${NC}"
+        dnne_test_export "$@"
+        ;;
+    "coverage")
+        shift
+        echo -e "${BLUE}📊 Running DNNE Coverage Tests${NC}"
+        dnne_test_coverage "$@"
+        ;;
+    "verbose")
+        shift
+        echo -e "${BLUE}🔍 Running DNNE Verbose Tests${NC}"
+        dnne_test_verbose "$@"
+        ;;
+    "deps")
+        shift
+        echo -e "${BLUE}🔍 Checking DNNE Dependencies${NC}"
+        dnne_test_deps "$@"
+        ;;
+    "full")
+        shift
+        echo -e "${BLUE}🚀 Running Full DNNE Test Suite${NC}"
+        dnne_test_full "$@"
+        ;;
+    "")
+        show_help
+        ;;
+    *)
+        echo -e "${YELLOW}Unknown command: $1${NC}"
+        echo ""
+        show_help
+        exit 1
+        ;;
+esac

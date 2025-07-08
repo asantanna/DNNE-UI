@@ -1,0 +1,9 @@
+#!/bin/bash
+# DNNE Test Suite - Quick Tests
+# Run tests with short timeout (10s, skip slow tests)
+
+# Source the command functions
+source "$(dirname "${BASH_SOURCE[0]}")/dnne_test_commands.sh"
+
+# Run quick tests
+dnne_test_quick "$@"

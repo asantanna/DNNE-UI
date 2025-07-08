@@ -1,0 +1,9 @@
+#!/bin/bash
+# DNNE Test Suite - Export System Tests Only
+# Run only export system tests
+
+# Source the command functions
+source "$(dirname "${BASH_SOURCE[0]}")/dnne_test_commands.sh"
+
+# Run export system tests
+dnne_test_export "$@"

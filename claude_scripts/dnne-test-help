@@ -1,0 +1,9 @@
+#!/bin/bash
+# DNNE Test Suite - Help
+# Show available test commands and usage
+
+# Source the command functions
+source "$(dirname "${BASH_SOURCE[0]}")/dnne_test_commands.sh"
+
+# Show help
+dnne_test_help "$@"

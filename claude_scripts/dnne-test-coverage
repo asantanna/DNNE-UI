@@ -1,0 +1,9 @@
+#!/bin/bash
+# DNNE Test Suite - Coverage Report
+# Run tests with coverage report generation
+
+# Source the command functions
+source "$(dirname "${BASH_SOURCE[0]}")/dnne_test_commands.sh"
+
+# Run tests with coverage
+dnne_test_coverage "$@"
