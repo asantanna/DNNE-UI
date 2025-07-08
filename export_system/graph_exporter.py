@@ -740,7 +740,7 @@ class PlaceholderNode_{node_id}(QueueNode):
         
         # Extract class name from the node code
         import re
-        class_match = re.search(r'class (\w+)\(', node_code)
+        class_match = re.search(r'class ([a-zA-Z_][a-zA-Z0-9_-]*)\(', node_code)
         if not class_match:
             raise ValueError(f"Could not extract class name from node {node_id}")
         class_name = class_match.group(1)
