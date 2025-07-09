@@ -30,6 +30,7 @@ show_help() {
     echo -e "${GREEN}Specialized Commands:${NC}"
     echo "  ml             ML node tests only (~15-20 seconds)"
     echo "  robotics       Robotics/Isaac Gym tests only (~10-15 seconds)"
+    echo "  rl             RL comprehensive tests (Cartpole PPO) (~5-10 minutes)"
     echo "  export         Export system tests only (~15-20 seconds)"
     echo "  coverage       Tests with coverage report (~60+ seconds)"
     echo ""
@@ -82,6 +83,11 @@ case "${1:-}" in
         shift
         echo -e "${BLUE}🤖 Running DNNE Robotics Tests${NC}"
         dnne_test_robotics "$@"
+        ;;
+    "rl")
+        shift
+        echo -e "${BLUE}🎮 Running DNNE RL Comprehensive Tests${NC}"
+        dnne_test_rl_comprehensive "$@"
         ;;
     "export")
         shift

@@ -212,6 +212,32 @@ dnne_test_export() {
     dnne_test_pytest "Export System Tests Only" "tests-dnne/ -m export" "30"
 }
 
+# RL comprehensive tests (Cartpole PPO)
+dnne_test_rl_comprehensive() {
+    log_info "🎮 Running DNNE RL Comprehensive Tests (Cartpole PPO)"
+    echo "================================================================"
+    
+    check_project_root
+    activate_environment
+    
+    echo ""
+    log_info "Running Cartpole PPO comprehensive test suite..."
+    echo ""
+    
+    cd "$PROJECT_ROOT"
+    python claude_scripts/test_cartpole_ppo_comprehensive.py
+    local exit_code=$?
+    
+    echo ""
+    if [ $exit_code -eq 0 ]; then
+        log_success "RL comprehensive tests completed successfully!"
+    else
+        log_error "RL comprehensive tests failed with exit code $exit_code"
+    fi
+    
+    return $exit_code
+}
+
 # Verbose mode
 dnne_test_verbose() {
     dnne_test_pytest "Verbose Test Output" "tests-dnne/ -vvv -s --tb=long" "60"

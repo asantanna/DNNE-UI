@@ -49,6 +49,9 @@ IsaacGym and IsaacGymEnvs are installed and verified working:
 - **GPU Support**: Verified working with CUDA and GPU PhysX acceleration
 - **Environment Testing**: Cartpole and other environments tested successfully
 
+**⚠️ CRITICAL ISAAC GYM IMPORT ORDER FIX ⚠️**
+The export system MUST ensure Isaac Gym nodes are imported before any torch-using nodes in `nodes/__init__.py`. This is handled in `graph_exporter._generate_node_init()` which sorts Isaac Gym nodes first. Without this, you get "PyTorch was imported before isaacgym" errors.
+
 ### Starting the Application
 ```bash
 python main.py

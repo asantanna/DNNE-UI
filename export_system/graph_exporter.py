@@ -231,10 +231,30 @@ class GraphExporter:
             # For modular export, output_path should be a directory, not a file
             if output_path.suffix == '.py':
                 output_path = output_path.parent
+                
+            # Validate export path - must be within export_system/exports/
+            export_base = Path(__file__).parent / "exports"
+            try:
+                # Resolve both paths to handle relative paths correctly
+                output_resolved = output_path.resolve()
+                export_base_resolved = export_base.resolve()
+                
+                # Check if output path is within the exports directory
+                output_resolved.relative_to(export_base_resolved)
+            except ValueError:
+                # Path is not relative to export base - raise clear error
+                raise ValueError(
+                    f"Export path must be within 'export_system/exports/' directory.\n"
+                    f"Attempted path: {output_path}\n"
+                    f"Required base path: {export_base}\n"
+                    f"Example correct usage: export_workflow(workflow, Path('export_system/exports/MyWorkflow'))"
+                )
         else:
-            # Default to a temporary directory if no path provided
-            from tempfile import mkdtemp
-            output_path = Path(mkdtemp())
+            # Default to exports directory with timestamp
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            workflow_name = metadata.get("workflow_name", "unnamed")
+            output_path = Path(__file__).parent / "exports" / f"{workflow_name}_{timestamp}"
         
         # Create package structure
         framework_dir, nodes_dir = self._create_package_structure(output_path)
@@ -795,7 +815,21 @@ class PlaceholderNode_{node_id}(QueueNode):
         """Generate nodes/__init__.py with all node imports"""
         init_content = ['"""DNNE Generated Nodes"""', ""]
         
+        # CRITICAL: Sort nodes to ensure Isaac Gym nodes are imported first
+        # This prevents "PyTorch was imported before isaacgym" error
+        isaac_gym_nodes = []
+        other_nodes = []
+        
         for node_id, node_type, class_name in node_classes:
+            if "IsaacGym" in node_type or "isaac" in node_type.lower():
+                isaac_gym_nodes.append((node_id, node_type, class_name))
+            else:
+                other_nodes.append((node_id, node_type, class_name))
+        
+        # Import Isaac Gym nodes first, then others
+        sorted_nodes = isaac_gym_nodes + other_nodes
+        
+        for node_id, node_type, class_name in sorted_nodes:
             node_type_snake = node_type.lower().replace(" ", "_")
             filename = f"{node_type_snake}_{node_id}"
             init_content.append(f"from .{filename} import {class_name}")
@@ -805,7 +839,7 @@ class PlaceholderNode_{node_id}(QueueNode):
             "__all__ = [",
         ])
         
-        for _, _, class_name in node_classes:
+        for _, _, class_name in sorted_nodes:
             init_content.append(f'    "{class_name}",')
         
         init_content.append("]")
@@ -815,6 +849,17 @@ class PlaceholderNode_{node_id}(QueueNode):
     def _generate_minimal_runner(self, output_path: Path, node_instances: List[str], 
                                connections: List[str], metadata: Dict):
         """Generate a minimal runner.py that imports and wires nodes"""
+        
+        # Extract Isaac Gym node classes from node_instances
+        isaac_gym_imports = []
+        for instance in node_instances:
+            # Parse "node_1 = IsaacGymEnvNode_1("1")" to get class name
+            parts = instance.split(' = ')
+            if len(parts) == 2:
+                class_instantiation = parts[1].split('(')[0]
+                if 'IsaacGym' in class_instantiation:
+                    isaac_gym_imports.append(class_instantiation)
+        
         runner_content = [
             "#!/usr/bin/env python3",
             '"""',
@@ -822,6 +867,18 @@ class PlaceholderNode_{node_id}(QueueNode):
             f"Metadata: {json.dumps(metadata, indent=2) if metadata else 'None'}",
             '"""',
             "",
+        ]
+        
+        # CRITICAL: Import isaacgym FIRST if any Isaac Gym nodes exist
+        if isaac_gym_imports:
+            runner_content.extend([
+                "# CRITICAL: Import isaacgym before ANY other imports to prevent torch import order issues",
+                "# This MUST be the first import after the header comments",
+                "import isaacgym",
+                ""
+            ])
+        
+        runner_content.extend([
             "import sys",
             "import argparse",
             "from pathlib import Path",
@@ -832,6 +889,22 @@ class PlaceholderNode_{node_id}(QueueNode):
             "import asyncio",
             "import logging",
             "",
+        ])
+        
+        # Add Isaac Gym node imports if any exist
+        if isaac_gym_imports:
+            runner_content.extend([
+                "# CRITICAL: Import Isaac Gym nodes directly (not via __init__.py) to prevent torch import order issues",
+                "# This prevents 'PyTorch was imported before isaacgym' error"
+            ])
+            for isaac_class in isaac_gym_imports:
+                # Convert class name to module name
+                # IsaacGymEnvNode_1 -> isaacgymenvnode_1
+                module_name = isaac_class.replace('Node_', 'node_').lower()
+                runner_content.append(f"from nodes.{module_name} import {isaac_class}")
+            runner_content.append("")
+        
+        runner_content.extend([
             "from framework.base import GraphRunner",
             "from nodes import *",
             "",
@@ -866,7 +939,7 @@ class PlaceholderNode_{node_id}(QueueNode):
             '    print("=" * 60)',
             "",
             "    # Create nodes",
-        ]
+        ])
         
         # Add node instances
         for instance in node_instances:
