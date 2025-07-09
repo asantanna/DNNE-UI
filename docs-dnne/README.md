@@ -4,26 +4,45 @@ Welcome to the DNNE (Drag and Drop Neural Network Environment) documentation. Th
 
 ## Documentation Structure
 
+### Node Reference
+- **[Node Overview](nodes/)** - Complete reference for all DNNE nodes
+- **[ML Nodes](nodes/ml/)** - Data processing, layers, training, activation nodes
+- **[RL Nodes](nodes/rl/)** - Reinforcement learning nodes (PPO)
+- **[Robotics Nodes](nodes/robotics/)** - Isaac Gym and control nodes
+- **[Utility Nodes](nodes/utility/)** - Data flow and debugging nodes
+
+### Examples
+- **[Example Workflows](examples/)** - Complete working examples
+- **[MNIST Classification](examples/mnist_classification.md)** - Supervised learning example
+- **[Cartpole PPO](examples/cartpole_ppo.md)** - Reinforcement learning with PPO
+
 ### Machine Learning (ML)
-- **[Cartpole PPO Analysis](ML/cartpole_ppo_analysis.md)** - Detailed analysis of the PPO implementation for Cartpole, including workflow structure, export system, and performance characteristics
-- **[PPO Architecture](ML/ppo_architecture.md)** - Comprehensive guide to the PPOAgentNode and PPOTrainerNode, including configuration, best practices, and troubleshooting
-- **[Training Workflows](ML/training_workflow.md)** - *(Coming soon)* Guide to creating RL training workflows in DNNE
+- **[PPO Architecture](ML/ppo_architecture.md)** - Deep dive into PPO algorithm
+- **[Training Workflows](ML/training_workflow.md)** - Guide to creating RL workflows
 
 ### Architecture
-- **[Export System](architecture/export_system.md)** - *(Coming soon)* How DNNE converts visual workflows to executable Python code
-- **[Queue Framework](architecture/queue_framework.md)** - *(Coming soon)* Understanding the async queue-based architecture
+- **[Export System](architecture/export_system.md)** - How DNNE converts visual workflows to Python
+- **[Queue Framework](architecture/queue_framework.md)** - Async queue-based architecture
+
+### Future Features
+- **[Feature Roadmap](future/)** - Planned features and improvements
 
 ## Quick Navigation
 
+### For ML Practitioners
+1. Start with [MNIST Example](examples/mnist_classification.md) for supervised learning
+2. Browse [ML Nodes](nodes/ml/) to understand available components
+3. Check [Training Workflows](ML/training_workflow.md) for best practices
+
 ### For RL Practitioners
-1. Start with [PPO Architecture](ML/ppo_architecture.md) to understand the available nodes
-2. Review [Cartpole PPO Analysis](ML/cartpole_ppo_analysis.md) for a complete implementation example
-3. Follow [Training Workflows](ML/training_workflow.md) to build your own RL systems
+1. Review [Cartpole PPO Example](examples/cartpole_ppo.md) for a complete RL implementation
+2. Study [PPO Nodes](nodes/rl/ppo.md) for algorithm details
+3. Explore [Robotics Nodes](nodes/robotics/) for environment integration
 
 ### For Developers
 1. Understand the [Queue Framework](architecture/queue_framework.md) for the async execution model
 2. Learn about the [Export System](architecture/export_system.md) for code generation
-3. Review implementation examples in the ML section
+3. Browse [Future Features](future/) to contribute ideas
 
 ## Key Concepts
 

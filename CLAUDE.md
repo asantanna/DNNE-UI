@@ -269,5 +269,4 @@ The export system generates clean, executable Python code that correctly impleme
 - **Connection System**: Robust connection mapping that survives ComfyUI pipeline processing
 
 ## Workflow
-- **TODO.md** (`TODO.md`): Whenever you change your internal to-do list, update TODO.md also. This file is meant to be a permanent record of cumulative to-do items created and completed during the lifetime of the project. This file is divided into two sections.  The first has a header "OPEN TO-DO ITEMS" followed by open todo items only.  After a line separator, a header says "COMPLETED TO-DO ITEMS" followed by a listing of all the completed todo items.  Use a strike-through font on completed items.
-- **TASKS.md** (`TASKS.md`): This file is updated by the developers with high-level features and any other concerns to be addressed at a later time.
+- **Future Features** (`docs-dnne/future/`): When you have ideas for future features or improvements, create a new markdown file in the appropriate subdirectory. Keep filenames short but descriptive. Update the README.md index when adding new features. Each feature file should include: Priority (High/Medium/Low), Description, Motivation, Implementation Notes, Dependencies, and Estimated Effort.
