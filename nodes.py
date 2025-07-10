@@ -37,7 +37,7 @@ class DNNENode:
     RETURN_TYPES: Tuple = ()
     RETURN_NAMES: Optional[Tuple] = None
     FUNCTION: str = "compute"
-    CATEGORY: str = "dnne"
+    CATEGORY: str = "utils"
     
     def compute(self, **kwargs):
         """Main computation function - override in subclasses"""
@@ -55,7 +55,7 @@ class FloatConstant:
     
     RETURN_TYPES = ("FLOAT",)
     FUNCTION = "get_value"
-    CATEGORY = "dnne/constants"
+    CATEGORY = "utils"
     
     def get_value(self, value):
         return (value,)
@@ -71,7 +71,7 @@ class IntConstant:
     
     RETURN_TYPES = ("INT",)
     FUNCTION = "get_value"
-    CATEGORY = "dnne/constants"
+    CATEGORY = "utils"
     
     def get_value(self, value):
         return (value,)
@@ -87,7 +87,7 @@ class StringConstant:
     
     RETURN_TYPES = ("STRING",)
     FUNCTION = "get_value"  
-    CATEGORY = "dnne/constants"
+    CATEGORY = "utils"
     
     def get_value(self, value):
         return (value,)
@@ -105,27 +105,30 @@ class PrintValue:
     
     RETURN_TYPES = ("*",)
     FUNCTION = "print_value"
-    CATEGORY = "dnne/debug"
+    CATEGORY = "utils"
     OUTPUT_NODE = True
     
     def print_value(self, value, prefix):
         print(f"{prefix} {value}")
         return (value,)
 
-# Node mappings for the system
-NODE_CLASS_MAPPINGS = {
-    "FloatConstant": FloatConstant,
-    "IntConstant": IntConstant, 
-    "StringConstant": StringConstant,
-    "PrintValue": PrintValue,
-}
+# Define core utility node data as tuples (key, class, display_name)
+# Future nodes: just add to this list and they'll be automatically sorted alphabetically
+_CORE_NODES = [
+    ("FloatConstant", FloatConstant, "Float Constant"),
+    ("IntConstant", IntConstant, "Integer Constant"),
+    ("StringConstant", StringConstant, "String Constant"),
+    ("PrintValue", PrintValue, "Print Value"),
+    # Add new core nodes here - they'll be automatically sorted by display name
+]
 
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "FloatConstant": "Float Constant",
-    "IntConstant": "Integer Constant",
-    "StringConstant": "String Constant", 
-    "PrintValue": "Print Value",
-}
+# Generate sorted dictionaries automatically by display name
+NODE_CLASS_MAPPINGS = {}
+NODE_DISPLAY_NAME_MAPPINGS = {}
+
+for key, node_class, display_name in sorted(_CORE_NODES, key=lambda x: x[2]):  # Sort by display name
+    NODE_CLASS_MAPPINGS[key] = node_class
+    NODE_DISPLAY_NAME_MAPPINGS[key] = display_name
 
 # Global variables to track loaded nodes
 custom_nodes_loaded = False

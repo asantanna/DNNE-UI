@@ -27,7 +27,7 @@ class CrossEntropyLossNode(RoboticsNodeBase):
     RETURN_TYPES = ("TENSOR", "FLOAT")
     RETURN_NAMES = ("loss", "accuracy")
     FUNCTION = "compute_loss"
-    CATEGORY = "ml/loss"
+    CATEGORY = "ml"
 
     def compute_loss(self, predictions, labels):
         loss = F.cross_entropy(predictions, labels)
@@ -59,7 +59,7 @@ class AccuracyNode(RoboticsNodeBase):
     RETURN_TYPES = ("FLOAT", "INT", "INT")
     RETURN_NAMES = ("accuracy", "correct", "total")
     FUNCTION = "calculate"
-    CATEGORY = "ml/metrics"
+    CATEGORY = "ml"
 
     def calculate(self, predictions, labels):
         _, predicted = torch.max(predictions, 1)
@@ -89,7 +89,7 @@ class SGDOptimizerNode(RoboticsNodeBase):
     RETURN_TYPES = ("OPTIMIZER",)
     RETURN_NAMES = ("optimizer",)
     FUNCTION = "create_optimizer"
-    CATEGORY = "ml/optimization"
+    CATEGORY = "ml"
 
     def create_optimizer(self, network, learning_rate, momentum):
         context = get_context()
@@ -126,7 +126,7 @@ class TrainingStepNode(RoboticsNodeBase):
     RETURN_TYPES = ("SYNC",)
     RETURN_NAMES = ("ready",)
     FUNCTION = "training_step"
-    CATEGORY = "ml/training"
+    CATEGORY = "ml"
 
     def training_step(self, loss, optimizer):
         loss_tensor = self.ensure_tensor(loss)
@@ -174,7 +174,7 @@ class EpochTrackerNode(RoboticsNodeBase):
     RETURN_TYPES = ("DICT",)
     RETURN_NAMES = ("training_summary",)
     FUNCTION = "track_progress"
-    CATEGORY = "ml/training"
+    CATEGORY = "ml"
 
     def track_progress(self, epoch_stats, loss, accuracy, max_epochs=10):
         # This is a placeholder for UI - actual logic is in the template

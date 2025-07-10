@@ -41,7 +41,7 @@ class TensorVisualizerNode(RoboticsNodeBase):
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("visualization",)
     FUNCTION = "visualize"
-    CATEGORY = "ml/visualization"
+    CATEGORY = "ml"
     OUTPUT_NODE = True
 
     def visualize(self, tensor, title):

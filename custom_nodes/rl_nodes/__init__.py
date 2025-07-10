@@ -11,16 +11,21 @@ from .rl_types import *
 from .ppo_agent import PPOAgentNode
 from .ppo_trainer import PPOTrainerNode
 
-# ComfyUI node registration
+# Define RL node data as tuples (key, class, display_name)
+# Future nodes: just add to this list and they'll be automatically sorted alphabetically
+_RL_NODES = [
+    ("PPOAgentNode", PPOAgentNode, "PPO Agent (Actor-Critic)"),
+    ("PPOTrainerNode", PPOTrainerNode, "PPO Trainer"),
+    # Add new RL nodes here - they'll be automatically sorted by display name
+]
+
+# Generate sorted dictionaries automatically by display name
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
 
-# Register PPO nodes
-NODE_CLASS_MAPPINGS["PPOAgentNode"] = PPOAgentNode
-NODE_DISPLAY_NAME_MAPPINGS["PPOAgentNode"] = "PPO Agent (Actor-Critic)"
-
-NODE_CLASS_MAPPINGS["PPOTrainerNode"] = PPOTrainerNode  
-NODE_DISPLAY_NAME_MAPPINGS["PPOTrainerNode"] = "PPO Trainer"
+for key, node_class, display_name in sorted(_RL_NODES, key=lambda x: x[2]):  # Sort by display name
+    NODE_CLASS_MAPPINGS[key] = node_class
+    NODE_DISPLAY_NAME_MAPPINGS[key] = display_name
 
 # Export the mappings for ComfyUI to discover
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']

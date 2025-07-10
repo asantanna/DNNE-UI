@@ -310,7 +310,7 @@ class ExampleRoboticsNode:
     
     RETURN_TYPES = ("ACTION", "CONTEXT")
     FUNCTION = "compute"
-    CATEGORY = "robotics/control"
+    CATEGORY = "robotics"
     
     def compute(self, robot_state, sensor, context=None):
         # Your control logic here

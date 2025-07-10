@@ -43,7 +43,7 @@ class PPOAgentNode:
     RETURN_NAMES = ("policy_output", "model")
     
     FUNCTION = "forward"
-    CATEGORY = "ml/rl"
+    CATEGORY = "rl"
     DESCRIPTION = cleandoc(__doc__)
     
     def __init__(self):

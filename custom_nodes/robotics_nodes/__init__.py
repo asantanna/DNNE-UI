@@ -13,34 +13,25 @@ from .base_node import *
 # from .controller_nodes import *
 from .isaac_gym_nodes import *
 
-# This is the standard ComfyUI way to register custom nodes
+# Define robotics node data as tuples (key, class, display_name)
+# Future nodes: just add to this list and they'll be automatically sorted alphabetically
+_ROBOTICS_NODES = [
+    ("IsaacGymEnvNode", IsaacGymEnvNode, "Isaac Gym Environment"),
+    ("IsaacGymStepNode", IsaacGymStepNode, "Isaac Gym Step"),
+    ("ORNode", ORNode, "OR/ANY Router"),
+    ("CartpoleActionNode", CartpoleActionNode, "Cartpole Action Converter"),
+    ("CartpoleRewardNode", CartpoleRewardNode, "Cartpole Reward Calculator"),
+    # Add new nodes here - they'll be automatically sorted by display name
+    # ("RoboticsCameraNode", CameraNode, "Camera Sensor"),
+]
+
+# Generate sorted dictionaries automatically by display name
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
 
-# Register the example node from base_node.py
-NODE_CLASS_MAPPINGS["RoboticsExampleIMU"] = ExampleSensorNode
-NODE_DISPLAY_NAME_MAPPINGS["RoboticsExampleIMU"] = "IMU Sensor"
-
-# Register Isaac Gym nodes
-NODE_CLASS_MAPPINGS["IsaacGymEnvNode"] = IsaacGymEnvNode
-NODE_DISPLAY_NAME_MAPPINGS["IsaacGymEnvNode"] = "Isaac Gym Environment"
-
-NODE_CLASS_MAPPINGS["IsaacGymStepNode"] = IsaacGymStepNode
-NODE_DISPLAY_NAME_MAPPINGS["IsaacGymStepNode"] = "Isaac Gym Step"
-
-NODE_CLASS_MAPPINGS["ORNode"] = ORNode
-NODE_DISPLAY_NAME_MAPPINGS["ORNode"] = "OR/ANY Router"
-
-# Register Cartpole-specific nodes
-NODE_CLASS_MAPPINGS["CartpoleActionNode"] = CartpoleActionNode
-NODE_DISPLAY_NAME_MAPPINGS["CartpoleActionNode"] = "Cartpole Action Converter"
-
-NODE_CLASS_MAPPINGS["CartpoleRewardNode"] = CartpoleRewardNode
-NODE_DISPLAY_NAME_MAPPINGS["CartpoleRewardNode"] = "Cartpole Reward Calculator"
-
-# As you create more nodes, add them here:
-# NODE_CLASS_MAPPINGS["RoboticsCameraNode"] = CameraNode
-# NODE_DISPLAY_NAME_MAPPINGS["RoboticsCameraNode"] = "Camera Sensor"
+for key, node_class, display_name in sorted(_ROBOTICS_NODES, key=lambda x: x[2]):  # Sort by display name
+    NODE_CLASS_MAPPINGS[key] = node_class
+    NODE_DISPLAY_NAME_MAPPINGS[key] = display_name
 
 # Export the mappings for ComfyUI to discover
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']

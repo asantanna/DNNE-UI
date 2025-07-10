@@ -36,7 +36,7 @@ class MNISTDatasetNode(RoboticsNodeBase):
     RETURN_TYPES = ("DATASET", "SCHEMA")
     RETURN_NAMES = ("dataset", "schema")
     FUNCTION = "load_dataset"
-    CATEGORY = "ml/data"
+    CATEGORY = "ml"
 
     def load_dataset(self, data_path, train, download):
         # Import here to avoid dependency if not used
@@ -112,7 +112,7 @@ class BatchSamplerNode(RoboticsNodeBase):
     RETURN_TYPES = ("DATALOADER", "SCHEMA")
     RETURN_NAMES = ("dataloader", "schema")
     FUNCTION = "create_dataloader"
-    CATEGORY = "ml/data"
+    CATEGORY = "ml"
 
     def create_dataloader(self, dataset, schema, batch_size, shuffle, seed):
         # Set seed if specified
@@ -159,7 +159,7 @@ class GetBatchNode(RoboticsNodeBase):
     RETURN_TYPES = ("TENSOR", "TENSOR", "BOOLEAN", "DICT")
     RETURN_NAMES = ("images", "labels", "epoch_complete", "epoch_stats")
     FUNCTION = "get_batch"
-    CATEGORY = "ml/data"
+    CATEGORY = "ml"
 
     def get_batch(self, dataloader, schema, trigger):
         context = get_context()

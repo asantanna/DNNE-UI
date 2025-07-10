@@ -22,7 +22,7 @@ class SaveImageWebsocket:
 
     OUTPUT_NODE = True
 
-    CATEGORY = "api/image"
+    CATEGORY = "utils"
 
     def save_images(self, images):
         pbar = comfy.utils.ProgressBar(images.shape[0])

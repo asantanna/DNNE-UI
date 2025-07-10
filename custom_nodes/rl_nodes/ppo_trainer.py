@@ -71,7 +71,7 @@ class PPOTrainerNode:
     RETURN_NAMES = ("loss", "training_complete")
     
     FUNCTION = "train_step"
-    CATEGORY = "ml/rl"
+    CATEGORY = "rl"
     DESCRIPTION = cleandoc(__doc__)
     
     def train_step(self, state, policy_output, reward, done, model, 

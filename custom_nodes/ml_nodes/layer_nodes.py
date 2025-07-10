@@ -42,7 +42,7 @@ class NetworkNode(RoboticsNodeBase):
     RETURN_TYPES = ("TENSOR", "TENSOR", "MODEL")
     RETURN_NAMES = ("layers", "output", "model")
     FUNCTION = "forward"
-    CATEGORY = "ml/networks"
+    CATEGORY = "ml"
     DESCRIPTION = cleandoc(__doc__)
 
     def forward(self, input, to_output, checkpoint_enabled=False,
@@ -208,7 +208,7 @@ class LinearLayerNode(RoboticsNodeBase):
     RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "forward"
-    CATEGORY = "ml/layers"
+    CATEGORY = "ml"
 
     def forward(self, input, output_size, bias, activation, dropout):
         context = get_context()
@@ -274,7 +274,7 @@ class Conv2DLayerNode(RoboticsNodeBase):
     RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "forward"
-    CATEGORY = "ml/layers"
+    CATEGORY = "ml"
 
     def forward(self, input, out_channels, kernel_size, stride, padding, activation):
         context = get_context()
@@ -335,7 +335,7 @@ class ActivationNode(RoboticsNodeBase):
     RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "apply"
-    CATEGORY = "ml/activation"
+    CATEGORY = "ml"
 
     def apply(self, input, activation, negative_slope):
         if activation == "relu":
@@ -374,7 +374,7 @@ class DropoutNode(RoboticsNodeBase):
     RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "apply"
-    CATEGORY = "ml/regularization"
+    CATEGORY = "ml"
 
     def apply(self, input, dropout_rate):
         context = get_context()
@@ -406,7 +406,7 @@ class BatchNormNode(RoboticsNodeBase):
     RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "apply"
-    CATEGORY = "ml/normalization"
+    CATEGORY = "ml"
 
     def apply(self, input, momentum, eps):
         context = get_context()
@@ -461,7 +461,7 @@ class FlattenNode(RoboticsNodeBase):
     RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "flatten"
-    CATEGORY = "ml/tensor"
+    CATEGORY = "ml"
 
     def flatten(self, input, start_dim, end_dim):
         output = torch.flatten(input, start_dim, end_dim)

@@ -94,7 +94,7 @@ class RoboticsNodeBase:
 
 class SensorNodeBase(RoboticsNodeBase):
     """Base class for sensor nodes"""
-    CATEGORY = "robotics/sensors"
+    CATEGORY = "utils"
     
     def __init__(self):
         super().__init__()
@@ -111,7 +111,7 @@ class SensorNodeBase(RoboticsNodeBase):
 
 class ControllerNodeBase(RoboticsNodeBase):
     """Base class for controller nodes"""
-    CATEGORY = "robotics/controllers"
+    CATEGORY = "utils"
     
     def __init__(self):
         super().__init__()
@@ -129,7 +129,7 @@ class ControllerNodeBase(RoboticsNodeBase):
 
 class LearningNodeBase(RoboticsNodeBase):
     """Base class for learning/neural network nodes"""
-    CATEGORY = "robotics/learning"
+    CATEGORY = "utils"
     
     def __init__(self):
         super().__init__()
@@ -149,7 +149,7 @@ class LearningNodeBase(RoboticsNodeBase):
 
 class VisualizationNodeBase(RoboticsNodeBase):
     """Base class for visualization/display nodes"""
-    CATEGORY = "robotics/visualization"
+    CATEGORY = "utils"
     OUTPUT_NODE = True  # These nodes output to UI
     
     def __init__(self):
@@ -165,72 +165,4 @@ class VisualizationNodeBase(RoboticsNodeBase):
         return False
 
 
-# Example of how to use the base class
-class ExampleSensorNode(SensorNodeBase):
-    """Example IMU sensor node"""
-    
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "robot_state": ("ROBOT_STATE",),
-                "noise_level": ("FLOAT", {"default": 0.01, "min": 0.0, "max": 1.0}),
-            },
-            "optional": {
-                "sim_handle": ("SIM_HANDLE",),
-            }
-        }
-    
-    RETURN_TYPES = ("SENSOR_DATA",)
-    RETURN_NAMES = ("imu_data",)
-    FUNCTION = "read_imu"
-    
-    def __init__(self):
-        super().__init__()
-        self.sensor_type = "imu"
-    
-    def read_imu(self, robot_state, noise_level, sim_handle=None):
-        # Simulate IMU readings from robot state
-        # In real implementation, might read from Isaac Gym
-        
-        # Create fake IMU data for example
-        linear_accel = torch.tensor([0.0, 0.0, 9.81])  # Gravity
-        angular_vel = torch.zeros(3)
-        
-        if robot_state.base_angular_velocity is not None:
-            angular_vel = robot_state.base_angular_velocity
-        
-        # Add noise
-        linear_accel = self.add_noise(linear_accel, noise_level)
-        angular_vel = self.add_noise(angular_vel, noise_level * 0.1)
-        
-        # Create sensor data
-        imu_data = SensorData(
-            sensor_type="imu",
-            data={"linear_accel": linear_accel, "angular_vel": angular_vel},
-            linear_acceleration=linear_accel,
-            angular_velocity=angular_vel,
-            timestamp=robot_state.timestamp,
-            frame_id="imu_link"
-        )
-        
-        return (imu_data,)
-
-
-# Utility function for registering all robotics nodes
-def register_robotics_nodes():
-    """Register all robotics node classes with ComfyUI"""
-    # This would be called from __init__.py
-    # Return a dictionary of node classes for ComfyUI
-    
-    NODE_CLASS_MAPPINGS = {
-        "RoboticsExampleIMU": ExampleSensorNode,
-        # Add more node classes here as you create them
-    }
-    
-    NODE_DISPLAY_NAME_MAPPINGS = {
-        "RoboticsExampleIMU": "IMU Sensor",
-        # Add display names here
-    }
-    
-    return NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
+# Base classes are for inheritance only - no example nodes or registration here

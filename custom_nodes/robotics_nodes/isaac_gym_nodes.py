@@ -33,7 +33,7 @@ class IsaacGymEnvNode(LearningNodeBase):
     Sets up and manages Isaac Gym environments for robotics simulation
     """
     
-    CATEGORY = "ml/robotics"
+    CATEGORY = "robotics"
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -450,7 +450,7 @@ class IsaacGymStepNode(LearningNodeBase):
     Executes a single simulation step with the given actions
     """
     
-    CATEGORY = "ml/robotics"
+    CATEGORY = "robotics"
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -715,7 +715,7 @@ class ORNode(LearningNodeBase):
     Outputs when ANY input becomes available - used for routing initial state vs ongoing state
     """
     
-    CATEGORY = "ml/robotics"
+    CATEGORY = "robotics"
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -784,7 +784,7 @@ class CartpoleActionNode(LearningNodeBase):
     Converts neural network output to Isaac Gym ACTION format for Cartpole environment
     """
     
-    CATEGORY = "ml/robotics"
+    CATEGORY = "robotics"
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -870,7 +870,7 @@ class CartpoleRewardNode(LearningNodeBase):
     Computes Cartpole-specific rewards matching IsaacGym implementation
     """
     
-    CATEGORY = "ml/robotics"
+    CATEGORY = "robotics"
     
     @classmethod
     def INPUT_TYPES(cls):

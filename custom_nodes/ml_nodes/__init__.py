@@ -12,61 +12,36 @@ from .training_nodes import (
     CrossEntropyLossNode, AccuracyNode, 
     SGDOptimizerNode, TrainingStepNode, EpochTrackerNode
 )
-from .control_nodes import CreateContextNode, SetModeNode
 from .visualization_nodes import TensorVisualizerNode
 
-# Node mappings
-NODE_CLASS_MAPPINGS = {
-    # Data nodes
-    "MNISTDataset": MNISTDatasetNode,
-    "BatchSampler": BatchSamplerNode,
-    "GetBatch": GetBatchNode,
+# Define node data as tuples (key, class, display_name)
+# Future nodes: just add to this list and they'll be automatically sorted alphabetically
+_ML_NODES = [
+    ("MNISTDataset", MNISTDatasetNode, "MNIST Dataset"),
+    ("BatchSampler", BatchSamplerNode, "Batch Sampler"),
+    ("GetBatch", GetBatchNode, "Get Batch"),
+    ("Network", NetworkNode, "Neural Network"),
+    ("LinearLayer", LinearLayerNode, "Linear Layer"),
+    ("Conv2DLayer", Conv2DLayerNode, "Conv2D Layer"),
+    ("Activation", ActivationNode, "Activation"),
+    ("Dropout", DropoutNode, "Dropout"),
+    ("BatchNorm", BatchNormNode, "Batch Normalization"),
+    ("Flatten", FlattenNode, "Flatten"),
+    ("CrossEntropyLoss", CrossEntropyLossNode, "Cross Entropy Loss"),
+    ("Accuracy", AccuracyNode, "Accuracy"),
+    ("SGDOptimizer", SGDOptimizerNode, "SGD Optimizer"),
+    ("TrainingStep", TrainingStepNode, "Training Step"),
+    ("EpochTracker", EpochTrackerNode, "Epoch Tracker"),
+    ("TensorVisualizer", TensorVisualizerNode, "Tensor Visualizer"),
+]
 
-    # Layer nodes
-    "Network": NetworkNode,
-    "LinearLayer": LinearLayerNode,
-    "Conv2DLayer": Conv2DLayerNode,
-    "Activation": ActivationNode,
-    "Dropout": DropoutNode,
-    "BatchNorm": BatchNormNode,
-    "Flatten": FlattenNode,
+# Generate sorted dictionaries automatically by display name
+NODE_CLASS_MAPPINGS = {}
+NODE_DISPLAY_NAME_MAPPINGS = {}
 
-    # Training nodes
-    "CrossEntropyLoss": CrossEntropyLossNode,
-    "Accuracy": AccuracyNode,
-    "SGDOptimizer": SGDOptimizerNode,
-    "TrainingStep": TrainingStepNode,
-    "EpochTracker": EpochTrackerNode,
-
-    # Control nodes
-    "CreateContext": CreateContextNode,
-    "SetMode": SetModeNode,
-
-    # Visualization
-    "TensorVisualizer": TensorVisualizerNode,
-}
-
-# Display names
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "MNISTDataset": "MNIST Dataset",
-    "BatchSampler": "Batch Sampler",
-    "GetBatch": "Get Batch",
-    "Network": "Neural Network",
-    "LinearLayer": "Linear Layer",
-    "Conv2DLayer": "Conv2D Layer",
-    "Activation": "Activation",
-    "Dropout": "Dropout",
-    "BatchNorm": "Batch Normalization",
-    "Flatten": "Flatten",
-    "CrossEntropyLoss": "Cross Entropy Loss",
-    "Accuracy": "Accuracy",
-    "SGDOptimizer": "SGD Optimizer",
-    "TrainingStep": "Training Step",
-    "EpochTracker": "Epoch Tracker",
-    "CreateContext": "Create Context",
-    "SetMode": "Set Mode",
-    "TensorVisualizer": "Tensor Visualizer",
-}
+for key, node_class, display_name in sorted(_ML_NODES, key=lambda x: x[2]):  # Sort by display name
+    NODE_CLASS_MAPPINGS[key] = node_class
+    NODE_DISPLAY_NAME_MAPPINGS[key] = display_name
 
 # Export
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
