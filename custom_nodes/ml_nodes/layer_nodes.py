@@ -5,18 +5,37 @@ Neural network layer nodes
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from inspect import cleandoc
 from .base import RoboticsNodeBase, get_context
 
 
 class NetworkNode(RoboticsNodeBase):
-    """Neural network container for multiple layers"""
+    """
+    Network Node
+    Consolidates multiple LinearLayer nodes into a single PyTorch Sequential model with checkpoint support.
+    For checkpoint debugging: check console logs or exported code for actual node ID.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.checkpoint_manager = None
+        self.model = None
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input": ("TENSOR",),
-                "to_output": ("TENSOR",),  # Loop-back connection from last layer
+                "input": ("TENSOR", {"tooltip": "Input tensor to process through the neural network"}),
+                "to_output": ("TENSOR", {"tooltip": "Loop-back connection from the last layer output"}),
+                # Checkpoint parameters
+                "checkpoint_enabled": ("BOOLEAN", {"default": False, "tooltip": "Enable automatic checkpoint saving for this network. Checkpoints saved to 'node_<ID>' subdirectories."}),
+                "checkpoint_trigger_type": (["epoch", "time", "best_metric"], {"default": "epoch", "tooltip": "When to save checkpoints: every N steps, time intervals, or metric improvements"}),
+                "checkpoint_trigger_value": ("STRING", {"default": "50", "tooltip": "Trigger value: number (steps), time format (1h30m), or 'min'/'max' (metrics)"}),
+                "checkpoint_load_on_start": ("BOOLEAN", {"default": False, "tooltip": "Automatically load saved checkpoint when network starts"}),
+            },
+            "optional": {},
+            "hidden": {
+                "unique_id": "UNIQUE_ID",
             }
         }
 
@@ -24,27 +43,165 @@ class NetworkNode(RoboticsNodeBase):
     RETURN_NAMES = ("layers", "output", "model")
     FUNCTION = "forward"
     CATEGORY = "ml/networks"
+    DESCRIPTION = cleandoc(__doc__)
 
-    def forward(self, input, to_output):
+    def forward(self, input, to_output, checkpoint_enabled=False,
+                checkpoint_trigger_type="epoch", checkpoint_trigger_value="50", 
+                checkpoint_load_on_start=False, unique_id=None):
+        # Log actual node ID for checkpoint debugging  
+        actual_node_id = unique_id or f"network_{id(self)}"
+        if checkpoint_enabled:
+            print(f"🔍 Network Node ID: {actual_node_id} (look for 'node_{actual_node_id}' in checkpoint directories)")
+        
+        # Initialize checkpoint manager if needed
+        if checkpoint_enabled and self.checkpoint_manager is None:
+            # Import here to avoid circular imports in export
+            from ..export_system.templates.base.run_utils import CheckpointManager, validate_checkpoint_config
+            
+            # Validate checkpoint configuration
+            checkpoint_config = {
+                'enabled': checkpoint_enabled,
+                'trigger_type': checkpoint_trigger_type,
+                'trigger_value': checkpoint_trigger_value
+            }
+            try:
+                validate_checkpoint_config(checkpoint_config)
+            except ValueError as e:
+                print(f"⚠️ Checkpoint configuration error: {e}")
+                checkpoint_enabled = False
+            
+            if checkpoint_enabled:
+                # Get checkpoint directory from command line args (set by runner.py)
+                try:
+                    import builtins
+                    save_checkpoint_dir = getattr(builtins, 'SAVE_CHECKPOINT_DIR', None)
+                    load_checkpoint_dir = getattr(builtins, 'LOAD_CHECKPOINT_DIR', None)
+                except:
+                    save_checkpoint_dir = None
+                    load_checkpoint_dir = None
+                    
+                self.checkpoint_manager = CheckpointManager(
+                    node_id=actual_node_id,
+                    checkpoint_dir=save_checkpoint_dir
+                )
+                
+                # Load checkpoint on start if requested
+                if checkpoint_load_on_start and load_checkpoint_dir:
+                    if hasattr(self, 'model') and self.model is not None:
+                        self.load_checkpoint(self.model, load_checkpoint_dir)
+        
         # This is just for UI - actual implementation happens in export
         # The network structure is defined by the connected layers
         # Return: (layers, output, model)
         # The model output can be connected to SGD optimizer
         return (None, to_output, self)  # layers output is just for connectivity, self represents the model
+    
+    def save_checkpoint(self, model, trigger_type="external", trigger_value=None, 
+                       current_epoch=None, current_metric=None, metadata=None):
+        """
+        Save model checkpoint
+        
+        Args:
+            model: PyTorch model to save
+            trigger_type: Type of trigger ('epoch', 'time', 'best_metric', 'external')
+            trigger_value: Value for the trigger (depends on type)
+            current_epoch: Current epoch number (for epoch-based triggers)
+            current_metric: Current metric value (for best metric triggers)
+            metadata: Additional metadata to include
+            
+        Returns:
+            str: Path to saved checkpoint file, or None if not saved
+        """
+        if not self.checkpoint_manager:
+            print("⚠️ No checkpoint manager initialized")
+            return None
+        
+        # Check if we should checkpoint
+        should_checkpoint = self.checkpoint_manager.should_checkpoint(
+            trigger_type, trigger_value, current_epoch, current_metric
+        )
+        
+        if should_checkpoint:
+            # Prepare metadata with model information
+            checkpoint_metadata = {
+                'trigger_type': trigger_type,
+                'trigger_value': trigger_value,
+                'current_epoch': current_epoch,
+                'current_metric': current_metric,
+                'model_type': type(model).__name__,
+                'architecture': getattr(model, 'architecture_info', None),
+                'model_info': {
+                    'num_parameters': sum(p.numel() for p in model.parameters()),
+                    'trainable_parameters': sum(p.numel() for p in model.parameters() if p.requires_grad)
+                }
+            }
+            
+            if metadata:
+                checkpoint_metadata.update(metadata)
+            
+            # Save checkpoint (only model weights + metadata)
+            success = self.checkpoint_manager.save_checkpoint(
+                model.state_dict(), metadata=checkpoint_metadata
+            )
+            return success
+        
+        return None
+    
+    def load_checkpoint(self, model, load_checkpoint_dir=None):
+        """
+        Load model checkpoint
+        
+        Args:
+            model: PyTorch model to load state into
+            load_checkpoint_dir: Override load directory (from command line)
+            
+        Returns:
+            bool: True if checkpoint loaded successfully
+        """
+        if not self.checkpoint_manager:
+            print("⚠️ No checkpoint manager initialized")
+            return False
+        
+        # Load checkpoint from command line directory or default
+        checkpoint_data = self.checkpoint_manager.load_checkpoint(load_checkpoint_dir)
+        if not checkpoint_data:
+            print("⚠️ No checkpoint found to load")
+            return False
+        
+        try:
+            # Load model state
+            model.load_state_dict(checkpoint_data['model_state_dict'])
+            
+            # Print loaded info
+            metadata = checkpoint_data.get('metadata', {})
+            epoch = metadata.get('current_epoch', 'unknown')
+            metric = metadata.get('current_metric', 'unknown')
+            
+            print(f"✅ Model checkpoint loaded - epoch: {epoch}, metric: {metric}")
+            return True
+            
+        except Exception as e:
+            print(f"⚠️ Error loading model checkpoint: {e}")
+            return False
 
 
 class LinearLayerNode(RoboticsNodeBase):
-    """Fully connected linear layer"""
+    """
+    Linear Layer Node
+    Fully connected layer with configurable activation and dropout.
+    """
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input": ("TENSOR",),
-                "output_size": ("INT", {"default": 128, "min": 1, "max": 4096}),
-                "bias": ("BOOLEAN", {"default": True}),
-                "activation": (["none", "relu", "tanh", "sigmoid"], {"default": "relu"}),
-                "dropout": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 0.9}),
+                "input": ("TENSOR", {"tooltip": "Input tensor to transform (automatically flattened if > 2D)"}),
+                "output_size": ("INT", {"default": 128, "min": 1, "max": 4096, "tooltip": "Number of output features (neurons) in this layer"}),
+                "bias": ("BOOLEAN", {"default": True, "tooltip": "Whether to include learnable bias parameters"}),
+                "activation": (["none", "relu", "tanh", "sigmoid"], {"default": "relu", "tooltip": "Activation function to apply after linear transformation"}),
+                "dropout": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 0.9, "tooltip": "Dropout probability for regularization (0.0 = no dropout)"}),
             }
         }
 
@@ -94,18 +251,23 @@ class LinearLayerNode(RoboticsNodeBase):
 
 
 class Conv2DLayerNode(RoboticsNodeBase):
-    """2D Convolutional layer"""
+    """
+    Conv2D Layer Node
+    2D convolutional layer with configurable kernel, stride, and padding.
+    """
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input": ("TENSOR",),
-                "out_channels": ("INT", {"default": 32, "min": 1, "max": 512}),
-                "kernel_size": ("INT", {"default": 3, "min": 1, "max": 11}),
-                "stride": ("INT", {"default": 1, "min": 1, "max": 5}),
-                "padding": ("INT", {"default": 1, "min": 0, "max": 5}),
-                "activation": (["none", "relu", "tanh", "sigmoid"], {"default": "relu"}),
+                "input": ("TENSOR", {"tooltip": "Input tensor in format (batch, channels, height, width)"}),
+                "out_channels": ("INT", {"default": 32, "min": 1, "max": 512, "tooltip": "Number of output channels (feature maps) to produce"}),
+                "kernel_size": ("INT", {"default": 3, "min": 1, "max": 11, "tooltip": "Size of convolution kernel (e.g., 3 for 3x3, 5 for 5x5)"}),
+                "stride": ("INT", {"default": 1, "min": 1, "max": 5, "tooltip": "Step size for moving the kernel (1 = no downsampling)"}),
+                "padding": ("INT", {"default": 1, "min": 0, "max": 5, "tooltip": "Zero-padding around input borders (1 preserves size with kernel=3)"}),
+                "activation": (["none", "relu", "tanh", "sigmoid"], {"default": "relu", "tooltip": "Activation function to apply after convolution"}),
             }
         }
 
@@ -153,15 +315,20 @@ class Conv2DLayerNode(RoboticsNodeBase):
 
 
 class ActivationNode(RoboticsNodeBase):
-    """Apply activation function"""
+    """
+    Activation Node
+    Applies activation functions like ReLU, Sigmoid, Tanh, or Softmax.
+    """
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input": ("TENSOR",),
-                "activation": (["relu", "tanh", "sigmoid", "softmax", "leaky_relu", "elu"], {"default": "relu"}),
-                "negative_slope": ("FLOAT", {"default": 0.01, "min": 0.0, "max": 1.0}),  # for leaky_relu
+                "input": ("TENSOR", {"tooltip": "Input tensor to apply activation function to"}),
+                "activation": (["relu", "tanh", "sigmoid", "softmax", "leaky_relu", "elu"], {"default": "relu", "tooltip": "Activation function: relu (most common), sigmoid (0-1), tanh (-1 to 1), softmax (probabilities)"}),
+                "negative_slope": ("FLOAT", {"default": 0.01, "min": 0.0, "max": 1.0, "tooltip": "Negative slope for leaky_relu activation (0.01 is standard)"}),
             }
         }
 
@@ -188,14 +355,19 @@ class ActivationNode(RoboticsNodeBase):
 
 
 class DropoutNode(RoboticsNodeBase):
-    """Apply dropout"""
+    """
+    Dropout Node
+    Applies dropout regularization during training to prevent overfitting.
+    """
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input": ("TENSOR",),
-                "dropout_rate": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 0.9}),
+                "input": ("TENSOR", {"tooltip": "Input tensor to apply dropout regularization to"}),
+                "dropout_rate": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 0.9, "tooltip": "Probability of setting elements to zero (0.5 = 50% dropout)"}),
             }
         }
 
@@ -214,15 +386,20 @@ class DropoutNode(RoboticsNodeBase):
 
 
 class BatchNormNode(RoboticsNodeBase):
-    """Batch normalization"""
+    """
+    Batch Normalization Node
+    Normalizes inputs to improve training stability and convergence.
+    """
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input": ("TENSOR",),
-                "momentum": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 0.99}),
-                "eps": ("FLOAT", {"default": 1e-5, "min": 1e-8, "max": 1e-3}),
+                "input": ("TENSOR", {"tooltip": "Input tensor (2D for BatchNorm1d, 4D for BatchNorm2d)"}),
+                "momentum": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 0.99, "tooltip": "Momentum for running mean/variance updates (0.1 is standard)"}),
+                "eps": ("FLOAT", {"default": 1e-5, "min": 1e-8, "max": 1e-3, "tooltip": "Small value for numerical stability (prevents division by zero)"}),
             }
         }
 
@@ -264,15 +441,20 @@ class BatchNormNode(RoboticsNodeBase):
 
 
 class FlattenNode(RoboticsNodeBase):
-    """Flatten tensor"""
+    """
+    Flatten Node
+    Flattens multi-dimensional tensors for fully connected layers.
+    """
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input": ("TENSOR",),
-                "start_dim": ("INT", {"default": 1, "min": 0, "max": 3}),
-                "end_dim": ("INT", {"default": -1, "min": -1, "max": 3}),
+                "input": ("TENSOR", {"tooltip": "Input tensor to flatten into fewer dimensions"}),
+                "start_dim": ("INT", {"default": 1, "min": 0, "max": 3, "tooltip": "First dimension to flatten (0=batch, 1=preserve batch)"}),
+                "end_dim": ("INT", {"default": -1, "min": -1, "max": 3, "tooltip": "Last dimension to flatten (-1=all remaining dimensions)"}),
             }
         }
 

@@ -3,17 +3,20 @@ Control nodes for managing context and training mode
 """
 
 import torch.nn as nn
+from inspect import cleandoc
 from .base import RoboticsNodeBase, get_context, Context
 
 
 class CreateContextNode(RoboticsNodeBase):
-    """Create a new context"""
+    """Create Context Node
+    Creates or resets the global execution context for neural network operations."""
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "reset": ("BOOLEAN", {"default": False}),
+                "reset": ("BOOLEAN", {"default": False, "tooltip": "Force reset the global context. If True, creates a new context even if one already exists. If False, only creates context if none exists."}),
             }
         }
 
@@ -29,13 +32,15 @@ class CreateContextNode(RoboticsNodeBase):
 
 
 class SetModeNode(RoboticsNodeBase):
-    """Set training/eval mode"""
+    """Set Mode Node
+    Sets training or evaluation mode for all neural network modules in the context."""
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "mode": (["train", "eval"], {"default": "train"}),
+                "mode": (["train", "eval"], {"default": "train", "tooltip": "Set the training mode for all neural network modules. 'train' enables training mode (gradients, dropout, batch norm training), 'eval' enables evaluation mode (no gradients, deterministic behavior)."}),
             }
         }
 

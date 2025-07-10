@@ -5,6 +5,7 @@ Visualization nodes for tensors and training metrics
 import torch
 import numpy as np
 import io
+from inspect import cleandoc
 from .base import RoboticsNodeBase
 
 # Optional imports for visualization
@@ -24,14 +25,16 @@ except ImportError:
 
 
 class TensorVisualizerNode(RoboticsNodeBase):
-    """Visualize tensor data"""
+    """Tensor Visualizer Node
+    Creates visual plots and images from tensor data with support for 1D-4D tensors."""
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "tensor": ("TENSOR",),
-                "title": ("STRING", {"default": "Tensor"}),
+                "tensor": ("TENSOR", {"tooltip": "Input tensor to visualize. Supports 1D (line plot), 2D (heatmap), 3D (RGB/grayscale image), and 4D (batch of images) tensors. Data will be automatically converted from PyTorch tensors to numpy arrays for visualization."}),
+                "title": ("STRING", {"default": "Tensor", "tooltip": "Title for the visualization plot. This text will appear as the main title of the generated graph or image visualization to help identify the content being displayed."}),
             }
         }
 

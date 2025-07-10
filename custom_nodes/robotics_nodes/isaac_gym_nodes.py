@@ -8,8 +8,9 @@ import os
 import torch
 import numpy as np
 from typing import Dict, List, Optional, Any, Tuple
+from inspect import cleandoc
 from .base_node import LearningNodeBase
-from .robotics_types import RobotState, Action, SensorData, SimHandle, Context
+from .robotics_types import RobotState, Action, SensorData, SimHandle
 
 # Isaac Gym imports (with proper error handling)
 try:
@@ -32,7 +33,7 @@ class IsaacGymEnvNode(LearningNodeBase):
     Sets up and manages Isaac Gym environments for robotics simulation
     """
     
-    CATEGORY = "robotics/simulation"
+    CATEGORY = "ml/robotics"
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -73,14 +74,13 @@ class IsaacGymEnvNode(LearningNodeBase):
                     "tooltip": "Physics engine to use"
                 }),
             },
-            "optional": {
-                "context": ("CONTEXT",),
-            }
+            "optional": {}
         }
     
-    RETURN_TYPES = ("SIM_HANDLE", "TENSOR", "CONTEXT")
-    RETURN_NAMES = ("sim_handle", "observations", "context")
+    RETURN_TYPES = ("SIM_HANDLE", "TENSOR")
+    RETURN_NAMES = ("sim_handle", "observations")
     FUNCTION = "setup_environment"
+    DESCRIPTION = cleandoc(__doc__)
     
     def __init__(self):
         super().__init__()
@@ -95,7 +95,7 @@ class IsaacGymEnvNode(LearningNodeBase):
         
     def setup_environment(self, env_name: str, num_envs: int, isaac_gym_path: str, 
                          isaac_gym_envs_path: str, headless: bool, device: str, 
-                         physics_engine: str, context: Optional[Context] = None):
+                         physics_engine: str):
         """
         Set up Isaac Gym environment
         """
@@ -179,17 +179,9 @@ class IsaacGymEnvNode(LearningNodeBase):
         # Get initial observations as tensor
         initial_observations = self._get_initial_observations(num_envs, device)
         
-        # Update context
-        if context is None:
-            context = Context()
-        context.store("sim_handle", sim_handle)
-        context.store("env_name", env_name)
-        context.store("num_envs", num_envs)
-        context.store("isaac_gym_initialized", True)
-        
         self.env_initialized = True
         
-        return (sim_handle, initial_observations, context)
+        return (sim_handle, initial_observations)
     
     def _create_environments(self, env_name: str, num_envs: int, isaac_gym_envs_path: str):
         """Create the specified environments"""
@@ -458,7 +450,7 @@ class IsaacGymStepNode(LearningNodeBase):
     Executes a single simulation step with the given actions
     """
     
-    CATEGORY = "robotics/simulation"
+    CATEGORY = "ml/robotics"
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -468,14 +460,14 @@ class IsaacGymStepNode(LearningNodeBase):
                 "actions": ("ACTION",),
             },
             "optional": {
-                "context": ("CONTEXT",),
                 "trigger": ("SYNC",),
             }
         }
     
-    RETURN_TYPES = ("TENSOR", "TENSOR", "TENSOR", "DICT", "TENSOR", "CONTEXT")
-    RETURN_NAMES = ("observations", "rewards", "done", "info", "next_observations", "context")
+    RETURN_TYPES = ("TENSOR", "TENSOR", "TENSOR", "DICT", "TENSOR")
+    RETURN_NAMES = ("observations", "rewards", "done", "info", "next_observations")
     FUNCTION = "step_simulation"
+    DESCRIPTION = cleandoc(__doc__)
     
     def __init__(self):
         super().__init__()
@@ -485,7 +477,7 @@ class IsaacGymStepNode(LearningNodeBase):
         self.cached_info = None
         self.step_count = 0
     
-    def step_simulation(self, sim_handle: SimHandle, actions: Action, context: Optional[Context] = None, trigger: Optional[Dict] = None):
+    def step_simulation(self, sim_handle: SimHandle, actions: Action, trigger: Optional[Dict] = None):
         """Execute one simulation step with RL interface and state caching"""
         
         if not sim_handle.is_valid():
@@ -507,7 +499,6 @@ class IsaacGymStepNode(LearningNodeBase):
                 torch.zeros(num_envs, dtype=torch.bool),  # done (dummy)
                 {},                        # info (dummy)
                 next_observations,         # next_observations (cached)
-                context if context is not None else Context()
             )
         
         # Normal execution: apply actions and step simulation
@@ -538,11 +529,6 @@ class IsaacGymStepNode(LearningNodeBase):
         self.cached_done = done
         self.cached_info = info
         
-        # Update context
-        if context is None:
-            context = Context()
-        context.step_count += 1
-        context.store("last_step_time", gym.get_sim_time(sim_handle.sim))
         self.step_count += 1
         
         return (
@@ -551,7 +537,6 @@ class IsaacGymStepNode(LearningNodeBase):
             done,                     # Current step done flags
             info,                     # Current step info
             torch.zeros(num_envs, 1), # next_observations (empty until triggered)
-            context
         )
     
     def _apply_actions(self, gym, sim_handle: SimHandle, actions: Action):
@@ -730,7 +715,7 @@ class ORNode(LearningNodeBase):
     Outputs when ANY input becomes available - used for routing initial state vs ongoing state
     """
     
-    CATEGORY = "robotics/utility"
+    CATEGORY = "ml/robotics"
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -746,6 +731,7 @@ class ORNode(LearningNodeBase):
     RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "route_input"
+    DESCRIPTION = cleandoc(__doc__)
     
     def __init__(self):
         super().__init__()
@@ -798,7 +784,7 @@ class CartpoleActionNode(LearningNodeBase):
     Converts neural network output to Isaac Gym ACTION format for Cartpole environment
     """
     
-    CATEGORY = "robotics/cartpole"
+    CATEGORY = "ml/robotics"
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -813,19 +799,18 @@ class CartpoleActionNode(LearningNodeBase):
                     "tooltip": "Maximum force that can be applied to cart"
                 }),
             },
-            "optional": {
-                "context": ("CONTEXT",),
-            }
+            "optional": {}
         }
     
-    RETURN_TYPES = ("ACTION", "CONTEXT")
-    RETURN_NAMES = ("action", "context")
+    RETURN_TYPES = ("ACTION",)
+    RETURN_NAMES = ("action",)
     FUNCTION = "convert_to_action"
+    DESCRIPTION = cleandoc(__doc__)
     
     def __init__(self):
         super().__init__()
         
-    def convert_to_action(self, network_output: torch.Tensor, max_push_effort: float, context: Optional[Context] = None):
+    def convert_to_action(self, network_output: torch.Tensor, max_push_effort: float):
         """
         Convert neural network output to Isaac Gym ACTION format for Cartpole
         
@@ -860,13 +845,10 @@ class CartpoleActionNode(LearningNodeBase):
             torques=None          # Not used for Cartpole
         )
         
-        # Update context
-        if context is None:
-            context = Context()
-        context.store("last_action_force", scaled_force.item())
-        context.store("max_push_effort", max_push_effort)
+        # Note: Action force logged for debugging
+        # Could add logging here if needed
         
-        return (action, context)
+        return (action,)
     
     @classmethod
     def IS_CHANGED(cls, **kwargs):
@@ -888,7 +870,7 @@ class CartpoleRewardNode(LearningNodeBase):
     Computes Cartpole-specific rewards matching IsaacGym implementation
     """
     
-    CATEGORY = "robotics/cartpole"
+    CATEGORY = "ml/robotics"
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -907,22 +889,20 @@ class CartpoleRewardNode(LearningNodeBase):
                     "tooltip": "Return negative reward for training (loss = -reward)"
                 }),
             },
-            "optional": {
-                "context": ("CONTEXT",),
-            }
+            "optional": {}
         }
     
-    RETURN_TYPES = ("TENSOR", "TENSOR", "TENSOR", "CONTEXT")
-    RETURN_NAMES = ("reward_or_loss", "done", "info_dict", "context")
+    RETURN_TYPES = ("TENSOR", "TENSOR", "TENSOR")
+    RETURN_NAMES = ("reward_or_loss", "done", "info_dict")
     FUNCTION = "compute_reward"
+    DESCRIPTION = cleandoc(__doc__)
     
     def __init__(self):
         super().__init__()
         self.episode_steps = 0
         self.max_episode_length = 500  # Standard Cartpole episode length
         
-    def compute_reward(self, observations: torch.Tensor, reset_dist: float, invert_for_loss: bool, 
-                      context: Optional[Context] = None):
+    def compute_reward(self, observations: torch.Tensor, reset_dist: float, invert_for_loss: bool):
         """
         Compute Cartpole reward matching IsaacGym implementation
         
@@ -989,15 +969,9 @@ class CartpoleRewardNode(LearningNodeBase):
         # Create info tensor (placeholder for additional data)
         info_tensor = torch.tensor([self.episode_steps], dtype=torch.float32, device=observations.device)
         
-        # Update context
-        if context is None:
-            context = Context()
-        context.store("last_reward", reward.item())
-        context.store("episode_steps", self.episode_steps)
-        context.store("done", done)
-        context.total_reward += reward.item()
+        # Note: Reward and episode info could be logged here if needed
         
-        return (output, done_tensor, info_tensor, context)
+        return (output, done_tensor, info_tensor)
     
     @classmethod
     def IS_CHANGED(cls, **kwargs):

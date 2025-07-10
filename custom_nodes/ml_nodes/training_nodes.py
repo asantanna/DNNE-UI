@@ -5,18 +5,22 @@ Training-related nodes (loss, optimizer, metrics)
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from inspect import cleandoc
 from .base import RoboticsNodeBase, get_context
 
 
 class CrossEntropyLossNode(RoboticsNodeBase):
-    """Cross entropy loss"""
+    """CrossEntropyLoss
+    Computes cross-entropy loss between predictions and labels with accuracy calculation."""
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "predictions": ("TENSOR",),
-                "labels": ("TENSOR",),
+                "predictions": ("TENSOR", {"tooltip": "Model predictions/logits tensor with shape (batch_size, num_classes). Raw output from neural network before softmax."}),
+                "labels": ("TENSOR", {"tooltip": "Ground truth class labels tensor with shape (batch_size,). Integer values representing correct class indices (0 to num_classes-1)."}),
             }
         }
 
@@ -38,14 +42,17 @@ class CrossEntropyLossNode(RoboticsNodeBase):
 
 
 class AccuracyNode(RoboticsNodeBase):
-    """Calculate accuracy"""
+    """Accuracy
+    Calculates classification accuracy by comparing predictions with ground truth labels."""
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "predictions": ("TENSOR",),
-                "labels": ("TENSOR",),
+                "predictions": ("TENSOR", {"tooltip": "Model predictions/logits tensor with shape (batch_size, num_classes). Used to compute predicted classes via argmax."}),
+                "labels": ("TENSOR", {"tooltip": "Ground truth class labels tensor with shape (batch_size,). Integer values representing correct class indices for accuracy calculation."}),
             }
         }
 
@@ -64,15 +71,18 @@ class AccuracyNode(RoboticsNodeBase):
 
 
 class SGDOptimizerNode(RoboticsNodeBase):
-    """SGD optimizer"""
+    """SGDOptimizer
+    Creates SGD optimizer with configurable learning rate and momentum for training neural networks."""
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "network": ("MODEL",),  # Connection from Network node's model output
-                "learning_rate": ("FLOAT", {"default": 0.01, "min": 0.0001, "max": 1.0, "step": 0.01}),
-                "momentum": ("FLOAT", {"default": 0.9, "min": 0.0, "max": 0.99, "step": 0.01}),
+                "network": ("MODEL", {"tooltip": "Neural network model whose parameters will be optimized. Connect from Network node's model output."}),
+                "learning_rate": ("FLOAT", {"default": 0.01, "min": 0.0001, "max": 1.0, "step": 0.01, "tooltip": "Step size for gradient descent updates. Common values: 0.001-0.1. Higher values train faster but may overshoot optimal weights."}),
+                "momentum": ("FLOAT", {"default": 0.9, "min": 0.0, "max": 0.99, "step": 0.01, "tooltip": "Momentum factor for SGD. Helps accelerate gradients in consistent directions and dampens oscillations. 0.9 is typical, 0.0 disables momentum."}),
             }
         }
 
@@ -99,14 +109,17 @@ class SGDOptimizerNode(RoboticsNodeBase):
 
 
 class TrainingStepNode(RoboticsNodeBase):
-    """Perform training step"""
+    """TrainingStep
+    Performs a complete training step: zero gradients, backward pass, and parameter update."""
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "loss": ("TENSOR",),
-                "optimizer": ("OPTIMIZER",),
+                "loss": ("TENSOR", {"tooltip": "Loss tensor to backpropagate. Scalar tensor (single value) computed from loss function like CrossEntropyLoss."}),
+                "optimizer": ("OPTIMIZER", {"tooltip": "Optimizer instance (SGD, Adam, etc.) that will update model parameters. Connect from SGDOptimizer or similar node."}),
             }
         }
 
@@ -140,18 +153,21 @@ class TrainingStepNode(RoboticsNodeBase):
 
 
 class EpochTrackerNode(RoboticsNodeBase):
-    """Track training progress across epochs"""
+    """EpochTracker
+    Tracks training progress across epochs, providing epoch statistics and convergence monitoring."""
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "epoch_stats": ("DICT",),
-                "loss": ("TENSOR",),
-                "accuracy": ("*",),
+                "epoch_stats": ("DICT", {"tooltip": "Dictionary containing current epoch statistics like batch count, running totals, etc. Usually from GetBatch or similar nodes."}),
+                "loss": ("TENSOR", {"tooltip": "Current batch loss tensor for tracking training progress. Used to compute epoch averages and convergence metrics."}),
+                "accuracy": ("*", {"tooltip": "Current batch accuracy (float) or accuracy metrics. Can be from CrossEntropyLoss or AccuracyNode. Used for epoch averaging."}),
             },
             "optional": {
-                "max_epochs": ("INT", {"default": 10, "min": 1, "max": 1000}),
+                "max_epochs": ("INT", {"default": 10, "min": 1, "max": 1000, "tooltip": "Maximum number of training epochs. Training will stop when this limit is reached or manually interrupted."}),
             }
         }
 

@@ -4,19 +4,32 @@ Data loading and batching nodes
 
 import torch
 from torch.utils.data import DataLoader
+from inspect import cleandoc
 from .base import RoboticsNodeBase, get_context
 
 
 class MNISTDatasetNode(RoboticsNodeBase):
-    """Load MNIST dataset"""
+    """MNIST Dataset Node
+    Loads the MNIST handwritten digit dataset for training or testing."""
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "data_path": ("STRING", {"default": "./data"}),
-                "train": ("BOOLEAN", {"default": True}),
-                "download": ("BOOLEAN", {"default": True}),
+                "data_path": ("STRING", {
+                    "default": "./data",
+                    "tooltip": "Directory path where MNIST dataset will be stored or loaded from. Creates the directory if it doesn't exist."
+                }),
+                "train": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Whether to load training set (True) or test set (False). Training set has 60,000 samples, test set has 10,000 samples."
+                }),
+                "download": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Whether to automatically download the MNIST dataset if not found in data_path. Set to False if dataset is already downloaded."
+                }),
             }
         }
 
@@ -64,17 +77,35 @@ class MNISTDatasetNode(RoboticsNodeBase):
 
 
 class BatchSamplerNode(RoboticsNodeBase):
-    """Create batches from dataset"""
+    """Batch Sampler Node
+    Creates a DataLoader that provides batched samples from a dataset with configurable batch size and shuffling."""
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "dataset": ("DATASET",),
-                "schema": ("SCHEMA",),
-                "batch_size": ("INT", {"default": 32, "min": 1, "max": 512}),
-                "shuffle": ("BOOLEAN", {"default": True}),
-                "seed": ("INT", {"default": -1}),  # -1 means random
+                "dataset": ("DATASET", {
+                    "tooltip": "Input dataset to create batches from. Should be a PyTorch dataset object (e.g., from MNISTDatasetNode)."
+                }),
+                "schema": ("SCHEMA", {
+                    "tooltip": "Dataset schema containing metadata about data shapes, types, and structure. Used for validation and downstream processing."
+                }),
+                "batch_size": ("INT", {
+                    "default": 32,
+                    "min": 1,
+                    "max": 512,
+                    "tooltip": "Number of samples per batch. Larger batches use more memory but can improve training stability. Common values: 16, 32, 64, 128."
+                }),
+                "shuffle": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Whether to randomly shuffle the dataset order each epoch. Generally True for training, False for evaluation."
+                }),
+                "seed": ("INT", {
+                    "default": -1,
+                    "tooltip": "Random seed for reproducible shuffling. Set to -1 for random seed, or any positive integer for deterministic shuffling."
+                }),
             }
         }
 
@@ -104,15 +135,24 @@ class BatchSamplerNode(RoboticsNodeBase):
 
 
 class GetBatchNode(RoboticsNodeBase):
-    """Get next batch from dataloader"""
+    """Get Batch Node
+    Retrieves the next batch from a DataLoader and tracks epoch progress and statistics."""
+    
+    DESCRIPTION = cleandoc(__doc__)
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "dataloader": ("DATALOADER",),
-                "schema": ("SCHEMA",),
-                "trigger": ("SYNC",)
+                "dataloader": ("DATALOADER", {
+                    "tooltip": "Configured PyTorch DataLoader that provides batched data. Should come from BatchSamplerNode."
+                }),
+                "schema": ("SCHEMA", {
+                    "tooltip": "Dataset schema with metadata about batch structure and data types. Used for output validation and downstream nodes."
+                }),
+                "trigger": ("SYNC", {
+                    "tooltip": "Synchronization trigger that controls when to fetch the next batch. Connect to training loop or other control nodes."
+                })
             }
         }
 
