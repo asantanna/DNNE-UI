@@ -11,7 +11,10 @@ template_vars = {
     "VALUE_COEF": 0.5,
     "ENTROPY_COEF": 0.01,
     "LEARNING_RATE": 3e-4,
-    "MAX_GRAD_NORM": 0.5
+    "MAX_GRAD_NORM": 0.5,
+    "CHECKPOINT_ENABLED": False,
+    "CHECKPOINT_TRIGGER_TYPE": "epoch",
+    "CHECKPOINT_TRIGGER_VALUE": "10"
 }
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
@@ -39,6 +42,42 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.optimizer = None
         self.step_count = 0
+        
+        # Checkpoint configuration
+        self.checkpoint_enabled = {CHECKPOINT_ENABLED}
+        self.checkpoint_trigger_type = "{CHECKPOINT_TRIGGER_TYPE}"
+        self.checkpoint_trigger_value = "{CHECKPOINT_TRIGGER_VALUE}"
+        self.checkpoint_manager = None
+        self.last_loss = None
+        
+        # Initialize checkpoint manager if enabled
+        if self.checkpoint_enabled:
+            from run_utils import CheckpointManager, validate_checkpoint_config
+            
+            # Validate checkpoint configuration
+            checkpoint_config = {{
+                'enabled': self.checkpoint_enabled,
+                'trigger_type': self.checkpoint_trigger_type,
+                'trigger_value': self.checkpoint_trigger_value
+            }}
+            
+            try:
+                validate_checkpoint_config(checkpoint_config)
+                # Get checkpoint directory from command line args (set by runner.py)
+                try:
+                    import builtins
+                    save_checkpoint_dir = getattr(builtins, 'SAVE_CHECKPOINT_DIR', None)
+                except:
+                    save_checkpoint_dir = None
+                    
+                self.checkpoint_manager = CheckpointManager(
+                    node_id=node_id,
+                    checkpoint_dir=save_checkpoint_dir
+                )
+                self.logger.info(f"Checkpoint manager initialized: {self.checkpoint_trigger_type} trigger")
+            except ValueError as e:
+                self.logger.error(f"Checkpoint configuration error: {e}")
+                self.checkpoint_enabled = False
         
         self.logger.info(f"PPOTrainerNode {node_id} initialized with horizon={self.horizon_length}, epochs={self.num_epochs}")
         
@@ -200,6 +239,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import torch.nn as nn
         import torch.distributions as dist
         import numpy as np
+        import os
         
         try:
             # Ensure tensors are on correct device
@@ -239,24 +279,74 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 # Perform PPO training
                 total_loss = self.ppo_update(states, actions, log_probs, advantages, returns, model)
                 
-                # Reset buffer
-                self.reset_buffer()
+                # Update step count
                 self.step_count += 1
                 
+                # Handle checkpointing
+                if self.checkpoint_enabled and self.checkpoint_manager:
+                    current_loss = total_loss.item()
+                    self.last_loss = current_loss
+                    
+                    # Check if we should checkpoint
+                    should_checkpoint = False
+                    if self.checkpoint_trigger_type == "epoch":
+                        should_checkpoint = self.checkpoint_manager.should_checkpoint(
+                            "epoch", self.checkpoint_trigger_value, current_epoch=self.step_count
+                        )
+                    elif self.checkpoint_trigger_type == "time":
+                        should_checkpoint = self.checkpoint_manager.should_checkpoint(
+                            "time", self.checkpoint_trigger_value
+                        )
+                    elif self.checkpoint_trigger_type == "best_metric":
+                        # Use loss as metric (lower is better)
+                        should_checkpoint = self.checkpoint_manager.should_checkpoint(
+                            "best_metric", "min", current_metric=current_loss
+                        )
+                    
+                    if should_checkpoint:
+                        # Prepare metadata with training state and hyperparameters
+                        metadata = {{
+                            'trigger_type': self.checkpoint_trigger_type,
+                            'trigger_value': self.checkpoint_trigger_value,
+                            'training_step': self.step_count,
+                            'loss': current_loss,
+                            'optimizer_state': self.optimizer.state_dict() if self.optimizer else None,
+                            'hyperparameters': {{
+                                'horizon_length': self.horizon_length,
+                                'num_epochs': self.num_epochs,
+                                'minibatch_size': self.minibatch_size,
+                                'gamma': self.gamma,
+                                'gae_lambda': self.gae_lambda,
+                                'clip_param': self.clip_param,
+                                'value_coef': self.value_coef,
+                                'entropy_coef': self.entropy_coef,
+                                'learning_rate': self.learning_rate,
+                                'max_grad_norm': self.max_grad_norm
+                            }}
+                        }}
+                        
+                        # Save checkpoint (only model weights + metadata)
+                        self.checkpoint_manager.save_checkpoint(
+                            model.state_dict(), metadata=metadata
+                        )
+                
+                # Reset buffer
+                self.reset_buffer()
+                
                 # Create completion signal
-                training_complete = {
+                training_complete = {{
                     "signal_type": "training_complete",
                     "step": self.step_count,
                     "loss": total_loss.item(),
                     "source_node": f"ppo_trainer_{self.node_id}"
-                }
+                }}
                 
                 self.logger.info(f"PPO training step {self.step_count} complete, loss: {total_loss.item():.4f}")
                 
-                return {
+                return {{
                     "loss": total_loss,
                     "training_complete": training_complete
-                }
+                }}
             
             else:
                 # Still collecting, return dummy outputs

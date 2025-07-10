@@ -238,6 +238,32 @@ dnne_test_rl_comprehensive() {
     return $exit_code
 }
 
+# Checkpoint system tests
+dnne_test_checkpoint() {
+    log_info "🔐 Running DNNE Checkpoint System Tests"
+    echo "================================================================"
+    
+    check_project_root
+    activate_environment
+    
+    echo ""
+    log_info "Running checkpoint system functionality tests..."
+    echo ""
+    
+    cd "$PROJECT_ROOT"
+    python claude_scripts/test_checkpoint_system.py
+    local exit_code=$?
+    
+    echo ""
+    if [ $exit_code -eq 0 ]; then
+        log_success "Checkpoint system tests completed successfully!"
+    else
+        log_error "Checkpoint system tests failed with exit code $exit_code"
+    fi
+    
+    return $exit_code
+}
+
 # Verbose mode
 dnne_test_verbose() {
     dnne_test_pytest "Verbose Test Output" "tests-dnne/ -vvv -s --tb=long" "60"
@@ -282,6 +308,8 @@ dnne_test_help() {
     echo "  dnne-test-ml           Run only ML node tests"
     echo "  dnne-test-robotics     Run only robotics/Isaac Gym tests"
     echo "  dnne-test-export       Run only export system tests"
+    echo "  dnne-test-rl           Run comprehensive RL tests (Cartpole PPO)"
+    echo "  dnne-test-checkpoint   Run checkpoint system tests"
     echo ""
     echo "Debug Commands:"
     echo "  dnne-test-verbose      Run with maximum verbosity"
@@ -316,6 +344,8 @@ export -f dnne_test_coverage
 export -f dnne_test_ml
 export -f dnne_test_robotics
 export -f dnne_test_export
+export -f dnne_test_rl_comprehensive
+export -f dnne_test_checkpoint
 export -f dnne_test_verbose
 export -f dnne_test_deps
 export -f dnne_test_help
