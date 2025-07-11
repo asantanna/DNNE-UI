@@ -11,10 +11,6 @@ This directory contains ideas and plans for future DNNE features. Each feature h
 
 ## Feature Categories
 
-### 🚀 Performance
-Optimizations to make DNNE faster and more efficient.
-
-- **[Training Optimization](performance/training-optimization.md)** - *High Priority* - Speed up the current 3+ min/epoch training time
 
 ### 🧠 ML Features
 Machine learning capabilities and nodes.
@@ -22,7 +18,6 @@ Machine learning capabilities and nodes.
 - **[ConvNet Support](ml-features/convnet-support.md)** - *Medium Priority* - Add Conv2D, MaxPool2D, BatchNorm2D nodes
 - **[Advanced Optimizers](ml-features/advanced-optimizers.md)** - *Medium Priority* - Adam, AdamW, RMSprop, and LR schedulers
 - **[Data Pipeline Enhancement](ml-features/data-pipeline.md)** - *Medium Priority* - Custom datasets, augmentation, validation splitting
-- **[Model Export/Import](ml-features/model-export-import.md)** - *Low Priority* - Save/load models, ONNX export
 
 ### 🤖 Robotics
 Robotics-specific features and improvements.
@@ -33,7 +28,6 @@ Robotics-specific features and improvements.
 ### 🔧 System
 Core system improvements and infrastructure.
 
-- **[Export Improvements](system/export-improvements.md)** - *Medium Priority* - Better error handling and monitoring
 - **[UI Feedback](system/ui-feedback.md)** - *Low Priority* - Progress bars and better UX
 
 ### 📊 Visualization
