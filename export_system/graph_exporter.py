@@ -48,6 +48,63 @@ class ExportableNode:
         return f"input_{slot}"
     
     @classmethod
+    def get_node_parameter(cls, node_data: Dict, param_name: str, default_value=None, widget_index: int = None):
+        """
+        Universal parameter reader that handles ComfyUI's inconsistent data formats.
+        
+        ComfyUI sometimes provides parameters in:
+        - inputs dict (processed format): {'param_name': value}
+        - widgets_values array (raw format): [value1, value2, ...]
+        
+        Args:
+            node_data: Node data from ComfyUI
+            param_name: Name of the parameter to retrieve
+            default_value: Default value if parameter not found
+            widget_index: Index in widgets_values array (for raw format)
+            
+        Returns:
+            Parameter value or default_value if not found
+        """
+        # Try inputs dict first (processed format)
+        inputs = node_data.get("inputs", {})
+        if param_name in inputs:
+            return inputs[param_name]
+        
+        # Fall back to widgets_values array (raw format)
+        if widget_index is not None:
+            widget_values = node_data.get("widgets_values", [])
+            if widget_index < len(widget_values):
+                return widget_values[widget_index]
+        
+        # Return default if not found in either format
+        return default_value
+    
+    @classmethod
+    def get_node_parameters_batch(cls, node_data: Dict, param_specs: List[Dict]):
+        """
+        Get multiple parameters at once using batch specification.
+        
+        Args:
+            node_data: Node data from ComfyUI
+            param_specs: List of parameter specifications:
+                [{'name': 'param1', 'widget_index': 0, 'default': value}, ...]
+                
+        Returns:
+            Dict mapping parameter names to values
+        """
+        result = {}
+        for spec in param_specs:
+            param_name = spec['name']
+            widget_index = spec.get('widget_index')
+            default_value = spec.get('default')
+            
+            result[param_name] = cls.get_node_parameter(
+                node_data, param_name, default_value, widget_index
+            )
+        
+        return result
+    
+    @classmethod
     def get_output_schema(cls, node_data: Dict) -> Dict[str, Any]:
         """Return schema describing the outputs of this node type"""
         return {

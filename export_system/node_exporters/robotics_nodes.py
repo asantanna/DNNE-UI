@@ -12,20 +12,28 @@ class CameraSensorExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        params = node_data.get("inputs", {})
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'resolution', 'default': '640x480'},
+            {'name': 'fps', 'default': 30.0},
+            {'name': 'use_real_camera', 'default': False},
+            {'name': 'camera_index', 'default': 0}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
         
         # Parse resolution
-        resolution = params.get("resolution", "640x480")
+        resolution = params['resolution']
         width, height = map(int, resolution.split('x'))
         
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "CameraSensorNode",
-            "FPS": params.get("fps", 30.0),
+            "FPS": params['fps'],
             "WIDTH": width,
             "HEIGHT": height,
-            "USE_REAL_CAMERA": params.get("use_real_camera", False),
-            "CAMERA_INDEX": params.get("camera_index", 0)
+            "USE_REAL_CAMERA": params['use_real_camera'],
+            "CAMERA_INDEX": params['camera_index']
         }
     
     @classmethod
@@ -43,12 +51,19 @@ class IMUSensorExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        params = node_data.get("inputs", {})
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'sample_rate', 'default': 100.0},
+            {'name': 'add_noise', 'default': True}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "IMUSensorNode",
-            "SAMPLE_RATE": params.get("sample_rate", 100.0),
-            "ADD_NOISE": params.get("add_noise", True)
+            "SAMPLE_RATE": params['sample_rate'],
+            "ADD_NOISE": params['add_noise']
         }
     
     @classmethod
@@ -66,14 +81,23 @@ class VisionNetworkExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        params = node_data.get("inputs", {})
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'model', 'default': 'resnet18'},
+            {'name': 'pretrained', 'default': True},
+            {'name': 'output_dim', 'default': 512},
+            {'name': 'device', 'default': 'cuda'}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "VisionNetworkNode",
-            "MODEL_TYPE": params.get("model", "resnet18"),
-            "PRETRAINED": params.get("pretrained", True),
-            "OUTPUT_DIM": params.get("output_dim", 512),
-            "DEVICE": params.get("device", "cuda")
+            "MODEL_TYPE": params['model'],
+            "PRETRAINED": params['pretrained'],
+            "OUTPUT_DIM": params['output_dim'],
+            "DEVICE": params['device']
         }
     
     @classmethod
@@ -92,13 +116,21 @@ class SoundNetworkExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        params = node_data.get("inputs", {})
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'model', 'default': 'wav2vec'},
+            {'name': 'output_dim', 'default': 256},
+            {'name': 'device', 'default': 'cuda'}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "SoundNetworkNode",
-            "MODEL_TYPE": params.get("model", "wav2vec"),
-            "OUTPUT_DIM": params.get("output_dim", 256),
-            "DEVICE": params.get("device", "cuda")
+            "MODEL_TYPE": params['model'],
+            "OUTPUT_DIM": params['output_dim'],
+            "DEVICE": params['device']
         }
     
     @classmethod

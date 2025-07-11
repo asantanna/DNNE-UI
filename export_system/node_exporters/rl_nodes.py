@@ -17,17 +17,27 @@ class PPOAgentExporter(ExportableNode):
     def prepare_template_vars(cls, node_id: str, node_data: Dict, connections: Dict, node_registry=None, all_nodes=None, all_links=None) -> Dict:
         """Prepare template variables for PPOAgentNode"""
         
-        # Extract widget values with defaults (ComfyUI workflow format uses widgets_values list)
-        widget_values = node_data.get("widgets_values", ["64,64", "elu", "continuous", 1, 3e-4, False, 0.0])
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'hidden_sizes', 'widget_index': 0, 'default': '64,64'},
+            {'name': 'activation', 'widget_index': 1, 'default': 'elu'},
+            {'name': 'action_space', 'widget_index': 2, 'default': 'continuous'},
+            {'name': 'action_dim', 'widget_index': 3, 'default': 1},
+            {'name': 'learning_rate', 'widget_index': 4, 'default': 3e-4},
+            {'name': 'deterministic', 'widget_index': 5, 'default': False},
+            {'name': 'init_log_std', 'widget_index': 6, 'default': 0.0}
+        ]
         
-        # Get widget values
-        hidden_sizes = widget_values[0] if len(widget_values) > 0 else "64,64"
-        activation = widget_values[1] if len(widget_values) > 1 else "elu"
-        action_space = widget_values[2] if len(widget_values) > 2 else "continuous"
-        action_dim = widget_values[3] if len(widget_values) > 3 else 1
-        learning_rate = widget_values[4] if len(widget_values) > 4 else 3e-4
-        deterministic = widget_values[5] if len(widget_values) > 5 else False
-        init_log_std = widget_values[6] if len(widget_values) > 6 else 0.0
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Get parameter values
+        hidden_sizes = params['hidden_sizes']
+        activation = params['activation']
+        action_space = params['action_space']
+        action_dim = params['action_dim']
+        learning_rate = params['learning_rate']
+        deterministic = params['deterministic']
+        init_log_std = params['init_log_std']
         
         return {
             "NODE_ID": node_id,
@@ -69,24 +79,39 @@ class PPOTrainerExporter(ExportableNode):
     def prepare_template_vars(cls, node_id: str, node_data: Dict, connections: Dict, node_registry=None, all_nodes=None, all_links=None) -> Dict:
         """Prepare template variables for PPOTrainerNode"""
         
-        # ComfyUI workflow format uses widgets_values list
-        widget_values = node_data.get("widgets_values", [16, 4, 32, 0.99, 0.95, 0.2, 0.5, 0.01, 0.0003, 0.5, True, "time", "5m"])
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'horizon_length', 'widget_index': 0, 'default': 16},
+            {'name': 'num_epochs', 'widget_index': 1, 'default': 4},
+            {'name': 'minibatch_size', 'widget_index': 2, 'default': 32},
+            {'name': 'gamma', 'widget_index': 3, 'default': 0.99},
+            {'name': 'gae_lambda', 'widget_index': 4, 'default': 0.95},
+            {'name': 'clip_param', 'widget_index': 5, 'default': 0.2},
+            {'name': 'value_coef', 'widget_index': 6, 'default': 0.5},
+            {'name': 'entropy_coef', 'widget_index': 7, 'default': 0.01},
+            {'name': 'learning_rate', 'widget_index': 8, 'default': 0.0003},
+            {'name': 'max_grad_norm', 'widget_index': 9, 'default': 0.5},
+            {'name': 'checkpoint_enabled', 'widget_index': 10, 'default': True},
+            {'name': 'checkpoint_trigger_type', 'widget_index': 11, 'default': 'time'},
+            {'name': 'checkpoint_trigger_value', 'widget_index': 12, 'default': '5m'}
+        ]
         
-        # PPO Trainer widget values from widgets_values list
-        # Order: [horizon_length, num_epochs, minibatch_size, gamma, gae_lambda, clip_param, value_coef, entropy_coef, learning_rate, max_grad_norm, checkpoint_enabled, checkpoint_trigger_type, checkpoint_trigger_value]
-        horizon_length = widget_values[0] if len(widget_values) > 0 else 16
-        num_epochs = widget_values[1] if len(widget_values) > 1 else 4
-        minibatch_size = widget_values[2] if len(widget_values) > 2 else 32
-        gamma = widget_values[3] if len(widget_values) > 3 else 0.99
-        gae_lambda = widget_values[4] if len(widget_values) > 4 else 0.95
-        clip_param = widget_values[5] if len(widget_values) > 5 else 0.2
-        value_coef = widget_values[6] if len(widget_values) > 6 else 0.5
-        entropy_coef = widget_values[7] if len(widget_values) > 7 else 0.01
-        learning_rate = widget_values[8] if len(widget_values) > 8 else 0.0003
-        max_grad_norm = widget_values[9] if len(widget_values) > 9 else 0.5
-        checkpoint_enabled = widget_values[10] if len(widget_values) > 10 else True
-        checkpoint_trigger_type = widget_values[11] if len(widget_values) > 11 else "time"
-        checkpoint_trigger_value = widget_values[12] if len(widget_values) > 12 else "5m"
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Extract parameter values
+        horizon_length = params['horizon_length']
+        num_epochs = params['num_epochs']
+        minibatch_size = params['minibatch_size']
+        gamma = params['gamma']
+        gae_lambda = params['gae_lambda']
+        clip_param = params['clip_param']
+        value_coef = params['value_coef']
+        entropy_coef = params['entropy_coef']
+        learning_rate = params['learning_rate']
+        max_grad_norm = params['max_grad_norm']
+        checkpoint_enabled = params['checkpoint_enabled']
+        checkpoint_trigger_type = params['checkpoint_trigger_type']
+        checkpoint_trigger_value = params['checkpoint_trigger_value']
         
         return {
             "NODE_ID": node_id,

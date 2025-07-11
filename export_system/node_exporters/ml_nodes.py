@@ -12,14 +12,21 @@ class MNISTDatasetExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # ComfyUI workflow format uses widgets_values list, not inputs dict
-        widget_values = node_data.get("widgets_values", ["./data", True, True])
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'data_path', 'widget_index': 0, 'default': './data'},
+            {'name': 'train', 'widget_index': 1, 'default': True},
+            {'name': 'download', 'widget_index': 2, 'default': True}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "MNISTDatasetNode",
-            "DATA_PATH": widget_values[0] if len(widget_values) > 0 else "./data",
-            "TRAIN": widget_values[1] if len(widget_values) > 1 else True,
-            "DOWNLOAD": widget_values[2] if len(widget_values) > 2 else True,
+            "DATA_PATH": params['data_path'],
+            "TRAIN": params['train'],
+            "DOWNLOAD": params['download'],
             "BATCH_SIZE": 32,  # Fixed for MNIST
             "EMIT_RATE": 10.0  # Batches per second
         }
@@ -77,26 +84,27 @@ class LinearLayerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # ComfyUI workflow format uses widgets_values list
-        widget_values = node_data.get("widgets_values", [128, True, "relu", 0.0])
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'output_size', 'widget_index': 0, 'default': 128},
+            {'name': 'bias', 'widget_index': 1, 'default': True},
+            {'name': 'activation', 'widget_index': 2, 'default': 'relu'},
+            {'name': 'dropout', 'widget_index': 3, 'default': 0.0}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
         
         # Query input size from connected source node
         input_size = cls.query_input_tensor_size("input", connections, node_registry, all_nodes, all_links)
-        
-        # LinearLayer widget values from widgets_values list
-        output_size = widget_values[0] if len(widget_values) > 0 else 128
-        bias_value = widget_values[1] if len(widget_values) > 1 else True
-        activation = widget_values[2] if len(widget_values) > 2 else "relu"
-        dropout = widget_values[3] if len(widget_values) > 3 else 0.0
         
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "LinearLayerNode",
             "INPUT_SIZE": input_size,
-            "OUTPUT_SIZE": output_size,
-            "ACTIVATION_VALUE": activation,
-            "BIAS_VALUE": bias_value,
-            "DROPOUT": dropout
+            "OUTPUT_SIZE": params['output_size'],
+            "ACTIVATION_VALUE": params['activation'],
+            "BIAS_VALUE": params['bias'],
+            "DROPOUT": params['dropout']
         }
     
     @classmethod
@@ -282,18 +290,19 @@ class SGDOptimizerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # ComfyUI workflow format uses widgets_values list
-        widget_values = node_data.get("widgets_values", [0.01, 0.9])
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'learning_rate', 'widget_index': 0, 'default': 0.01},
+            {'name': 'momentum', 'widget_index': 1, 'default': 0.9}
+        ]
         
-        # SGD Optimizer widget values from widgets_values list
-        learning_rate = widget_values[0] if len(widget_values) > 0 else 0.01
-        momentum = widget_values[1] if len(widget_values) > 1 else 0.9
+        params = cls.get_node_parameters_batch(node_data, param_specs)
         
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "SGDOptimizerNode",
-            "LEARNING_RATE": learning_rate,
-            "MOMENTUM": momentum,
+            "LEARNING_RATE": params['learning_rate'],
+            "MOMENTUM": params['momentum'],
             "WEIGHT_DECAY": 0.0  # Not configurable in this node type
         }
     
@@ -374,22 +383,13 @@ class EpochTrackerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Get max epochs from inputs (ComfyUI processed format) or widgets_values (workflow format)
-        max_epochs = None
-        
-        # Try ComfyUI processed format first (inputs dict)
-        inputs = node_data.get("inputs", {})
-        if "max_epochs" in inputs:
-            max_epochs = inputs["max_epochs"]
-        
-        # Fall back to workflow format (widgets_values)
-        if max_epochs is None:
-            widget_values = node_data.get("widgets_values")
-            if widget_values and len(widget_values) >= 1:
-                max_epochs = widget_values[0]
+        # Use universal parameter reader for consistent data access
+        max_epochs = cls.get_node_parameter(node_data, 'max_epochs', default_value=None, widget_index=0)
         
         if max_epochs is None:
-            raise ValueError(f"EpochTracker node {node_id}: missing max_epochs in node_data: {node_data}")
+            raise ValueError(f"EpochTracker node {node_id}: missing max_epochs parameter. "
+                           f"Available in node_data: inputs={node_data.get('inputs', {}).keys()}, "
+                           f"widgets_values={node_data.get('widgets_values', [])}")
         
         if not isinstance(max_epochs, (int, float)) or max_epochs <= 0:
             raise ValueError(f"EpochTracker node {node_id}: max_epochs must be a positive number, got: {max_epochs}")
@@ -443,6 +443,30 @@ class NetworkExporter(ExportableNode):
             if layer["dropout"] > 0:
                 layer_definitions.append(f"        layers.append(nn.Dropout({layer['dropout']}))")
         
+        # Read checkpoint settings using universal parameter reader
+        checkpoint_specs = [
+            {'name': 'checkpoint_enabled', 'widget_index': 0, 'default': True},
+            {'name': 'checkpoint_trigger_type', 'widget_index': 1, 'default': 'epoch'},
+            {'name': 'checkpoint_trigger_value', 'widget_index': 2, 'default': '50'},
+            {'name': 'checkpoint_load_on_start', 'widget_index': 3, 'default': False}
+        ]
+        
+        checkpoint_params = cls.get_node_parameters_batch(node_data, checkpoint_specs)
+        checkpoint_enabled = checkpoint_params['checkpoint_enabled']
+        checkpoint_trigger_type = checkpoint_params['checkpoint_trigger_type']
+        checkpoint_trigger_value = checkpoint_params['checkpoint_trigger_value']
+        checkpoint_load_on_start = checkpoint_params['checkpoint_load_on_start']
+        
+        # Validate checkpoint values
+        if not isinstance(checkpoint_enabled, bool):
+            raise ValueError(f"Network node {node_id}: checkpoint_enabled must be boolean, got {type(checkpoint_enabled)}: {checkpoint_enabled}")
+        
+        if checkpoint_trigger_type not in ["epoch", "time", "best_metric"]:
+            raise ValueError(f"Network node {node_id}: checkpoint_trigger_type must be 'epoch', 'time', or 'best_metric', got: {checkpoint_trigger_type}")
+        
+        if not isinstance(checkpoint_load_on_start, bool):
+            raise ValueError(f"Network node {node_id}: checkpoint_load_on_start must be boolean, got {type(checkpoint_load_on_start)}: {checkpoint_load_on_start}")
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "NetworkNode",
@@ -451,10 +475,10 @@ class NetworkExporter(ExportableNode):
             "NUM_LAYERS": len(network_layers),
             "INPUT_SIZE": network_layers[0]["input_size"] if network_layers else 784,
             "OUTPUT_SIZE": network_layers[-1]["output_size"] if network_layers else 10,
-            "CHECKPOINT_ENABLED": True,
-            "CHECKPOINT_TRIGGER_TYPE": "epoch",
-            "CHECKPOINT_TRIGGER_VALUE": "50",
-            "CHECKPOINT_LOAD_ON_START": False
+            "CHECKPOINT_ENABLED": checkpoint_enabled,
+            "CHECKPOINT_TRIGGER_TYPE": checkpoint_trigger_type,
+            "CHECKPOINT_TRIGGER_VALUE": checkpoint_trigger_value,
+            "CHECKPOINT_LOAD_ON_START": checkpoint_load_on_start
         }
     
     @classmethod
@@ -562,15 +586,21 @@ class BatchSamplerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # ComfyUI workflow format uses widgets_values list
-        widget_values = node_data.get("widgets_values", [32, True, 42, "randomize"])
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'batch_size', 'widget_index': 0, 'default': 32},
+            {'name': 'shuffle', 'widget_index': 1, 'default': True},
+            {'name': 'seed', 'widget_index': 2, 'default': 42}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
         
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "BatchSamplerNode",
-            "BATCH_SIZE": widget_values[0] if len(widget_values) > 0 else 32,
-            "SHUFFLE": widget_values[1] if len(widget_values) > 1 else True,
-            "SEED": widget_values[2] if len(widget_values) > 2 else 42
+            "BATCH_SIZE": params['batch_size'],
+            "SHUFFLE": params['shuffle'],
+            "SEED": params['seed']
         }
     
     @classmethod
