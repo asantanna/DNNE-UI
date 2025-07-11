@@ -790,7 +790,7 @@ class CartpoleActionNode(LearningNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "policy": ("POLICY_OUTPUT",),
+                "policy": ("POLICY",),
                 "max_push_effort": ("FLOAT", {
                     "default": 10.0,
                     "min": 0.1,

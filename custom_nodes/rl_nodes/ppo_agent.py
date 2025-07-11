@@ -39,7 +39,7 @@ class PPOAgentNode:
             }
         }
     
-    RETURN_TYPES = ("POLICY_OUTPUT", "MODEL")
+    RETURN_TYPES = ("POLICY", "MODEL")
     RETURN_NAMES = ("policy_output", "model")
     
     FUNCTION = "forward"

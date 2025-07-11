@@ -9,7 +9,7 @@ import torch
 # Define RL-specific types
 RL_TYPES = {
     "PPO_BATCH": "PPO_BATCH",  # Complete trajectory batch for PPO training
-    "POLICY_OUTPUT": "POLICY_OUTPUT",  # Combined actions, values, log_probs
+    "POLICY": "POLICY",  # Combined actions, values, log_probs
 }
 
 def register_rl_types():

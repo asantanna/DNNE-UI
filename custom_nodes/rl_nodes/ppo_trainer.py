@@ -42,7 +42,7 @@ class PPOTrainerNode:
         return {
             "required": {
                 "state": ("TENSOR", {"tooltip": "Current environment state tensor from simulation"}),
-                "policy_output": ("POLICY_OUTPUT", {"tooltip": "Policy output containing action, value, and log probability"}),
+                "policy_output": ("POLICY", {"tooltip": "Policy output containing action, value, and log probability"}),
                 "reward": ("TENSOR", {"tooltip": "Reward signal from environment (scalar per environment)"}),
                 "done": ("TENSOR", {"tooltip": "Episode termination flags (boolean per environment)"}),
                 "model": ("MODEL", {"tooltip": "Neural network model to train (actor-critic architecture)"}),
