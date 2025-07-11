@@ -93,9 +93,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 self.sim_params.flex.num_outer_iterations = 4
                 self.sim_params.flex.num_inner_iterations = 10
             
-            # General simulation parameters
-            self.sim_params.dt = 1.0/60.0  # 60 Hz
-            self.sim_params.substeps = 2
+            # General simulation parameters - will be set by environment-specific methods
             self.sim_params.gravity = gymapi.Vec3(0.0, 0.0, -9.81)
             
             # Create simulation
@@ -157,9 +155,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self._create_generic_environments()
     
     def _create_cartpole_environments(self):
-        """Create Cartpole environments"""
+        """Create Cartpole environments with IsaacGymEnvs-compatible parameters"""
         import os
         from isaacgym import gymapi
+        
+        # Set Cartpole-specific simulation parameters (from IsaacGymEnvs)
+        self.sim_params.dt = 0.0166  # 1/60 Hz (60 FPS)
+        self.sim_params.substeps = 2
+        self.logger.info(f"Cartpole simulation: dt={self.sim_params.dt}, substeps={self.sim_params.substeps}")
         
         # Load cartpole asset
         asset_root = os.path.join(self.isaac_gym_envs_path, "assets")
@@ -195,9 +198,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.actors.append(actor_handle)
     
     def _create_ant_environments(self):
-        """Create Ant environments"""
+        """Create Ant environments with IsaacGymEnvs-compatible parameters"""
         import os
         from isaacgym import gymapi
+        
+        # Set Ant-specific simulation parameters (from IsaacGymEnvs)
+        self.sim_params.dt = 0.0166  # 1/60 Hz (60 FPS)
+        self.sim_params.substeps = 2
+        self.logger.info(f"Ant simulation: dt={self.sim_params.dt}, substeps={self.sim_params.substeps}")
         
         asset_root = os.path.join(self.isaac_gym_envs_path, "assets")
         asset_file = "mjcf/nv_ant.xml"
@@ -232,9 +240,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.actors.append(actor_handle)
     
     def _create_humanoid_environments(self):
-        """Create Humanoid environments"""
+        """Create Humanoid environments with IsaacGymEnvs-compatible parameters"""
         import os
         from isaacgym import gymapi
+        
+        # Set Humanoid-specific simulation parameters (from IsaacGymEnvs)
+        self.sim_params.dt = 0.0166  # 1/60 Hz (60 FPS)
+        self.sim_params.substeps = 2
+        self.logger.info(f"Humanoid simulation: dt={self.sim_params.dt}, substeps={self.sim_params.substeps}")
         
         asset_root = os.path.join(self.isaac_gym_envs_path, "assets")
         asset_file = "mjcf/nv_humanoid.xml"
@@ -269,9 +282,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.actors.append(actor_handle)
     
     def _create_generic_environments(self):
-        """Create generic environments"""
+        """Create generic environments with default simulation parameters"""
         import os
         from isaacgym import gymapi
+        
+        # Set default simulation parameters (60 Hz, 2 substeps)
+        self.sim_params.dt = 0.0166  # 1/60 Hz (60 FPS)
+        self.sim_params.substeps = 2
+        self.logger.info(f"Generic {self.env_name} simulation: dt={self.sim_params.dt}, substeps={self.sim_params.substeps}")
         
         asset_root = os.path.join(self.isaac_gym_envs_path, "assets")
         

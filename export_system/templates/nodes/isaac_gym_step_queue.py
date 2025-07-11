@@ -5,7 +5,7 @@ template_vars = {
 }
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
-    """Isaac Gym step node for advancing simulation"""
+    """Isaac Gym step node with dual-mode execution for training/inference"""
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
@@ -21,7 +21,108 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.cached_done = None
         self.cached_info = None
         
-    async def compute(self, sim_handle, actions, trigger) -> Dict[str, Any]:
+    async def run(self):
+        """Dual-mode execution: training vs inference timing"""
+        self.running = True
+        self.logger.info(f"Starting node {self.node_id}")
+        
+        # Check if we're in inference mode
+        import builtins
+        inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        
+        try:
+            # Wait for sim_handle and actions first
+            sim_handle = await self.input_queues["sim_handle"].get()
+            self.logger.info(f"Received simulation handle: dt={getattr(sim_handle.sim_params, 'dt', 'unknown')}")
+            
+            if inference_mode:
+                # Inference mode: Auto-trigger with real-time timing
+                self.logger.info("🎮 Inference mode: Auto-triggering with real-time timing")
+                await self._run_inference_mode(sim_handle)
+            else:
+                # Training mode: Trigger-based execution at maximum speed
+                self.logger.info("🏃 Training mode: Trigger-based execution for maximum speed")
+                await self._run_training_mode(sim_handle)
+                
+        except asyncio.CancelledError:
+            self.logger.info(f"Node {self.node_id} cancelled")
+            raise
+        finally:
+            self.running = False
+    
+    async def _run_training_mode(self, sim_handle):
+        """Training mode: Trigger-based execution for maximum speed"""
+        while self.running:
+            try:
+                # Wait for actions and trigger inputs
+                actions = await self.input_queues["actions"].get()
+                trigger = await self.input_queues["trigger"].get()
+                
+                # Execute computation 
+                outputs = await self.compute(sim_handle, actions, trigger)
+                
+                # Send outputs immediately (no timing delay)
+                if outputs:
+                    for output_name, value in outputs.items():
+                        await self.send_output(output_name, value)
+                        
+            except Exception as e:
+                self.logger.error(f"Training mode error: {e}")
+                await asyncio.sleep(0.1)
+    
+    async def _run_inference_mode(self, sim_handle):
+        """Inference mode: Auto-trigger with real-time timing loop"""
+        import time
+        import asyncio
+        
+        # Get environment-specific simulation timing
+        target_dt = getattr(sim_handle.sim_params, 'dt', 0.0166)  # Default to 60Hz
+        self.logger.info(f"🕐 Real-time timing: target_dt={target_dt}s ({1/target_dt:.1f}Hz)")
+        
+        # In inference mode, we don't wait for triggers - we auto-generate them
+        while self.running:
+            try:
+                loop_start_time = time.time()
+                
+                # Get latest actions (non-blocking with timeout)
+                actions = None
+                try:
+                    actions = await asyncio.wait_for(self.input_queues["actions"].get(), timeout=0.001)
+                except asyncio.TimeoutError:
+                    # No new actions available, use None (maintain last actions in simulation)
+                    pass
+                
+                # Clear any pending triggers (we don't use them in inference mode)
+                try:
+                    while not self.input_queues["trigger"].empty():
+                        await asyncio.wait_for(self.input_queues["trigger"].get(), timeout=0.001)
+                except (asyncio.TimeoutError, asyncio.QueueEmpty):
+                    pass
+                
+                # Execute simulation step (no trigger in inference mode)
+                outputs = await self.compute(sim_handle, actions, None)
+                
+                # Send outputs
+                if outputs:
+                    for output_name, value in outputs.items():
+                        await self.send_output(output_name, value)
+                
+                # Real-time timing: sleep to maintain target dt
+                elapsed = time.time() - loop_start_time
+                sleep_time = max(0, target_dt - elapsed)
+                
+                if sleep_time > 0:
+                    await asyncio.sleep(sleep_time)
+                else:
+                    # Log if we're running behind real-time
+                    if self.step_count % 100 == 0:  # Log every 100 steps
+                        self.logger.warning(f"Behind real-time: {elapsed:.4f}s > {target_dt:.4f}s (target)")
+                        
+            except Exception as e:
+                self.logger.error(f"Inference mode error: {e}")
+                await asyncio.sleep(target_dt)  # Maintain timing even on errors
+    
+    async def compute(self, sim_handle, actions, trigger=None) -> Dict[str, Any]:
         """Execute one simulation step with RL interface and state caching"""
         try:
             # Import Isaac Gym at runtime
@@ -37,18 +138,18 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             num_envs = len(sim_handle.envs) if hasattr(sim_handle, 'envs') else 1
             
-            # Handle trigger-based next_observations output
+            # Handle trigger-based next_observations output (for RL training)
             if trigger is not None:
-                # Output cached observations when triggered by TrainingStep
+                # Output cached observations when triggered by PPOTrainer
                 next_observations = self.cached_observations if self.cached_observations is not None else torch.zeros(num_envs, 21)
-                self.logger.info(f"Trigger received, outputting cached observations: shape={{next_observations.shape}}")
-                return {{
+                self.logger.debug(f"Trigger received, outputting cached observations: shape={next_observations.shape}")
+                return {
                     "observations": torch.zeros(num_envs, 21),  # observations (dummy)
                     "rewards": torch.zeros(num_envs),           # rewards (dummy)  
                     "done": torch.zeros(num_envs, dtype=torch.bool),  # done (dummy)
-                    "info": {{}},                               # info (dummy)
+                    "info": {},                               # info (dummy)
                     "next_observations": next_observations      # next_observations (cached)
-                }}
+                }
             
             # Normal execution: apply actions and step simulation
             
@@ -84,21 +185,21 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Log progress periodically
             if self.step_count % 1000 == 0:
                 avg_reward = torch.mean(rewards).item() if len(rewards) > 0 else 0.0
-                self.logger.info(f"Step {{self.step_count}}: avg reward = {{avg_reward:.4f}}")
+                self.logger.info(f"Step {self.step_count}: avg reward = {avg_reward:.4f}")
             
-            return {{
+            return {
                 "observations": observations,              # Current step observations
                 "rewards": rewards,                       # Current step rewards
                 "done": done,                            # Current step done flags
                 "info": info,                            # Current step info
                 "next_observations": torch.zeros(num_envs, 21)  # next_observations (empty until triggered)
-            }}
+            }
             
         except ImportError:
             self.logger.error("Isaac Gym not available")
             raise RuntimeError("Isaac Gym is not installed or not available")
         except Exception as e:
-            self.logger.error(f"Error in simulation step: {{e}}")
+            self.logger.error(f"Error in simulation step: {e}")
             raise
     
     def _apply_actions(self, gym, sim_handle, actions):
@@ -128,7 +229,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                         pass
             
         except Exception as e:
-            self.logger.warning(f"Failed to apply actions: {{e}}")
+            self.logger.warning(f"Failed to apply actions: {e}")
     
     def _get_observations(self, gym, sim_handle):
         """Get observations tensor in standard RL format"""
@@ -164,7 +265,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             return observations
             
         except Exception as e:
-            self.logger.error(f"Error getting observations: {{e}}")
+            self.logger.error(f"Error getting observations: {e}")
             # Return zeros if construction fails
             num_envs = 1
             obs_dim = 21
@@ -196,7 +297,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             return rewards
             
         except Exception as e:
-            self.logger.error(f"Error computing rewards: {{e}}")
+            self.logger.error(f"Error computing rewards: {e}")
             device_torch = torch.device("cpu")
             return torch.zeros(1, dtype=torch.float32, device=device_torch)
     
@@ -229,25 +330,26 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             return done
             
         except Exception as e:
-            self.logger.error(f"Error checking done: {{e}}")
+            self.logger.error(f"Error checking done: {e}")
             device_torch = torch.device("cpu")
             return torch.zeros(1, dtype=torch.bool, device=device_torch)
     
     def _get_info(self, gym, sim_handle):
         """Get additional information"""
         try:
-            return {{
+            physics_dt = getattr(sim_handle.sim_params, 'dt', 0.0167)
+            return {
                 "step_count": self.step_count,
                 "sim_time": gym.get_sim_time(sim_handle.sim),
                 "num_envs": len(sim_handle.envs),
-                "physics_dt": sim_handle.dt if hasattr(sim_handle, 'dt') else 0.0167
-            }}
+                "physics_dt": physics_dt
+            }
             
         except Exception as e:
-            self.logger.error(f"Error getting info: {{e}}")
-            return {{
+            self.logger.error(f"Error getting info: {e}")
+            return {
                 "step_count": self.step_count,
                 "sim_time": 0.0,
                 "num_envs": 0,
                 "physics_dt": 0.0167
-            }}
+            }
