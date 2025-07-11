@@ -2,13 +2,13 @@
 template_vars = {
     "NODE_ID": "ppo_agent_1",
     "CLASS_NAME": "PPOAgentNode",
-    "HIDDEN_SIZES": "64,64",
-    "ACTIVATION": "elu",
+    "HIDDEN_SIZES": "32,32",  # Updated to match IsaacGymEnvs for better performance
+    "ACTIVATION": "elu",  # elu activation from IsaacGymEnvs
     "ACTION_SPACE": "continuous",
     "ACTION_DIM": 1,
-    "LEARNING_RATE": 3e-4,
+    "LEARNING_RATE": 3e-4,  # 3e-4 from IsaacGymEnvs
     "DETERMINISTIC": False,
-    "INIT_LOG_STD": 0.0
+    "INIT_LOG_STD": 0.0  # sigma_init val: 0 from IsaacGymEnvs
 }
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
@@ -139,8 +139,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             # Compute value
             value = self.value_head(features)
-            if single_sample:
-                value = value.squeeze(0)  # Remove batch dimension for single sample
+            value = value.squeeze(1)  # Remove second dimension: [batch_size, 1] -> [batch_size]
                 
             # Compute policy output
             if self.action_space == "continuous":

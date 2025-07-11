@@ -1091,7 +1091,8 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         
         runner_content.extend([
             "from framework.base import GraphRunner",
-            "from nodes import *",
+            "# NOTE: Removed 'from nodes import *' - caused double Isaac Gym initialization",
+            "# All required nodes are imported explicitly above",
             "",
             "def configure_logging(verbose=False):",
             '    """Configure logging based on verbose flag"""',

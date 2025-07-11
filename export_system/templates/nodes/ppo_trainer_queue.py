@@ -3,15 +3,15 @@ template_vars = {
     "NODE_ID": "ppo_trainer_1",
     "CLASS_NAME": "PPOTrainerNode",
     "HORIZON_LENGTH": 16,
-    "NUM_EPOCHS": 4,
-    "MINIBATCH_SIZE": 32,
+    "NUM_EPOCHS": 8,  # Updated to match IsaacGymEnvs mini_epochs: 8
+    "MINIBATCH_SIZE": 2048,  # Updated for better batch efficiency
     "GAMMA": 0.99,
-    "GAE_LAMBDA": 0.95,
-    "CLIP_PARAM": 0.2,
-    "VALUE_COEF": 0.5,
-    "ENTROPY_COEF": 0.01,
-    "LEARNING_RATE": 3e-4,
-    "MAX_GRAD_NORM": 0.5,
+    "GAE_LAMBDA": 0.95,  # tau: 0.95 from IsaacGymEnvs
+    "CLIP_PARAM": 0.2,  # e_clip: 0.2 from IsaacGymEnvs
+    "VALUE_COEF": 4.0,  # Updated to match IsaacGymEnvs critic_coef: 4
+    "ENTROPY_COEF": 0.0,  # Updated to match IsaacGymEnvs entropy_coef: 0.0
+    "LEARNING_RATE": 3e-4,  # 3e-4 from IsaacGymEnvs
+    "MAX_GRAD_NORM": 1.0,  # Updated to match IsaacGymEnvs grad_norm: 1.0
     "CHECKPOINT_ENABLED": False,
     "CHECKPOINT_TRIGGER_TYPE": "epoch",
     "CHECKPOINT_TRIGGER_VALUE": "10"
@@ -116,10 +116,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         lastgaelam = 0
         for t in reversed(range(horizon_length)):
             if t == horizon_length - 1:
-                nextnonterminal = 1.0 - dones[t]
+                nextnonterminal = (~dones[t]).float()  # Use logical NOT instead of subtraction
                 nextvalues = 0  # Assume episode ends
             else:
-                nextnonterminal = 1.0 - dones[t]
+                nextnonterminal = (~dones[t]).float()  # Use logical NOT instead of subtraction
                 nextvalues = values[t + 1]
                 
             delta = rewards[t] + self.gamma * nextvalues * nextnonterminal - values[t]
@@ -227,6 +227,19 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 total_losses.append(total_loss.item())
                 
         return torch.tensor(np.mean(total_losses), device=self.device)
+    
+    async def run(self):
+        """Override run to send initial training_complete trigger"""
+        self.running = True
+        self.logger.info(f"Starting PPOTrainer node {self.node_id}")
+        
+        # CRITICAL: Send initial training_complete trigger to break circular dependency
+        # This allows IsaacGymStep node to start executing
+        await self.send_output("training_complete", {"trigger": True, "step": 0})
+        self.logger.info("Sent initial training_complete trigger to break circular dependency")
+        
+        # Now proceed with normal QueueNode execution
+        await super().run()
         
     async def compute(self, state, policy_output, reward, done, model) -> Dict[str, Any]:
         """
@@ -270,13 +283,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             value = policy_output["value"].to(self.device)
             log_prob = policy_output["log_prob"].to(self.device)
             
-            # Add to buffer
-            self.buffer_states.append(state.clone())
-            self.buffer_actions.append(action.clone())
-            self.buffer_rewards.append(reward.clone())
-            self.buffer_values.append(value.clone())
-            self.buffer_log_probs.append(log_prob.clone())
-            self.buffer_dones.append(done.clone())
+            # Add to buffer (detach to avoid gradient conflicts)
+            self.buffer_states.append(state.detach().clone())
+            self.buffer_actions.append(action.detach().clone())
+            self.buffer_rewards.append(reward.detach().clone())
+            self.buffer_values.append(value.detach().clone())
+            self.buffer_log_probs.append(log_prob.detach().clone())
+            self.buffer_dones.append(done.detach().clone())
             
             # Check if buffer is full
             if len(self.buffer_states) >= self.horizon_length:

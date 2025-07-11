@@ -19,7 +19,7 @@ class PPOAgentExporter(ExportableNode):
         
         # Use universal parameter reader for consistent data access
         param_specs = [
-            {'name': 'hidden_sizes', 'widget_index': 0, 'default': '64,64'},
+            {'name': 'hidden_sizes', 'widget_index': 0, 'default': '32,32'},  # Updated to match IsaacGymEnvs
             {'name': 'activation', 'widget_index': 1, 'default': 'elu'},
             {'name': 'action_space', 'widget_index': 2, 'default': 'continuous'},
             {'name': 'action_dim', 'widget_index': 3, 'default': 1},
@@ -82,15 +82,15 @@ class PPOTrainerExporter(ExportableNode):
         # Use universal parameter reader for consistent data access
         param_specs = [
             {'name': 'horizon_length', 'widget_index': 0, 'default': 16},
-            {'name': 'num_epochs', 'widget_index': 1, 'default': 4},
-            {'name': 'minibatch_size', 'widget_index': 2, 'default': 32},
+            {'name': 'num_epochs', 'widget_index': 1, 'default': 8},  # Updated to match IsaacGymEnvs
+            {'name': 'minibatch_size', 'widget_index': 2, 'default': 2048},  # Updated for batch efficiency
             {'name': 'gamma', 'widget_index': 3, 'default': 0.99},
             {'name': 'gae_lambda', 'widget_index': 4, 'default': 0.95},
             {'name': 'clip_param', 'widget_index': 5, 'default': 0.2},
-            {'name': 'value_coef', 'widget_index': 6, 'default': 0.5},
-            {'name': 'entropy_coef', 'widget_index': 7, 'default': 0.01},
+            {'name': 'value_coef', 'widget_index': 6, 'default': 4.0},  # Updated to match IsaacGymEnvs
+            {'name': 'entropy_coef', 'widget_index': 7, 'default': 0.0},  # Updated to match IsaacGymEnvs
             {'name': 'learning_rate', 'widget_index': 8, 'default': 0.0003},
-            {'name': 'max_grad_norm', 'widget_index': 9, 'default': 0.5},
+            {'name': 'max_grad_norm', 'widget_index': 9, 'default': 1.0},  # Updated to match IsaacGymEnvs
             {'name': 'checkpoint_enabled', 'widget_index': 10, 'default': True},
             {'name': 'checkpoint_trigger_type', 'widget_index': 11, 'default': 'time'},
             {'name': 'checkpoint_trigger_value', 'widget_index': 12, 'default': '5m'}
