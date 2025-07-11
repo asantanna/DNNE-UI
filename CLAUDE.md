@@ -170,6 +170,19 @@ The system has three main components:
 - Only mark tests complete when they execute successfully from start to finish
 - Document failures honestly - partial success is not success
 
+### **⚠️ CRITICAL SILENT FAILURE PATTERN ⚠️**
+**INFERENCE MODE SILENT FAILURE**: Tests often pass with "✅ All tests passed!" but inference does NOTHING.
+**SYMPTOMS**: Training works, inference "completes" but shows 0 computations and no accuracy.
+**ROOT CAUSE**: Training triggers disabled in inference mode, so no data flows through network.
+**DETECTION**: Always check inference logs for "0 computations" - this means NO inference happened.
+**SOLUTION**: ✅ FIXED - GetBatch template updated with auto-trigger mechanism for inference mode.
+
+### **⚠️ CHECKPOINT LOADING ACCURACY DROP PATTERN ⚠️**
+**SYMPTOMS**: Training accuracy ~90%, inference accuracy drops to ~8% (random chance levels).
+**DETECTION**: Large accuracy gap between training and inference despite successful checkpoint loading.
+**POSSIBLE CAUSES**: Model state not properly restored, device mismatch, evaluation on wrong dataset.
+**STATUS**: Under investigation - need to verify checkpoint loading integrity in inference mode.
+
 ### **CRITICAL FILE ORGANIZATION RULE**
 **⚠️ ABSOLUTE PROHIBITION: NEVER create ANY files in the project root directory (/mnt/e/ALS-Projects/DNNE/DNNE-UI/) ⚠️**
 

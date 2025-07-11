@@ -189,8 +189,8 @@ class MNISTInferenceTest:
                 print("STDERR:", result.stderr[-1000:])
                 return False
             
-            # Parse output for accuracy information
-            output_lines = result.stdout.split('\n')
+            # Parse output for accuracy information (check both stdout and stderr)
+            output_lines = result.stdout.split('\n') + result.stderr.split('\n')
             inference_accuracy = self._extract_accuracy(output_lines)
             if inference_accuracy is not None:
                 self.results['inference_accuracy'] = inference_accuracy
@@ -201,6 +201,13 @@ class MNISTInferenceTest:
                 print("⚠️ Warning: Inference mode flag not detected in output")
             else:
                 print("✅ Inference mode confirmed")
+                
+            # Verify actual computation happened
+            computation_count = self._extract_computation_count(output_lines)
+            if computation_count > 0:
+                print(f"✅ Network performed {computation_count} computations")
+            else:
+                print("❌ Warning: No network computations detected")
             
             # Save inference output for analysis
             with open(self.export_path / "inference_output.log", 'w') as f:
@@ -221,9 +228,12 @@ class MNISTInferenceTest:
     
     def _extract_accuracy(self, output_lines: list) -> Optional[float]:
         """Extract accuracy from training/inference output"""
+        # Look for the most recent accuracy value
+        latest_accuracy = None
+        
         for line in output_lines:
             if "accuracy:" in line.lower() or "acc:" in line.lower():
-                # Look for patterns like "accuracy: 0.95" or "acc: 95.2%"
+                # Look for patterns like "accuracy: 0.95" or "acc: 95.2%" or "Accuracy: 9.38%"
                 try:
                     parts = line.split()
                     for i, part in enumerate(parts):
@@ -234,10 +244,30 @@ class MNISTInferenceTest:
                                 # Convert percentage to decimal if needed
                                 if acc_val > 1.0:
                                     acc_val = acc_val / 100.0
-                                return acc_val
+                                latest_accuracy = acc_val
                 except (ValueError, IndexError):
                     continue
-        return None
+        
+        return latest_accuracy
+    
+    def _extract_computation_count(self, output_lines: list) -> int:
+        """Extract number of computations from output"""
+        max_computations = 0
+        
+        for line in output_lines:
+            # Look for lines like "  40: 202 computations, avg time: 0.002s"
+            if "computations" in line and "avg time" in line:
+                try:
+                    # Split by whitespace and look for pattern "number: number computations"
+                    parts = line.strip().split()
+                    for i, part in enumerate(parts):
+                        if part.isdigit() and i + 1 < len(parts) and parts[i + 1] == "computations":
+                            computation_count = int(part)
+                            max_computations = max(max_computations, computation_count)
+                except (ValueError, IndexError):
+                    continue
+        
+        return max_computations
     
     def validate_results(self) -> bool:
         """Validate that training and inference results are consistent"""

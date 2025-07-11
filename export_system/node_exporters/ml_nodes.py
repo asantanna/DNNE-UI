@@ -451,7 +451,7 @@ class NetworkExporter(ExportableNode):
             "NUM_LAYERS": len(network_layers),
             "INPUT_SIZE": network_layers[0]["input_size"] if network_layers else 784,
             "OUTPUT_SIZE": network_layers[-1]["output_size"] if network_layers else 10,
-            "CHECKPOINT_ENABLED": False,
+            "CHECKPOINT_ENABLED": True,
             "CHECKPOINT_TRIGGER_TYPE": "epoch",
             "CHECKPOINT_TRIGGER_VALUE": "50",
             "CHECKPOINT_LOAD_ON_START": False

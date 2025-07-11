@@ -19,6 +19,10 @@ class GetBatchNode_{NODE_ID}(QueueNode):
         self.running = True
         self.logger.info(f"Starting node {self.node_id}")
         
+        # Check if we're in inference mode
+        import builtins
+        inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        
         try:
             # Wait for dataloader and schema
             self.dataloader = await self.input_queues["dataloader"].get()
@@ -33,17 +37,30 @@ class GetBatchNode_{NODE_ID}(QueueNode):
             
             self.logger.info(f"Received dataloader with {self.total_batches_per_epoch} batches per epoch, waiting for trigger signals")
             
-            # Wait for trigger signals before generating batches
-            while self.running:
-                # Wait for trigger signal
-                trigger_signal = await self.input_queues["trigger"].get()
-                self.logger.info(f"Received trigger signal: {trigger_signal.get('signal_type', 'unknown')}")
-                
-                # Generate batch when triggered
-                outputs = await self.compute()
-                if outputs:
-                    for output_name, value in outputs.items():
-                        await self.send_output(output_name, value)
+            if inference_mode:
+                # In inference mode: Auto-generate batches continuously for evaluation
+                self.logger.info("🔍 Inference mode: Auto-triggering batch generation")
+                while self.running:
+                    # Generate batch automatically in inference mode
+                    outputs = await self.compute()
+                    if outputs:
+                        for output_name, value in outputs.items():
+                            await self.send_output(output_name, value)
+                    
+                    # Small delay to prevent overwhelming the system
+                    await asyncio.sleep(0.01)
+            else:
+                # In training mode: Wait for trigger signals before generating batches
+                while self.running:
+                    # Wait for trigger signal
+                    trigger_signal = await self.input_queues["trigger"].get()
+                    self.logger.info(f"Received trigger signal: {trigger_signal.get('signal_type', 'unknown')}")
+                    
+                    # Generate batch when triggered
+                    outputs = await self.compute()
+                    if outputs:
+                        for output_name, value in outputs.items():
+                            await self.send_output(output_name, value)
             
         except asyncio.CancelledError:
             self.logger.info(f"Node {self.node_id} cancelled")

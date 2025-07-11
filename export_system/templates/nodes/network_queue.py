@@ -75,8 +75,10 @@ class NetworkNode_{NODE_ID}(QueueNode):
                 )
                 self.logger.info(f"Checkpoint manager initialized: {self.checkpoint_trigger_type} trigger")
                 
-                # Load checkpoint on start if requested
-                if self.checkpoint_load_on_start and load_checkpoint_dir:
+                # Load checkpoint on start if requested, or always in inference mode
+                if (self.checkpoint_load_on_start and load_checkpoint_dir) or (self.inference_mode and load_checkpoint_dir):
+                    if self.inference_mode:
+                        self.logger.info("🔍 Inference mode: Loading checkpoint automatically")
                     self.load_checkpoint(load_checkpoint_dir)
                     
             except ValueError as e:
