@@ -782,12 +782,131 @@ class PlaceholderNode_{node_id}(QueueNode):
         framework_dir.mkdir(exist_ok=True)
         nodes_dir = output_path / "nodes"
         nodes_dir.mkdir(exist_ok=True)
+        environments_dir = output_path / "environments"
+        environments_dir.mkdir(exist_ok=True)
         
         # Create __init__.py files
         (output_path / "__init__.py").write_text("# DNNE Generated Package\n", encoding='utf-8')
         (framework_dir / "__init__.py").write_text("from .base import QueueNode, SensorNode, GraphRunner\n", encoding='utf-8')
         
+        # Create environments module with factory function
+        environments_init_content = '''"""Environment factory and base classes"""
+
+from .base_environment import IsaacGymEnvironment
+from .cartpole_environment import CartpoleEnvironment
+
+# Environment registry
+ENVIRONMENT_REGISTRY = {
+    "Cartpole": CartpoleEnvironment,
+    "cartpole": CartpoleEnvironment,
+}
+
+def create_environment(env_name: str, gym, sim, sim_params, num_envs: int, device: str, logger, isaac_gym_envs_path: str):
+    """
+    Factory function to create environment instances
+    
+    Args:
+        env_name: Name of the environment to create
+        gym: Isaac Gym instance
+        sim: Isaac Gym simulation handle
+        sim_params: Simulation parameters
+        num_envs: Number of parallel environments
+        device: Device for tensor operations
+        logger: Logger instance
+        isaac_gym_envs_path: Path to IsaacGymEnvs repository
+        
+    Returns:
+        Environment instance
+    """
+    if env_name not in ENVIRONMENT_REGISTRY:
+        raise ValueError(f"Unknown environment: {env_name}. Available environments: {list(ENVIRONMENT_REGISTRY.keys())}")
+    
+    env_class = ENVIRONMENT_REGISTRY[env_name]
+    return env_class(gym, sim, sim_params, num_envs, device, logger, isaac_gym_envs_path)
+'''
+        (environments_dir / "__init__.py").write_text(environments_init_content, encoding='utf-8')
+        
+        # Copy environment template files
+        self._export_environment_templates(environments_dir)
+        
         return framework_dir, nodes_dir
+    
+    def _export_environment_templates(self, environments_dir: Path):
+        """Copy environment template files to the export directory"""
+        try:
+            # Copy base environment class
+            base_env_content = self._load_template("environments/base_environment.py")
+            (environments_dir / "base_environment.py").write_text(base_env_content, encoding='utf-8')
+            
+            # Copy cartpole environment class
+            cartpole_env_content = self._load_template("environments/cartpole_environment.py")
+            (environments_dir / "cartpole_environment.py").write_text(cartpole_env_content, encoding='utf-8')
+            
+            self.logger.info("Exported environment templates")
+            
+        except Exception as e:
+            self.logger.warning(f"Could not export environment templates: {e}")
+            # Create minimal fallback environment files
+            self._create_fallback_environments(environments_dir)
+    
+    def _create_fallback_environments(self, environments_dir: Path):
+        """Create minimal fallback environment files if templates are missing"""
+        self.logger.info("Creating fallback environment files")
+        
+        # Minimal base environment
+        base_env_fallback = '''"""
+Fallback Base Isaac Gym Environment Class
+"""
+
+import torch
+import numpy as np
+from abc import ABC, abstractmethod
+from typing import Dict, Any, Optional, Tuple
+import logging
+
+class IsaacGymEnvironment(ABC):
+    """Minimal base class for Isaac Gym environment implementations"""
+    
+    def __init__(self, gym, sim, sim_params, num_envs: int, device: str, logger: logging.Logger):
+        self.gym = gym
+        self.sim = sim
+        self.sim_params = sim_params
+        self.num_envs = num_envs
+        self.device = device
+        self.logger = logger
+        self.torch_device = torch.device(device if device == "cuda" and torch.cuda.is_available() else "cpu")
+        
+        # Initialize placeholders
+        self.envs = []
+        self.actors = []
+        self.dof_state = None
+        self.dof_pos = None
+        self.dof_vel = None
+        self.num_dof = 0
+'''
+        
+        # Minimal cartpole environment  
+        cartpole_env_fallback = '''"""
+Fallback Cartpole Environment Implementation
+"""
+
+import torch
+import numpy as np
+from .base_environment import IsaacGymEnvironment
+
+class CartpoleEnvironment(IsaacGymEnvironment):
+    """Minimal Cartpole environment implementation"""
+    
+    def __init__(self, gym, sim, sim_params, num_envs: int, device: str, logger, isaac_gym_envs_path: str):
+        super().__init__(gym, sim, sim_params, num_envs, device, logger)
+        self.isaac_gym_envs_path = isaac_gym_envs_path
+        self.num_dof = 2
+        
+        self.logger.warning("Using fallback Cartpole environment - functionality may be limited")
+'''
+        
+        (environments_dir / "base_environment.py").write_text(base_env_fallback, encoding='utf-8')
+        (environments_dir / "cartpole_environment.py").write_text(cartpole_env_fallback, encoding='utf-8')
     
     def _export_framework(self, framework_dir: Path):
         """Export the queue framework to framework/base.py"""

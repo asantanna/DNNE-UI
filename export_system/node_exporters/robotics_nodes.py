@@ -208,18 +208,27 @@ class IsaacGymEnvExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # ComfyUI workflow format uses widgets_values list for widget-based nodes
-        widget_values = node_data.get("widgets_values", ["Cartpole", 16, "/home/asantanna/isaacgym", "/home/asantanna/IsaacGymEnvs", True, "cuda", "physx"])
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'env_name', 'default': 'Cartpole'},
+            {'name': 'num_envs', 'default': 512},
+            {'name': 'isaac_gym_path', 'default': '/home/asantanna/isaacgym'},
+            {'name': 'isaac_gym_envs_path', 'default': '/home/asantanna/IsaacGymEnvs'},
+            {'name': 'headless', 'default': True},
+            {'name': 'device', 'default': 'cuda'},
+            {'name': 'physics_engine', 'default': 'physx'}
+        ]
         
-        # IsaacGymEnv widget values from widgets_values list  
-        # Order: [env_name, num_envs, isaac_gym_path, isaac_gym_envs_path, headless, device, physics_engine]
-        env_name = widget_values[0] if len(widget_values) > 0 else "Cartpole"
-        num_envs = widget_values[1] if len(widget_values) > 1 else 16
-        isaac_gym_path = widget_values[2] if len(widget_values) > 2 else "/home/asantanna/isaacgym"
-        isaac_gym_envs_path = widget_values[3] if len(widget_values) > 3 else "/home/asantanna/IsaacGymEnvs"
-        headless = widget_values[4] if len(widget_values) > 4 else True
-        device = widget_values[5] if len(widget_values) > 5 else "cuda"
-        physics_engine = widget_values[6] if len(widget_values) > 6 else "physx"
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Extract parameters
+        env_name = params['env_name']
+        num_envs = params['num_envs']
+        isaac_gym_path = params['isaac_gym_path']
+        isaac_gym_envs_path = params['isaac_gym_envs_path']
+        headless = params['headless']
+        device = params['device']
+        physics_engine = params['physics_engine']
         
         return {
             "NODE_ID": node_id,

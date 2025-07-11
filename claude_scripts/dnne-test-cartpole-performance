@@ -1,0 +1,9 @@
+#!/bin/bash
+# DNNE Test Suite - Cartpole Performance Benchmark
+# Compare DNNE Cartpole performance against IsaacGymEnvs baseline
+
+# Source the command functions
+source "$(dirname "${BASH_SOURCE[0]}")/dnne_test_commands.sh"
+
+# Run Cartpole performance benchmark
+dnne_test_cartpole_performance "$@"

@@ -290,6 +290,32 @@ dnne_test_inference() {
     return $exit_code
 }
 
+# Cartpole performance benchmark tests
+dnne_test_cartpole_performance() {
+    log_info "🏎️  Running DNNE Cartpole Performance Benchmark"
+    echo "================================================================"
+    
+    check_project_root
+    activate_environment
+    
+    echo ""
+    log_info "Running Cartpole performance benchmark vs IsaacGymEnvs..."
+    echo ""
+    
+    cd "$PROJECT_ROOT"
+    python claude_scripts/benchmark_cartpole_performance.py
+    local exit_code=$?
+    
+    echo ""
+    if [ $exit_code -eq 0 ]; then
+        log_success "Cartpole performance benchmark completed successfully!"
+    else
+        log_error "Cartpole performance benchmark failed with exit code $exit_code"
+    fi
+    
+    return $exit_code
+}
+
 # Verbose mode
 dnne_test_verbose() {
     dnne_test_pytest "Verbose Test Output" "tests-dnne/ -vvv -s --tb=long" "60"
@@ -330,12 +356,13 @@ dnne_test_help() {
     echo "  dnne-test-quick        Run tests with short timeout (10s, skip slow tests)"
     echo ""
     echo "Specialized Commands:"
-    echo "  dnne-test-coverage     Run tests with coverage report"
-    echo "  dnne-test-ml           Run only ML node tests"
-    echo "  dnne-test-robotics     Run only robotics/Isaac Gym tests"
-    echo "  dnne-test-export       Run only export system tests"
-    echo "  dnne-test-rl           Run comprehensive RL tests (Cartpole PPO)"
-    echo "  dnne-test-checkpoint   Run checkpoint system tests"
+    echo "  dnne-test-coverage            Run tests with coverage report"
+    echo "  dnne-test-ml                  Run only ML node tests"
+    echo "  dnne-test-robotics            Run only robotics/Isaac Gym tests"
+    echo "  dnne-test-export              Run only export system tests"
+    echo "  dnne-test-rl                  Run comprehensive RL tests (Cartpole PPO)"
+    echo "  dnne-test-checkpoint          Run checkpoint system tests"
+    echo "  dnne-test-cartpole-performance Run Cartpole performance benchmark vs IsaacGymEnvs"
     echo ""
     echo "Debug Commands:"
     echo "  dnne-test-verbose      Run with maximum verbosity"

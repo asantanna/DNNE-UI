@@ -101,11 +101,7 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         # Initialize state tensors after all environments are created
         self.initialize_state_tensors()
         
-        # Reset all environments with randomized initial states
-        all_env_ids = torch.arange(self.num_envs, device=self.torch_device)
-        self.reset_environments(all_env_ids)
-        
-        self.logger.info(f"Created {self.num_envs} Cartpole environments with randomized initial states")
+        self.logger.info(f"Created {self.num_envs} Cartpole environments with {spacing}m spacing")
     
     def _load_cartpole_asset(self) -> None:
         """Load the cartpole URDF asset"""
@@ -155,40 +151,50 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         if len(env_ids) == 0:
             return
         
-        # Randomized initial positions (matching IsaacGymEnvs)
-        # Cart position: -0.1 to +0.1 meters
-        # Pole angle: -0.1 to +0.1 radians  
-        positions = 0.2 * (torch.rand((len(env_ids), self.num_dof), device=self.torch_device) - 0.5)
-        
-        # Randomized initial velocities
-        # Cart velocity: -0.25 to +0.25 m/s
-        # Pole angular velocity: -0.25 to +0.25 rad/s
-        velocities = 0.5 * (torch.rand((len(env_ids), self.num_dof), device=self.torch_device) - 0.5)
-        
-        # Apply randomized states
-        self.dof_pos[env_ids, :] = positions[:]
-        self.dof_vel[env_ids, :] = velocities[:]
-        
-        # Update simulation with new states
-        from isaacgym import gymtorch
-        env_ids_int32 = env_ids.to(dtype=torch.int32)
-        
-        # Move tensors to CPU for Isaac Gym indexed update
-        dof_state_cpu = self.dof_state.cpu()
-        env_ids_cpu = env_ids_int32.cpu()
-        
-        self.gym.set_dof_state_tensor_indexed(
-            self.sim,
-            gymtorch.unwrap_tensor(dof_state_cpu),
-            gymtorch.unwrap_tensor(env_ids_cpu),
-            len(env_ids_cpu)
-        )
-        
-        # Reset tracking buffers
-        self.reset_buf[env_ids] = 0
-        self.progress_buf[env_ids] = 0
-        
-        self.logger.debug(f"Reset {len(env_ids)} environments with randomized states")
+        try:
+            # Ensure env_ids is on the correct device
+            env_ids = env_ids.to(self.torch_device)
+            
+            # Randomized initial positions (matching IsaacGymEnvs)
+            # Cart position: -0.1 to +0.1 meters
+            # Pole angle: -0.1 to +0.1 radians  
+            positions = 0.2 * (torch.rand((len(env_ids), self.num_dof), device=self.torch_device) - 0.5)
+            
+            # Randomized initial velocities
+            # Cart velocity: -0.25 to +0.25 m/s
+            # Pole angular velocity: -0.25 to +0.25 rad/s
+            velocities = 0.5 * (torch.rand((len(env_ids), self.num_dof), device=self.torch_device) - 0.5)
+            
+            # Apply randomized states
+            self.dof_pos[env_ids, :] = positions[:]
+            self.dof_vel[env_ids, :] = velocities[:]
+            
+            # Update simulation with new states (only if dof_state is initialized)
+            if hasattr(self, 'dof_state') and self.dof_state is not None:
+                from isaacgym import gymtorch
+                env_ids_int32 = env_ids.to(dtype=torch.int32)
+                
+                # Use tensors on the same device as dof_state for Isaac Gym indexed update
+                env_ids_same_device = env_ids_int32.to(self.dof_state.device)
+                
+                self.gym.set_dof_state_tensor_indexed(
+                    self.sim,
+                    gymtorch.unwrap_tensor(self.dof_state),
+                    gymtorch.unwrap_tensor(env_ids_same_device),
+                    len(env_ids_same_device)
+                )
+            
+            # Reset tracking buffers
+            if hasattr(self, 'reset_buf') and self.reset_buf is not None:
+                self.reset_buf[env_ids] = 0
+            if hasattr(self, 'progress_buf') and self.progress_buf is not None:
+                self.progress_buf[env_ids] = 0
+            
+            self.logger.debug(f"Reset {len(env_ids)} environments with randomized states")
+            
+        except Exception as e:
+            self.logger.error(f"Error in reset_environments: {e}")
+            # Don't re-raise during initialization
     
     def apply_actions(self, actions) -> None:
         """Apply force-based actions to cart (following IsaacGymEnvs pattern)"""
