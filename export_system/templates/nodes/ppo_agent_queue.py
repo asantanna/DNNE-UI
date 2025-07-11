@@ -32,6 +32,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.model = None
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         
+        # Check if we're in inference mode
+        import builtins
+        self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        
         self.logger.info(f"PPOAgentNode {node_id} initialized with action_space={self.action_space}, action_dim={self.action_dim}")
         
     def build_model(self, obs_dim):
@@ -86,6 +90,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.model['policy_log_std'] = nn.ParameterDict({'log_std': self.policy_log_std})
             
         self.model.to(self.device)
+        
+        # Set to eval mode if in inference
+        if self.inference_mode:
+            self.model.eval()
+            self.logger.info("PPO model set to evaluation mode for inference")
+            
         return self.model
         
     async def compute(self, observations) -> Dict[str, Any]:

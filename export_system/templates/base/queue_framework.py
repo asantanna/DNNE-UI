@@ -113,6 +113,10 @@ class GraphRunner:
         self.nodes: Dict[str, QueueNode] = {}
         self.tasks: List[asyncio.Task] = []
         self.logger = logging.getLogger("GraphRunner")
+        
+        # Exit tracking for smart checkpoint saves
+        self.exit_reason = None
+        self.has_completion_conditions = False
     
     def add_node(self, node: QueueNode):
         """Add a node to the graph"""
@@ -131,10 +135,47 @@ class GraphRunner:
             )
             self.logger.info(f"Connected {from_id}.{output_name} -> {to_id}.{input_name}")
     
+    def _detect_completion_conditions(self):
+        """Detect if the workflow has any defined completion conditions"""
+        # Check for EpochTracker (indicates supervised learning with defined epochs)
+        has_epoch_tracker = any("EpochTracker" in node.__class__.__name__ for node in self.nodes.values())
+        
+        # Check for timeout specified at runtime (duration parameter)
+        # This will be checked in the run method
+        
+        self.has_completion_conditions = has_epoch_tracker
+        return self.has_completion_conditions
+    
     async def run(self, duration: Optional[float] = None):
         """Run all nodes"""
         self.logger.info("Starting graph execution")
         
+        # Detect completion conditions
+        self._detect_completion_conditions()
+        if duration is not None:
+            self.has_completion_conditions = True  # Timeout is a completion condition
+        
+        # Check if we're in inference mode
+        import builtins
+        inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        
+        try:
+            if inference_mode:
+                self.logger.info("Running in INFERENCE mode - gradients disabled")
+                # Import torch only if in inference mode
+                import torch
+                
+                # Run in no_grad context for inference
+                with torch.no_grad():
+                    await self._run_graph(duration)
+            else:
+                await self._run_graph(duration)
+        finally:
+            # Handle checkpoint saves before final cleanup
+            await self._handle_exit_checkpoints()
+    
+    async def _run_graph(self, duration: Optional[float] = None):
+        """Internal method to run the graph"""
         # Start all nodes
         for node in self.nodes.values():
             task = asyncio.create_task(node.run())
@@ -143,11 +184,17 @@ class GraphRunner:
         try:
             if duration:
                 await asyncio.sleep(duration)
+                self.exit_reason = "timeout"
                 self.logger.info(f"Stopping after {duration}s")
             else:
                 # Run until cancelled or training completes
-                await self._run_until_completion()
+                completion_result = await self._run_until_completion()
+                if completion_result == "training_complete":
+                    self.exit_reason = "training_complete"
+                else:
+                    self.exit_reason = "indefinite_run"
         except KeyboardInterrupt:
+            self.exit_reason = "keyboard_interrupt"
             self.logger.info("Interrupted by user")
         finally:
             # Cancel all tasks
@@ -169,7 +216,7 @@ class GraphRunner:
         if not epoch_tracker:
             # No epoch tracker, run indefinitely
             await asyncio.gather(*self.tasks)
-            return
+            return "indefinite_run"
         
         # Create a completion monitoring task
         completion_task = asyncio.create_task(self._monitor_completion(epoch_tracker))
@@ -181,11 +228,14 @@ class GraphRunner:
             
             if completion_task in done:
                 self.logger.info("Training completed - stopping execution")
+                return "training_complete"
             else:
                 self.logger.info("Training tasks completed")
+                return "tasks_complete"
                 
         except Exception as e:
             self.logger.error(f"Error during execution: {e}")
+            return "error"
         finally:
             # Cancel any remaining tasks
             for task in all_tasks:
@@ -213,3 +263,60 @@ class GraphRunner:
             }
             for node_id, node in self.nodes.items()
         }
+    
+    async def _handle_exit_checkpoints(self):
+        """Handle checkpoint saves on exit based on exit reason and completion conditions"""
+        
+        # Skip if in inference mode
+        import builtins
+        inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        if inference_mode:
+            self.logger.info("💾 Skipping exit checkpoints - inference mode")
+            return
+        
+        # Determine if we should save checkpoint on exit
+        should_save = False
+        reason_message = ""
+        
+        if self.exit_reason == "timeout":
+            should_save = True
+            reason_message = "Training timeout reached - saving final checkpoint"
+            
+        elif self.exit_reason == "training_complete":
+            should_save = True  
+            reason_message = "Training completed naturally - saving final checkpoint"
+            
+        elif self.exit_reason == "keyboard_interrupt":
+            if self.has_completion_conditions:
+                should_save = False
+                reason_message = "Keyboard interrupt with defined completion conditions - not saving checkpoint"
+            else:
+                should_save = True
+                reason_message = "Keyboard interrupt on indefinite run - saving checkpoint"
+                
+        elif self.exit_reason == "indefinite_run":
+            should_save = True
+            reason_message = "Indefinite run stopped - saving checkpoint"
+            
+        # Log the decision
+        if should_save:
+            self.logger.info(f"💾 {reason_message}")
+        else:
+            self.logger.info(f"🚫 {reason_message}")
+        
+        # Trigger checkpoint saves on eligible nodes
+        if should_save:
+            saved_count = 0
+            for node in self.nodes.values():
+                if hasattr(node, 'save_checkpoint_on_exit'):
+                    try:
+                        success = await node.save_checkpoint_on_exit(self.exit_reason)
+                        if success:
+                            saved_count += 1
+                    except Exception as e:
+                        self.logger.error(f"Failed to save exit checkpoint for {node.node_id}: {e}")
+                        
+            if saved_count > 0:
+                self.logger.info(f"💾 Saved exit checkpoints for {saved_count} nodes")
+            else:
+                self.logger.info("💾 No nodes saved exit checkpoints")

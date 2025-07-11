@@ -30,11 +30,21 @@ class NetworkNode_{NODE_ID}(QueueNode):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.network = self.network.to(self.device)
         
+        # Check if we're in inference mode
+        import builtins
+        self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        
+        # Set network to eval mode if in inference
+        if self.inference_mode:
+            self.network.eval()
+            self.logger.info("Network set to evaluation mode for inference")
+        
         # Checkpoint configuration
         self.checkpoint_enabled = {CHECKPOINT_ENABLED}
         self.checkpoint_trigger_type = "{CHECKPOINT_TRIGGER_TYPE}"
         self.checkpoint_trigger_value = "{CHECKPOINT_TRIGGER_VALUE}"
         self.checkpoint_load_on_start = {CHECKPOINT_LOAD_ON_START}
+        self.checkpoint_save_on_exit = True  # Default to save on exit
         self.checkpoint_manager = None
         
         # Initialize checkpoint manager if enabled
@@ -168,6 +178,55 @@ class NetworkNode_{NODE_ID}(QueueNode):
         except Exception as e:
             self.logger.error(f"Error loading model checkpoint: {e}")
             return False
+    
+    async def save_checkpoint_on_exit(self, exit_reason: str) -> bool:
+        """
+        Save checkpoint on exit if enabled
+        
+        Args:
+            exit_reason: Reason for exit ('timeout', 'training_complete', 'keyboard_interrupt', etc.)
+            
+        Returns:
+            bool: True if checkpoint saved successfully
+        """
+        if not self.checkpoint_enabled or not self.checkpoint_save_on_exit or not self.checkpoint_manager:
+            return False
+            
+        try:
+            import time
+            
+            # Prepare exit metadata
+            metadata = {
+                'exit_type': 'on_exit',
+                'exit_reason': exit_reason,
+                'timestamp': time.time(),
+                'model_type': type(self.network).__name__,
+                'architecture': {
+                    'num_layers': {NUM_LAYERS},
+                    'input_size': {INPUT_SIZE},
+                    'output_size': {OUTPUT_SIZE}
+                },
+                'model_info': {
+                    'num_parameters': sum(p.numel() for p in self.network.parameters()),
+                    'trainable_parameters': sum(p.numel() for p in self.network.parameters() if p.requires_grad)
+                }
+            }
+            
+            # Save checkpoint with exit metadata
+            success = self.checkpoint_manager.save_checkpoint(
+                self.network.state_dict(), metadata=metadata
+            )
+            
+            if success:
+                self.logger.info(f"💾 Exit checkpoint saved for Network node {self.node_id}")
+                return True
+            else:
+                self.logger.warning(f"⚠️ Failed to save exit checkpoint for Network node {self.node_id}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error saving exit checkpoint: {e}")
+            return False
         
     async def run(self):
         """Override run to emit model reference once at startup"""
@@ -212,6 +271,7 @@ class NetworkNode_{NODE_ID}(QueueNode):
             x = x.reshape(x.size(0), -1)
         
         # Forward pass through the entire network
+        # Note: In inference mode, torch.no_grad() is already applied by GraphRunner
         output = self.network(x)
         
         return {

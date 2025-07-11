@@ -14,10 +14,25 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.setup_outputs(["ready", "step_complete"])
         self.optimizer = None
         
+        # Check if we're in inference mode
+        import builtins
+        self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        
     async def run(self):
         """Override run to get optimizer once, then process loss inputs"""
         self.running = True
         self.logger.info(f"Starting node {{self.node_id}}")
+        
+        # In inference mode, this node does nothing
+        if self.inference_mode:
+            self.logger.info("TrainingStep disabled in inference mode")
+            # Keep the node running but do nothing
+            try:
+                while self.running:
+                    await asyncio.sleep(1.0)
+            except asyncio.CancelledError:
+                pass
+            return
         
         try:
             # First, wait for optimizer (configuration)
@@ -48,6 +63,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.running = False
         
     async def compute(self, loss) -> Dict[str, Any]:
+        # Skip in inference mode
+        if self.inference_mode:
+            return {"ready": None, "step_complete": False}
+            
         if self.optimizer is None:
             self.logger.error("No optimizer available for training step")
             return {"ready": None, "step_complete": False}

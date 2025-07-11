@@ -264,6 +264,32 @@ dnne_test_checkpoint() {
     return $exit_code
 }
 
+# Inference mode tests
+dnne_test_inference() {
+    log_info "🔍 Running DNNE Inference Mode Tests"
+    echo "================================================================"
+    
+    check_project_root
+    activate_environment
+    
+    echo ""
+    log_info "Running comprehensive training + inference tests..."
+    echo ""
+    
+    cd "$PROJECT_ROOT"
+    python claude_scripts/test_mnist_inference_complete.py
+    local exit_code=$?
+    
+    echo ""
+    if [ $exit_code -eq 0 ]; then
+        log_success "Inference mode tests completed successfully!"
+    else
+        log_error "Inference mode tests failed with exit code $exit_code"
+    fi
+    
+    return $exit_code
+}
+
 # Verbose mode
 dnne_test_verbose() {
     dnne_test_pytest "Verbose Test Output" "tests-dnne/ -vvv -s --tb=long" "60"
@@ -346,6 +372,7 @@ export -f dnne_test_robotics
 export -f dnne_test_export
 export -f dnne_test_rl_comprehensive
 export -f dnne_test_checkpoint
+export -f dnne_test_inference
 export -f dnne_test_verbose
 export -f dnne_test_deps
 export -f dnne_test_help

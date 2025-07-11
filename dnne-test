@@ -33,6 +33,7 @@ show_help() {
     echo "  rl             RL comprehensive tests (Cartpole PPO) (~5-10 minutes)"
     echo "  checkpoint     Checkpoint system tests (~10-15 seconds)"
     echo "  export         Export system tests only (~15-20 seconds)"
+    echo "  inference      Inference mode tests (training + inference) (~30-60 seconds)"
     echo "  coverage       Tests with coverage report (~60+ seconds)"
     echo ""
     echo -e "${GREEN}Helper Commands:${NC}"
@@ -104,6 +105,11 @@ case "${1:-}" in
         shift
         echo -e "${BLUE}📊 Running DNNE Coverage Tests${NC}"
         dnne_test_coverage "$@"
+        ;;
+    "inference")
+        shift
+        echo -e "${BLUE}🔍 Running DNNE Inference Mode Tests${NC}"
+        dnne_test_inference "$@"
         ;;
     "verbose")
         shift

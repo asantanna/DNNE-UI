@@ -43,10 +43,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.optimizer = None
         self.step_count = 0
         
+        # Check if we're in inference mode
+        import builtins
+        self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        
         # Checkpoint configuration
         self.checkpoint_enabled = {CHECKPOINT_ENABLED}
         self.checkpoint_trigger_type = "{CHECKPOINT_TRIGGER_TYPE}"
         self.checkpoint_trigger_value = "{CHECKPOINT_TRIGGER_VALUE}"
+        self.checkpoint_save_on_exit = True  # Default to save on exit
         self.checkpoint_manager = None
         self.last_loss = None
         
@@ -141,6 +146,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import torch.nn as nn
         import torch.distributions as dist
         import numpy as np
+        
+        # Skip training in inference mode
+        if self.inference_mode:
+            return torch.zeros(1, device=self.device)
         
         # Setup optimizer if needed
         if self.optimizer is None:
@@ -240,6 +249,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import torch.distributions as dist
         import numpy as np
         import os
+        import time
+        
+        # In inference mode, just pass through signals without training
+        if self.inference_mode:
+            # Send training complete signal immediately to maintain data flow
+            return {
+                "loss": torch.zeros(1, device=self.device),
+                "training_complete": {"signal": "complete", "timestamp": time.time()}
+            }
         
         try:
             # Ensure tensors are on correct device
@@ -378,3 +396,61 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "loss": safe_loss,
                 "training_complete": safe_signal
             }
+    
+    async def save_checkpoint_on_exit(self, exit_reason: str) -> bool:
+        """
+        Save checkpoint on exit if enabled
+        
+        Args:
+            exit_reason: Reason for exit ('timeout', 'training_complete', 'keyboard_interrupt', etc.)
+            
+        Returns:
+            bool: True if checkpoint saved successfully
+        """
+        if not self.checkpoint_enabled or not self.checkpoint_save_on_exit or not self.checkpoint_manager:
+            return False
+            
+        try:
+            import time
+            
+            # Get the most recent model from the buffer (if any)
+            # Note: We'll need to save whatever model was passed to the last training step
+            # For now, we'll save basic metadata about the training state
+            
+            # Prepare exit metadata
+            metadata = {
+                'exit_type': 'on_exit',
+                'exit_reason': exit_reason,
+                'timestamp': time.time(),
+                'training_step': self.step_count,
+                'horizon_length': self.horizon_length,
+                'num_epochs': self.num_epochs,
+                'minibatch_size': self.minibatch_size,
+                'hyperparameters': {
+                    'gamma': self.gamma,
+                    'gae_lambda': self.gae_lambda,
+                    'clip_param': self.clip_param,
+                    'value_coef': self.value_coef,
+                    'entropy_coef': self.entropy_coef,
+                    'learning_rate': self.learning_rate,
+                    'max_grad_norm': self.max_grad_norm
+                },
+                'last_loss': self.last_loss
+            }
+            
+            # For PPO trainer, we save training state but no model weights
+            # (The actual model weights are saved by the PPOAgent node)
+            success = self.checkpoint_manager.save_checkpoint(
+                {}, metadata=metadata  # Empty state dict, just metadata
+            )
+            
+            if success:
+                self.logger.info(f"💾 Exit checkpoint saved for PPOTrainer node {self.node_id}")
+                return True
+            else:
+                self.logger.warning(f"⚠️ Failed to save exit checkpoint for PPOTrainer node {self.node_id}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error saving exit checkpoint: {e}")
+            return False
