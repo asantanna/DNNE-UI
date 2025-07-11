@@ -186,7 +186,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "action_params": action_params
             }
             
-            self.logger.debug(f"Action: {action}, Value: {value.item():.3f}, LogProb: {log_prob.item():.3f}")
+            # Use Isaac Gym pattern for multi-environment tensor logging
+            self.logger.debug(f"Action: {action}, Value: {value.mean().item():.3f}, LogProb: {log_prob.mean().item():.3f}")
             
             return {
                 "policy_output": policy_output,

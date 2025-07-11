@@ -790,7 +790,7 @@ class CartpoleActionNode(LearningNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "network_output": ("TENSOR",),
+                "policy": ("POLICY_OUTPUT",),
                 "max_push_effort": ("FLOAT", {
                     "default": 10.0,
                     "min": 0.1,
@@ -810,32 +810,34 @@ class CartpoleActionNode(LearningNodeBase):
     def __init__(self):
         super().__init__()
         
-    def convert_to_action(self, network_output: torch.Tensor, max_push_effort: float):
+    def convert_to_action(self, policy: dict, max_push_effort: float):
         """
-        Convert neural network output to Isaac Gym ACTION format for Cartpole
+        Convert PPO policy output to Isaac Gym ACTION format for Cartpole
         
         Args:
-            network_output: Raw network output tensor [1] or [1, 1] (single force value)
+            policy: PolicyOutput dictionary containing action tensor
             max_push_effort: Maximum force scaling factor
-            context: Optional context
             
         Returns:
             ACTION: Properly formatted action for IsaacGymStepNode
         """
         
-        # Ensure network_output is properly shaped
-        if network_output.dim() > 1:
-            network_output = network_output.squeeze()
+        # Extract action tensor from PolicyOutput
+        action_tensor = policy["action"]
         
-        if network_output.dim() == 0:
-            network_output = network_output.unsqueeze(0)
+        # Ensure action_tensor is properly shaped
+        if action_tensor.dim() > 1:
+            action_tensor = action_tensor.squeeze()
+        
+        if action_tensor.dim() == 0:
+            action_tensor = action_tensor.unsqueeze(0)
             
         # Scale by max effort (same as IsaacGym Cartpole implementation)
-        scaled_force = network_output[0] * max_push_effort
+        scaled_force = action_tensor[0] * max_push_effort
         
         # For Cartpole: 2 DOF (cart translation, pole rotation)
         # Only cart (DOF 0) is actuated, pole (DOF 1) is passive
-        forces = torch.zeros(2, dtype=torch.float32, device=network_output.device)
+        forces = torch.zeros(2, dtype=torch.float32, device=action_tensor.device)
         forces[0] = scaled_force  # Apply force to cart only
         
         # Create ACTION object
