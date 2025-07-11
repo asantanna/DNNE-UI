@@ -171,15 +171,43 @@ def validate_export_output(export_path: Path) -> bool:
 
 
 def create_temp_export_dir() -> Path:
-    """Create a temporary directory for export testing."""
-    temp_dir = Path(tempfile.mkdtemp(prefix="dnne_test_export_"))
+    """Create a temporary directory for export testing within the allowed export path."""
+    import uuid
+    import os
+    
+    # Get project root - should be the working directory
+    project_root = Path.cwd()
+    export_base = project_root / "export_system" / "exports"
+    
+    # Create unique test directory name
+    test_dir_name = f"test_{uuid.uuid4().hex[:8]}"
+    temp_dir = export_base / test_dir_name
+    
+    # Create the directory
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    
     return temp_dir
 
 
 def cleanup_export_dir(export_path: Path):
     """Clean up temporary export directory."""
     if export_path.exists() and export_path.is_dir():
-        shutil.rmtree(export_path)
+        try:
+            shutil.rmtree(export_path)
+        except OSError as e:
+            # If normal cleanup fails, try to handle the __pycache__ issue
+            import stat
+            import os
+            
+            def handle_remove_readonly(func, path, exc):
+                os.chmod(path, stat.S_IWRITE)
+                func(path)
+            
+            try:
+                shutil.rmtree(export_path, onerror=handle_remove_readonly)
+            except Exception as cleanup_error:
+                # If cleanup still fails, just warn rather than failing the test
+                print(f"Warning: Could not fully clean up {export_path}: {cleanup_error}")
 
 
 async def run_async_test(coro):
