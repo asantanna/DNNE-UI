@@ -115,7 +115,7 @@ class TestWorkflowParsing:
     
     @pytest.mark.export
     def test_minimal_workflow_parsing(self):
-        """Test parsing of minimal workflow."""
+        """Test parsing of minimal workflow (should fail due to missing connections)."""
         exporter = GraphExporter()
         register_all_exporters(exporter)
         
@@ -123,19 +123,19 @@ class TestWorkflowParsing:
         export_path = create_temp_export_dir()
         
         try:
-            # Should not crash on minimal workflow
+            # This should fail for disconnected workflow
             result = exporter.export_workflow(workflow, export_path)
+            pytest.fail("Minimal workflow should fail due to missing input connections")
             
-            # Check result structure
-            assert result is not None
-            if isinstance(result, dict):
-                assert "status" in result or "success" in result or result
+        except ValueError as e:
+            # Expected error for minimal workflow with no connections
+            assert "No input connection found" in str(e), f"Expected connection error, got: {e}"
+            print(f"✓ Expected parsing error for minimal workflow: {e}")
             
         except Exception as e:
-            # If export fails, should provide meaningful error
-            error_msg = str(e).lower()
-            assert any(keyword in error_msg for keyword in 
-                      ["template", "node", "export", "missing"])
+            # Unexpected error type
+            pytest.fail(f"Expected ValueError for missing connections, got {type(e).__name__}: {e}")
+            
         finally:
             cleanup_export_dir(export_path)
     
@@ -230,25 +230,27 @@ class TestCodeGeneration:
         exporter = GraphExporter()
         register_all_exporters(exporter)
         
-        workflow = MINIMAL_LINEAR_WORKFLOW
+        # Use a properly connected workflow
+        workflow = SIMPLE_DATASET_NETWORK
         export_path = create_temp_export_dir()
         
         try:
             # Attempt export
             result = exporter.export_workflow(workflow, export_path)
             
-            # Check directory structure if export succeeded
-            if export_path.exists() and any(export_path.iterdir()):
-                # Should have created some files/directories
-                assert export_path.is_dir()
-                
-                # Check for expected structure
-                files_created = list(export_path.glob("*"))
-                assert len(files_created) > 0
-                
+            # Should succeed with connected workflow
+            assert result is not None, "Export should succeed with properly connected workflow"
+            
+            # Check directory structure
+            assert export_path.exists() and export_path.is_dir()
+            
+            # Check for expected structure
+            files_created = list(export_path.glob("*"))
+            assert len(files_created) > 0, "Export should create files"
+            
         except Exception as e:
-            # Export might fail if templates are missing, that's okay for unit test
-            print(f"Export directory test: {str(e)}")
+            # If this fails, it's a real error that should fail the test
+            pytest.fail(f"Export directory creation failed unexpectedly: {e}")
             
         finally:
             cleanup_export_dir(export_path)
@@ -259,28 +261,31 @@ class TestCodeGeneration:
         exporter = GraphExporter()
         register_all_exporters(exporter)
         
-        workflow = MINIMAL_LINEAR_WORKFLOW
+        # Use a properly connected workflow
+        workflow = SIMPLE_DATASET_NETWORK
         export_path = create_temp_export_dir()
         
         try:
             result = exporter.export_workflow(workflow, export_path)
             
-            # Check for runner.py if export succeeded
+            # Should succeed and create runner.py
+            assert result is not None, "Export should succeed with connected workflow"
+            
             runner_file = export_path / "runner.py"
-            if runner_file.exists():
-                assert runner_file.is_file()
-                
-                # Check basic file content
-                content = runner_file.read_text()
-                assert len(content) > 0
-                
-                # Should contain Python code indicators
-                python_indicators = ["import", "async", "def", "class"]
-                has_python_content = any(indicator in content for indicator in python_indicators)
-                assert has_python_content, "Runner should contain Python code"
+            assert runner_file.exists(), "Export should create runner.py file"
+            assert runner_file.is_file(), "runner.py should be a file"
+            
+            # Check basic file content
+            content = runner_file.read_text()
+            assert len(content) > 0, "Runner file should not be empty"
+            
+            # Should contain Python code indicators
+            python_indicators = ["import", "async", "def", "class"]
+            has_python_content = any(indicator in content for indicator in python_indicators)
+            assert has_python_content, "Runner should contain Python code"
                 
         except Exception as e:
-            print(f"Runner generation test: {str(e)}")
+            pytest.fail(f"Runner file generation failed unexpectedly: {e}")
             
         finally:
             cleanup_export_dir(export_path)
@@ -291,25 +296,57 @@ class TestCodeGeneration:
         exporter = GraphExporter()
         register_all_exporters(exporter)
         
+        # Use a properly connected workflow
+        workflow = SIMPLE_DATASET_NETWORK
+        export_path = create_temp_export_dir()
+        
+        try:
+            result = exporter.export_workflow(workflow, export_path)
+            
+            # Should succeed and create framework directory
+            assert result is not None, "Export should succeed with connected workflow"
+            
+            framework_dir = export_path / "framework"
+            assert framework_dir.exists(), "Export should create framework directory"
+            assert framework_dir.is_dir(), "framework should be a directory"
+            
+            # Should contain base framework files
+            base_file = framework_dir / "base.py"
+            assert base_file.exists(), "Framework should contain base.py"
+            
+            content = base_file.read_text()
+            assert "QueueNode" in content or "class" in content, "Base file should contain framework code"
+                    
+        except Exception as e:
+            pytest.fail(f"Framework directory generation failed unexpectedly: {e}")
+            
+        finally:
+            cleanup_export_dir(export_path)
+
+
+    @pytest.mark.export
+    def test_disconnected_workflow_handling(self):
+        """Test that disconnected workflows fail with expected errors."""
+        exporter = GraphExporter()
+        register_all_exporters(exporter)
+        
+        # Use a workflow with no connections (should fail)
         workflow = MINIMAL_LINEAR_WORKFLOW
         export_path = create_temp_export_dir()
         
         try:
             result = exporter.export_workflow(workflow, export_path)
             
-            # Check for framework directory
-            framework_dir = export_path / "framework"
-            if framework_dir.exists():
-                assert framework_dir.is_dir()
-                
-                # Should contain base framework files
-                base_file = framework_dir / "base.py"
-                if base_file.exists():
-                    content = base_file.read_text()
-                    assert "QueueNode" in content or "class" in content
+            # This should fail for disconnected workflow
+            pytest.fail("Export should fail for disconnected workflow with missing input connections")
                     
+        except ValueError as e:
+            # Expected error for missing input connections
+            assert "No input connection found" in str(e), f"Expected input connection error, got: {e}"
+            print(f"✓ Expected error for disconnected workflow: {e}")
+            
         except Exception as e:
-            print(f"Framework directory test: {str(e)}")
+            pytest.fail(f"Got unexpected error type for disconnected workflow: {type(e).__name__}: {e}")
             
         finally:
             cleanup_export_dir(export_path)
@@ -346,25 +383,35 @@ class TestErrorHandling:
     
     @pytest.mark.export
     def test_missing_node_exporter_handling(self):
-        """Test handling of missing node exporters."""
+        """Test handling of missing node exporters (should generate placeholders)."""
         exporter = GraphExporter()
-        # Don't register exporters - they'll be missing
         
-        workflow = MINIMAL_LINEAR_WORKFLOW
+        # Remove a specific exporter to test missing exporter handling
+        if "MNISTDataset" in exporter.node_registry:
+            del exporter.node_registry["MNISTDataset"]
+        
+        # Use a workflow that includes the removed exporter
+        workflow = SIMPLE_DATASET_NETWORK
         export_path = create_temp_export_dir()
         
         try:
             result = exporter.export_workflow(workflow, export_path)
             
-            # Should either handle missing exporters or fail gracefully
-            if result is not None:
-                pass
+            # Export should succeed with placeholder generation
+            assert result is not None, "Export should succeed by generating placeholders"
+            
+            print(f"✓ Expected behavior: Missing exporter handled gracefully with placeholder generation")
+            
+            # Check that placeholder was created
+            nodes_dir = export_path / "nodes"
+            assert nodes_dir.exists(), "Should create nodes directory"
+            
+            # Look for any generated node files
+            node_files = list(nodes_dir.glob("*.py"))
+            assert len(node_files) > 0, "Should create node files (including placeholders)"
                 
         except Exception as e:
-            # Should indicate missing exporter
-            error_msg = str(e).lower()
-            assert any(keyword in error_msg for keyword in 
-                      ["exporter", "missing", "not found", "unknown"])
+            pytest.fail(f"Export should succeed with placeholder generation, got: {e}")
             
         finally:
             cleanup_export_dir(export_path)
@@ -481,14 +528,15 @@ class TestExportIntegration:
         exporter = GraphExporter()
         register_all_exporters(exporter)
         
-        workflow = MINIMAL_LINEAR_WORKFLOW
+        # Use a connected workflow for successful export
+        workflow = SIMPLE_DATASET_NETWORK
         export_path = create_temp_export_dir()
         
         try:
             result = exporter.export_workflow(workflow, export_path)
             
-            # Result should be meaningful
-            assert result is not None
+            # Result should be meaningful for successful export
+            assert result is not None, "Export should return a result"
             
             # Check result format
             if isinstance(result, dict):
@@ -506,9 +554,8 @@ class TestExportIntegration:
                 assert len(result) > 0
                 
         except Exception as e:
-            # If it raises exception, that's a valid error reporting method
-            error_msg = str(e)
-            assert len(error_msg) > 0, "Exception should have meaningful message"
+            # Should not fail with connected workflow and registered exporters
+            pytest.fail(f"Export should succeed with connected workflow, got: {e}")
             
         finally:
             cleanup_export_dir(export_path)
