@@ -212,8 +212,8 @@ class IsaacGymEnvExporter(ExportableNode):
         param_specs = [
             {'name': 'env_name', 'default': 'Cartpole'},
             {'name': 'num_envs', 'default': 512},
-            {'name': 'isaac_gym_path', 'default': '/home/asantanna/isaacgym'},
-            {'name': 'isaac_gym_envs_path', 'default': '/home/asantanna/IsaacGymEnvs'},
+            {'name': 'isaac_gym_path', 'default': '/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym'},
+            {'name': 'isaac_gym_envs_path', 'default': '/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs'},
             {'name': 'headless', 'default': True},
             {'name': 'device', 'default': 'cuda'},
             {'name': 'physics_engine', 'default': 'physx'}

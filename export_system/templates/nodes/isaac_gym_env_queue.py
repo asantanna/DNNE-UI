@@ -4,8 +4,8 @@ template_vars = {
     "CLASS_NAME": "IsaacGymEnvNode",
     "ENV_NAME": "Cartpole",
     "NUM_ENVS": 64,
-    "ISAAC_GYM_PATH": "/home/asantanna/isaacgym",
-    "ISAAC_GYM_ENVS_PATH": "/home/asantanna/IsaacGymEnvs",
+    "ISAAC_GYM_PATH": "/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym",
+    "ISAAC_GYM_ENVS_PATH": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs",
     "HEADLESS": True,
     "DEVICE": "cuda",
     "PHYSICS_ENGINE": "physx"
