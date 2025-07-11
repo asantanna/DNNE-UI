@@ -750,6 +750,15 @@ class PlaceholderNode_{node_id}(QueueNode):
         ]
         
         (framework_dir / "base.py").write_text("\n".join(framework_content), encoding='utf-8')
+        
+        # Also export run_utils.py to the root directory (not framework dir)
+        # This matches the import path: from run_utils import ...
+        try:
+            run_utils_content = self._load_template("base/run_utils.py")
+            output_root = framework_dir.parent  # Go up one level to the export root
+            (output_root / "run_utils.py").write_text(run_utils_content, encoding='utf-8')
+        except Exception as e:
+            self.logger.warning(f"Could not export run_utils.py: {e}")
     
     def _export_node_to_file(self, nodes_dir: Path, node_id: str, node_type: str, 
                             node_code: str, node_imports: List[str]) -> str:
@@ -928,13 +937,35 @@ class PlaceholderNode_{node_id}(QueueNode):
             "                       help='Directory to save checkpoints (will create node_<id> subdirectories)')",
             "    parser.add_argument('--load-checkpoint-dir', type=str,",
             "                       help='Directory to load checkpoints from (expects node_<id> subdirectories)')",
+            "    parser.add_argument('--timeout', type=str,",
+            "                       help='Training duration (e.g., \"5m\", \"30s\", \"1h30m\")')",
+            "    parser.add_argument('--visual', action='store_true',",
+            "                       help='Enable visual mode (overrides headless setting)')",
+            "    parser.add_argument('--headless', action='store_true',",
+            "                       help='Force headless mode (default)')",
             "    args = parser.parse_args()",
+            "",
+            "    # Parse timeout if provided",
+            "    duration_seconds = None",
+            "    if args.timeout:",
+            "        try:",
+            "            from run_utils import CheckpointManager",
+            "            manager = CheckpointManager(\"temp\")",
+            "            duration_seconds = manager.parse_time_format(args.timeout)",
+            "            print(f\"⏱️  Running for {args.timeout} ({duration_seconds:.0f} seconds)\")",
+            "        except Exception as e:",
+            "            print(f\"⚠️  Invalid timeout format: {e}\")",
+            "            print(\"   Use formats like: 5m, 30s, 1h30m\")",
+            "            import sys",
+            "            sys.exit(1)",
             "",
             "    # Set global flags for nodes to access",
             "    import builtins",
             "    builtins.VERBOSE = args.verbose",
             "    builtins.SAVE_CHECKPOINT_DIR = args.save_checkpoint_dir",
             "    builtins.LOAD_CHECKPOINT_DIR = args.load_checkpoint_dir",
+            "    builtins.VISUAL_MODE = args.visual",
+            "    builtins.HEADLESS_MODE = args.headless",
             "    configure_logging(args.verbose)",
             "",
             '    print("🚀 Starting DNNE Queue-Based Execution")',
@@ -991,6 +1022,13 @@ class PlaceholderNode_{node_id}(QueueNode):
             "            await runner.run(duration=30.0)  # Run for 30 seconds in test mode",
             "            end_time = time.time()",
             "            print(f'✅ Test mode completed in {end_time - start_time:.1f} seconds')",
+            "        elif duration_seconds is not None:",
+            "            # Run for specified timeout duration",
+            "            import time",
+            "            start_time = time.time()",
+            "            await runner.run(duration=duration_seconds)",
+            "            end_time = time.time()",
+            "            print(f'✅ Completed {args.timeout} run in {end_time - start_time:.1f} seconds')",
             "        else:",
             "            # Run indefinitely (Ctrl+C to stop)",
             "            await runner.run()",

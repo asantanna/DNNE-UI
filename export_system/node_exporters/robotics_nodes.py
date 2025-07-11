@@ -176,19 +176,28 @@ class IsaacGymEnvExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # ComfyUI workflow format uses widgets_values list
-        widget_values = node_data.get("widgets_values", ["Cartpole", 1, "/home/asantanna/isaacgym", "/home/asantanna/IsaacGymEnvs", True, "cuda", "physx"])
+        # Use standard inputs pattern like all other exporters
+        inputs = node_data.get("inputs", {})
+        
+        # Validate that inputs exists and has required values
+        if not inputs:
+            raise ValueError(f"IsaacGymEnvNode {node_id}: missing inputs in node_data: {node_data}")
+        
+        required_keys = ["env_name", "num_envs", "isaac_gym_path", "isaac_gym_envs_path", "headless", "device", "physics_engine"]
+        missing_keys = [key for key in required_keys if key not in inputs]
+        if missing_keys:
+            raise ValueError(f"IsaacGymEnvNode {node_id}: missing required inputs {missing_keys} in node_data: {node_data}")
         
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "IsaacGymEnvNode",
-            "ENV_NAME": widget_values[0] if len(widget_values) > 0 else "Cartpole",
-            "NUM_ENVS": widget_values[1] if len(widget_values) > 1 else 1,
-            "ISAAC_GYM_PATH": widget_values[2] if len(widget_values) > 2 else "/home/asantanna/isaacgym",
-            "ISAAC_GYM_ENVS_PATH": widget_values[3] if len(widget_values) > 3 else "/home/asantanna/IsaacGymEnvs",
-            "HEADLESS": widget_values[4] if len(widget_values) > 4 else True,
-            "DEVICE": widget_values[5] if len(widget_values) > 5 else "cuda",
-            "PHYSICS_ENGINE": widget_values[6] if len(widget_values) > 6 else "physx"
+            "ENV_NAME": inputs["env_name"],
+            "NUM_ENVS": inputs["num_envs"],
+            "ISAAC_GYM_PATH": inputs["isaac_gym_path"],
+            "ISAAC_GYM_ENVS_PATH": inputs["isaac_gym_envs_path"],
+            "HEADLESS": inputs["headless"],
+            "DEVICE": inputs["device"],
+            "PHYSICS_ENGINE": inputs["physics_engine"]
         }
     
     @classmethod
@@ -206,7 +215,7 @@ class IsaacGymEnvExporter(ExportableNode):
     
     @classmethod
     def get_output_names(cls):
-        return ["sim_handle", "observations", "context"]
+        return ["sim_handle", "observations"]
 
 
 class IsaacGymStepExporter(ExportableNode):
@@ -234,11 +243,11 @@ class IsaacGymStepExporter(ExportableNode):
     
     @classmethod
     def get_input_names(cls):
-        return ["sim_handle", "actions", "context", "trigger"]
+        return ["sim_handle", "actions", "trigger"]
     
     @classmethod
     def get_output_names(cls):
-        return ["observations", "rewards", "done", "info", "next_observations", "context"]
+        return ["observations", "rewards", "done", "info", "next_observations"]
 
 
 class ORNodeExporter(ExportableNode):

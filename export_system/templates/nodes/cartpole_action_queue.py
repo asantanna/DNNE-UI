@@ -11,7 +11,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     def __init__(self, node_id: str):
         super().__init__(node_id)
         self.setup_inputs(required=["network_output"])
-        self.setup_outputs(["action", "context"])
+        self.setup_outputs(["action"])
         
         # Configuration
         self.max_push_effort = {MAX_PUSH_EFFORT}
@@ -27,7 +27,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
         Returns:
             action: ACTION object with forces for Isaac Gym
-            context: Updated context
         """
         
         import torch
@@ -69,16 +68,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "torques": None          # Not used for Cartpole
             }
             
-            # Create context
-            context = {}
-            context["last_action_force"] = scaled_force.item()
-            context["max_push_effort"] = self.max_push_effort
-            
             self.logger.debug(f"Generated action force: {scaled_force.item():.3f}")
             
             return {
-                "action": action,
-                "context": context
+                "action": action
             }
             
         except Exception as e:
@@ -90,6 +83,5 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "torques": None
             }
             return {
-                "action": default_action,
-                "context": {}
+                "action": default_action
             }

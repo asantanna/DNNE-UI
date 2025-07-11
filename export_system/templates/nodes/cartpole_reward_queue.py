@@ -12,7 +12,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     def __init__(self, node_id: str):
         super().__init__(node_id)
         self.setup_inputs(required=["observations"])
-        self.setup_outputs(["reward_or_loss", "done", "info_dict", "context"])
+        self.setup_outputs(["reward_or_loss", "done", "info_dict"])
         
         # Configuration
         self.reset_dist = {RESET_DIST}
@@ -24,19 +24,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         self.logger.info(f"CartpoleRewardNode {node_id} initialized with reset_dist={self.reset_dist}, invert_for_loss={self.invert_for_loss}")
         
-    async def compute(self, observations, context=None) -> Dict[str, Any]:
+    async def compute(self, observations) -> Dict[str, Any]:
         """
         Compute Cartpole reward matching IsaacGym implementation
         
         Args:
             observations: Tensor [1, 4] containing [cart_pos, cart_vel, pole_angle, pole_vel]
-            context: Optional context dictionary
             
         Returns:
             reward_or_loss: Reward (or negative reward if invert_for_loss=True)
             done: Episode termination flag
             info_dict: Additional information as tensor
-            context: Updated context
         """
         
         import torch
@@ -97,21 +95,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Create info tensor (episode steps)
             info_tensor = torch.tensor([self.episode_steps], dtype=torch.float32, device=observations.device)
             
-            # Update context
-            if context is None:
-                context = {}
-            context["last_reward"] = reward.item()
-            context["episode_steps"] = self.episode_steps
-            context["done"] = done
-            context["total_reward"] = context.get("total_reward", 0.0) + reward.item()
-            
             self.logger.debug(f"Reward: {reward.item():.3f}, Output: {output.item():.3f}, Done: {done}, Steps: {self.episode_steps}")
             
             return {
                 "reward_or_loss": output,
                 "done": done_tensor,
-                "info_dict": info_tensor,
-                "context": context
+                "info_dict": info_tensor
             }
             
         except Exception as e:
@@ -126,6 +115,5 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             return {
                 "reward_or_loss": safe_output,
                 "done": safe_done,
-                "info_dict": safe_info,
-                "context": context if context is not None else {}
+                "info_dict": safe_info
             }

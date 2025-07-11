@@ -28,6 +28,18 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.device = "{DEVICE}"
         self.physics_engine = "{PHYSICS_ENGINE}"
         
+        # Check for command line override of headless setting
+        try:
+            import builtins
+            if hasattr(builtins, 'VISUAL_MODE') and builtins.VISUAL_MODE:
+                self.headless = False
+                self.logger.info("Visual mode enabled via command line")
+            elif hasattr(builtins, 'HEADLESS_MODE') and builtins.HEADLESS_MODE:
+                self.headless = True
+                self.logger.info("Headless mode forced via command line")
+        except:
+            pass  # Use default from template
+        
         # Isaac Gym objects
         self.gym = None
         self.sim = None
