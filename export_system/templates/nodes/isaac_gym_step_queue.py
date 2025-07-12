@@ -78,7 +78,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Get environment-specific simulation timing
         sim_params = sim_handle.environment.get_simulation_params()
         target_dt = sim_params.get("dt", 0.0166)  # Default to 60Hz
-        self.logger.info(f"🕐 Real-time timing: target_dt={target_dt}s ({1/target_dt:.1f}Hz)")
+        
+        # Check if viewer is enabled (only throttle for visual observation)
+        viewer_enabled = hasattr(sim_handle, 'viewer') and sim_handle.viewer is not None
+        use_realtime_throttling = viewer_enabled
+        
+        if use_realtime_throttling:
+            self.logger.info(f"🕐 Real-time visual mode: target_dt={target_dt}s ({1/target_dt:.1f}Hz)")
+        else:
+            self.logger.info(f"🚀 Headless inference mode: Maximum speed (no throttling)")
         
         # In inference mode, we don't wait for triggers - we auto-generate them
         while self.running:
@@ -108,20 +116,29 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                     for output_name, value in outputs.items():
                         await self.send_output(output_name, value)
                 
-                # Real-time timing: sleep to maintain target dt
+                # Smart throttling: Only when viewer is enabled for visual observation
                 elapsed = time.time() - loop_start_time
-                sleep_time = max(0, target_dt - elapsed)
-                
-                if sleep_time > 0:
-                    await asyncio.sleep(sleep_time)
+                if use_realtime_throttling:
+                    sleep_time = max(0, target_dt - elapsed)
+                    
+                    if sleep_time > 0:
+                        await asyncio.sleep(sleep_time)
+                    else:
+                        # Log if we're running behind real-time (for viewer)
+                        if self.step_count % 100 == 0:  # Log every 100 steps
+                            self.logger.warning(f"Behind real-time: {elapsed:.4f}s > {target_dt:.4f}s (target)")
                 else:
-                    # Log if we're running behind real-time
-                    if self.step_count % 100 == 0:  # Log every 100 steps
-                        self.logger.warning(f"Behind real-time: {elapsed:.4f}s > {target_dt:.4f}s (target)")
+                    # No throttling for headless inference - run at maximum speed
+                    if self.step_count % 1000 == 0:  # Log every 1000 steps
+                        effective_hz = 1.0 / elapsed if elapsed > 0 else float('inf')
+                        self.logger.info(f"Headless performance: {elapsed*1000:.2f}ms per step ({effective_hz:.1f}Hz)")
                         
             except Exception as e:
                 self.logger.error(f"Inference mode error: {e}")
-                await asyncio.sleep(target_dt)  # Maintain timing even on errors
+                if use_realtime_throttling:
+                    await asyncio.sleep(target_dt)  # Maintain timing for viewer
+                else:
+                    await asyncio.sleep(0.001)  # Minimal delay for stability
     
     async def compute(self, sim_handle, actions, trigger=None) -> Dict[str, Any]:
         """Execute one simulation step using environment class methods"""
