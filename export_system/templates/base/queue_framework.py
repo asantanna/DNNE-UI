@@ -1,4 +1,70 @@
 # Queue-Based Node Framework
+
+# Global profiler for performance tracking
+class GlobalProfiler:
+    """Global profiler for tracking timing across all nodes"""
+    
+    def __init__(self):
+        self.enabled = False
+        self.loop_start_time = None
+        self.loop_count = 0
+        self.node_timings = {}
+        
+    def enable(self):
+        """Enable profiling"""
+        self.enabled = True
+        
+    def start_loop(self):
+        """Mark the start of a new compute loop"""
+        if not self.enabled:
+            return
+        self.loop_start_time = time.time()
+        self.loop_count += 1
+        print(f"\n=== PROFILE: Loop #{self.loop_count} (t+0.000s from loop start) ===")
+        
+    def log_timing(self, node_id: str, operation: str, duration_ms: float, details: Dict = None):
+        """Log timing information for a node operation"""
+        if not self.enabled:
+            return
+            
+        if self.loop_start_time is None:
+            return
+            
+        relative_time = (time.time() - self.loop_start_time) * 1000  # ms
+        
+        if node_id not in self.node_timings:
+            self.node_timings[node_id] = []
+            
+        timing_entry = {
+            'operation': operation,
+            'duration_ms': duration_ms,
+            'relative_time_ms': relative_time,
+            'details': details or {}
+        }
+        self.node_timings[node_id].append(timing_entry)
+        
+        # Print timing in hierarchical format
+        if details:
+            detail_str = " | ".join([f"{k}: {v:.3f}ms" if isinstance(v, (int, float)) else f"{k}: {v}" 
+                                   for k, v in details.items()])
+            print(f"  {node_id} ({operation}): {duration_ms:.3f}ms (t+{relative_time:.3f}ms) | {detail_str}")
+        else:
+            print(f"  {node_id} ({operation}): {duration_ms:.3f}ms (t+{relative_time:.3f}ms)")
+    
+    def end_computations(self):
+        """Mark end of all computations in current loop"""
+        if not self.enabled or self.loop_start_time is None:
+            return
+            
+        relative_time = (time.time() - self.loop_start_time) * 1000  # ms
+        print(f"=== END COMPUTATIONS: Waiting for new input (t+{relative_time:.3f}ms) ===")
+        
+        # Reset for next loop
+        self.node_timings.clear()
+
+# Global profiler instance
+_global_profiler = GlobalProfiler()
+
 class QueueNode(ABC):
     """Base class for all queue-based nodes"""
     
@@ -41,23 +107,52 @@ class QueueNode(ABC):
         self.running = True
         self.logger.info(f"Starting node {self.node_id}")
         
+        # Check if profiling is enabled
+        import builtins
+        profile_enabled = getattr(builtins, 'PROFILE_MODE', False)
+        if profile_enabled:
+            _global_profiler.enable()
+        
         try:
             while self.running:
-                # Gather all required inputs
+                # Start profiling loop (only first node triggers this)
+                if profile_enabled and self.node_id == "2":  # OR node is typically first
+                    _global_profiler.start_loop()
+                
+                # Gather all required inputs (with profiling)
+                input_wait_start = time.time()
                 inputs = {}
                 for input_name in self.required_inputs:
                     value = await self.input_queues[input_name].get()
                     inputs[input_name] = value
+                input_wait_time = (time.time() - input_wait_start) * 1000  # ms
                 
-                # Execute compute
-                start_time = time.time()
+                # Execute compute (with profiling)
+                compute_start = time.time()
                 outputs = await self.compute(**inputs)
-                self.last_compute_time = time.time() - start_time
+                compute_time = (time.time() - compute_start) * 1000  # ms
+                self.last_compute_time = compute_time / 1000  # Keep original in seconds
                 self.compute_count += 1
                 
-                # Send outputs
+                # Send outputs (with profiling)
+                output_send_start = time.time()
                 for output_name, value in outputs.items():
                     await self.send_output(output_name, value)
+                output_send_time = (time.time() - output_send_start) * 1000  # ms
+                
+                # Log profiling information
+                if profile_enabled:
+                    total_time = input_wait_time + compute_time + output_send_time
+                    _global_profiler.log_timing(
+                        f"Node-{self.node_id}", 
+                        "Total", 
+                        total_time,
+                        {
+                            "Input_wait": input_wait_time,
+                            "Compute": compute_time, 
+                            "Output_send": output_send_time
+                        }
+                    )
                     
         except asyncio.CancelledError:
             self.logger.info(f"Node {self.node_id} cancelled")

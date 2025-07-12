@@ -113,6 +113,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import torch
         import torch.nn as nn
         import torch.distributions as dist
+        import time
+        
+        # Check if profiling is enabled
+        import builtins
+        profile_enabled = getattr(builtins, 'PROFILE_MODE', False)
+        
+        # Import global profiler if needed
+        if profile_enabled:
+            from framework.base import _global_profiler
+        
+        forward_pass_start = time.time()
         
         try:
             # Ensure observations is on correct device
@@ -134,14 +145,21 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if self.model is None:
                 self.build_model(obs_dim)
                 
+            # Time model inference
+            model_start = time.time()
+            
             # Forward pass through shared layers
             features = self.shared_layers(observations)
+            features_time = (time.time() - model_start) * 1000
             
             # Compute value
+            value_start = time.time()
             value = self.value_head(features)
             value = value.squeeze(1)  # Remove second dimension: [batch_size, 1] -> [batch_size]
+            value_time = (time.time() - value_start) * 1000
                 
             # Compute policy output
+            policy_start = time.time()
             if self.action_space == "continuous":
                 # Continuous action space - Gaussian policy
                 action_mean = self.policy_mean(features)
@@ -181,6 +199,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 # Store action parameters
                 action_params = torch.softmax(action_logits, dim=-1)
                 
+            policy_time = (time.time() - policy_start) * 1000
+                
             # Remove batch dimension for single samples
             if single_sample:
                 action = action.squeeze(0)
@@ -194,6 +214,22 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "log_prob": log_prob,
                 "action_params": action_params
             }
+            
+            # Calculate total forward pass time and log profiling
+            total_forward_time = (time.time() - forward_pass_start) * 1000
+            
+            if profile_enabled:
+                _global_profiler.log_timing(
+                    f"PPOAgent-{self.node_id}",
+                    "Forward_Pass",
+                    total_forward_time,
+                    {
+                        "Model_features": features_time,
+                        "Value_computation": value_time,
+                        "Policy_computation": policy_time,
+                        "Batch_size": batch_size
+                    }
+                )
             
             # Use Isaac Gym pattern for multi-environment tensor logging
             self.logger.debug(f"Action: {action}, Value: {value.mean().item():.3f}, LogProb: {log_prob.mean().item():.3f}")
