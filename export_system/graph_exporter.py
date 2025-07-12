@@ -1035,8 +1035,9 @@ class CartpoleEnvironment(IsaacGymEnvironment):
                                connections: List[str], metadata: Dict):
         """Generate a minimal runner.py that imports and wires nodes"""
         
-        # Extract Isaac Gym node classes from node_instances
+        # Extract all node classes from node_instances, separating Isaac Gym nodes
         isaac_gym_imports = []
+        other_node_imports = []
         for instance in node_instances:
             # Parse "node_1 = IsaacGymEnvNode_1("1")" to get class name
             parts = instance.split(' = ')
@@ -1044,6 +1045,8 @@ class CartpoleEnvironment(IsaacGymEnvironment):
                 class_instantiation = parts[1].split('(')[0]
                 if 'IsaacGym' in class_instantiation:
                     isaac_gym_imports.append(class_instantiation)
+                else:
+                    other_node_imports.append(class_instantiation)
         
         runner_content = [
             "#!/usr/bin/env python3",
@@ -1087,6 +1090,16 @@ class CartpoleEnvironment(IsaacGymEnvironment):
                 # IsaacGymEnvNode_1 -> isaacgymenvnode_1
                 module_name = isaac_class.replace('Node_', 'node_').lower()
                 runner_content.append(f"from nodes.{module_name} import {isaac_class}")
+            runner_content.append("")
+        
+        # Add other node imports
+        if other_node_imports:
+            runner_content.append("# Import other required nodes")
+            for node_class in other_node_imports:
+                # Convert class name to module name
+                # PPOTrainerNode_6 -> ppotrainernode_6
+                module_name = node_class.replace('Node_', 'node_').lower()
+                runner_content.append(f"from nodes.{module_name} import {node_class}")
             runner_content.append("")
         
         runner_content.extend([
