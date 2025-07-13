@@ -1,0 +1,9 @@
+#!/bin/bash
+# DNNE Test Suite - Verbose Mode
+# Run with maximum verbosity and detailed output
+
+# Source the command functions
+source "$(dirname "${BASH_SOURCE[0]}")/dnne_test_commands.sh"
+
+# Run verbose tests
+dnne_test_verbose "$@"

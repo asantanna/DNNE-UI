@@ -1,0 +1,9 @@
+#!/bin/bash
+# DNNE Test Suite - ML Tests Only
+# Run only ML node tests
+
+# Source the command functions
+source "$(dirname "${BASH_SOURCE[0]}")/dnne_test_commands.sh"
+
+# Run ML tests
+dnne_test_ml "$@"

@@ -1,0 +1,9 @@
+#!/bin/bash
+# DNNE Test Suite - Unit Tests Only
+# Run only unit tests (fast, 30s timeout)
+
+# Source the command functions
+source "$(dirname "${BASH_SOURCE[0]}")/dnne_test_commands.sh"
+
+# Run unit tests
+dnne_test_unit "$@"

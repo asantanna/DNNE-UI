@@ -1,0 +1,27 @@
+# Core testing framework
+pytest>=7.8.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.10.0
+
+# Test utilities
+pytest-xdist>=3.2.0  # Parallel test execution
+pytest-cov>=4.0.0    # Coverage reporting
+pytest-benchmark>=4.0.0  # Performance benchmarking
+
+# Mocking and fixtures
+responses>=0.23.0    # HTTP mocking
+freezegun>=1.2.0     # Time mocking
+
+# Development and debugging
+pytest-sugar>=0.9.0  # Better test output
+pytest-clarity>=1.0.0  # Better assertion output
+
+# DNNE-specific test dependencies
+torch>=2.0.0         # Required for ML node testing
+torchvision>=0.15.0  # For vision-related tests
+numpy>=1.21.0        # Numerical operations
+Pillow>=9.0.0        # Image processing
+
+# Optional (for full integration tests)
+# isaacgym  # Requires manual installation
+# websocket-client>=1.6.1  # For server testing

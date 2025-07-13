@@ -33,9 +33,9 @@ log_error() {
 
 # Check if running from correct directory
 check_project_root() {
-    if [ ! -f "$PROJECT_ROOT/main.py" ] || [ ! -d "$PROJECT_ROOT/tests-dnne" ]; then
+    if [ ! -f "$PROJECT_ROOT/main.py" ] || [ ! -d "$PROJECT_ROOT/dnne-test-suite" ]; then
         log_error "Must run from DNNE-UI project root directory"
-        log_error "Expected files: main.py, tests-dnne/"
+        log_error "Expected files: main.py, dnne-test-suite/"
         log_error "Current directory: $(pwd)"
         log_error "Project root: $PROJECT_ROOT"
         exit 1
@@ -88,7 +88,7 @@ install_test_deps() {
 check_dependencies() {
     log_info "Checking dependencies..."
     cd "$PROJECT_ROOT"
-    python tests-dnne/check_dependencies.py || {
+    python dnne-test-suite/core/check_dependencies.py || {
         log_error "Dependency check failed!"
         log_error "Please install missing dependencies before running tests."
         exit 1
@@ -113,7 +113,7 @@ dnne_test_main() {
     echo ""
     
     cd "$PROJECT_ROOT"
-    bash tests-dnne/run_tests.sh
+    bash dnne-test-suite/core/run_tests.sh
     local exit_code=$?
     
     echo ""
@@ -174,17 +174,17 @@ dnne_test() {
 
 # Unit tests only
 dnne_test_unit() {
-    dnne_test_pytest "Unit Tests Only" "tests-dnne/unit/" "30"
+    dnne_test_pytest "Unit Tests Only" "dnne-test-suite/core/unit/" "30"
 }
 
 # Integration tests only
 dnne_test_integration() {
-    dnne_test_pytest "Integration Tests Only" "tests-dnne/integration/" "120"
+    dnne_test_pytest "Integration Tests Only" "dnne-test-suite/core/integration/" "120"
 }
 
 # Quick tests (unit tests only, shorter timeouts)
 dnne_test_quick() {
-    dnne_test_pytest "Quick Tests (unit only, 10s timeout)" "tests-dnne/unit/" "10"
+    dnne_test_pytest "Quick Tests (unit only, 10s timeout)" "dnne-test-suite/core/unit/" "10"
 }
 
 # Full test suite (everything)
@@ -194,22 +194,22 @@ dnne_test_full() {
 
 # Coverage report
 dnne_test_coverage() {
-    dnne_test_pytest "Tests with Coverage Report" "tests-dnne/ --cov=custom_nodes --cov=export_system --cov-report=term-missing --cov-report=html" "60"
+    dnne_test_pytest "Tests with Coverage Report" "dnne-test-suite/core/ --cov=custom_nodes --cov=export_system --cov-report=term-missing --cov-report=html" "60"
 }
 
 # ML tests only
 dnne_test_ml() {
-    dnne_test_pytest "ML Node Tests Only" "tests-dnne/ -m ml" "30"
+    dnne_test_pytest "ML Node Tests Only" "dnne-test-suite/core/ -m ml" "30"
 }
 
 # Robotics tests only
 dnne_test_robotics() {
-    dnne_test_pytest "Robotics Tests Only" "tests-dnne/ -m robotics" "60"
+    dnne_test_pytest "Robotics Tests Only" "dnne-test-suite/core/ -m robotics" "60"
 }
 
 # Export system tests only
 dnne_test_export() {
-    dnne_test_pytest "Export System Tests Only" "tests-dnne/ -m export" "30"
+    dnne_test_pytest "Export System Tests Only" "dnne-test-suite/core/ -m export" "30"
 }
 
 # RL comprehensive tests (Cartpole PPO)
@@ -225,7 +225,7 @@ dnne_test_rl_comprehensive() {
     echo ""
     
     cd "$PROJECT_ROOT"
-    python claude_scripts/test_cartpole_ppo_comprehensive.py
+    python dnne-test-suite/specialized/cartpole_ppo_comprehensive.py
     local exit_code=$?
     
     echo ""
@@ -251,7 +251,7 @@ dnne_test_checkpoint() {
     echo ""
     
     cd "$PROJECT_ROOT"
-    python claude_scripts/test_checkpoint_system.py
+    python dnne-test-suite/specialized/checkpoint_system.py
     local exit_code=$?
     
     echo ""
@@ -277,7 +277,7 @@ dnne_test_inference() {
     echo ""
     
     cd "$PROJECT_ROOT"
-    python claude_scripts/test_mnist_inference_complete.py
+    python dnne-test-suite/specialized/mnist_inference_complete.py
     local exit_code=$?
     
     echo ""
@@ -318,7 +318,7 @@ dnne_test_cartpole_performance() {
 
 # Verbose mode
 dnne_test_verbose() {
-    dnne_test_pytest "Verbose Test Output" "tests-dnne/ -vvv -s --tb=long" "60"
+    dnne_test_pytest "Verbose Test Output" "dnne-test-suite/core/ -vvv -s --tb=long" "60"
 }
 
 # Dependencies check only
@@ -331,7 +331,7 @@ dnne_test_deps() {
     setup_test_config
     
     cd "$PROJECT_ROOT"
-    python tests-dnne/check_dependencies.py
+    python dnne-test-suite/core/check_dependencies.py
     local exit_code=$?
     
     echo ""
