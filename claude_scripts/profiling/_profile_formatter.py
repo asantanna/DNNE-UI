@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+"""
+Profile Formatter - Formats profiling results into readable tables
+
+Generates the detailed comparison table in the original format.
+"""
+
+import json
+from pathlib import Path
+
+class ProfileFormatter:
+    """Formats profiling results for display"""
+    
+    def __init__(self, mode='simple'):
+        self.mode = mode
+    
+    def format_comparison(self, results):
+        """
+        Format comparison results into a readable table
+        
+        Args:
+            results: Dict with 'isaacgym' and/or 'dnne' results
+        """
+        if self.mode == 'simple':
+            self._format_simple_comparison(results)
+        else:
+            self._format_detailed_comparison(results)
+    
+    def _format_simple_comparison(self, results):
+        """Format basic performance comparison"""
+        print("\n📊 PERFORMANCE COMPARISON")
+        print("=" * 60)
+        
+        # Check what results we have
+        igenv = results.get('isaacgym', {})
+        dnne = results.get('dnne', {})
+        
+        if not igenv and not dnne:
+            print("❌ No results to display")
+            return
+        
+        # Header
+        if igenv and dnne:
+            print(f"{'Metric':30} {'IsaacGymEnvs':>15} {'DNNE':>15}")
+        elif igenv:
+            print(f"{'Metric':30} {'IsaacGymEnvs':>15}")
+        else:
+            print(f"{'Metric':30} {'DNNE':>15}")
+        
+        print("-" * 60)
+        
+        # Main metrics
+        metrics = [
+            ('Total Time (s)', 'total_time', '.2f'),
+            ('Steps/sec', 'steps_per_sec', '.1f'),
+            ('Total Steps', 'step_count', 'd'),
+            ('Iterations', 'num_iterations', 'd')
+        ]
+        
+        for label, key, fmt in metrics:
+            row = f"{label:<30}"
+            if igenv:
+                value = igenv.get(key, 0)
+                row += f" {value:>15{fmt}}"
+            if dnne:
+                value = dnne.get(key, 0)
+                row += f" {value:>15{fmt}}"
+            print(row)
+        
+        # Calculated metric
+        if igenv and dnne:
+            igenv_ips = igenv['num_iterations'] / igenv['total_time'] if igenv.get('total_time', 0) > 0 else 0
+            dnne_ips = dnne['num_iterations'] / dnne['total_time'] if dnne.get('total_time', 0) > 0 else 0
+            print(f"{'Iterations/sec':<30} {igenv_ips:>15.2f} {dnne_ips:>15.2f}")
+        
+        print("=" * 60)
+        
+        # Performance comparison
+        if igenv and dnne and igenv.get('steps_per_sec', 0) > 0:
+            ratio = dnne.get('steps_per_sec', 0) / igenv.get('steps_per_sec', 0)
+            print(f"\nRelative Performance: {ratio:.2f}x")
+            
+            if ratio > 1.1:
+                print(f"✅ DNNE is {ratio:.1f}x faster")
+            elif ratio < 0.9:
+                print(f"❌ DNNE is {1/ratio:.1f}x slower")
+            else:
+                print("✅ Performance is comparable")
+    
+    def _format_detailed_comparison(self, results):
+        """Format detailed performance comparison with timing breakdown"""
+        print("\n📊 TRAINING PERFORMANCE COMPARISON")
+        print("=" * 70)
+        
+        # Check what results we have
+        igenv = results.get('isaacgym', {})
+        dnne = results.get('dnne', {})
+        
+        if not igenv and not dnne:
+            print("❌ No results to display")
+            return
+        
+        # Prepare data
+        igenv_timings = igenv.get('timings', {}) if igenv else {}
+        dnne_timings = dnne.get('timings', {}) if dnne else {}
+        
+        # Header
+        print("=" * 70)
+        if igenv and dnne:
+            print(f"{'':35} {'IsaacGymEnvs':>17} {'DNNE':>17}")
+        elif igenv:
+            print(f"{'':35} {'IsaacGymEnvs':>17}")
+        else:
+            print(f"{'':35} {'DNNE':>17}")
+        print("=" * 70)
+        
+        # Primary metrics
+        self._format_metric_row('env.step() per sec', 
+                               igenv.get('steps_per_sec', 0) if igenv else None,
+                               dnne.get('steps_per_sec', 0) if dnne else None,
+                               fmt='.1f')
+        
+        self._format_metric_row('Total step() calls',
+                               igenv.get('step_count', 0) if igenv else None,
+                               dnne.get('step_count', 0) if dnne else None,
+                               fmt=',d')
+        
+        print("-" * 70)
+        print("Breakdown (avg ms per operation):")
+        
+        # Environment operations
+        self._format_timing_row('  env.step() total', 'env_step_total', igenv_timings, dnne_timings)
+        self._format_timing_row('  - gym.simulate()', 'gym_simulate', igenv_timings, dnne_timings)
+        self._format_timing_row('  - compute_obs()', 'compute_obs', igenv_timings, dnne_timings)
+        self._format_timing_row('  - compute_reward()', 'compute_reward', igenv_timings, dnne_timings)
+        self._format_timing_row('  - reset_envs()', 'reset_envs', igenv_timings, dnne_timings)
+        print()
+        
+        # PPO training operations
+        print("  PPO iteration total                       ???               ???")
+        self._format_timing_row('  - collect_rollout', 'collect_rollout', igenv_timings, dnne_timings)
+        self._format_timing_row('  - compute_returns', 'compute_returns', igenv_timings, dnne_timings)
+        print("  - policy_update                           ???               ???")
+        self._format_timing_row('    - forward pass', 'policy_forward', igenv_timings, dnne_timings)
+        self._format_timing_row('    - backward pass', 'policy_backward', igenv_timings, dnne_timings)
+        print()
+        
+        # Other overheads
+        print("  Other overheads")
+        self._format_timing_row('  - queue operations', 'queue_operations', 
+                               igenv_timings if igenv else None, 
+                               dnne_timings if dnne else None,
+                               igenv_default='N/A')
+        print("  - data transfers                          ???               ???")
+        print()
+        
+        # Summary metrics
+        igenv_summary = igenv.get('summary', {}) if igenv else {}
+        dnne_summary = dnne.get('summary', {}) if dnne else {}
+        
+        self._format_metric_row('Init time (one-time):',
+                               igenv_summary.get('init_time', 0) if igenv else None,
+                               dnne_summary.get('init_time', 0) if dnne else None,
+                               fmt='.1f')
+        
+        self._format_metric_row('Total training time:',
+                               igenv.get('total_time', 0) if igenv else None,
+                               dnne.get('total_time', 0) if dnne else None,
+                               fmt='.2f')
+        
+        self._format_metric_row('PPO iterations/sec:',
+                               igenv_summary.get('iterations_per_sec', 0) if igenv else None,
+                               dnne_summary.get('iterations_per_sec', 0) if dnne else None,
+                               fmt='.2f')
+        
+        print("=" * 70)
+        
+        # Performance comparison
+        if igenv and dnne and igenv.get('steps_per_sec', 0) > 0:
+            ratio = dnne.get('steps_per_sec', 0) / igenv.get('steps_per_sec', 0)
+            print(f"\nRelative Performance: {ratio:.2f}x")
+            
+            if ratio > 1.1:
+                print(f"✅ DNNE is {ratio:.1f}x faster")
+            elif ratio < 0.9:
+                print(f"❌ DNNE is {1/ratio:.1f}x slower")
+            else:
+                print("✅ Performance is comparable")
+        
+        # Timing coverage info
+        if self.mode == 'detailed':
+            print("\n📈 Profiling Coverage:")
+            if igenv and 'timing_percentages' in igenv:
+                total_pct = sum(igenv['timing_percentages'].values())
+                print(f"  IsaacGymEnvs: {total_pct:.1f}% of execution time tracked")
+            if dnne and 'timing_percentages' in dnne:
+                total_pct = sum(dnne['timing_percentages'].values())
+                print(f"  DNNE: {total_pct:.1f}% of execution time tracked")
+    
+    def _format_metric_row(self, label, igenv_value, dnne_value, fmt=''):
+        """Format a single metric row"""
+        row = f"{label:<35}"
+        
+        if igenv_value is not None:
+            if fmt:
+                row += f" {igenv_value:>17{fmt}}"
+            else:
+                row += f" {igenv_value:>17}"
+        elif igenv_value is not None or dnne_value is not None:
+            row += " " * 18
+            
+        if dnne_value is not None:
+            if fmt:
+                row += f" {dnne_value:>17{fmt}}"
+            else:
+                row += f" {dnne_value:>17}"
+                
+        print(row)
+    
+    def _format_timing_row(self, label, key, igenv_timings, dnne_timings, 
+                          igenv_default='???', dnne_default='???'):
+        """Format a timing breakdown row"""
+        igenv_time = None
+        dnne_time = None
+        
+        if igenv_timings is not None:
+            if key in igenv_timings and igenv_timings[key] is not None:
+                igenv_time = f"{igenv_timings[key]:.2f}"
+            else:
+                igenv_time = igenv_default
+                
+        if dnne_timings is not None:
+            if key in dnne_timings and dnne_timings[key] is not None:
+                dnne_time = f"{dnne_timings[key]:.2f}"
+            else:
+                dnne_time = dnne_default
+        
+        row = f"{label:<35}"
+        if igenv_time is not None:
+            row += f" {igenv_time:>17}"
+        elif igenv_timings is not None or dnne_timings is not None:
+            row += " " * 18
+            
+        if dnne_time is not None:
+            row += f" {dnne_time:>17}"
+            
+        print(row)
