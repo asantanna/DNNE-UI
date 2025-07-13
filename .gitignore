@@ -29,3 +29,4 @@ uv.lock
 export_system/exports/*
 claude_scripts/ppo_agent_profile.stats
 ppo_agent_profile.stats
+.coverage*

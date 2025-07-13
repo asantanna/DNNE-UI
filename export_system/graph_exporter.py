@@ -273,6 +273,36 @@ class GraphExporter:
         self.node_registry[node_type] = node_class
         self.logger.info(f"Registered node type: {node_type}")
     
+    @staticmethod
+    def classname_to_exported_filename(class_name: str) -> str:
+        """Convert a class name to its exported filename.
+        
+        This centralizes the class name → filename transformation logic used
+        throughout the export system for consistency and maintainability.
+        
+        Args:
+            class_name: Class name like "NetworkNode_56" or "CrossEntropyLossNode_51"
+            
+        Returns:
+            Filename without extension like "networknode_56" or "crossentropylossnode_51"
+            
+        Examples:
+            NetworkNode_56 -> networknode_56
+            CrossEntropyLossNode_51 -> crossentropylossnode_51
+            PPOTrainerNode_6 -> ppotrainernode_6
+        """
+        if not class_name:
+            raise ValueError("Class name cannot be empty")
+        
+        # Standard transformation: replace 'Node_' with 'node_' and lowercase
+        filename_base = class_name.replace('Node_', 'node_').lower()
+        
+        # Validate that the transformation is unambiguous
+        if not filename_base or filename_base == 'node_':
+            raise ValueError(f"Invalid class name transformation: {class_name} -> {filename_base}")
+        
+        return filename_base
+    
     def export_workflow(self, workflow: Dict, output_path: Optional[Path] = None) -> str:
         """Convert workflow JSON to modular Python package"""
         nodes = workflow.get("nodes", [])
@@ -946,11 +976,9 @@ class CartpoleEnvironment(IsaacGymEnvironment):
             raise ValueError(f"Could not extract class name from node {node_id}")
         class_name = class_match.group(1)
         
-        # Generate filename based on class name for consistency
-        # NetworkNode_56 -> networknode_56.py
-        # PPOTrainerNode_6 -> ppotrainernode_6.py
-        class_name_snake = class_name.replace('Node_', 'node_').lower()
-        filename = f"{class_name_snake}.py"
+        # Generate filename using centralized utility function
+        filename_base = self.classname_to_exported_filename(class_name)
+        filename = f"{filename_base}.py"
         
         # Prepare the file content
         file_content = [
@@ -1017,9 +1045,8 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         sorted_nodes = isaac_gym_nodes + other_nodes
         
         for node_id, node_type, class_name in sorted_nodes:
-            # Use class name for filename consistency
-            class_name_snake = class_name.replace('Node_', 'node_').lower()
-            filename = class_name_snake
+            # Use centralized utility for consistent filename generation
+            filename = self.classname_to_exported_filename(class_name)
             init_content.append(f"from .{filename} import {class_name}")
         
         init_content.extend([
@@ -1099,10 +1126,8 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         if other_node_imports:
             runner_content.append("# Import other required nodes")
             for node_class in other_node_imports:
-                # Convert class name to module name consistently for all nodes
-                # NetworkNode_56 -> networknode_56
-                # PPOTrainerNode_6 -> ppotrainernode_6
-                module_name = node_class.replace('Node_', 'node_').lower()
+                # Convert class name to module name using centralized utility
+                module_name = self.classname_to_exported_filename(node_class)
                 runner_content.append(f"from nodes.{module_name} import {node_class}")
             runner_content.append("")
         
