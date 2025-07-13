@@ -292,3 +292,45 @@ def get_node_connections(workflow: Dict[str, Any], node_id: str) -> List[Tuple[s
             if from_node == node_id or to_node == node_id:
                 connections.append((from_node, from_output, to_node, to_input))
     return connections
+
+
+def export_workflow_for_test(workflow_name: str, test_name: str = None) -> Path:
+    """Export a workflow using the standardized programmatic export utility for testing."""
+    import subprocess
+    import sys
+    
+    # Generate test directory name
+    if test_name:
+        target_dir = f"test_{test_name}"
+    else:
+        target_dir = f"test_{workflow_name.lower().replace(' ', '_')}"
+    
+    # Get the path to the programmatic export utility
+    project_root = Path.cwd()
+    export_script = project_root / "dnne-test-suite" / "utilities" / "programmatic_export.py"
+    
+    # Run the export utility
+    try:
+        result = subprocess.run(
+            [sys.executable, str(export_script), workflow_name, "--target-dir", target_dir],
+            capture_output=True,
+            text=True,
+            timeout=60,  # 1 minute timeout
+            cwd=project_root
+        )
+        
+        if result.returncode != 0:
+            raise RuntimeError(f"Export failed: {result.stderr}")
+        
+        export_path = project_root / "export_system" / "exports" / target_dir
+        
+        # Validate the export was successful
+        if not validate_export_output(export_path):
+            raise RuntimeError(f"Export validation failed for {export_path}")
+        
+        return export_path
+        
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"Export timed out for workflow: {workflow_name}")
+    except Exception as e:
+        raise RuntimeError(f"Export failed for workflow {workflow_name}: {e}")

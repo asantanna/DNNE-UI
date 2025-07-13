@@ -19,7 +19,7 @@ from export_system.node_exporters import register_all_exporters
 from fixtures.workflows import MINIMAL_TRAINING_WORKFLOW
 from fixtures.test_utils import (
     validate_workflow_structure, validate_export_output,
-    create_temp_export_dir, cleanup_export_dir
+    create_temp_export_dir, cleanup_export_dir, export_workflow_for_test
 )
 
 
@@ -263,21 +263,19 @@ class TestMNISTCodeExecution:
     @pytest.mark.timeout(300)  # 5 minute timeout for full training
     def test_exported_mnist_execution(self, sample_mnist_workflow):
         """Test execution of exported MNIST training script with performance validation."""
-        exporter = GraphExporter()
-        register_all_exporters(exporter)
-        
         # Use real MNIST workflow if available, otherwise fallback to minimal
         if sample_mnist_workflow is not None:
-            workflow = sample_mnist_workflow
+            workflow_name = "MNIST Test"
         else:
-            workflow = MINIMAL_TRAINING_WORKFLOW
+            # For minimal workflow, we'll use MNIST Test as it's more complete
+            workflow_name = "MNIST Test"
             
-        export_path = create_temp_export_dir()
-        
         try:
-            result = exporter.export_workflow(workflow, export_path)
+            # Use standardized export utility
+            export_path = export_workflow_for_test(workflow_name, "mnist_execution")
             
-            if result is not None and validate_export_output(export_path):
+            # Export utility already validates output, but double-check
+            if validate_export_output(export_path):
                 runner_file = export_path / "runner.py"
                 
                 if runner_file.exists():
