@@ -939,16 +939,18 @@ class CartpoleEnvironment(IsaacGymEnvironment):
     def _export_node_to_file(self, nodes_dir: Path, node_id: str, node_type: str, 
                             node_code: str, node_imports: List[str]) -> str:
         """Export a single node to its own file and return the class name"""
-        # Generate filename based on node type and ID
-        node_type_snake = node_type.lower().replace(" ", "_")
-        filename = f"{node_type_snake}_{node_id}.py"
-        
-        # Extract class name from the node code
+        # Extract class name from the node code first
         import re
         class_match = re.search(r'class ([a-zA-Z_][a-zA-Z0-9_-]*)\(', node_code)
         if not class_match:
             raise ValueError(f"Could not extract class name from node {node_id}")
         class_name = class_match.group(1)
+        
+        # Generate filename based on class name for consistency
+        # NetworkNode_56 -> networknode_56.py
+        # PPOTrainerNode_6 -> ppotrainernode_6.py
+        class_name_snake = class_name.replace('Node_', 'node_').lower()
+        filename = f"{class_name_snake}.py"
         
         # Prepare the file content
         file_content = [
@@ -1015,8 +1017,9 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         sorted_nodes = isaac_gym_nodes + other_nodes
         
         for node_id, node_type, class_name in sorted_nodes:
-            node_type_snake = node_type.lower().replace(" ", "_")
-            filename = f"{node_type_snake}_{node_id}"
+            # Use class name for filename consistency
+            class_name_snake = class_name.replace('Node_', 'node_').lower()
+            filename = class_name_snake
             init_content.append(f"from .{filename} import {class_name}")
         
         init_content.extend([
@@ -1096,7 +1099,8 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         if other_node_imports:
             runner_content.append("# Import other required nodes")
             for node_class in other_node_imports:
-                # Convert class name to module name
+                # Convert class name to module name consistently for all nodes
+                # NetworkNode_56 -> networknode_56
                 # PPOTrainerNode_6 -> ppotrainernode_6
                 module_name = node_class.replace('Node_', 'node_').lower()
                 runner_content.append(f"from nodes.{module_name} import {node_class}")
