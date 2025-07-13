@@ -1,0 +1,218 @@
+IsaacGymEnvs Baseline Performance Test Results
+==================================================
+
+Test Duration: 30.5 seconds
+Total Iterations: 33
+FPS Measurements: [15322, 50345, 49838, 50047, 48917, 45272, 50484, 46690, 47914, 46968, 46832, 49551, 48398, 46256, 36249, 37573, 36527, 37372, 38535, 37229, 36783, 36756, 34789, 40391, 37945, 39630, 39126, 40131, 43720, 37776, 40728, 37980, 41134]
+Average FPS: 22661.242424242424
+Mean FPS (reported): 0
+
+Performance Comparison:
+  isaacgymenvs_fps: 22661.242424242424
+  dnne_fps: 166
+  raw_isaac_fps: 166
+  claimed_baseline: 32000
+
+Full Output:
+------------------------------
+Importing module 'gym_38' (/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/python/isaacgym/_bindings/linux-x86_64/gym_38.so)
+Setting GYM_USD_PLUG_INFO_PATH to /home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/python/isaacgym/_bindings/linux-x86_64/usd/plugInfo.json
+PyTorch version 2.4.1+cu121
+Device count 1
+/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/python/isaacgym/_bindings/src/gymtorch
+ninja: no work to do.
+[Warning] [carb.gym.plugin] useGpu is set, forcing single scene (0 subscenes)
+Not connected to PVD
++++ Using GPU PhysX
+Physics Engine: PhysX
+Physics Device: cuda:0
+GPU Pipeline: enabled
+Error: FBX library failed to load - importing FBX data will not succeed. Message: No module named 'fbx'
+FBX tools must be installed from https://help.autodesk.com/view/FBX/2020/ENU/?guid=FBX_Developer_Help_scripting_with_python_fbx_installing_python_fbx_html
+task: 
+    name: Cartpole
+    physics_engine: physx
+    env: 
+        numEnvs: 512
+        envSpacing: 4.0
+        resetDist: 3.0
+        maxEffort: 400.0
+        clipObservations: 5.0
+        clipActions: 1.0
+        asset: 
+            assetRoot: ../../assets
+            assetFileName: urdf/cartpole.urdf
+        enableCameraSensors: False
+    sim: 
+        dt: 0.0166
+        substeps: 2
+        up_axis: z
+        use_gpu_pipeline: True
+        gravity: [0.0, 0.0, -9.81]
+        physx: 
+            num_threads: 4
+            solver_type: 1
+            use_gpu: True
+            num_position_iterations: 4
+            num_velocity_iterations: 0
+            contact_offset: 0.02
+            rest_offset: 0.001
+            bounce_threshold_velocity: 0.2
+            max_depenetration_velocity: 100.0
+            default_buffer_size_multiplier: 2.0
+            max_gpu_contact_pairs: 1048576
+            num_subscenes: 4
+            contact_collection: 0
+    task: 
+        randomize: False
+train: 
+    params: 
+        seed: 42
+        algo: 
+            name: a2c_continuous
+        model: 
+            name: continuous_a2c_logstd
+        network: 
+            name: actor_critic
+            separate: False
+            space: 
+                continuous: 
+                    mu_activation: None
+                    sigma_activation: None
+                    mu_init: 
+                        name: default
+                    sigma_init: 
+                        name: const_initializer
+                        val: 0
+                    fixed_sigma: True
+            mlp: 
+                units: [32, 32]
+                activation: elu
+                initializer: 
+                    name: default
+                regularizer: 
+                    name: None
+        load_checkpoint: False
+        load_path: 
+        config: 
+            name: Cartpole
+            full_experiment_name: Cartpole
+            env_name: rlgpu
+            multi_gpu: False
+            ppo: True
+            mixed_precision: False
+            normalize_input: True
+            normalize_value: True
+            num_actors: 512
+            reward_shaper: 
+                scale_value: 0.1
+            normalize_advantage: True
+            gamma: 0.99
+            tau: 0.95
+            learning_rate: 0.0003
+            lr_schedule: adaptive
+            kl_threshold: 0.008
+            score_to_win: 20000
+            max_epochs: 100000
+            save_best_after: 50
+            save_frequency: 25
+            grad_norm: 1.0
+            entropy_coef: 0.0
+            truncate_grads: True
+            e_clip: 0.2
+            horizon_length: 16
+            minibatch_size: 8192
+            mini_epochs: 8
+            critic_coef: 4
+            clip_value: True
+            seq_len: 4
+            bounds_loss_coef: 0.0001
+pbt: 
+    enabled: False
+task_name: Cartpole
+experiment: 
+num_envs: 512
+seed: 42
+torch_deterministic: False
+max_iterations: 100000
+physics_engine: physx
+pipeline: gpu
+sim_device: cuda:0
+rl_device: cuda:0
+graphics_device_id: 0
+num_threads: 4
+solver_type: 1
+num_subscenes: 4
+test: False
+checkpoint: 
+sigma: 
+multi_gpu: False
+wandb_activate: False
+wandb_group: 
+wandb_name: Cartpole
+wandb_entity: 
+wandb_project: isaacgymenvs
+wandb_tags: []
+wandb_logcode_dir: 
+capture_video: False
+capture_video_freq: 1464
+capture_video_len: 100
+force_render: True
+headless: True
+Setting seed: 42
+Using rl_device: cuda:0
+Using sim_device: cuda:0
+{'name': 'Cartpole', 'full_experiment_name': None, 'env_name': 'rlgpu', 'multi_gpu': False, 'ppo': True, 'mixed_precision': False, 'normalize_input': True, 'normalize_value': True, 'num_actors': 512, 'reward_shaper': {'scale_value': 0.1}, 'normalize_advantage': True, 'gamma': 0.99, 'tau': 0.95, 'learning_rate': 0.0003, 'lr_schedule': 'adaptive', 'kl_threshold': 0.008, 'score_to_win': 20000, 'max_epochs': 100000, 'save_best_after': 50, 'save_frequency': 25, 'grad_norm': 1.0, 'entropy_coef': 0.0, 'truncate_grads': True, 'e_clip': 0.2, 'horizon_length': 16, 'minibatch_size': 8192, 'mini_epochs': 8, 'critic_coef': 4, 'clip_value': True, 'seq_len': 4, 'bounds_loss_coef': 0.0001, 'device': 'cuda:0', 'population_based_training': False, 'pbt_idx': None}
+self.seed = 42
+Started to train
+Box(-1.0, 1.0, (1,), float32) Box(-inf, inf, (4,), float32)
+WARNING: seq_len is deprecated, use seq_length instead
+seq_length: 4
+current training device: cuda:0
+build mlp: 4
+RunningMeanStd:  (1,)
+RunningMeanStd:  (4,)
+fps step: 15322 fps step and policy inference: 10654 fps total: 7326 epoch: 1/100000 frames: 0
+fps step: 50345 fps step and policy inference: 33742 fps total: 26251 epoch: 2/100000 frames: 8192
+fps step: 49838 fps step and policy inference: 32464 fps total: 25207 epoch: 3/100000 frames: 16384
+fps step: 50047 fps step and policy inference: 32730 fps total: 25421 epoch: 4/100000 frames: 24576
+fps step: 48917 fps step and policy inference: 32066 fps total: 24692 epoch: 5/100000 frames: 32768
+fps step: 45272 fps step and policy inference: 29093 fps total: 22314 epoch: 6/100000 frames: 40960
+fps step: 50484 fps step and policy inference: 35243 fps total: 26674 epoch: 7/100000 frames: 49152
+fps step: 46690 fps step and policy inference: 31434 fps total: 24631 epoch: 8/100000 frames: 57344
+fps step: 47914 fps step and policy inference: 31367 fps total: 24392 epoch: 9/100000 frames: 65536
+fps step: 46968 fps step and policy inference: 30334 fps total: 23943 epoch: 10/100000 frames: 73728
+fps step: 46832 fps step and policy inference: 29752 fps total: 23329 epoch: 11/100000 frames: 81920
+fps step: 49551 fps step and policy inference: 34416 fps total: 26130 epoch: 12/100000 frames: 90112
+fps step: 48398 fps step and policy inference: 33777 fps total: 25407 epoch: 13/100000 frames: 98304
+fps step: 46256 fps step and policy inference: 30782 fps total: 23719 epoch: 14/100000 frames: 106496
+fps step: 36249 fps step and policy inference: 26249 fps total: 20998 epoch: 15/100000 frames: 114688
+fps step: 37573 fps step and policy inference: 27545 fps total: 22065 epoch: 16/100000 frames: 122880
+fps step: 36527 fps step and policy inference: 25681 fps total: 21220 epoch: 17/100000 frames: 131072
+fps step: 37372 fps step and policy inference: 26486 fps total: 21456 epoch: 18/100000 frames: 139264
+fps step: 38535 fps step and policy inference: 27540 fps total: 21702 epoch: 19/100000 frames: 147456
+fps step: 37229 fps step and policy inference: 26736 fps total: 21097 epoch: 20/100000 frames: 155648
+fps step: 36783 fps step and policy inference: 26251 fps total: 20852 epoch: 21/100000 frames: 163840
+fps step: 36756 fps step and policy inference: 25969 fps total: 20498 epoch: 22/100000 frames: 172032
+fps step: 34789 fps step and policy inference: 25186 fps total: 19528 epoch: 23/100000 frames: 180224
+fps step: 40391 fps step and policy inference: 29071 fps total: 22890 epoch: 24/100000 frames: 188416
+fps step: 37945 fps step and policy inference: 27853 fps total: 22192 epoch: 25/100000 frames: 196608
+=> saving checkpoint 'runs/Cartpole_13-00-59-31/nn/last_Cartpole_ep_25_rew_162.62842.pth'
+fps step: 39630 fps step and policy inference: 28015 fps total: 22559 epoch: 26/100000 frames: 204800
+fps step: 39126 fps step and policy inference: 28521 fps total: 23156 epoch: 27/100000 frames: 212992
+fps step: 40131 fps step and policy inference: 30272 fps total: 23855 epoch: 28/100000 frames: 221184
+fps step: 43720 fps step and policy inference: 33186 fps total: 25389 epoch: 29/100000 frames: 229376
+fps step: 37776 fps step and policy inference: 27093 fps total: 21393 epoch: 30/100000 frames: 237568
+fps step: 40728 fps step and policy inference: 29230 fps total: 22762 epoch: 31/100000 frames: 245760
+fps step: 37980 fps step and policy inference: 26698 fps total: 20834 epoch: 32/100000 frames: 253952
+fps step: 41134 fps step and policy inference: 30861 fps total: 23939 epoch: 33/100000 frames: 262144
+
+/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/hydra/_internal/hydra.py:119: UserWarning: Future Hydra versions will no longer change working directory at job runtime by default.
+See https://hydra.cc/docs/1.2/upgrades/1.1_to_1.2/changes_to_job_working_dir/ for more information.
+  ret = run_job(
+Using /home/asantanna/.cache/torch_extensions/py38_cu121 as PyTorch extensions root...
+Emitting ninja build file /home/asantanna/.cache/torch_extensions/py38_cu121/gymtorch/build.ninja...
+Building extension module gymtorch...
+Allowing ninja to set a default number of workers... (overridable by setting the environment variable MAX_JOBS=N)
+Loading extension module gymtorch...
+2025-07-13 00:59:30,728 - INFO - logger - logger initialized
