@@ -120,8 +120,8 @@ def run_dnne_test(test_duration: int = 15, timeout_seconds: int = 60) -> Perform
     # Prepare environment activation
     conda_activate = "source /home/asantanna/miniconda/bin/activate DNNE_PY38"
     
-    # Run with timeout and profile mode to capture performance data
-    cmd = f"{conda_activate} && cd {export_dir} && python runner.py --headless --timeout {test_duration}s --profile"
+    # Run with timeout (no profile mode to avoid overhead)
+    cmd = f"{conda_activate} && cd {export_dir} && python runner.py --headless --timeout {test_duration}s"
     
     print(f"  Running command: {cmd}")
     
