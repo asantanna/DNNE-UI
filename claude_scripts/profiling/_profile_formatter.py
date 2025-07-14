@@ -122,12 +122,17 @@ class ProfileFormatter:
                     render_ratio = dnne_renders_per_sec / igenv_renders_per_sec
                     print(f"Relative Render Performance: {render_ratio:.2f}x")
                     
-                    if render_ratio < 0.8:
+                    if render_ratio == 0:
+                        print("ℹ️  DNNE has no renders (headless mode)")
+                    elif render_ratio < 0.8:
                         print(f"⚠️  DNNE renders {1/render_ratio:.1f}x less frequently (may appear slower visually)")
                     elif render_ratio > 1.2:
                         print(f"✅ DNNE renders {render_ratio:.1f}x more frequently")
                     else:
                         print("✅ Render frequency is comparable")
+        
+        # Learning performance comparison
+        self._format_learning_comparison(igenv, dnne)
     
     def _format_detailed_comparison(self, results):
         """Format detailed performance comparison with timing breakdown"""
@@ -293,12 +298,17 @@ class ProfileFormatter:
                     render_ratio = dnne_renders_per_sec / igenv_renders_per_sec
                     print(f"Relative Render Performance: {render_ratio:.2f}x")
                     
-                    if render_ratio < 0.8:
+                    if render_ratio == 0:
+                        print("ℹ️  DNNE has no renders (headless mode)")
+                    elif render_ratio < 0.8:
                         print(f"⚠️  DNNE renders {1/render_ratio:.1f}x less frequently (may appear slower visually)")
                     elif render_ratio > 1.2:
                         print(f"✅ DNNE renders {render_ratio:.1f}x more frequently")
                     else:
                         print("✅ Render frequency is comparable")
+        
+        # Learning performance comparison
+        self._format_learning_comparison(igenv, dnne)
         
         # Timing coverage info
         if self.mode == 'detailed':
@@ -402,3 +412,83 @@ class ProfileFormatter:
                 found_any = True
                 
         return total if found_any else None
+    def _format_learning_comparison(self, igenv, dnne):
+        """Format learning performance comparison between systems"""
+        igenv_learning = igenv.get("learning_metrics", {}) if igenv else {}
+        dnne_learning = dnne.get("learning_metrics", {}) if dnne else {}
+        
+        # Check if any learning data is available
+        igenv_has_data = igenv_learning.get("data_available", False)
+        dnne_has_data = dnne_learning.get("data_available", False)
+        
+        if not igenv_has_data and not dnne_has_data:
+            print("\n📚 LEARNING PERFORMANCE")
+            print("-" * 60)
+            print("ℹ️  No episode return data available from either system")
+            return
+        
+        print("\n📚 LEARNING PERFORMANCE")
+        print("-" * 60)
+        
+        # Header
+        if igenv_has_data and dnne_has_data:
+            print(f"{'Metric':30} {'IsaacGymEnvs':>15} {'DNNE':>15}")
+        elif igenv_has_data:
+            print(f"{'Metric':30} {'IsaacGymEnvs':>15}")
+        else:
+            print(f"{'Metric':30} {'DNNE':>15}")
+        
+        print("-" * 60)
+        
+        # Episode metrics
+        learning_metrics = [
+            ("Total Episodes", "total_episodes", "d"),
+            ("Completed Episodes", "completed_episodes", "d"),
+            ("Avg Episode Return", "average_episode_return", ".1f"),
+            ("Data Source", "source", "s")
+        ]
+        
+        for label, key, fmt in learning_metrics:
+            row = f"{label:<30}"
+            
+            if igenv_has_data:
+                value = igenv_learning.get(key, "N/A")
+                if fmt == "s":
+                    row += f" {str(value):>15}"
+                elif value != "N/A":
+                    row += f" {value:>15{fmt}}"
+                else:
+                    row += f" {'N/A':>15}"
+            
+            if dnne_has_data:
+                value = dnne_learning.get(key, "N/A")
+                if fmt == "s":
+                    row += f" {str(value):>15}"
+                elif value != "N/A":
+                    row += f" {value:>15{fmt}}"
+                else:
+                    row += f" {'N/A':>15}"
+            
+            print(row)
+        
+        # Learning performance comparison
+        if igenv_has_data and dnne_has_data:
+            igenv_avg = igenv_learning.get("average_episode_return", 0)
+            dnne_avg = dnne_learning.get("average_episode_return", 0)
+            
+            if igenv_avg > 0:
+                learning_ratio = dnne_avg / igenv_avg
+                print(f"\nRelative Learning Performance: {learning_ratio:.2f}x")
+                
+                if 0.8 <= learning_ratio <= 1.2:
+                    print("✅ Learning performance is comparable")
+                elif learning_ratio > 1.2:
+                    print(f"✅ DNNE learns {learning_ratio:.1f}x better episode returns")
+                else:
+                    print(f"❌ DNNE learns {1/learning_ratio:.1f}x worse episode returns")
+            else:
+                print("ℹ️  Cannot compare learning - IsaacGymEnvs baseline is zero")
+        elif igenv_has_data:
+            print("ℹ️  Only IsaacGymEnvs learning data available")
+        else:
+            print("ℹ️  Only DNNE learning data available")

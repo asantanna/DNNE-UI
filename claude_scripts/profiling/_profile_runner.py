@@ -104,74 +104,196 @@ class ProfileRunner:
             start_time = time.time()
             
             # Run with profiling
-            result = subprocess.run(
-                cmd, 
-                capture_output=True, 
-                text=True,
-                timeout=self.timeout
-            )
-            
-            total_time = time.time() - start_time
-            
-            if result.returncode == 0:
-                print(f"  ✅ Completed in {total_time:.2f}s")
+            try:
+                # Save debug output
+                debug_file = open('/tmp/isaacgymenvs_profile_debug.log', 'w')
                 
-                # Create basic metrics
-                metrics = {
-                    'system': 'IsaacGymEnvs',
-                    'num_epochs': iterations_to_run,
-                    'num_envs': self.num_envs,
-                    'total_time': total_time,
-                    'step_count': iterations_to_run * self.num_envs * 16,  # epochs * envs * horizon_length
-                    'steps_per_sec': (iterations_to_run * self.num_envs * 16) / total_time if total_time > 0 else 0,
-                    'prof_file': prof_file,
-                    'status': 'success'
-                }
+                result = subprocess.run(
+                    cmd, 
+                    capture_output=True, 
+                    text=True,
+                    timeout=self.timeout
+                )
                 
-                # Save metrics
-                metrics_file = '/tmp/isaacgymenvs_metrics.json'
-                with open(metrics_file, 'w') as f:
-                    json.dump(metrics, f, indent=2)
+                total_time = time.time() - start_time
                 
-                # Try to trigger timing data save by importing and checking
-                try:
-                    import gc
-                    import sys
-                    # Add IsaacGymEnvs to path
-                    if isaac_dir not in sys.path:
-                        sys.path.insert(0, isaac_dir)
+                # Write debug info
+                debug_file.write(f"Return code: {result.returncode}\n")
+                debug_file.write(f"STDOUT:\n{result.stdout}\n")
+                debug_file.write(f"STDERR:\n{result.stderr}\n")
+                debug_file.close()
+                
+                if result.returncode == 0:
+                    print(f"  ✅ Completed in {total_time:.2f}s")
                     
-                    # Look for VecTask instances with timing data
-                    for obj in gc.get_objects():
-                        if hasattr(obj, 'save_timing_data') and hasattr(obj, 'timing_data'):
-                            try:
-                                obj.save_timing_data()
-                                print("  📊 Saved C++ timing data")
-                                break
-                            except:
-                                pass
-                except:
-                    pass
+                    # Extract episode returns from training output
+                    episode_return_metrics = self._extract_episode_returns_from_output(result.stdout, result.stderr)
                 
-                print(f"  📊 Steps/sec: {metrics['steps_per_sec']:.1f}")
-                return metrics
+                    # Create basic metrics
+                    metrics = {
+                        'system': 'IsaacGymEnvs',
+                        'num_epochs': iterations_to_run,
+                        'num_envs': self.num_envs,
+                        'total_time': total_time,
+                        'step_count': iterations_to_run * self.num_envs * 16,  # epochs * envs * horizon_length
+                        'steps_per_sec': (iterations_to_run * self.num_envs * 16) / total_time if total_time > 0 else 0,
+                        'prof_file': prof_file,
+                        'status': 'success',
+                        'learning_metrics': episode_return_metrics
+                    }
+                    
+                    # Save metrics
+                    metrics_file = '/tmp/isaacgymenvs_metrics.json'
+                    with open(metrics_file, 'w') as f:
+                        json.dump(metrics, f, indent=2)
+                    
+                    # Try to trigger timing data save by importing and checking
+                    try:
+                        import gc
+                        import sys
+                        # Add IsaacGymEnvs to path
+                        if isaac_dir not in sys.path:
+                            sys.path.insert(0, isaac_dir)
+                        
+                        # Look for VecTask instances with timing data
+                        for obj in gc.get_objects():
+                            if hasattr(obj, 'save_timing_data') and hasattr(obj, 'timing_data'):
+                                try:
+                                    obj.save_timing_data()
+                                    print("  📊 Saved C++ timing data")
+                                    break
+                                except:
+                                    pass
+                    except:
+                        pass
+                    
+                    print(f"  📊 Steps/sec: {metrics['steps_per_sec']:.1f}")
+                    return metrics
                 
-            else:
-                print(f"  ❌ Failed with return code {result.returncode}")
-                if result.stderr:
-                    print(f"  Error: {result.stderr[:500]}")
+                else:
+                    print(f"  ❌ Failed with return code {result.returncode}")
+                    if result.stderr:
+                        print(f"  Error: {result.stderr[:500]}")
+                    return None
+                
+            except subprocess.TimeoutExpired:
+                print(f"  ❌ Timed out after {self.timeout}s")
                 return None
-                
-        except subprocess.TimeoutExpired:
-            print(f"  ❌ Timed out after {self.timeout}s")
-            return None
-        except Exception as e:
-            print(f"  ❌ Error: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
+            except Exception as e:
+                print(f"  ❌ Error: {e}")
+                import traceback
+                traceback.print_exc()
+                return None
         finally:
             os.chdir(original_dir)
+    
+    def _extract_episode_returns_from_output(self, stdout, stderr):
+        """Extract episode return information from IsaacGymEnvs training output"""
+        import re
+        
+        # Initialize metrics
+        episode_metrics = {
+            "total_episodes": 0,
+            "completed_episodes": 0,
+            "average_episode_return": 0.0,
+            "last_n_episodes": 100,
+            "episode_returns": [],
+            "source": "isaacgymenvs_output_parsing",
+            "data_available": False
+        }
+        
+        # Look for episode return patterns in the output
+        output_text = stdout + "\n" + stderr
+        
+        # Try to find episode reward/return information
+        # IsaacGymEnvs typically outputs mean rewards, episode lengths, etc.
+        reward_patterns = [
+            r'mean_reward[:\s]+([0-9.-]+)',
+            r'episode_reward[:\s]+([0-9.-]+)',
+            r'reward[:\s]+([0-9.-]+)',
+            r'ep_rew_mean[:\s]+([0-9.-]+)',
+            r'rew__([0-9.-]+)_',  # From checkpoint filename: rew__13.42_
+        ]
+        
+        found_rewards = []
+        for pattern in reward_patterns:
+            matches = re.findall(pattern, output_text, re.IGNORECASE)
+            for match in matches:
+                try:
+                    reward = float(match)
+                    # Filter reasonable reward values (Cartpole typically -500 to +500)
+                    if -1000 < reward < 1000:
+                        found_rewards.append(reward)
+                except ValueError:
+                    continue
+        
+        if found_rewards:
+            # Use actual extracted reward values
+            episode_metrics["episode_returns"] = found_rewards[-100:]  # Last 100 values
+            episode_metrics["completed_episodes"] = len(episode_metrics["episode_returns"])
+            episode_metrics["average_episode_return"] = sum(found_rewards) / len(found_rewards)
+            episode_metrics["total_episodes"] = len(found_rewards)
+            episode_metrics["data_available"] = True
+            print(f"  📊 Extracted {len(found_rewards)} episode returns from training output")
+        else:
+            # No real data available - report this clearly
+            episode_metrics["data_available"] = False
+            print(f"  📊 No episode returns found in IsaacGymEnvs output - learning metrics unavailable")
+        
+        return episode_metrics
+    
+    def _extract_dnne_episode_returns(self, stdout, stderr):
+        """Extract episode return information from DNNE training output"""
+        import re
+        
+        # Initialize metrics
+        episode_metrics = {
+            "total_episodes": 0,
+            "completed_episodes": 0,
+            "average_episode_return": 0.0,
+            "last_n_episodes": 100,
+            "episode_returns": [],
+            "source": "dnne_output_parsing",
+            "data_available": False
+        }
+        
+        # Look for episode return patterns in DNNE output
+        output_text = stdout + "\n" + stderr
+        
+        # DNNE logs episode returns in the format:
+        # "avg episode return = 234.5"
+        episode_patterns = [
+            r'avg episode return[:\s=]+([0-9.-]+)',
+            r'average episode return[:\s=]+([0-9.-]+)',
+            r'episode return[:\s=]+([0-9.-]+)',
+        ]
+        
+        found_returns = []
+        for pattern in episode_patterns:
+            matches = re.findall(pattern, output_text, re.IGNORECASE)
+            for match in matches:
+                try:
+                    episode_return = float(match)
+                    # Filter reasonable return values (Cartpole typically -500 to +500)
+                    if -1000 < episode_return < 1000:
+                        found_returns.append(episode_return)
+                except ValueError:
+                    continue
+        
+        if found_returns:
+            # Use actual extracted episode return values
+            episode_metrics["episode_returns"] = found_returns[-100:]  # Last 100 values
+            episode_metrics["completed_episodes"] = len(episode_metrics["episode_returns"])
+            episode_metrics["average_episode_return"] = found_returns[-1]  # Most recent average
+            episode_metrics["total_episodes"] = len(found_returns)
+            episode_metrics["data_available"] = True
+            print(f"  📊 Extracted {len(found_returns)} episode return measurements from DNNE output")
+        else:
+            # No real data available - report this clearly
+            episode_metrics["data_available"] = False
+            print(f"  📊 No episode returns found in DNNE output - learning metrics unavailable")
+        
+        return episode_metrics
     
     def profile_dnne(self):
         """Profile DNNE using subprocess with cProfile"""
@@ -207,7 +329,8 @@ class ProfileRunner:
             '-o', prof_file,
             str(runner_script),
             '--timeout', f'{dnne_timeout}s',  # This is just a safety timeout
-            '--dnne-profiling'  # Enable profiling for C++ timing
+            '--dnne-profiling',  # Enable profiling for C++ timing
+            '--verbose'  # Enable verbose logging for episode return tracking
         ]
         
         # Add visual mode if enabled
@@ -277,6 +400,9 @@ class ProfileRunner:
                     if abs(step_count - expected_steps) > self.num_envs * 10:
                         print(f"  ⚠️  Warning: Expected ~{expected_steps//self.num_envs} env steps, got {env_computations}")
                 
+                # Extract episode returns from DNNE output
+                dnne_episode_metrics = self._extract_dnne_episode_returns(result.stdout, result.stderr)
+                
                 # Create basic metrics
                 metrics = {
                     'system': 'DNNE',
@@ -286,7 +412,8 @@ class ProfileRunner:
                     'step_count': step_count,
                     'steps_per_sec': step_count / total_time if total_time > 0 else 0,
                     'prof_file': prof_file,
-                    'status': 'success'
+                    'status': 'success',
+                    'learning_metrics': dnne_episode_metrics
                 }
                 
                 # Save metrics

@@ -397,6 +397,12 @@ class GraphExporter:
                 class_name = self._export_node_to_file(nodes_dir, node_id, node_type, node_code, node_imports)
                 node_classes.append((node_id, node_type, class_name))
                 
+                # Handle node dependencies (e.g., rlgames_ppo_components.py)
+                if hasattr(node_class, 'get_dependencies'):
+                    dependencies = node_class.get_dependencies()
+                    for dep_file in dependencies:
+                        self._copy_dependency(nodes_dir, dep_file)
+                
                 # Create instance
                 instance_name = f"node_{node_id}"
                 
@@ -517,6 +523,23 @@ class GraphExporter:
         if not template_path.exists():
             raise FileNotFoundError(f"Template not found: {template_path}")
         return template_path.read_text(encoding='utf-8')
+    
+    def _copy_dependency(self, target_dir: Path, dep_filename: str):
+        """Copy a dependency file from templates/nodes to the target export directory"""
+        import shutil
+        
+        # Source path in templates/nodes
+        source_path = self.templates_dir / "nodes" / dep_filename
+        
+        # Target path in export nodes directory
+        target_path = target_dir / dep_filename
+        
+        if source_path.exists():
+            # Copy the dependency file
+            shutil.copy2(source_path, target_path)
+            self.logger.info(f"Copied dependency: {dep_filename} -> {target_path}")
+        else:
+            self.logger.warning(f"Dependency file not found: {source_path}")
     
     def _process_template(self, template: str, variables: Dict[str, Any]) -> str:
         """Process template by replacing variables"""

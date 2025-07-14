@@ -326,13 +326,40 @@ dnne_test_performance() {
     
     echo ""
     
-    # Check if visual flag is passed
+    # Parse command line arguments for epochs and visual flags
+    local epochs_flag=""
     local visual_flag=""
-    if [[ "$*" == *"--visual"* ]]; then
-        visual_flag="--visual"
-        log_info "Running performance profiler (detailed mode, 40 epochs, VISUAL MODE)..."
+    local epochs_value=""
+    
+    # Parse all arguments passed to the function
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --epochs)
+                epochs_value="$2"
+                epochs_flag="--epochs $2"
+                shift 2
+                ;;
+            --visual)
+                visual_flag="--visual"
+                shift
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+    
+    # Use default epochs if not specified
+    if [ -z "$epochs_value" ]; then
+        epochs_value="40"
+        epochs_flag="--epochs 40"
+    fi
+    
+    # Log what we're running
+    if [ -n "$visual_flag" ]; then
+        log_info "Running performance profiler (detailed mode, $epochs_value epochs, VISUAL MODE)..."
     else
-        log_info "Running performance profiler (detailed mode, 40 epochs)..."
+        log_info "Running performance profiler (detailed mode, $epochs_value epochs)..."
     fi
     
     echo ""
@@ -341,7 +368,7 @@ dnne_test_performance() {
     
     # Run performance profiler and capture output
     local output_file="/tmp/dnne_performance_test_output.txt"
-    python claude_scripts/profiling/performance_profiler.py --mode detailed --epochs 40 $visual_flag 2>&1 | tee "$output_file"
+    python claude_scripts/profiling/performance_profiler.py --mode detailed $epochs_flag $visual_flag 2>&1 | tee "$output_file"
     local exit_code=$?
     
     if [ $exit_code -ne 0 ]; then

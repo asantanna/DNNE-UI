@@ -20,6 +20,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.last_render_time = 0.0
         self.render_interval = 1.0 / 60.0  # 60 FPS backup for viewer updates
         
+        # Episode return tracking for learning metrics
+        self.episode_returns = []  # Store cumulative returns for completed episodes
+        self.current_episode_returns = None  # Cumulative returns for current episodes
+        self.episode_count = 0
+        self.last_n_episodes = 100  # Track last N episodes for averaging
+        
     async def run(self):
         """Dual-mode execution: training vs inference timing"""
         self.running = True
@@ -178,13 +184,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                         environment.update_viewer(sim_handle.viewer)
                         self.last_render_time = current_time
             
+            # Track episode returns for learning metrics
+            self._update_episode_returns(rewards, done)
+            
             # Update step counter
             self.step_count += 1
             
             # Log progress periodically
             if self.step_count % 1000 == 0:
                 avg_reward = torch.mean(rewards).item() if len(rewards) > 0 else 0.0
-                self.logger.info(f"Step {self.step_count}: avg reward = {avg_reward:.4f}")
+                avg_return = self._get_average_episode_return()
+                self.logger.info(f"Step {self.step_count}: avg reward = {avg_reward:.4f}, avg episode return = {avg_return:.1f}")
             
             # Return current step results
             # The trigger parameter is just for synchronization, not for changing behavior
@@ -199,3 +209,59 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         except Exception as e:
             self.logger.error(f"Error in simulation step: {e}")
             raise
+    
+    def _update_episode_returns(self, rewards, done):
+        """Update episode return tracking with current step rewards and done flags"""
+        import torch
+        import numpy as np
+        
+        # Initialize current episode returns if needed (first step)
+        if self.current_episode_returns is None:
+            num_envs = len(rewards) if hasattr(rewards, '__len__') else 1
+            self.current_episode_returns = torch.zeros(num_envs, device=rewards.device)
+        
+        # Accumulate rewards for all environments
+        self.current_episode_returns += rewards
+        
+        # Check for completed episodes (done=True)
+        if done.any():
+            # Get completed episode indices
+            completed_episodes = torch.where(done)[0]
+            
+            # Store returns for completed episodes
+            for env_idx in completed_episodes:
+                episode_return = self.current_episode_returns[env_idx].item()
+                self.episode_returns.append(episode_return)
+                self.episode_count += 1
+                
+                # Print episode return for profiler to capture
+                print(f"Episode {self.episode_count}: episode return = {episode_return:.2f}")
+                
+                # Print rolling average every 10 episodes
+                if self.episode_count % 10 == 0:
+                    avg_return = self._get_average_episode_return()
+                    print(f"Average episode return (last {len(self.episode_returns)} episodes) = {avg_return:.2f}")
+                
+                # Keep only last N episodes for efficiency
+                if len(self.episode_returns) > self.last_n_episodes:
+                    self.episode_returns.pop(0)
+                
+                # Reset episode return for this environment
+                self.current_episode_returns[env_idx] = 0.0
+    
+    def _get_average_episode_return(self):
+        """Get average episode return from last N completed episodes"""
+        if len(self.episode_returns) == 0:
+            return 0.0
+        import numpy as np
+        return np.mean(self.episode_returns)
+    
+    def get_learning_metrics(self):
+        """Get learning performance metrics for comparison"""
+        return {
+            "total_episodes": self.episode_count,
+            "completed_episodes": len(self.episode_returns),
+            "average_episode_return": self._get_average_episode_return(),
+            "last_n_episodes": self.last_n_episodes,
+            "episode_returns": self.episode_returns.copy() if self.episode_returns else []
+        }
