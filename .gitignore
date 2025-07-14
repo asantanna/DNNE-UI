@@ -36,6 +36,9 @@ export_system/exports/*
 !export_system/exports/Cartpole_PPO/
 !export_system/exports/MNIST_Test/
 
+# Ignore downloaded data in exports
+export_system/exports/*/data/
+
 claude_scripts/ppo_agent_profile.stats
 ppo_agent_profile.stats
 .coverage*
