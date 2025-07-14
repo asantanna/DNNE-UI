@@ -325,14 +325,23 @@ dnne_test_performance() {
     activate_environment
     
     echo ""
-    log_info "Running performance profiler (detailed mode, 40 epochs)..."
+    
+    # Check if visual flag is passed
+    local visual_flag=""
+    if [[ "$*" == *"--visual"* ]]; then
+        visual_flag="--visual"
+        log_info "Running performance profiler (detailed mode, 40 epochs, VISUAL MODE)..."
+    else
+        log_info "Running performance profiler (detailed mode, 40 epochs)..."
+    fi
+    
     echo ""
     
     cd "$PROJECT_ROOT"
     
     # Run performance profiler and capture output
     local output_file="/tmp/dnne_performance_test_output.txt"
-    python claude_scripts/profiling/performance_profiler.py --mode detailed --epochs 40 2>&1 | tee "$output_file"
+    python claude_scripts/profiling/performance_profiler.py --mode detailed --epochs 40 $visual_flag 2>&1 | tee "$output_file"
     local exit_code=$?
     
     if [ $exit_code -ne 0 ]; then

@@ -28,6 +28,9 @@ Examples:
   # Detailed profiling (function-level breakdown)
   python performance_profiler.py --mode detailed
   
+  # Visual mode profiling (shows rendering, slower)
+  python performance_profiler.py --mode simple --visual
+  
   # Custom configuration
   python performance_profiler.py --epochs 20 --num-envs 1024 --mode detailed
         """
@@ -44,6 +47,8 @@ Examples:
     parser.add_argument('--systems', nargs='+', choices=['isaacgym', 'dnne', 'both'], 
                         default=['both'],
                         help='Which systems to profile (default: both)')
+    parser.add_argument('--visual', action='store_true',
+                        help='Run in visual mode with rendering enabled (slower but shows environments)')
     
     args = parser.parse_args()
     
@@ -62,6 +67,8 @@ Examples:
     if args.epochs:
         print(f"Epochs override: {args.epochs}")
     print(f"Timeout: {args.timeout}s per system")
+    if args.visual:
+        print(f"Visual mode: ENABLED (rendering will show)")
     print()
     
     # Import helper modules
@@ -85,7 +92,8 @@ Examples:
     runner = ProfileRunner(
         num_envs=args.num_envs,
         timeout=args.timeout,
-        override_epochs=args.epochs
+        override_epochs=args.epochs,
+        visual=args.visual
     )
     
     results = {}

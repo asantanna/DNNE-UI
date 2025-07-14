@@ -8,7 +8,15 @@ template_vars = {
     "ISAAC_GYM_ENVS_PATH": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs",
     "HEADLESS": True,
     "DEVICE": "cuda",
-    "PHYSICS_ENGINE": "physx"
+    "PHYSICS_ENGINE": "physx",
+    # Camera configuration
+    "USE_DEFAULT_CAMERA": True,
+    "CAMERA_POSITION_X": 20.0,
+    "CAMERA_POSITION_Y": 25.0,
+    "CAMERA_POSITION_Z": 3.0,
+    "CAMERA_TARGET_X": 10.0,
+    "CAMERA_TARGET_Y": 15.0,
+    "CAMERA_TARGET_Z": 0.0
 }
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
@@ -46,6 +54,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.viewer = None
         self.sim_params = None
         self.device_id = 0 if self.device == "cuda" else -1
+        self.enable_viewer_sync = True  # Match IsaacGymEnvs default
         
         # Environment instance (using clean class hierarchy)
         self.environment = None
@@ -91,6 +100,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             # General simulation parameters
             self.sim_params.gravity = gymapi.Vec3(0.0, 0.0, -9.81)
+            self.sim_params.up_axis = gymapi.UP_AXIS_Z  # Match IsaacGymEnvs Cartpole setting
             
             # Create simulation
             compute_device = self.device_id if self.device == "cuda" else 0
@@ -113,14 +123,46 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Create environment using clean class hierarchy
             self._create_environment()
             
+            # Prepare simulation (MUST be before viewer creation to match IsaacGymEnvs)
+            self.gym.prepare_sim(self.sim)
+            
             # Create viewer if not headless
             if not self.headless:
                 self.viewer = self.gym.create_viewer(self.sim, gymapi.CameraProperties())
                 if self.viewer is None:
                     self.logger.warning("Failed to create viewer")
-            
-            # Prepare simulation
-            self.gym.prepare_sim(self.sim)
+                else:
+                    # Subscribe to keyboard events like IsaacGymEnvs
+                    self.gym.subscribe_viewer_keyboard_event(
+                        self.viewer, gymapi.KEY_ESCAPE, "QUIT")
+                    self.gym.subscribe_viewer_keyboard_event(
+                        self.viewer, gymapi.KEY_V, "toggle_viewer_sync")
+                    
+                    # Need to render one frame first to establish viewport
+                    # This matches IsaacGymEnvs behavior
+                    self.gym.step_graphics(self.sim)
+                    self.gym.draw_viewer(self.viewer, self.sim, False)
+                    
+                    # Now set camera position after viewport is established
+                    if {USE_DEFAULT_CAMERA}:
+                        # Use IsaacGymEnvs default camera settings
+                        sim_params = self.gym.get_sim_params(self.sim)
+                        if sim_params.up_axis == gymapi.UP_AXIS_Z:
+                            cam_pos = gymapi.Vec3(20.0, 25.0, 3.0)
+                            cam_target = gymapi.Vec3(10.0, 15.0, 0.0)
+                        else:
+                            cam_pos = gymapi.Vec3(20.0, 3.0, 25.0)
+                            cam_target = gymapi.Vec3(10.0, 0.0, 15.0)
+                    else:
+                        # Use custom camera settings from template
+                        cam_pos = gymapi.Vec3({CAMERA_POSITION_X}, {CAMERA_POSITION_Y}, {CAMERA_POSITION_Z})
+                        cam_target = gymapi.Vec3({CAMERA_TARGET_X}, {CAMERA_TARGET_Y}, {CAMERA_TARGET_Z})
+                    
+                    self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
+                    self.logger.info(f"Camera set: pos={cam_pos}, target={cam_target}")
+                    
+                    # Debug: Print actual up axis
+                    self.logger.info(f"Sim up_axis: {sim_params.up_axis} (Z={gymapi.UP_AXIS_Z}, Y={gymapi.UP_AXIS_Y})")
             
             self.env_initialized = True
             self.logger.info(f"Isaac Gym initialized: {self.env_name} with {self.num_envs} environments")

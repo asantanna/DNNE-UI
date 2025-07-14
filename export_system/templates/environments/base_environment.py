@@ -239,6 +239,21 @@ class IsaacGymEnvironment(ABC):
     def update_viewer(self, viewer) -> None:
         """Update viewer if available"""
         if viewer is not None:
+            # Check for window closed
+            if self.gym.query_viewer_has_closed(viewer):
+                import sys
+                sys.exit()
+            
+            # Check for keyboard events
+            for evt in self.gym.query_viewer_action_events(viewer):
+                if evt.action == "QUIT" and evt.value > 0:
+                    import sys
+                    sys.exit()
+            
+            # Poll viewer events to update camera
+            self.gym.poll_viewer_events(viewer)
+            
+            # Step graphics and draw
             self.gym.step_graphics(self.sim)
             self.gym.draw_viewer(viewer, self.sim, True)
             self.gym.sync_frame_time(self.sim)

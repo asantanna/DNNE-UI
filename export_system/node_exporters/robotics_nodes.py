@@ -216,7 +216,15 @@ class IsaacGymEnvExporter(ExportableNode):
             {'name': 'isaac_gym_envs_path', 'default': '/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs'},
             {'name': 'headless', 'default': True},
             {'name': 'device', 'default': 'cuda'},
-            {'name': 'physics_engine', 'default': 'physx'}
+            {'name': 'physics_engine', 'default': 'physx'},
+            # Camera configuration
+            {'name': 'use_default_camera', 'default': True},
+            {'name': 'camera_position_x', 'default': 20.0},
+            {'name': 'camera_position_y', 'default': 25.0},
+            {'name': 'camera_position_z', 'default': 3.0},
+            {'name': 'camera_target_x', 'default': 10.0},
+            {'name': 'camera_target_y', 'default': 15.0},
+            {'name': 'camera_target_z', 'default': 0.0}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
@@ -239,7 +247,15 @@ class IsaacGymEnvExporter(ExportableNode):
             "ISAAC_GYM_ENVS_PATH": isaac_gym_envs_path,
             "HEADLESS": headless,
             "DEVICE": device,
-            "PHYSICS_ENGINE": physics_engine
+            "PHYSICS_ENGINE": physics_engine,
+            # Camera configuration
+            "USE_DEFAULT_CAMERA": params['use_default_camera'],
+            "CAMERA_POSITION_X": params['camera_position_x'],
+            "CAMERA_POSITION_Y": params['camera_position_y'],
+            "CAMERA_POSITION_Z": params['camera_position_z'],
+            "CAMERA_TARGET_X": params['camera_target_x'],
+            "CAMERA_TARGET_Y": params['camera_target_y'],
+            "CAMERA_TARGET_Z": params['camera_target_z']
         }
     
     @classmethod

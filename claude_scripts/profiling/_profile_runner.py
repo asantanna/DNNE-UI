@@ -15,10 +15,11 @@ from pathlib import Path
 class ProfileRunner:
     """Runs profiling for both systems using external cProfile"""
     
-    def __init__(self, num_envs=512, timeout=300, override_epochs=None):
+    def __init__(self, num_envs=512, timeout=300, override_epochs=None, visual=False):
         self.num_envs = num_envs
         self.timeout = timeout
         self.override_epochs = override_epochs
+        self.visual = visual
     
     def extract_max_epochs_from_workflow(self):
         """Extract max_epochs value from DNNE workflow JSON"""
@@ -90,7 +91,7 @@ class ProfileRunner:
                 f'train.params.config.max_epochs={iterations_to_run}',
                 'train.params.config.horizon_length=16',
                 'train.params.config.minibatch_size=8192',
-                'headless=True',
+                f'headless={not self.visual}',  # Visual mode disables headless
                 'test=False',
                 'dnne_profiling=True'  # Enable profiling for C++ timing
             ]
@@ -208,6 +209,10 @@ class ProfileRunner:
             '--timeout', f'{dnne_timeout}s',  # This is just a safety timeout
             '--dnne-profiling'  # Enable profiling for C++ timing
         ]
+        
+        # Add visual mode if enabled
+        if self.visual:
+            cmd.append('--visual')
         
         # Add epochs override if specified
         if self.override_epochs:
