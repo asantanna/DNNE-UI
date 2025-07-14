@@ -137,10 +137,31 @@ class ProfileFormatter:
         print()
         
         # PPO training operations
-        print("  PPO iteration total                       ???               ???")
+        # Calculate PPO iteration total if we have the components
+        ppo_total_igenv = self._calculate_ppo_total(igenv_timings) if igenv_timings else None
+        ppo_total_dnne = self._calculate_ppo_total(dnne_timings) if dnne_timings else None
+        
+        if ppo_total_igenv is not None or ppo_total_dnne is not None:
+            self._format_timing_row('  PPO iteration total', None, 
+                                   {'ppo_total': ppo_total_igenv} if ppo_total_igenv else None,
+                                   {'ppo_total': ppo_total_dnne} if ppo_total_dnne else None)
+        else:
+            print("  PPO iteration total                       ???               ???")
+            
         self._format_timing_row('  - collect_rollout', 'collect_rollout', igenv_timings, dnne_timings)
         self._format_timing_row('  - compute_returns', 'compute_returns', igenv_timings, dnne_timings)
-        print("  - policy_update                           ???               ???")
+        
+        # Calculate policy update total if we have the components
+        policy_total_igenv = self._calculate_policy_total(igenv_timings) if igenv_timings else None
+        policy_total_dnne = self._calculate_policy_total(dnne_timings) if dnne_timings else None
+        
+        if policy_total_igenv is not None or policy_total_dnne is not None:
+            self._format_timing_row('  - policy_update', None,
+                                   {'policy_total': policy_total_igenv} if policy_total_igenv else None,
+                                   {'policy_total': policy_total_dnne} if policy_total_dnne else None)
+        else:
+            print("  - policy_update                           ???               ???")
+            
         self._format_timing_row('    - forward pass', 'policy_forward', igenv_timings, dnne_timings)
         self._format_timing_row('    - backward pass', 'policy_backward', igenv_timings, dnne_timings)
         print()
@@ -224,13 +245,25 @@ class ProfileFormatter:
         dnne_time = None
         
         if igenv_timings is not None:
-            if key in igenv_timings and igenv_timings[key] is not None:
+            if key is None:
+                # Handle special calculated values
+                if 'ppo_total' in igenv_timings:
+                    igenv_time = f"{igenv_timings['ppo_total']:.2f}"
+                elif 'policy_total' in igenv_timings:
+                    igenv_time = f"{igenv_timings['policy_total']:.2f}"
+            elif key in igenv_timings and igenv_timings[key] is not None:
                 igenv_time = f"{igenv_timings[key]:.2f}"
             else:
                 igenv_time = igenv_default
                 
         if dnne_timings is not None:
-            if key in dnne_timings and dnne_timings[key] is not None:
+            if key is None:
+                # Handle special calculated values
+                if 'ppo_total' in dnne_timings:
+                    dnne_time = f"{dnne_timings['ppo_total']:.2f}"
+                elif 'policy_total' in dnne_timings:
+                    dnne_time = f"{dnne_timings['policy_total']:.2f}"
+            elif key in dnne_timings and dnne_timings[key] is not None:
                 dnne_time = f"{dnne_timings[key]:.2f}"
             else:
                 dnne_time = dnne_default
@@ -245,3 +278,35 @@ class ProfileFormatter:
             row += f" {dnne_time:>17}"
             
         print(row)
+    
+    def _calculate_ppo_total(self, timings):
+        """Calculate total PPO iteration time from components"""
+        if not timings:
+            return None
+            
+        total = 0
+        components = ['collect_rollout', 'compute_returns', 'policy_forward', 'policy_backward']
+        found_any = False
+        
+        for component in components:
+            if component in timings and timings[component] is not None:
+                total += timings[component]
+                found_any = True
+                
+        return total if found_any else None
+    
+    def _calculate_policy_total(self, timings):
+        """Calculate total policy update time from components"""
+        if not timings:
+            return None
+            
+        total = 0
+        components = ['policy_forward', 'policy_backward', 'optimizer_step']
+        found_any = False
+        
+        for component in components:
+            if component in timings and timings[component] is not None:
+                total += timings[component]
+                found_any = True
+                
+        return total if found_any else None

@@ -35,8 +35,9 @@ class ProfileRunner:
         os.chdir(isaac_dir)
         
         try:
-            # Build the command
+            # Build the command to run IsaacGymEnvs directly with cProfile
             prof_file = '/tmp/isaacgymenvs_training.prof'
+            
             cmd = [
                 'python', '-m', 'cProfile',
                 '-o', prof_file,
@@ -47,7 +48,8 @@ class ProfileRunner:
                 'train.params.config.horizon_length=16',
                 'train.params.config.minibatch_size=8192',
                 'headless=True',
-                'test=False'
+                'test=False',
+                'dnne_profiling=True'  # Enable profiling for C++ timing
             ]
             
             print(f"  Running {self.num_iterations} iterations with {self.num_envs} environments...")
@@ -116,7 +118,7 @@ class ProfileRunner:
             print("  Please export the Cartpole_PPO workflow first")
             return None
         
-        # Build the command
+        # Build the command to run DNNE directly with cProfile
         prof_file = '/tmp/dnne_training.prof'
         runner_script = export_dir / 'runner.py'
         
@@ -128,7 +130,8 @@ class ProfileRunner:
             'python', '-m', 'cProfile',
             '-o', prof_file,
             str(runner_script),
-            '--timeout', f'{dnne_timeout}s'
+            '--timeout', f'{dnne_timeout}s',
+            '--dnne-profiling'  # Enable profiling for C++ timing
         ]
         
         print(f"  Running {self.num_iterations} iterations with {self.num_envs} environments...")

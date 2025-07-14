@@ -161,6 +161,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Create all environments
             self.environment.create_environments(spacing=4.0)
             
+            # Enable profiling if requested via command line
+            try:
+                import builtins
+                if hasattr(builtins, 'DNNE_PROFILING') and builtins.DNNE_PROFILING:
+                    self.environment.enable_profiling()
+                    self.logger.info("DNNE profiling enabled for environment")
+            except:
+                pass
+            
             self.logger.info(f"Created {self.environment.get_environment_name()} environment with {self.num_envs} instances")
             
         except Exception as e:
@@ -200,6 +209,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def cleanup(self):
         """Clean up Isaac Gym resources"""
+        # Save timing data if profiling was enabled
+        if hasattr(self.environment, 'timing_data') and self.environment.timing_data:
+            self.environment.save_timing_data('/tmp/dnne_cpp_timings.json')
+        
         if self.viewer is not None:
             self.gym.destroy_viewer(self.viewer)
         

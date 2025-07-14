@@ -10,6 +10,8 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, Tuple
 import logging
+import json
+from collections import defaultdict
 
 
 class IsaacGymEnvironment(ABC):
@@ -52,6 +54,10 @@ class IsaacGymEnvironment(ABC):
         
         # Device for torch tensors
         self.torch_device = torch.device(device if device == "cuda" and torch.cuda.is_available() else "cpu")
+        
+        # Initialize profiling if enabled
+        self.dnne_profiling = False  # Will be set by the node if profiling is enabled
+        self.timing_data = None
         
     @abstractmethod
     def get_environment_name(self) -> str:
@@ -170,9 +176,26 @@ class IsaacGymEnvironment(ABC):
         # Apply actions before physics step
         self.apply_actions(actions)
         
-        # Step physics
-        self.gym.simulate(self.sim)
-        self.gym.fetch_results(self.sim, True)
+        # Step physics - time if profiling enabled
+        if hasattr(self, 'dnne_profiling') and self.dnne_profiling:
+            import time
+            start_time = time.perf_counter()
+            self.gym.simulate(self.sim)
+            elapsed = time.perf_counter() - start_time
+            if self.timing_data is None:
+                self.timing_data = defaultdict(lambda: {'count': 0, 'total_ms': 0.0})
+            self.timing_data['gym.simulate']['count'] += 1
+            self.timing_data['gym.simulate']['total_ms'] += elapsed * 1000
+            
+            # Time fetch_results too
+            start_time = time.perf_counter()
+            self.gym.fetch_results(self.sim, True)
+            elapsed = time.perf_counter() - start_time
+            self.timing_data['gym.fetch_results']['count'] += 1
+            self.timing_data['gym.fetch_results']['total_ms'] += elapsed * 1000
+        else:
+            self.gym.simulate(self.sim)
+            self.gym.fetch_results(self.sim, True)
         
         # Update progress
         self.progress_buf += 1
@@ -225,3 +248,28 @@ class IsaacGymEnvironment(ABC):
             self.sim_params.substeps = params["substeps"]
             
         self.logger.info(f"{self.get_environment_name()} simulation: dt={self.sim_params.dt}, substeps={self.sim_params.substeps}")
+    
+    def enable_profiling(self) -> None:
+        """Enable DNNE profiling for C++ timing measurements"""
+        self.dnne_profiling = True
+        self.timing_data = defaultdict(lambda: {'count': 0, 'total_ms': 0.0})
+        self.logger.info("DNNE profiling enabled")
+    
+    def save_timing_data(self, filepath: str = '/tmp/dnne_cpp_timings.json') -> None:
+        """Save timing data to JSON file for profiler"""
+        if self.timing_data:
+            # Calculate averages for each timing
+            timing_export = {}
+            for name, data in self.timing_data.items():
+                if data['count'] > 0:
+                    timing_export[name] = {
+                        'count': data['count'],
+                        'total_ms': data['total_ms'],
+                        'average_ms': data['total_ms'] / data['count']
+                    }
+            
+            # Save to JSON file
+            with open(filepath, 'w') as f:
+                json.dump(timing_export, f, indent=2)
+            
+            self.logger.info(f"Saved timing data to {filepath}")

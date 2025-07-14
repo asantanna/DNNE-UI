@@ -66,13 +66,41 @@ class ProfileAnalyzer:
         # Get patterns for this system
         patterns = self.ISAACGYM_PATTERNS if system == 'isaacgym' else self.DNNE_PATTERNS
         
-        # Extract timings
+        # Extract timings from cProfile
         timings = {}
         function_times = self._extract_function_times(stats)
         
         for metric_name, search_patterns in patterns.items():
             time_ms = self._find_matching_time(function_times, search_patterns)
             timings[metric_name] = time_ms
+        
+        # Load and merge C++ timing data if available
+        cpp_timings = self._load_cpp_timings(system)
+        if cpp_timings:
+            print(f"  📊 Found C++ timing data with {len(cpp_timings)} metrics")
+            # Map C++ timings to our metric names
+            cpp_mapping = {
+                'gym.simulate': 'gym_simulate',
+                'gym.fetch_results': 'gym_fetch_results',
+                'gym.refresh_dof_state_tensor': 'refresh_tensors',
+                'gym.refresh_actor_root_state_tensor': 'refresh_tensors',
+                'gym.step_graphics': 'step_graphics',
+                'gym.draw_viewer': 'draw_viewer'
+            }
+            
+            for cpp_name, cpp_data in cpp_timings.items():
+                metric_name = cpp_mapping.get(cpp_name, cpp_name)
+                if metric_name in timings and timings[metric_name] is None:
+                    # Use C++ timing if Python timing not found
+                    # Use average time per call, not total
+                    timings[metric_name] = cpp_data.get('avg_ms', cpp_data.get('average_ms', cpp_data['total_ms'] / cpp_data.get('count', 1)))
+                elif metric_name == 'refresh_tensors':
+                    # Aggregate refresh tensor calls
+                    if timings.get(metric_name) is None:
+                        timings[metric_name] = 0
+                    # Use average time per call
+                    avg_ms = cpp_data.get('avg_ms', cpp_data.get('average_ms', cpp_data['total_ms'] / cpp_data.get('count', 1)))
+                    timings[metric_name] += avg_ms
         
         # Create enhanced metrics
         enhanced_metrics = basic_metrics.copy()
@@ -141,6 +169,22 @@ class ProfileAnalyzer:
         # For now, return a placeholder
         # In a real implementation, we'd look for __init__ or setup functions
         return 0.0
+    
+    def _load_cpp_timings(self, system):
+        """Load C++ timing data from wrapper output"""
+        if system == 'isaacgym':
+            timing_file = Path('/tmp/isaacgym_cpp_timings.json')
+        else:
+            timing_file = Path('/tmp/dnne_cpp_timings.json')
+        
+        if timing_file.exists():
+            try:
+                with open(timing_file, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"  ⚠️  Failed to load C++ timings: {e}")
+        
+        return None
     
     def save_detailed_report(self, system, enhanced_metrics, output_dir='/tmp'):
         """Save a detailed analysis report"""
