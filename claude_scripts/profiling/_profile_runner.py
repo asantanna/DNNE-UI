@@ -257,8 +257,8 @@ class ProfileRunner:
                             if len(parts) >= 2:
                                 comp_part = parts[1].strip().split()[0]
                                 node_id = parts[0].strip()
-                                # Node 7 is typically the environment node
-                                if node_id == "7":
+                                # Node 9 is the IsaacGymStepNode that does the actual stepping
+                                if node_id == "9":
                                     env_computations = int(comp_part)
                                     break
                         except:
@@ -267,7 +267,7 @@ class ProfileRunner:
                 # If we found environment computations, calculate total steps
                 if env_computations > 0:
                     step_count = env_computations * self.num_envs
-                    # Verify it's close to expected (5 epochs = 80 env steps = 40,960 total)
+                    # Verify it's close to expected
                     expected_steps = expected_iterations * self.num_envs * 16
                     if abs(step_count - expected_steps) > self.num_envs * 10:
                         print(f"  ⚠️  Warning: Expected ~{expected_steps//self.num_envs} env steps, got {env_computations}")

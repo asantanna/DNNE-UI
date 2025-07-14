@@ -54,6 +54,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 
                 # Execute computation 
                 outputs = await self.compute(sim_handle, actions, trigger)
+                self.compute_count += 1  # Track computation count
                 
                 # Send outputs immediately (no timing delay)
                 if outputs:
@@ -104,6 +105,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 
                 # Execute simulation step (no trigger in inference mode)
                 outputs = await self.compute(sim_handle, actions, None)
+                self.compute_count += 1  # Track computation count
                 
                 # Send outputs
                 if outputs:
