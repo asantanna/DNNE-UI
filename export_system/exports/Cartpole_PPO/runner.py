@@ -63,6 +63,8 @@ async def main():
                        help='Run in inference mode (no training, no gradients)')
     parser.add_argument('--dnne-profiling', action='store_true',
                        help='Enable profiling for C++ operations (Isaac Gym)')
+    parser.add_argument('--epochs', type=int, default=None,
+                       help='Override max epochs for training (overrides workflow setting)')
     args = parser.parse_args()
 
     # Parse timeout if provided
@@ -88,9 +90,12 @@ async def main():
     builtins.HEADLESS_MODE = args.headless
     builtins.INFERENCE_MODE = args.inference
     builtins.DNNE_PROFILING = args.dnne_profiling
+    builtins.EPOCHS_OVERRIDE = args.epochs
     configure_logging(args.verbose)
 
     print("🚀 Starting DNNE Queue-Based Execution")
+    if args.epochs:
+        print(f"📊 Epochs override: {args.epochs}")
     if args.inference:
         print("🔍 Inference mode enabled - no training or gradients")
     if args.dnne_profiling:

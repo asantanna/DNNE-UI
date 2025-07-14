@@ -59,6 +59,7 @@ class IsaacGymStepNode_9(QueueNode):
                 
                 # Execute computation 
                 outputs = await self.compute(sim_handle, actions, trigger)
+                self.compute_count += 1  # Track computation count
                 
                 # Send outputs immediately (no timing delay)
                 if outputs:
@@ -109,6 +110,7 @@ class IsaacGymStepNode_9(QueueNode):
                 
                 # Execute simulation step (no trigger in inference mode)
                 outputs = await self.compute(sim_handle, actions, None)
+                self.compute_count += 1  # Track computation count
                 
                 # Send outputs
                 if outputs:
