@@ -176,14 +176,10 @@ class IsaacGymEnvironment(ABC):
         Returns:
             Tuple of (observations, rewards, done, info)
         """
-        # Record first and last step times for accurate step rate calculation
-        if self.dnne_profiling:
+        # Record first step time BEFORE physics simulation
+        if self.dnne_profiling and self.first_step_time is None:
             import time
-            current_time = time.perf_counter()
-            if self.first_step_time is None:
-                self.first_step_time = current_time
-            self.last_step_time = current_time
-            self.total_env_steps += 1
+            self.first_step_time = time.perf_counter()
         
         # Apply actions before physics step
         self.apply_actions(actions)
@@ -231,6 +227,12 @@ class IsaacGymEnvironment(ABC):
             "num_resets": len(env_ids),
             "sim_time": self.gym.get_sim_time(self.sim)
         }
+        
+        # Record last step time AFTER physics simulation completes
+        if self.dnne_profiling:
+            import time
+            self.last_step_time = time.perf_counter()
+            self.total_env_steps += 1
         
         return observations, rewards, done, info
     
