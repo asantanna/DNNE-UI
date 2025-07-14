@@ -55,6 +55,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.sim_params = None
         self.device_id = 0 if self.device == "cuda" else -1
         self.enable_viewer_sync = True  # Match IsaacGymEnvs default
+        self.force_render = True  # Always render when viewer is enabled
         
         # Environment instance (using clean class hierarchy)
         self.environment = None

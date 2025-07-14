@@ -256,7 +256,7 @@ class IsaacGymEnvironment(ABC):
             # Step graphics and draw
             self.gym.step_graphics(self.sim)
             self.gym.draw_viewer(viewer, self.sim, True)
-            self.gym.sync_frame_time(self.sim)
+            # Note: sync_frame_time removed to allow faster-than-realtime rendering
     
     def get_environment_bounds(self, spacing: float) -> Tuple[Any, Any]:
         """Get environment bounds for creation"""

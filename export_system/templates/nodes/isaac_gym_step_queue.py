@@ -14,6 +14,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         # Step tracking
         self.step_count = 0
+        self.control_step_count = 0
+        self.control_freq_inv = 1  # Number of physics steps per control step
+        self.last_render_time = 0.0
+        self.render_interval = 1.0 / 60.0  # 60 FPS target for viewer updates
         
     async def run(self):
         """Dual-mode execution: training vs inference timing"""
@@ -159,9 +163,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 done = environment.check_termination()
                 info = {"step_count": self.step_count}
             
-            # Update viewer if available
+            # Update viewer if available (rate-limited for performance)
             if hasattr(sim_handle, 'viewer') and sim_handle.viewer is not None:
-                environment.update_viewer(sim_handle.viewer)
+                import time
+                current_time = time.time()
+                # Only update viewer at target frame rate (not every physics step)
+                if current_time - self.last_render_time >= self.render_interval:
+                    environment.update_viewer(sim_handle.viewer)
+                    self.last_render_time = current_time
             
             # Update step counter
             self.step_count += 1
