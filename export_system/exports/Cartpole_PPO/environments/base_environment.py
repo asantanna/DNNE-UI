@@ -232,7 +232,7 @@ class IsaacGymEnvironment(ABC):
         if self.dnne_profiling:
             import time
             self.last_step_time = time.perf_counter()
-            self.total_env_steps += 1
+            self.total_env_steps += self.num_envs  # Each step processes all environments
         
         return observations, rewards, done, info
     

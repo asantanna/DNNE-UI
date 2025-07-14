@@ -26,10 +26,10 @@ class PPOTrainerNode_6(QueueNode):
         self.gamma = 0.99
         self.gae_lambda = 0.95
         self.clip_param = 0.2
-        self.value_coef = 4.0
-        self.entropy_coef = 0.0
+        self.value_coef = 4
+        self.entropy_coef = 0
         self.learning_rate = 0.0003
-        self.max_grad_norm = 1.0
+        self.max_grad_norm = 1
         
         # Training state
         self.reset_buffer()

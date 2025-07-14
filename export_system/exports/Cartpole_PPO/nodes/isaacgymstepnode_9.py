@@ -20,12 +20,6 @@ class IsaacGymStepNode_9(QueueNode):
         # Step tracking
         self.step_count = 0
         
-        # State caching for RL training loop
-        self.cached_observations = None
-        self.cached_rewards = None
-        self.cached_done = None
-        self.cached_info = None
-        
     async def run(self):
         """Dual-mode execution: training vs inference timing"""
         self.running = True
@@ -157,20 +151,7 @@ class IsaacGymStepNode_9(QueueNode):
             environment = sim_handle.environment
             num_envs = environment.num_envs
             
-            # Handle trigger-based next_observations output (for RL training)
-            if trigger is not None:
-                # Output cached observations when triggered by PPOTrainer
-                next_observations = self.cached_observations if self.cached_observations is not None else torch.zeros(num_envs, 4)
-                self.logger.debug(f"Trigger received, outputting cached observations: shape={next_observations.shape}")
-                return {
-                    "observations": torch.zeros(num_envs, 4),  # observations (dummy)
-                    "rewards": torch.zeros(num_envs),           # rewards (dummy)  
-                    "done": torch.zeros(num_envs, dtype=torch.bool),  # done (dummy)
-                    "info": {},                               # info (dummy)
-                    "next_observations": next_observations      # next_observations (cached)
-                }
-            
-            # Normal execution: step simulation using environment class
+            # Always step simulation when we have actions
             if actions is not None:
                 # Step environment with actions
                 observations, rewards, done, info = environment.step_simulation(actions)
@@ -185,12 +166,6 @@ class IsaacGymStepNode_9(QueueNode):
             if hasattr(sim_handle, 'viewer') and sim_handle.viewer is not None:
                 environment.update_viewer(sim_handle.viewer)
             
-            # Cache results for later trigger-based output
-            self.cached_observations = observations
-            self.cached_rewards = rewards
-            self.cached_done = done
-            self.cached_info = info
-            
             # Update step counter
             self.step_count += 1
             
@@ -199,12 +174,14 @@ class IsaacGymStepNode_9(QueueNode):
                 avg_reward = torch.mean(rewards).item() if len(rewards) > 0 else 0.0
                 self.logger.info(f"Step {self.step_count}: avg reward = {avg_reward:.4f}")
             
+            # Return current step results
+            # The trigger parameter is just for synchronization, not for changing behavior
             return {
                 "observations": observations,              # Current step observations
                 "rewards": rewards,                       # Current step rewards
                 "done": done,                            # Current step done flags
                 "info": info,                            # Current step info
-                "next_observations": torch.zeros(num_envs, 4)  # next_observations (empty until triggered)
+                "next_observations": observations         # For PPO, next_obs = current obs
             }
             
         except Exception as e:
