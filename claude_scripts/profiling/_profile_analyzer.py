@@ -106,12 +106,20 @@ class ProfileAnalyzer:
         enhanced_metrics = basic_metrics.copy()
         enhanced_metrics['timings'] = timings
         
+        # Update steps_per_sec with accurate first/last timing if available
+        if cpp_timings and 'step_rate_info' in cpp_timings:
+            step_rate_info = cpp_timings['step_rate_info']
+            if 'steps_per_second' in step_rate_info:
+                print(f"  📊 Using accurate step rate from first/last timing: {step_rate_info['steps_per_second']:.1f} steps/sec")
+                enhanced_metrics['steps_per_sec'] = step_rate_info['steps_per_second']
+                enhanced_metrics['step_rate_info'] = step_rate_info
+        
         # Calculate additional summary metrics
         enhanced_metrics['summary'] = {
             'total_time': basic_metrics['total_time'],
             'init_time': self._estimate_init_time(timings, basic_metrics),
             'step_count': basic_metrics['step_count'],
-            'steps_per_sec': basic_metrics['steps_per_sec'],
+            'steps_per_sec': enhanced_metrics.get('steps_per_sec', basic_metrics['steps_per_sec']),
             'iterations_per_sec': basic_metrics['num_iterations'] / basic_metrics['total_time']
         }
         
@@ -204,7 +212,18 @@ class ProfileAnalyzer:
             f.write("Summary Metrics:\n")
             f.write(f"  Total Time: {enhanced_metrics['total_time']:.2f}s\n")
             f.write(f"  Steps/sec: {enhanced_metrics['steps_per_sec']:.1f}\n")
-            f.write(f"  Step Count: {enhanced_metrics['step_count']}\n\n")
+            f.write(f"  Step Count: {enhanced_metrics['step_count']}\n")
+            
+            # Add step rate calculation details if available
+            if 'step_rate_info' in enhanced_metrics:
+                info = enhanced_metrics['step_rate_info']
+                f.write(f"\nStep Rate Calculation:\n")
+                f.write(f"  Method: First/Last step timing\n")
+                f.write(f"  Elapsed Time: {info['elapsed_time']:.3f}s (excluding init/cleanup)\n")
+                f.write(f"  Total Env Steps: {info['total_env_steps']}\n")
+                f.write(f"  Accurate Rate: {info['steps_per_second']:.1f} steps/sec\n")
+            
+            f.write("\n")
             
             f.write("Timing Breakdown (ms):\n")
             if 'timings' in enhanced_metrics:

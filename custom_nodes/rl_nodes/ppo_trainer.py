@@ -26,6 +26,8 @@ class PPOTrainerNode:
         self.step_count = 0
         self.checkpoint_manager = None
         self.last_loss = None  # For best metric checkpointing
+        self.current_epoch = 0  # Track training epochs
+        self.training_complete = False  # Signal when max_epochs reached
         
     def reset_buffer(self):
         """Reset the trajectory buffer"""
@@ -46,16 +48,17 @@ class PPOTrainerNode:
                 "reward": ("TENSOR", {"tooltip": "Reward signal from environment (scalar per environment)"}),
                 "done": ("TENSOR", {"tooltip": "Episode termination flags (boolean per environment)"}),
                 "model": ("MODEL", {"tooltip": "Neural network model to train (actor-critic architecture)"}),
+                "max_epochs": ("INT", {"default": 100, "min": 1, "max": 10000, "tooltip": "Maximum number of training epochs before stopping"}),
                 "horizon_length": ("INT", {"default": 16, "min": 4, "max": 256, "tooltip": "Number of steps to collect before training (trajectory length)"}),
-                "num_epochs": ("INT", {"default": 4, "min": 1, "max": 20, "tooltip": "Number of training epochs per collected trajectory"}),
-                "minibatch_size": ("INT", {"default": 32, "min": 4, "max": 512, "tooltip": "Batch size for SGD updates during training"}),
+                "ppo_epochs": ("INT", {"default": 8, "min": 1, "max": 20, "tooltip": "Number of PPO update epochs per collected trajectory"}),
+                "minibatch_size": ("INT", {"default": 8192, "min": 4, "max": 16384, "tooltip": "Batch size for SGD updates during training"}),
                 "gamma": ("FLOAT", {"default": 0.99, "min": 0.9, "max": 1.0, "step": 0.01, "tooltip": "Discount factor for future rewards (0.99 = long-term focus)"}),
                 "gae_lambda": ("FLOAT", {"default": 0.95, "min": 0.9, "max": 1.0, "step": 0.01, "tooltip": "GAE lambda parameter for advantage estimation (higher = less bias)"}),
                 "clip_param": ("FLOAT", {"default": 0.2, "min": 0.05, "max": 0.5, "step": 0.01, "tooltip": "PPO clipping parameter (prevents large policy updates)"}),
-                "value_coef": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 2.0, "step": 0.1, "tooltip": "Coefficient for value function loss in total loss"}),
-                "entropy_coef": ("FLOAT", {"default": 0.01, "min": 0.0, "max": 0.1, "step": 0.001, "tooltip": "Coefficient for entropy bonus (encourages exploration)"}),
+                "value_coef": ("FLOAT", {"default": 4.0, "min": 0.1, "max": 10.0, "step": 0.1, "tooltip": "Coefficient for value function loss in total loss"}),
+                "entropy_coef": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 0.1, "step": 0.001, "tooltip": "Coefficient for entropy bonus (encourages exploration)"}),
                 "learning_rate": ("FLOAT", {"default": 3e-4, "min": 1e-6, "max": 1e-1, "step": 1e-6, "tooltip": "Learning rate for the optimizer (3e-4 is PPO standard)"}),
-                "max_grad_norm": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 5.0, "step": 0.1, "tooltip": "Maximum gradient norm for clipping (prevents exploding gradients)"}),
+                "max_grad_norm": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 5.0, "step": 0.1, "tooltip": "Maximum gradient norm for clipping (prevents exploding gradients)"}),
                 # Checkpoint parameters
                 "checkpoint_enabled": ("BOOLEAN", {"default": False, "tooltip": "Enable automatic checkpoint saving during training. Checkpoints saved to 'node_<ID>' subdirectories."}),
                 "checkpoint_trigger_type": (["epoch", "time", "best_metric"], {"default": "epoch", "tooltip": "When to save checkpoints: every N training steps, time intervals, or metric improvements"}),
@@ -75,10 +78,10 @@ class PPOTrainerNode:
     DESCRIPTION = cleandoc(__doc__)
     
     def train_step(self, state, policy_output, reward, done, model, 
-                   horizon_length=16, num_epochs=4, minibatch_size=32,
+                   max_epochs=100, horizon_length=16, ppo_epochs=8, minibatch_size=8192,
                    gamma=0.99, gae_lambda=0.95, clip_param=0.2,
-                   value_coef=0.5, entropy_coef=0.01, learning_rate=3e-4,
-                   max_grad_norm=0.5, checkpoint_enabled=False,
+                   value_coef=4.0, entropy_coef=0.0, learning_rate=3e-4,
+                   max_grad_norm=1.0, checkpoint_enabled=False,
                    checkpoint_trigger_type="epoch", checkpoint_trigger_value="10",
                    unique_id=None):
         """
@@ -169,12 +172,18 @@ class PPOTrainerNode:
                            dones, advantages, returns)
             
             # Perform PPO training
-            total_loss = self.ppo_update(batch, model, num_epochs, minibatch_size,
+            total_loss = self.ppo_update(batch, model, ppo_epochs, minibatch_size,
                                        clip_param, value_coef, entropy_coef,
                                        learning_rate, max_grad_norm)
             
-            # Update step count
+            # Update step count and epoch count
             self.step_count += 1
+            self.current_epoch += 1
+            
+            # Check if we've reached max epochs
+            if self.current_epoch >= max_epochs:
+                self.training_complete = True
+                print(f"🎯 PPO Trainer reached max_epochs ({max_epochs}) - signaling completion")
             
             # Handle checkpointing
             if checkpoint_enabled and self.checkpoint_manager:
@@ -206,8 +215,9 @@ class PPOTrainerNode:
                         'loss': current_loss,
                         'optimizer_state': self.optimizer.state_dict() if self.optimizer else None,
                         'hyperparameters': {
+                            'max_epochs': max_epochs,
                             'horizon_length': horizon_length,
-                            'num_epochs': num_epochs,
+                            'ppo_epochs': ppo_epochs,
                             'minibatch_size': minibatch_size,
                             'gamma': gamma,
                             'gae_lambda': gae_lambda,

@@ -2,9 +2,10 @@
 template_vars = {
     "NODE_ID": "ppo_trainer_1",
     "CLASS_NAME": "PPOTrainerNode",
+    "MAX_EPOCHS": 100,  # Maximum training epochs (when to stop)
     "HORIZON_LENGTH": 16,
-    "NUM_EPOCHS": 8,  # Updated to match IsaacGymEnvs mini_epochs: 8
-    "MINIBATCH_SIZE": 2048,  # Updated for better batch efficiency
+    "PPO_EPOCHS": 8,  # PPO update epochs per trajectory (mini-epochs)
+    "MINIBATCH_SIZE": 8192,  # Updated for better batch efficiency
     "GAMMA": 0.99,
     "GAE_LAMBDA": 0.95,  # tau: 0.95 from IsaacGymEnvs
     "CLIP_PARAM": 0.2,  # e_clip: 0.2 from IsaacGymEnvs
@@ -26,8 +27,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.setup_outputs(["loss", "training_complete"])
         
         # Configuration from template
+        self.max_epochs = {MAX_EPOCHS}
         self.horizon_length = {HORIZON_LENGTH}
-        self.num_epochs = {NUM_EPOCHS}
+        self.ppo_epochs = {PPO_EPOCHS}
         self.minibatch_size = {MINIBATCH_SIZE}
         self.gamma = {GAMMA}
         self.gae_lambda = {GAE_LAMBDA}
@@ -42,6 +44,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.optimizer = None
         self.step_count = 0
+        self.current_epoch = 0  # Track training epochs
+        self.training_complete = False  # Signal when max_epochs reached
         
         # Check if we're in inference mode
         import builtins
@@ -84,7 +88,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 self.logger.error(f"Checkpoint configuration error: {e}")
                 self.checkpoint_enabled = False
         
-        self.logger.info(f"PPOTrainerNode {node_id} initialized with horizon={self.horizon_length}, epochs={self.num_epochs}")
+        self.logger.info(f"PPOTrainerNode {node_id} initialized with max_epochs={self.max_epochs}, horizon={self.horizon_length}, ppo_epochs={self.ppo_epochs}")
         
     def reset_buffer(self):
         """Reset the trajectory buffer"""
@@ -160,7 +164,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         batch_size = len(states)
         
         # Multiple epochs over the data
-        for epoch in range(self.num_epochs):
+        for epoch in range(self.ppo_epochs):
             # Create minibatches
             indices = torch.randperm(batch_size)
             
@@ -272,6 +276,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "training_complete": {"signal": "complete", "timestamp": time.time()}
             }
         
+        # If training is complete, stop processing immediately
+        if self.training_complete:
+            from framework.base import TrainingCompleteException
+            raise TrainingCompleteException(
+                self.node_id, 
+                f"PPO training complete after {self.current_epoch}/{self.max_epochs} epochs"
+            )
+        
         try:
             # Ensure tensors are on correct device
             state = state.to(self.device)
@@ -310,8 +322,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 # Perform PPO training
                 total_loss = self.ppo_update(states, actions, log_probs, advantages, returns, model)
                 
-                # Update step count
+                # Update step count and epoch count
                 self.step_count += 1
+                self.current_epoch += 1
+                
+                # Check if we've reached max epochs
+                if self.current_epoch >= self.max_epochs:
+                    self.training_complete = True
+                    self.logger.info(f"🎯 PPO Trainer reached max_epochs ({self.max_epochs}) - signaling completion")
                 
                 # Handle checkpointing
                 if self.checkpoint_enabled and self.checkpoint_manager:
@@ -343,8 +361,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                             'loss': current_loss,
                             'optimizer_state': self.optimizer.state_dict() if self.optimizer else None,
                             'hyperparameters': {{
+                                'max_epochs': self.max_epochs,
                                 'horizon_length': self.horizon_length,
-                                'num_epochs': self.num_epochs,
+                                'ppo_epochs': self.ppo_epochs,
                                 'minibatch_size': self.minibatch_size,
                                 'gamma': self.gamma,
                                 'gae_lambda': self.gae_lambda,
@@ -436,8 +455,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 'exit_reason': exit_reason,
                 'timestamp': time.time(),
                 'training_step': self.step_count,
+                'max_epochs': self.max_epochs,
+                'current_epoch': self.current_epoch,
                 'horizon_length': self.horizon_length,
-                'num_epochs': self.num_epochs,
+                'ppo_epochs': self.ppo_epochs,
                 'minibatch_size': self.minibatch_size,
                 'hyperparameters': {
                     'gamma': self.gamma,
