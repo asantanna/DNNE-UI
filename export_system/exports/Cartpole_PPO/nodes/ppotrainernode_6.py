@@ -10,40 +10,78 @@ from framework.base import QueueNode, SensorNode
 
 # Template variables - replaced during export
 
+"""Node implementation for PPOTrainerNode using rl_games components"""
+import time
+from typing import Dict, Any
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.distributions as dist
+import numpy as np
+from framework.base import QueueNode, SensorNode
+
+# Import rl_games PPO components
+import sys
+import os
+template_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(template_dir)
+from rlgames_ppo_components import RLGamesPPOComponents
+
 class PPOTrainerNode_6(QueueNode):
-    """PPO Trainer Node - Complete PPO Training Algorithm"""
+    """PPO Trainer Node using rl_games components - maintains DNNE async coordination"""
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
         self.setup_inputs(required=["state", "policy_output", "reward", "done", "model"])
         self.setup_outputs(["loss", "training_complete"])
         
-        # Configuration from template
-        # Check for command-line epochs override
+        # Configuration from template - using rl_games parameter names
         import builtins
         if hasattr(builtins, 'EPOCHS_OVERRIDE') and builtins.EPOCHS_OVERRIDE is not None:
             self.max_epochs = builtins.EPOCHS_OVERRIDE
             self.logger.info(f"Using epochs override: {self.max_epochs} (instead of workflow value: 5)")
         else:
             self.max_epochs = 5
+            
+        # rl_games compatible configuration
+        rlgames_config = {
+            'horizon_length': 16,
+            'mini_epochs_num': 8,
+            'minibatch_size': 8192,
+            'gamma': 0.99,
+            'tau': 0.95,
+            'e_clip': 0.2,
+            'critic_coef': 4,
+            'entropy_coef': 0,
+            'learning_rate': 0.0003,
+            'grad_norm': 1,
+            'clip_value': True,
+            'bounds_loss_coef': 0.0001,
+            'bound_loss_type': "bound"
+        }
+        
+        # Initialize rl_games PPO components
+        self.ppo_components = RLGamesPPOComponents(rlgames_config)
+        
+        # Maintain DNNE parameter access (for backward compatibility)
         self.horizon_length = 16
-        self.ppo_epochs = 8
+        self.mini_epochs_num = 8
         self.minibatch_size = 8192
         self.gamma = 0.99
-        self.gae_lambda = 0.95
-        self.clip_param = 0.2
-        self.value_coef = 4
+        self.tau = 0.95
+        self.e_clip = 0.2
+        self.critic_coef = 4
         self.entropy_coef = 0
         self.learning_rate = 0.0003
-        self.max_grad_norm = 1
+        self.grad_norm = 1
         
         # Training state
         self.reset_buffer()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.optimizer = None
         self.step_count = 0
-        self.current_epoch = 0  # Track training epochs
-        self.training_complete = False  # Signal when max_epochs reached
+        self.current_epoch = 0
+        self.training_complete = False
         
         # Check if we're in inference mode
         import builtins
@@ -53,7 +91,7 @@ class PPOTrainerNode_6(QueueNode):
         self.checkpoint_enabled = True
         self.checkpoint_trigger_type = "epoch"
         self.checkpoint_trigger_value = "5"
-        self.checkpoint_save_on_exit = True  # Default to save on exit
+        self.checkpoint_save_on_exit = True
         self.checkpoint_manager = None
         self.last_loss = None
         
@@ -61,7 +99,6 @@ class PPOTrainerNode_6(QueueNode):
         if self.checkpoint_enabled:
             from run_utils import CheckpointManager, validate_checkpoint_config
             
-            # Validate checkpoint configuration
             checkpoint_config = {
                 'enabled': self.checkpoint_enabled,
                 'trigger_type': self.checkpoint_trigger_type,
@@ -70,12 +107,8 @@ class PPOTrainerNode_6(QueueNode):
             
             try:
                 validate_checkpoint_config(checkpoint_config)
-                # Get checkpoint directory from command line args (set by runner.py)
-                try:
-                    import builtins
-                    save_checkpoint_dir = getattr(builtins, 'SAVE_CHECKPOINT_DIR', None)
-                except:
-                    save_checkpoint_dir = None
+                import builtins
+                save_checkpoint_dir = getattr(builtins, 'SAVE_CHECKPOINT_DIR', None)
                     
                 self.checkpoint_manager = CheckpointManager(
                     node_id=node_id,
@@ -86,7 +119,7 @@ class PPOTrainerNode_6(QueueNode):
                 self.logger.error(f"Checkpoint configuration error: {e}")
                 self.checkpoint_enabled = False
         
-        self.logger.info(f"PPOTrainerNode {node_id} initialized with max_epochs={self.max_epochs}, horizon={self.horizon_length}, ppo_epochs={self.ppo_epochs}")
+        self.logger.info(f"PPOTrainerNode {node_id} initialized with rl_games components - max_epochs={self.max_epochs}, horizon={self.horizon_length}, mini_epochs={self.mini_epochs_num}")
         
     def reset_buffer(self):
         """Reset the trajectory buffer"""
@@ -96,58 +129,55 @@ class PPOTrainerNode_6(QueueNode):
         self.buffer_values = []
         self.buffer_log_probs = []
         self.buffer_dones = []
+        self.buffer_action_means = []  # Store mu for rl_games
+        self.buffer_action_stds = []   # Store sigma for rl_games
         self.buffer_full = False
         
-    def compute_gae_advantages(self, rewards, values, dones):
+    def prepare_rlgames_input_dict(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds):
         """
-        Compute Generalized Advantage Estimation (GAE) advantages
+        Convert DNNE buffer data to rl_games input_dict format
         
         Args:
-            rewards: [horizon_length] reward tensor
-            values: [horizon_length] value estimates  
-            dones: [horizon_length] episode termination flags
+            states, actions, rewards, values, log_probs, dones: DNNE trajectory data
+            action_means, action_stds: Policy parameters for rl_games
             
         Returns:
-            advantages: [horizon_length] GAE advantages
-            returns: [horizon_length] discounted returns
+            input_dict: rl_games compatible data dictionary
         """
-        horizon_length = len(rewards)
-        advantages = torch.zeros_like(rewards)
+        # Compute GAE advantages using rl_games method
+        advantages = self.ppo_components.discount_values(rewards, values, dones)
         
-        # Compute advantages using GAE recursion
-        lastgaelam = 0
-        for t in reversed(range(horizon_length)):
-            if t == horizon_length - 1:
-                nextnonterminal = (~dones[t]).float()  # Use logical NOT instead of subtraction
-                nextvalues = 0  # Assume episode ends
-            else:
-                nextnonterminal = (~dones[t]).float()  # Use logical NOT instead of subtraction
-                nextvalues = values[t + 1]
-                
-            delta = rewards[t] + self.gamma * nextvalues * nextnonterminal - values[t]
-            advantages[t] = lastgaelam = delta + self.gamma * self.gae_lambda * nextnonterminal * lastgaelam
-        
-        # Returns = advantages + values
+        # Compute returns
         returns = advantages + values
         
-        return advantages, returns
+        # Create rl_games input dictionary
+        input_dict = {
+            'old_values': values.detach(),
+            'old_logp_actions': log_probs.detach(),
+            'advantages': advantages.detach(),
+            'returns': returns.detach(),
+            'actions': actions.detach(),
+            'obs': states.detach(),
+            'mu': action_means.detach(),
+            'sigma': action_stds.detach(),
+            'dones': dones.detach()
+        }
         
-    def ppo_update(self, states, actions, old_log_probs, advantages, returns, model):
+        return input_dict
+    
+    def rlgames_ppo_update(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds, model):
         """
-        Perform PPO update on collected batch
+        Perform PPO update using rl_games components
+        Replaces custom ppo_update() method with rl_games implementation
         
         Args:
-            states, actions, old_log_probs, advantages, returns: Trajectory data
+            states, actions, rewards, values, log_probs, dones: Trajectory data
+            action_means, action_stds: Policy parameters
             model: PyTorch model to update
             
         Returns:
             average_loss: Average loss over all updates
         """
-        
-        import torch.optim as optim
-        import torch.nn as nn
-        import torch.distributions as dist
-        import numpy as np
         
         # Skip training in inference mode
         if self.inference_mode:
@@ -161,8 +191,13 @@ class PPOTrainerNode_6(QueueNode):
         total_losses = []
         batch_size = len(states)
         
-        # Multiple epochs over the data
-        for epoch in range(self.ppo_epochs):
+        # Prepare rl_games input dictionary
+        input_dict = self.prepare_rlgames_input_dict(
+            states, actions, rewards, values, log_probs, dones, action_means, action_stds
+        )
+        
+        # Multiple mini-epochs over the data (rl_games pattern)
+        for mini_epoch in range(self.mini_epochs_num):
             # Create minibatches
             indices = torch.randperm(batch_size)
             
@@ -170,73 +205,33 @@ class PPOTrainerNode_6(QueueNode):
                 end = min(start + self.minibatch_size, batch_size)
                 mb_indices = indices[start:end]
                 
-                # Get minibatch data
-                mb_states = states[mb_indices]
-                mb_actions = actions[mb_indices]
-                mb_old_log_probs = old_log_probs[mb_indices]
-                mb_advantages = advantages[mb_indices]
-                mb_returns = returns[mb_indices]
+                # Create minibatch input_dict
+                mb_input_dict = {}
+                for key, value in input_dict.items():
+                    mb_input_dict[key] = value[mb_indices]
                 
-                # Forward pass through model
-                features = model['shared'](mb_states)
+                # Use rl_games PPO components for loss computation
+                train_result, loss = self.ppo_components.train_actor_critic(mb_input_dict, model)
                 
-                # Get current values
-                current_values = model['value'](features).squeeze(-1)
-                
-                # Get current policy
-                if 'policy_log_std' in model:
-                    # Continuous action space
-                    action_mean = model['policy_mean'](features)
-                    action_std = torch.exp(model['policy_log_std']['log_std'])
-                    
-                    policy_dist = dist.Normal(action_mean, action_std)
-                    current_log_probs = policy_dist.log_prob(mb_actions).sum(dim=-1)
-                    entropy = policy_dist.entropy().sum(dim=-1)
-                    
-                else:
-                    # Discrete action space  
-                    action_logits = model['policy_mean'](features)
-                    policy_dist = dist.Categorical(logits=action_logits)
-                    current_log_probs = policy_dist.log_prob(mb_actions.squeeze(-1))
-                    entropy = policy_dist.entropy()
-                
-                # Compute PPO loss
-                ratio = torch.exp(current_log_probs - mb_old_log_probs)
-                
-                # Actor loss (PPO clipped objective)
-                surr1 = mb_advantages * ratio
-                surr2 = mb_advantages * torch.clamp(ratio, 1 - self.clip_param, 1 + self.clip_param)
-                actor_loss = -torch.min(surr1, surr2).mean()
-                
-                # Critic loss (MSE)
-                critic_loss = nn.MSELoss()(current_values, mb_returns)
-                
-                # Entropy loss (for exploration)
-                entropy_loss = -entropy.mean()
-                
-                # Total loss
-                total_loss = actor_loss + self.value_coef * critic_loss + self.entropy_coef * entropy_loss
-                
-                # Backpropagation
+                # Backpropagation (DNNE maintains control over optimization)
                 self.optimizer.zero_grad()
-                total_loss.backward()
+                loss.backward()
                 
-                # Gradient clipping
-                torch.nn.utils.clip_grad_norm_(model.parameters(), self.max_grad_norm)
+                # Gradient clipping using rl_games parameter
+                torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm)
                 
                 self.optimizer.step()
                 
-                total_losses.append(total_loss.item())
+                total_losses.append(loss.item())
                 
         return torch.tensor(np.mean(total_losses), device=self.device)
     
     async def run(self):
         """Override run to send initial training_complete trigger"""
         self.running = True
-        self.logger.info(f"Starting PPOTrainer node {self.node_id}")
+        self.logger.info(f"Starting PPOTrainer node {self.node_id} with rl_games components")
         
         # CRITICAL: Send initial training_complete trigger to break circular dependency
-        # This allows IsaacGymStep node to start executing
         await self.send_output("training_complete", {"trigger": True, "step": 0})
         self.logger.info("Sent initial training_complete trigger to break circular dependency")
         
@@ -245,7 +240,7 @@ class PPOTrainerNode_6(QueueNode):
         
     async def compute(self, state, policy_output, reward, done, model) -> Dict[str, Any]:
         """
-        PPO training step - collect trajectory and train when buffer is full
+        PPO training step using rl_games components - maintains DNNE async coordination
         
         Args:
             state: Current state tensor
@@ -259,16 +254,8 @@ class PPOTrainerNode_6(QueueNode):
             training_complete: Sync signal when training is done
         """
         
-        import torch
-        import torch.nn as nn
-        import torch.distributions as dist
-        import numpy as np
-        import os
-        import time
-        
         # In inference mode, just pass through signals without training
         if self.inference_mode:
-            # Send training complete signal immediately to maintain data flow
             return {
                 "loss": torch.zeros(1, device=self.device),
                 "training_complete": {"signal": "complete", "timestamp": time.time()}
@@ -293,6 +280,10 @@ class PPOTrainerNode_6(QueueNode):
             value = policy_output["value"].to(self.device)
             log_prob = policy_output["log_prob"].to(self.device)
             
+            # Extract action parameters for rl_games (if available)
+            action_mean = policy_output.get("action_mean", torch.zeros_like(action))
+            action_std = policy_output.get("action_std", torch.ones_like(action))
+            
             # Add to buffer (detach to avoid gradient conflicts)
             self.buffer_states.append(state.detach().clone())
             self.buffer_actions.append(action.detach().clone())
@@ -300,8 +291,10 @@ class PPOTrainerNode_6(QueueNode):
             self.buffer_values.append(value.detach().clone())
             self.buffer_log_probs.append(log_prob.detach().clone())
             self.buffer_dones.append(done.detach().clone())
+            self.buffer_action_means.append(action_mean.detach().clone())
+            self.buffer_action_stds.append(action_std.detach().clone())
             
-            # Check if buffer is full
+            # Check if buffer is full (DNNE async coordination maintained)
             if len(self.buffer_states) >= self.horizon_length:
                 # Convert buffer to tensors
                 states = torch.stack(self.buffer_states)
@@ -310,15 +303,14 @@ class PPOTrainerNode_6(QueueNode):
                 values = torch.stack(self.buffer_values)
                 log_probs = torch.stack(self.buffer_log_probs)
                 dones = torch.stack(self.buffer_dones)
+                action_means = torch.stack(self.buffer_action_means)
+                action_stds = torch.stack(self.buffer_action_stds)
                 
-                # Compute advantages and returns using GAE
-                advantages, returns = self.compute_gae_advantages(rewards, values, dones)
-                
-                # Normalize advantages
-                advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-                
-                # Perform PPO training
-                total_loss = self.ppo_update(states, actions, log_probs, advantages, returns, model)
+                # Perform PPO training using rl_games components
+                total_loss = self.rlgames_ppo_update(
+                    states, actions, rewards, values, log_probs, dones, 
+                    action_means, action_stds, model
+                )
                 
                 # Update step count and epoch count
                 self.step_count += 1
@@ -329,12 +321,11 @@ class PPOTrainerNode_6(QueueNode):
                     self.training_complete = True
                     self.logger.info(f"🎯 PPO Trainer reached max_epochs ({self.max_epochs}) - signaling completion")
                 
-                # Handle checkpointing
+                # Handle checkpointing (unchanged from original)
                 if self.checkpoint_enabled and self.checkpoint_manager:
                     current_loss = total_loss.item()
                     self.last_loss = current_loss
                     
-                    # Check if we should checkpoint
                     should_checkpoint = False
                     if self.checkpoint_trigger_type == "epoch":
                         should_checkpoint = self.checkpoint_manager.should_checkpoint(
@@ -345,13 +336,11 @@ class PPOTrainerNode_6(QueueNode):
                             "time", self.checkpoint_trigger_value
                         )
                     elif self.checkpoint_trigger_type == "best_metric":
-                        # Use loss as metric (lower is better)
                         should_checkpoint = self.checkpoint_manager.should_checkpoint(
                             "best_metric", "min", current_metric=current_loss
                         )
                     
                     if should_checkpoint:
-                        # Prepare metadata with training state and hyperparameters
                         metadata = {
                             'trigger_type': self.checkpoint_trigger_type,
                             'trigger_value': self.checkpoint_trigger_value,
@@ -361,24 +350,23 @@ class PPOTrainerNode_6(QueueNode):
                             'hyperparameters': {
                                 'max_epochs': self.max_epochs,
                                 'horizon_length': self.horizon_length,
-                                'ppo_epochs': self.ppo_epochs,
+                                'mini_epochs_num': self.mini_epochs_num,
                                 'minibatch_size': self.minibatch_size,
                                 'gamma': self.gamma,
-                                'gae_lambda': self.gae_lambda,
-                                'clip_param': self.clip_param,
-                                'value_coef': self.value_coef,
+                                'tau': self.tau,
+                                'e_clip': self.e_clip,
+                                'critic_coef': self.critic_coef,
                                 'entropy_coef': self.entropy_coef,
                                 'learning_rate': self.learning_rate,
-                                'max_grad_norm': self.max_grad_norm
+                                'grad_norm': self.grad_norm
                             }
                         }
                         
-                        # Save checkpoint (only model weights + metadata)
                         self.checkpoint_manager.save_checkpoint(
                             model.state_dict(), metadata=metadata
                         )
                 
-                # Reset buffer
+                # Reset buffer (DNNE async coordination maintained)
                 self.reset_buffer()
                 
                 # Create completion signal
@@ -389,7 +377,7 @@ class PPOTrainerNode_6(QueueNode):
                     "source_node": f"ppo_trainer_{self.node_id}"
                 }
                 
-                self.logger.info(f"PPO training step {self.step_count} complete, loss: {total_loss.item():.4f}")
+                self.logger.info(f"PPO training step {self.step_count} complete (rl_games), loss: {total_loss.item():.4f}")
                 
                 return {
                     "loss": total_loss,
@@ -397,7 +385,7 @@ class PPOTrainerNode_6(QueueNode):
                 }
             
             else:
-                # Still collecting, return dummy outputs
+                # Still collecting, return dummy outputs (DNNE async coordination maintained)
                 dummy_loss = torch.tensor(0.0, device=self.device)
                 dummy_signal = {
                     "signal_type": "collecting", 
@@ -428,26 +416,13 @@ class PPOTrainerNode_6(QueueNode):
             }
     
     async def save_checkpoint_on_exit(self, exit_reason: str) -> bool:
-        """
-        Save checkpoint on exit if enabled
-        
-        Args:
-            exit_reason: Reason for exit ('timeout', 'training_complete', 'keyboard_interrupt', etc.)
-            
-        Returns:
-            bool: True if checkpoint saved successfully
-        """
+        """Save checkpoint on exit if enabled (unchanged from original)"""
         if not self.checkpoint_enabled or not self.checkpoint_save_on_exit or not self.checkpoint_manager:
             return False
             
         try:
             import time
             
-            # Get the most recent model from the buffer (if any)
-            # Note: We'll need to save whatever model was passed to the last training step
-            # For now, we'll save basic metadata about the training state
-            
-            # Prepare exit metadata
             metadata = {
                 'exit_type': 'on_exit',
                 'exit_reason': exit_reason,
@@ -456,31 +431,30 @@ class PPOTrainerNode_6(QueueNode):
                 'max_epochs': self.max_epochs,
                 'current_epoch': self.current_epoch,
                 'horizon_length': self.horizon_length,
-                'ppo_epochs': self.ppo_epochs,
+                'mini_epochs_num': self.mini_epochs_num,
                 'minibatch_size': self.minibatch_size,
                 'hyperparameters': {
                     'gamma': self.gamma,
-                    'gae_lambda': self.gae_lambda,
-                    'clip_param': self.clip_param,
-                    'value_coef': self.value_coef,
+                    'tau': self.tau,
+                    'e_clip': self.e_clip,
+                    'critic_coef': self.critic_coef,
                     'entropy_coef': self.entropy_coef,
                     'learning_rate': self.learning_rate,
-                    'max_grad_norm': self.max_grad_norm
+                    'grad_norm': self.grad_norm
                 },
-                'last_loss': self.last_loss
+                'last_loss': self.last_loss,
+                'rlgames_integration': True
             }
             
-            # For PPO trainer, we save training state but no model weights
-            # (The actual model weights are saved by the PPOAgent node)
             success = self.checkpoint_manager.save_checkpoint(
-                {}, metadata=metadata  # Empty state dict, just metadata
+                {}, metadata=metadata
             )
             
             if success:
-                self.logger.info(f"💾 Exit checkpoint saved for PPOTrainer node {self.node_id}")
+                self.logger.info(f"💾 Exit checkpoint saved for rl_games PPOTrainer node {self.node_id}")
                 return True
             else:
-                self.logger.warning(f"⚠️ Failed to save exit checkpoint for PPOTrainer node {self.node_id}")
+                self.logger.warning(f"⚠️ Failed to save exit checkpoint for rl_games PPOTrainer node {self.node_id}")
                 return False
                 
         except Exception as e:
