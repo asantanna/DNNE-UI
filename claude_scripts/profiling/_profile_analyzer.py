@@ -25,7 +25,10 @@ class ProfileAnalyzer:
         'compute_returns': ['compute_returns', 'calculate_returns'],
         'policy_forward': ['forward', 'policy_forward', 'actor_critic'],
         'policy_backward': ['backward', 'loss.backward'],
-        'optimizer_step': ['optimizer.step', 'adam.step']
+        'optimizer_step': ['optimizer.step', 'adam.step'],
+        'draw_viewer': ['draw_viewer', 'render_viewer', 'render'],
+        'step_graphics': ['step_graphics', 'graphics_step'],
+        'update_viewer': ['update_viewer', 'viewer_update']
     }
     
     DNNE_PATTERNS = {
@@ -39,7 +42,10 @@ class ProfileAnalyzer:
         'policy_forward': ['forward', 'network_forward'],
         'policy_backward': ['backward', 'compute_gradients'],
         'optimizer_step': ['optimizer_step', 'sgd_step'],
-        'queue_operations': ['queue', 'get_queue', 'put_queue', 'QueueNode']
+        'queue_operations': ['queue', 'get_queue', 'put_queue', 'QueueNode'],
+        'draw_viewer': ['draw_viewer', 'render_viewer', 'render'],
+        'step_graphics': ['step_graphics', 'graphics_step'],
+        'update_viewer': ['update_viewer', 'viewer_update']
     }
     
     def analyze_profile(self, system, prof_file, basic_metrics):
@@ -68,11 +74,14 @@ class ProfileAnalyzer:
         
         # Extract timings from cProfile
         timings = {}
-        function_times = self._extract_function_times(stats)
+        function_data = self._extract_function_data(stats)
         
         for metric_name, search_patterns in patterns.items():
-            time_ms = self._find_matching_time(function_times, search_patterns)
+            time_ms, call_count = self._find_matching_data(function_data, search_patterns)
             timings[metric_name] = time_ms
+            # Store call counts for render metrics
+            if metric_name in ['draw_viewer', 'step_graphics', 'update_viewer']:
+                timings[f'{metric_name}_count'] = call_count
         
         # Load and merge C++ timing data if available
         cpp_timings = self._load_cpp_timings(system)
@@ -133,44 +142,56 @@ class ProfileAnalyzer:
         
         print(f"  ✅ Found {len([t for t in timings.values() if t is not None])} timing metrics")
         
+        # Extract render count metrics from cProfile data
+        render_metrics = self._extract_render_metrics(timings, basic_metrics)
+        enhanced_metrics['render_metrics'] = render_metrics
+        
         # Save detailed report
         self.save_detailed_report(system, enhanced_metrics)
         
         return enhanced_metrics
     
-    def _extract_function_times(self, stats):
-        """Extract all function times from pstats"""
-        function_times = {}
+    def _extract_function_data(self, stats):
+        """Extract all function times and call counts from pstats"""
+        function_data = {}
         
-        # stats.stats is a dict of ((filename, line, function), cumtime, ...)
+        # stats.stats is a dict of ((filename, line, function), (callcount, reccallcount, totaltime, cumtime))
         for func_key, func_stats in stats.stats.items():
             filename, line_num, func_name = func_key
+            call_count = func_stats[0]  # number of calls
             cumulative_time = func_stats[3]  # cumulative time in seconds
             
             # Store by function name and full key
-            function_times[func_name] = cumulative_time * 1000  # Convert to ms
+            function_data[func_name] = {
+                'time_ms': cumulative_time * 1000,  # Convert to ms
+                'call_count': call_count
+            }
             
             # Also store with module prefix if available
             if '/' in filename:
                 module = filename.split('/')[-1].replace('.py', '')
                 full_name = f"{module}.{func_name}"
-                function_times[full_name] = cumulative_time * 1000
+                function_data[full_name] = {
+                    'time_ms': cumulative_time * 1000,
+                    'call_count': call_count
+                }
         
-        return function_times
+        return function_data
     
-    def _find_matching_time(self, function_times, patterns):
-        """Find the best matching function time for given patterns"""
+    def _find_matching_data(self, function_data, patterns):
+        """Find the best matching function data for given patterns"""
         for pattern in patterns:
             # Direct match
-            if pattern in function_times:
-                return function_times[pattern]
+            if pattern in function_data:
+                data = function_data[pattern]
+                return data['time_ms'], data['call_count']
             
             # Partial match
-            for func_name, time_ms in function_times.items():
+            for func_name, data in function_data.items():
                 if pattern.lower() in func_name.lower():
-                    return time_ms
+                    return data['time_ms'], data['call_count']
         
-        return None  # Not found
+        return None, 0  # Not found
     
     def _estimate_init_time(self, timings, basic_metrics):
         """Estimate initialization time"""
@@ -193,6 +214,48 @@ class ProfileAnalyzer:
                 print(f"  ⚠️  Failed to load C++ timings: {e}")
         
         return None
+    
+    def _extract_render_metrics(self, timings, basic_metrics):
+        """Extract render-related metrics from cProfile timing data"""
+        render_metrics = {
+            'total_renders': 0,
+            'renders_per_sec': 0.0,
+            'total_step_graphics': 0,
+            'step_graphics_per_sec': 0.0,
+            'avg_render_time_ms': 0.0,
+            'avg_step_graphics_time_ms': 0.0
+        }
+        
+        if not timings:
+            return render_metrics
+            
+        # Extract draw_viewer metrics from cProfile data
+        if 'draw_viewer_count' in timings and timings['draw_viewer_count'] > 0:
+            render_metrics['total_renders'] = timings['draw_viewer_count']
+            if basic_metrics['total_time'] > 0:
+                render_metrics['renders_per_sec'] = render_metrics['total_renders'] / basic_metrics['total_time']
+            # Calculate average time per render if timing data available
+            if timings.get('draw_viewer') is not None and render_metrics['total_renders'] > 0:
+                render_metrics['avg_render_time_ms'] = timings['draw_viewer'] / render_metrics['total_renders']
+                
+        # Extract step_graphics metrics from cProfile data
+        if 'step_graphics_count' in timings and timings['step_graphics_count'] > 0:
+            render_metrics['total_step_graphics'] = timings['step_graphics_count']
+            if basic_metrics['total_time'] > 0:
+                render_metrics['step_graphics_per_sec'] = render_metrics['total_step_graphics'] / basic_metrics['total_time']
+            # Calculate average time per step_graphics if timing data available
+            if timings.get('step_graphics') is not None and render_metrics['total_step_graphics'] > 0:
+                render_metrics['avg_step_graphics_time_ms'] = timings['step_graphics'] / render_metrics['total_step_graphics']
+        
+        # Also check update_viewer as a fallback render metric
+        if render_metrics['total_renders'] == 0 and 'update_viewer_count' in timings:
+            render_metrics['total_renders'] = timings['update_viewer_count']
+            if basic_metrics['total_time'] > 0:
+                render_metrics['renders_per_sec'] = render_metrics['total_renders'] / basic_metrics['total_time']
+            if timings.get('update_viewer') is not None and render_metrics['total_renders'] > 0:
+                render_metrics['avg_render_time_ms'] = timings['update_viewer'] / render_metrics['total_renders']
+        
+        return render_metrics
     
     def save_detailed_report(self, system, enhanced_metrics, output_dir='/tmp'):
         """Save a detailed analysis report"""
@@ -222,6 +285,17 @@ class ProfileAnalyzer:
                 f.write(f"  Elapsed Time: {info['elapsed_time']:.3f}s (excluding init/cleanup)\n")
                 f.write(f"  Total Env Steps: {info['total_env_steps']}\n")
                 f.write(f"  Accurate Rate: {info['steps_per_second']:.1f} steps/sec\n")
+            
+            # Add render metrics if available
+            if 'render_metrics' in enhanced_metrics:
+                render = enhanced_metrics['render_metrics']
+                f.write(f"\nRender Metrics:\n")
+                f.write(f"  Total Renders: {render['total_renders']}\n")
+                f.write(f"  Renders/sec: {render['renders_per_sec']:.1f}\n")
+                f.write(f"  Total Step Graphics: {render['total_step_graphics']}\n")
+                f.write(f"  Step Graphics/sec: {render['step_graphics_per_sec']:.1f}\n")
+                if render['avg_render_time_ms'] > 0:
+                    f.write(f"  Avg Render Time: {render['avg_render_time_ms']:.2f}ms\n")
             
             f.write("\n")
             

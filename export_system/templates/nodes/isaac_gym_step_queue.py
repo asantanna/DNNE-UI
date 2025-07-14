@@ -15,9 +15,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Step tracking
         self.step_count = 0
         self.control_step_count = 0
-        self.control_freq_inv = 1  # Number of physics steps per control step
+        self.control_freq_inv = 16  # Number of physics steps per control step (match IsaacGymEnvs)
+        self.physics_step_count = 0  # Track physics steps for render frequency
         self.last_render_time = 0.0
-        self.render_interval = 1.0 / 60.0  # 60 FPS target for viewer updates
+        self.render_interval = 1.0 / 60.0  # 60 FPS backup for viewer updates
         
     async def run(self):
         """Dual-mode execution: training vs inference timing"""
@@ -163,14 +164,19 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 done = environment.check_termination()
                 info = {"step_count": self.step_count}
             
-            # Update viewer if available (rate-limited for performance)
+            # Update viewer if available (control-frequency based like IsaacGymEnvs)
             if hasattr(sim_handle, 'viewer') and sim_handle.viewer is not None:
-                import time
-                current_time = time.time()
-                # Only update viewer at target frame rate (not every physics step)
-                if current_time - self.last_render_time >= self.render_interval:
-                    environment.update_viewer(sim_handle.viewer)
-                    self.last_render_time = current_time
+                # Increment physics step counter
+                self.physics_step_count += 1
+                
+                # Only render every control_freq_inv steps (like IsaacGymEnvs force_render pattern)
+                if self.physics_step_count % self.control_freq_inv == 0:
+                    # Additional time-based limiting as backup (60 FPS max)
+                    import time
+                    current_time = time.time()
+                    if current_time - self.last_render_time >= self.render_interval:
+                        environment.update_viewer(sim_handle.viewer)
+                        self.last_render_time = current_time
             
             # Update step counter
             self.step_count += 1

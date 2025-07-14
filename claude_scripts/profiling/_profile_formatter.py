@@ -75,6 +75,32 @@ class ProfileFormatter:
         
         print("=" * 60)
         
+        # Render metrics (if available)
+        igenv_render = igenv.get('render_metrics', {}) if igenv else {}
+        dnne_render = dnne.get('render_metrics', {}) if dnne else {}
+        
+        if igenv_render or dnne_render:
+            print("\n🎥 RENDER METRICS")
+            print("-" * 60)
+            
+            render_metrics = [
+                ('Total Renders', 'total_renders', 'd'),
+                ('Renders/sec', 'renders_per_sec', '.1f'),
+                ('Total Step Graphics', 'total_step_graphics', 'd'),
+                ('Step Graphics/sec', 'step_graphics_per_sec', '.1f'),
+                ('Avg Render Time (ms)', 'avg_render_time_ms', '.2f')
+            ]
+            
+            for label, key, fmt in render_metrics:
+                row = f"{label:<30}"
+                if igenv_render:
+                    value = igenv_render.get(key, 0)
+                    row += f" {value:>15{fmt}}"
+                if dnne_render:
+                    value = dnne_render.get(key, 0)
+                    row += f" {value:>15{fmt}}"
+                print(row)
+
         # Performance comparison
         if igenv and dnne and igenv.get('steps_per_sec', 0) > 0:
             ratio = dnne.get('steps_per_sec', 0) / igenv.get('steps_per_sec', 0)
@@ -86,6 +112,22 @@ class ProfileFormatter:
                 print(f"❌ DNNE is {1/ratio:.1f}x slower")
             else:
                 print("✅ Performance is comparable")
+                
+            # Render performance comparison
+            if igenv_render and dnne_render:
+                igenv_renders_per_sec = igenv_render.get('renders_per_sec', 0)
+                dnne_renders_per_sec = dnne_render.get('renders_per_sec', 0)
+                
+                if igenv_renders_per_sec > 0:
+                    render_ratio = dnne_renders_per_sec / igenv_renders_per_sec
+                    print(f"Relative Render Performance: {render_ratio:.2f}x")
+                    
+                    if render_ratio < 0.8:
+                        print(f"⚠️  DNNE renders {1/render_ratio:.1f}x less frequently (may appear slower visually)")
+                    elif render_ratio > 1.2:
+                        print(f"✅ DNNE renders {render_ratio:.1f}x more frequently")
+                    else:
+                        print("✅ Render frequency is comparable")
     
     def _format_detailed_comparison(self, results):
         """Format detailed performance comparison with timing breakdown"""
@@ -196,6 +238,40 @@ class ProfileFormatter:
         
         print("=" * 70)
         
+        # Render metrics (if available)
+        igenv_render = igenv.get('render_metrics', {}) if igenv else {}
+        dnne_render = dnne.get('render_metrics', {}) if dnne else {}
+        
+        if igenv_render or dnne_render:
+            print("\n🎥 RENDER METRICS")
+            print("-" * 70)
+            
+            self._format_metric_row('Total Renders:',
+                                   igenv_render.get('total_renders', 0) if igenv_render else None,
+                                   dnne_render.get('total_renders', 0) if dnne_render else None,
+                                   fmt='d')
+            
+            self._format_metric_row('Renders/sec:',
+                                   igenv_render.get('renders_per_sec', 0) if igenv_render else None,
+                                   dnne_render.get('renders_per_sec', 0) if dnne_render else None,
+                                   fmt='.1f')
+            
+            self._format_metric_row('Total Step Graphics:',
+                                   igenv_render.get('total_step_graphics', 0) if igenv_render else None,
+                                   dnne_render.get('total_step_graphics', 0) if dnne_render else None,
+                                   fmt='d')
+            
+            self._format_metric_row('Step Graphics/sec:',
+                                   igenv_render.get('step_graphics_per_sec', 0) if igenv_render else None,
+                                   dnne_render.get('step_graphics_per_sec', 0) if dnne_render else None,
+                                   fmt='.1f')
+            
+            if igenv_render.get('avg_render_time_ms', 0) > 0 or dnne_render.get('avg_render_time_ms', 0) > 0:
+                self._format_metric_row('Avg Render Time (ms):',
+                                       igenv_render.get('avg_render_time_ms', 0) if igenv_render else None,
+                                       dnne_render.get('avg_render_time_ms', 0) if dnne_render else None,
+                                       fmt='.2f')
+        
         # Performance comparison
         if igenv and dnne and igenv.get('steps_per_sec', 0) > 0:
             ratio = dnne.get('steps_per_sec', 0) / igenv.get('steps_per_sec', 0)
@@ -207,6 +283,22 @@ class ProfileFormatter:
                 print(f"❌ DNNE is {1/ratio:.1f}x slower")
             else:
                 print("✅ Performance is comparable")
+                
+            # Render performance comparison
+            if igenv_render and dnne_render:
+                igenv_renders_per_sec = igenv_render.get('renders_per_sec', 0)
+                dnne_renders_per_sec = dnne_render.get('renders_per_sec', 0)
+                
+                if igenv_renders_per_sec > 0:
+                    render_ratio = dnne_renders_per_sec / igenv_renders_per_sec
+                    print(f"Relative Render Performance: {render_ratio:.2f}x")
+                    
+                    if render_ratio < 0.8:
+                        print(f"⚠️  DNNE renders {1/render_ratio:.1f}x less frequently (may appear slower visually)")
+                    elif render_ratio > 1.2:
+                        print(f"✅ DNNE renders {render_ratio:.1f}x more frequently")
+                    else:
+                        print("✅ Render frequency is comparable")
         
         # Timing coverage info
         if self.mode == 'detailed':
