@@ -242,10 +242,11 @@ class IsaacGymStepNode_9(QueueNode):
                 # Print episode return for profiler to capture
                 print(f"Episode {self.episode_count}: episode return = {episode_return:.2f}")
                 
-                # Print rolling average every 10 episodes
+                # Print rolling average every 10 episodes (for profiler capture)
                 if self.episode_count % 10 == 0:
                     avg_return = self._get_average_episode_return()
                     print(f"Average episode return (last {len(self.episode_returns)} episodes) = {avg_return:.2f}")
+                    print(f"avg episode return = {avg_return:.2f}")  # Profiler-friendly format
                 
                 # Keep only last N episodes for efficiency
                 if len(self.episode_returns) > self.last_n_episodes:

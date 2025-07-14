@@ -261,10 +261,11 @@ class ProfileRunner:
         output_text = stdout + "\n" + stderr
         
         # DNNE logs episode returns in the format:
-        # "avg episode return = 234.5"
+        # "avg episode return = 234.5" and "Episode 1: episode return = 234.5"
         episode_patterns = [
             r'avg episode return[:\s=]+([0-9.-]+)',
             r'average episode return[:\s=]+([0-9.-]+)',
+            r'Episode \d+: episode return[:\s=]+([0-9.-]+)',  # Individual episodes
             r'episode return[:\s=]+([0-9.-]+)',
         ]
         
