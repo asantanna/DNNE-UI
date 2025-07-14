@@ -186,18 +186,16 @@ class ProfileRunner:
         prof_file = '/tmp/dnne_training.prof'
         runner_script = export_dir / 'runner.py'
         
+        # Always extract workflow value to know the default
+        workflow_max_epochs = self.extract_max_epochs_from_workflow()
+        
         # Handle epochs override
         if self.override_epochs:
             expected_iterations = self.override_epochs
             print(f"  📊 Using override epochs: {expected_iterations}")
         else:
-            # Extract max_epochs from workflow to show expected epochs
-            workflow_max_epochs = self.extract_max_epochs_from_workflow()
-            if workflow_max_epochs:
-                expected_iterations = workflow_max_epochs
-                print(f"  📊 Found max_epochs={workflow_max_epochs} in DNNE workflow")
-            else:
-                raise ValueError("max_epochs not found in workflow JSON. This is required for PPO training.")
+            expected_iterations = workflow_max_epochs
+            print(f"  📊 Found max_epochs={workflow_max_epochs} in DNNE workflow")
         
         # Calculate appropriate timeout for DNNE
         # Give it plenty of time since it should stop on its own
@@ -211,9 +209,10 @@ class ProfileRunner:
             '--dnne-profiling'  # Enable profiling for C++ timing
         ]
         
-        if self.override_epochs and self.override_epochs != expected_iterations:
-            print(f"  ⚠️  Note: DNNE uses epochs from exported workflow ({workflow_max_epochs if workflow_max_epochs else 'not set'})")
-            print(f"     To use {self.override_epochs} epochs, re-export workflow with that value")
+        # Add epochs override if specified
+        if self.override_epochs:
+            cmd.extend(['--epochs', str(self.override_epochs)])
+        
         print(f"  Running {expected_iterations} epochs with {self.num_envs} environments...")
         print(f"  Timeout: {dnne_timeout}s (safety timeout - DNNE should stop at {expected_iterations} epochs)")
         print(f"  Command: {' '.join(cmd[:5])}...")

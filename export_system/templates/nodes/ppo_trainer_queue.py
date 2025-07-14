@@ -27,7 +27,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.setup_outputs(["loss", "training_complete"])
         
         # Configuration from template
-        self.max_epochs = {MAX_EPOCHS}
+        # Check for command-line epochs override
+        import builtins
+        if hasattr(builtins, 'EPOCHS_OVERRIDE') and builtins.EPOCHS_OVERRIDE is not None:
+            self.max_epochs = builtins.EPOCHS_OVERRIDE
+            self.logger.info(f"Using epochs override: {self.max_epochs} (instead of workflow value: {MAX_EPOCHS})")
+        else:
+            self.max_epochs = {MAX_EPOCHS}
         self.horizon_length = {HORIZON_LENGTH}
         self.ppo_epochs = {PPO_EPOCHS}
         self.minibatch_size = {MINIBATCH_SIZE}
