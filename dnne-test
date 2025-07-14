@@ -35,6 +35,7 @@ show_help() {
     echo "  export         Export system tests only (~15-20 seconds)"
     echo "  inference      Inference mode tests (training + inference) (~30-60 seconds)"
     echo "  coverage       Tests with coverage report (~60+ seconds)"
+    echo "  performance    Performance comparison test (DNNE vs IsaacGym) (~3-5 minutes)"
     echo ""
     echo -e "${GREEN}Helper Commands:${NC}"
     echo "  deps           Check dependencies only (~30 seconds)"
@@ -110,6 +111,11 @@ case "${1:-}" in
         shift
         echo -e "${BLUE}🔍 Running DNNE Inference Mode Tests${NC}"
         dnne_test_inference "$@"
+        ;;
+    "performance")
+        shift
+        echo -e "${BLUE}📊 Running DNNE Performance Comparison Test${NC}"
+        dnne_test_performance "$@"
         ;;
     "verbose")
         shift

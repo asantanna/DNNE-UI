@@ -169,7 +169,7 @@ dnne_test_pytest() {
 
 # Main command - run all tests
 dnne_test() {
-    dnne_test_main "Full Test Suite (Unit + Integration + Coverage)"
+    dnne_test_main "Full Test Suite (Unit + Integration)"
 }
 
 # Unit tests only
@@ -189,7 +189,7 @@ dnne_test_quick() {
 
 # Full test suite (everything)
 dnne_test_full() {
-    dnne_test_main "Complete Test Suite (Unit + Integration + Coverage)"
+    dnne_test_main "Complete Test Suite (Unit + Integration)"
 }
 
 # Coverage report
@@ -314,6 +314,56 @@ dnne_test_cartpole_performance() {
     fi
     
     return $exit_code
+}
+
+# Performance comparison test
+dnne_test_performance() {
+    log_info "📊 Running DNNE Performance Comparison Test"
+    echo "================================================================"
+    
+    check_project_root
+    activate_environment
+    
+    echo ""
+    log_info "Running performance profiler (detailed mode, 40 epochs)..."
+    echo ""
+    
+    cd "$PROJECT_ROOT"
+    
+    # Run performance profiler and capture output
+    local output_file="/tmp/dnne_performance_test_output.txt"
+    python claude_scripts/profiling/performance_profiler.py --mode detailed --epochs 40 2>&1 | tee "$output_file"
+    local exit_code=$?
+    
+    if [ $exit_code -ne 0 ]; then
+        log_error "Performance profiler failed with exit code $exit_code"
+        return $exit_code
+    fi
+    
+    # Extract relative performance value from output
+    local relative_perf=$(grep -oP "Relative Performance: \K[0-9]+\.[0-9]+" "$output_file" | tail -1)
+    
+    if [ -z "$relative_perf" ]; then
+        log_error "Could not extract relative performance value from output"
+        return 1
+    fi
+    
+    echo ""
+    log_info "Relative Performance: ${relative_perf}x"
+    
+    # Validate performance is within acceptable range (0.5 < x < 1.5)
+    local perf_valid=$(python -c "print('1' if 0.5 < $relative_perf < 1.5 else '0')")
+    
+    echo ""
+    if [ "$perf_valid" = "1" ]; then
+        log_success "Performance test PASSED! Relative performance (${relative_perf}x) is within acceptable range (0.5 - 1.5)"
+        rm -f "$output_file"
+        return 0
+    else
+        log_error "Performance test FAILED! Relative performance (${relative_perf}x) is outside acceptable range (0.5 - 1.5)"
+        rm -f "$output_file"
+        return 1
+    fi
 }
 
 # Verbose mode

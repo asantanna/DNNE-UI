@@ -103,19 +103,8 @@ run_test_category "Unit Tests" "dnne-test-suite/core/unit/" "15m" "30" || all_pa
 # Run integration tests - 2min timeout per test, 20min total  
 run_test_category "Integration" "dnne-test-suite/core/integration/" "20m" "120" || all_passed=false
 
-# Generate coverage report if all tests passed
-if [ "$all_passed" = true ]; then
-    echo "=== Generating Coverage Report ==="
-    timeout 30m pytest dnne-test-suite/core/ \
-        --timeout=60 \
-        --cov=custom_nodes \
-        --cov=export_system \
-        --cov-report=term-missing \
-        --cov-report=html \
-        -q || {
-        echo "Coverage report generation failed (tests may have still passed)"
-    }
-fi
+# Note: Coverage report generation removed from default test run
+# Use 'dnne-test coverage' to run tests with coverage report
 
 echo ""
 echo "=================================="
@@ -125,7 +114,7 @@ echo "=================================="
 if [ "$all_passed" = true ]; then
     echo "✅ All DNNE tests passed!"
     echo ""
-    echo "Coverage report available at: htmlcov/index.html"
+    echo "To generate coverage report, run: dnne-test coverage"
     exit 0
 else
     echo "❌ Some tests failed!"
