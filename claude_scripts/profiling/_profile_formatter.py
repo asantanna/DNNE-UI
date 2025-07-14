@@ -54,7 +54,7 @@ class ProfileFormatter:
             ('Total Time (s)', 'total_time', '.2f'),
             ('Steps/sec', 'steps_per_sec', '.1f'),
             ('Total Steps', 'step_count', 'd'),
-            ('Iterations', 'num_iterations', 'd')
+            ('Epochs', 'num_epochs', 'd')
         ]
         
         for label, key, fmt in metrics:
@@ -69,9 +69,9 @@ class ProfileFormatter:
         
         # Calculated metric
         if igenv and dnne:
-            igenv_ips = igenv['num_iterations'] / igenv['total_time'] if igenv.get('total_time', 0) > 0 else 0
-            dnne_ips = dnne['num_iterations'] / dnne['total_time'] if dnne.get('total_time', 0) > 0 else 0
-            print(f"{'Iterations/sec':<30} {igenv_ips:>15.2f} {dnne_ips:>15.2f}")
+            igenv_ips = igenv['num_epochs'] / igenv['total_time'] if igenv.get('total_time', 0) > 0 else 0
+            dnne_ips = dnne['num_epochs'] / dnne['total_time'] if dnne.get('total_time', 0) > 0 else 0
+            print(f"{'Epochs/sec':<30} {igenv_ips:>15.2f} {dnne_ips:>15.2f}")
         
         print("=" * 60)
         
@@ -137,16 +137,16 @@ class ProfileFormatter:
         print()
         
         # PPO training operations
-        # Calculate PPO iteration total if we have the components
+        # Calculate PPO epoch total if we have the components
         ppo_total_igenv = self._calculate_ppo_total(igenv_timings) if igenv_timings else None
         ppo_total_dnne = self._calculate_ppo_total(dnne_timings) if dnne_timings else None
         
         if ppo_total_igenv is not None or ppo_total_dnne is not None:
-            self._format_timing_row('  PPO iteration total', None, 
+            self._format_timing_row('  PPO epoch total', None, 
                                    {'ppo_total': ppo_total_igenv} if ppo_total_igenv else None,
                                    {'ppo_total': ppo_total_dnne} if ppo_total_dnne else None)
         else:
-            print("  PPO iteration total                       ???               ???")
+            print("  PPO epoch total                           ???               ???")
             
         self._format_timing_row('  - collect_rollout', 'collect_rollout', igenv_timings, dnne_timings)
         self._format_timing_row('  - compute_returns', 'compute_returns', igenv_timings, dnne_timings)
@@ -189,9 +189,9 @@ class ProfileFormatter:
                                dnne.get('total_time', 0) if dnne else None,
                                fmt='.2f')
         
-        self._format_metric_row('PPO iterations/sec:',
-                               igenv_summary.get('iterations_per_sec', 0) if igenv else None,
-                               dnne_summary.get('iterations_per_sec', 0) if dnne else None,
+        self._format_metric_row('PPO epochs/sec:',
+                               igenv_summary.get('epochs_per_sec', 0) if igenv else None,
+                               dnne_summary.get('epochs_per_sec', 0) if dnne else None,
                                fmt='.2f')
         
         print("=" * 70)
@@ -280,7 +280,7 @@ class ProfileFormatter:
         print(row)
     
     def _calculate_ppo_total(self, timings):
-        """Calculate total PPO iteration time from components"""
+        """Calculate total PPO epoch time from components"""
         if not timings:
             return None
             

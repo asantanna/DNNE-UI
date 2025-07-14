@@ -120,7 +120,7 @@ class ProfileAnalyzer:
             'init_time': self._estimate_init_time(timings, basic_metrics),
             'step_count': basic_metrics['step_count'],
             'steps_per_sec': enhanced_metrics.get('steps_per_sec', basic_metrics['steps_per_sec']),
-            'iterations_per_sec': basic_metrics['num_iterations'] / basic_metrics['total_time']
+            'epochs_per_sec': basic_metrics['num_epochs'] / basic_metrics['total_time']
         }
         
         # Add timing percentages

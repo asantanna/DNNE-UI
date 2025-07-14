@@ -29,14 +29,14 @@ Examples:
   python performance_profiler.py --mode detailed
   
   # Custom configuration
-  python performance_profiler.py --iterations 20 --num-envs 1024 --mode detailed
+  python performance_profiler.py --epochs 20 --num-envs 1024 --mode detailed
         """
     )
     
     parser.add_argument('--mode', choices=['simple', 'detailed'], default='simple',
                         help='Profiling mode: simple (basic metrics) or detailed (function-level breakdown)')
-    parser.add_argument('--iterations', type=int, default=10,
-                        help='Number of training iterations (default: 10)')
+    parser.add_argument('--epochs', type=int, default=None,
+                        help='Override number of epochs to run (default: use workflow value)')
     parser.add_argument('--num-envs', type=int, default=512,
                         help='Number of parallel environments (default: 512)')
     parser.add_argument('--timeout', type=int, default=300,
@@ -58,7 +58,9 @@ Examples:
     print("🚀 PERFORMANCE PROFILER")
     print("=" * 70)
     print(f"Mode: {args.mode}")
-    print(f"Configuration: {args.iterations} iterations, {args.num_envs} environments")
+    print(f"Configuration: {args.num_envs} environments")
+    if args.epochs:
+        print(f"Epochs override: {args.epochs}")
     print(f"Timeout: {args.timeout}s per system")
     print()
     
@@ -81,9 +83,9 @@ Examples:
     
     # Run profiling
     runner = ProfileRunner(
-        num_iterations=args.iterations,
         num_envs=args.num_envs,
-        timeout=args.timeout
+        timeout=args.timeout,
+        override_epochs=args.epochs
     )
     
     results = {}
@@ -126,7 +128,7 @@ Examples:
             json.dump({
                 'config': {
                     'mode': args.mode,
-                    'iterations': args.iterations,
+                    'epochs': args.epochs,
                     'num_envs': args.num_envs,
                     'timeout': args.timeout
                 },

@@ -15,16 +15,16 @@ from pathlib import Path
 class ProfileRunner:
     """Runs profiling for both systems using external cProfile"""
     
-    def __init__(self, num_iterations=10, num_envs=512, timeout=300):
-        self.num_iterations = num_iterations
+    def __init__(self, num_envs=512, timeout=300, override_epochs=None):
         self.num_envs = num_envs
         self.timeout = timeout
+        self.override_epochs = override_epochs
     
     def extract_max_epochs_from_workflow(self):
         """Extract max_epochs value from DNNE workflow JSON"""
         workflow_file = Path("/mnt/e/ALS-Projects/DNNE/DNNE-UI/user/default/workflows/Cartpole_PPO.json")
         if not workflow_file.exists():
-            return None
+            raise FileNotFoundError(f"Workflow file not found: {workflow_file}")
             
         try:
             with open(workflow_file, 'r') as f:
@@ -39,22 +39,33 @@ class ProfileRunner:
                     if widgets_values and len(widgets_values) > 0:
                         return int(widgets_values[0])
                         
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in workflow file: {e}")
         except Exception as e:
-            print(f"  ⚠️ Could not extract max_epochs from workflow: {e}")
-            return None
-        return None
+            raise RuntimeError(f"Error extracting max_epochs from workflow: {e}")
+            
+        # If we got here, max_epochs was not found
+        raise ValueError("max_epochs not found in workflow JSON. PPOTrainerNode must have max_epochs configured.")
     
     def profile_isaacgymenvs(self):
         """Profile IsaacGymEnvs using subprocess with cProfile"""
         print("\n🔬 Running IsaacGymEnvs profiling...")
         
-        # Extract max_epochs from workflow to match DNNE
-        workflow_max_epochs = self.extract_max_epochs_from_workflow()
-        if workflow_max_epochs:
-            print(f"  📊 Found max_epochs={workflow_max_epochs} in DNNE workflow")
-        
-        # Use workflow max_epochs if available, otherwise use num_iterations
-        iterations_to_run = workflow_max_epochs if workflow_max_epochs else self.num_iterations
+        # Handle epochs override
+        if self.override_epochs:
+            iterations_to_run = self.override_epochs
+            print(f"  📊 Using override epochs: {iterations_to_run}")
+        else:
+            # Extract max_epochs from workflow to match DNNE
+            workflow_max_epochs = self.extract_max_epochs_from_workflow()
+            if workflow_max_epochs:
+                print(f"  📊 Found max_epochs={workflow_max_epochs} in DNNE workflow")
+            
+            # Use workflow max_epochs - no fallback
+            if workflow_max_epochs:
+                iterations_to_run = workflow_max_epochs
+            else:
+                raise ValueError("max_epochs not found in workflow JSON. This is required for PPO training.")
         
         # Change to IsaacGymEnvs directory
         original_dir = os.getcwd()
@@ -84,9 +95,8 @@ class ProfileRunner:
                 'dnne_profiling=True'  # Enable profiling for C++ timing
             ]
             
-            print(f"  Running {iterations_to_run} iterations with {self.num_envs} environments...")
-            if workflow_max_epochs and iterations_to_run != self.num_iterations:
-                print(f"  (Matched to DNNE workflow instead of default {self.num_iterations})")
+            print(f"  Running {iterations_to_run} epochs with {self.num_envs} environments...")
+            # Removed comparison with num_iterations since we no longer have it
             print(f"  Command: {' '.join(cmd[:5])}...")
             
             # Track time
@@ -108,7 +118,7 @@ class ProfileRunner:
                 # Create basic metrics
                 metrics = {
                     'system': 'IsaacGymEnvs',
-                    'num_iterations': iterations_to_run,
+                    'num_epochs': iterations_to_run,
                     'num_envs': self.num_envs,
                     'total_time': total_time,
                     'step_count': iterations_to_run * self.num_envs * 16,  # epochs * envs * horizon_length
@@ -176,9 +186,18 @@ class ProfileRunner:
         prof_file = '/tmp/dnne_training.prof'
         runner_script = export_dir / 'runner.py'
         
-        # Extract max_epochs from workflow to show expected iterations
-        workflow_max_epochs = self.extract_max_epochs_from_workflow()
-        expected_iterations = workflow_max_epochs if workflow_max_epochs else self.num_iterations
+        # Handle epochs override
+        if self.override_epochs:
+            expected_iterations = self.override_epochs
+            print(f"  📊 Using override epochs: {expected_iterations}")
+        else:
+            # Extract max_epochs from workflow to show expected epochs
+            workflow_max_epochs = self.extract_max_epochs_from_workflow()
+            if workflow_max_epochs:
+                expected_iterations = workflow_max_epochs
+                print(f"  📊 Found max_epochs={workflow_max_epochs} in DNNE workflow")
+            else:
+                raise ValueError("max_epochs not found in workflow JSON. This is required for PPO training.")
         
         # Calculate appropriate timeout for DNNE
         # Give it plenty of time since it should stop on its own
@@ -192,7 +211,10 @@ class ProfileRunner:
             '--dnne-profiling'  # Enable profiling for C++ timing
         ]
         
-        print(f"  Running to match {expected_iterations} epochs with {self.num_envs} environments...")
+        if self.override_epochs and self.override_epochs != expected_iterations:
+            print(f"  ⚠️  Note: DNNE uses epochs from exported workflow ({workflow_max_epochs if workflow_max_epochs else 'not set'})")
+            print(f"     To use {self.override_epochs} epochs, re-export workflow with that value")
+        print(f"  Running {expected_iterations} epochs with {self.num_envs} environments...")
         print(f"  Timeout: {dnne_timeout}s (safety timeout - DNNE should stop at {expected_iterations} epochs)")
         print(f"  Command: {' '.join(cmd[:5])}...")
         
@@ -254,7 +276,7 @@ class ProfileRunner:
                 # Create basic metrics
                 metrics = {
                     'system': 'DNNE',
-                    'num_iterations': self.num_iterations,
+                    'num_epochs': expected_iterations,
                     'num_envs': self.num_envs,
                     'total_time': total_time,
                     'step_count': step_count,
