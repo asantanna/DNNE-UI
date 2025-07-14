@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Programmatic export of Cartpole PPO workflow
+Programmatic export of DNNE workflows
 """
 
 import os
@@ -14,9 +14,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from export_system.graph_exporter import GraphExporter
 from export_system.node_exporters import register_all_exporters
 
-def export_cartpole_ppo():
-    """Export the Cartpole PPO workflow programmatically"""
-    print("🚀 Starting programmatic export of Cartpole PPO...")
+def export_workflow(workflow_name="Cartpole_PPO"):
+    """Export the specified workflow programmatically"""
+    print(f"🚀 Starting programmatic export of {workflow_name}...")
     
     # Create exporter and register all node types
     exporter = GraphExporter()
@@ -25,7 +25,7 @@ def export_cartpole_ppo():
     print(f"✓ Loaded export system with {len(exporter.node_registry)} node types")
     
     # Load the workflow file
-    workflow_path = Path("user/default/workflows/Cartpole_PPO.json")
+    workflow_path = Path(f"user/default/workflows/{workflow_name}.json")
     
     if not workflow_path.exists():
         print(f"❌ Workflow file not found: {workflow_path}")
@@ -40,7 +40,9 @@ def export_cartpole_ppo():
     
     # Export the workflow
     try:
-        output_path = exporter.export_workflow(workflow, output_path=Path("export_system/exports/Cartpole_PPO"))
+        # Clean workflow name for directory (replace spaces with underscores)
+        clean_name = workflow_name.replace(" ", "_")
+        output_path = exporter.export_workflow(workflow, output_path=Path(f"export_system/exports/{clean_name}"))
         print(f"✅ Export completed successfully!")
         print(f"📂 Output location: {output_path}")
         return True
@@ -52,5 +54,7 @@ def export_cartpole_ppo():
         return False
 
 if __name__ == "__main__":
-    success = export_cartpole_ppo()
+    # Get workflow name from command line argument or default to Cartpole_PPO
+    workflow_name = sys.argv[1] if len(sys.argv) > 1 else "Cartpole_PPO"
+    success = export_workflow(workflow_name)
     sys.exit(0 if success else 1)
