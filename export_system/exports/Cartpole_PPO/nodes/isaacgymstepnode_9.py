@@ -195,11 +195,20 @@ class IsaacGymStepNode_9(QueueNode):
             # Update step counter
             self.step_count += 1
             
-            # Log progress periodically
-            if self.step_count % 1000 == 0:
+            # Log progress periodically and episode completion status
+            if self.step_count % 50 == 0:  # More frequent for profiling
                 avg_reward = torch.mean(rewards).item() if len(rewards) > 0 else 0.0
                 avg_return = self._get_average_episode_return()
-                self.logger.info(f"Step {self.step_count}: avg reward = {avg_reward:.4f}, avg episode return = {avg_return:.1f}")
+                done_count = torch.sum(done).item() if len(done) > 0 else 0
+                # Debug termination conditions
+                obs = environment.get_observations()
+                max_cart_pos = torch.max(torch.abs(obs[:, 0])).item()
+                max_pole_angle = torch.max(torch.abs(obs[:, 2])).item()
+                max_progress = torch.max(environment.progress_buf).item() if hasattr(environment, 'progress_buf') else 0
+                env_episode_count = getattr(environment, 'episode_count', 0)
+                print(f"Step {self.step_count}: done={done_count}, env_episodes={env_episode_count}, node_episodes={self.episode_count}, max_cart_pos={max_cart_pos:.2f}, max_pole_angle={max_pole_angle:.2f}, max_progress={max_progress}")
+                if env_episode_count > 0:
+                    print(f"avg episode return = {avg_return:.2f}")  # Profiler-friendly format
             
             # Return current step results
             # The trigger parameter is just for synchronization, not for changing behavior

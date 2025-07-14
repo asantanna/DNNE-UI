@@ -213,6 +213,11 @@ class IsaacGymEnvironment(ABC):
         self.reset_buf = self.check_termination()
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         if len(env_ids) > 0:
+            # Count completed episodes
+            self.episode_count += len(env_ids)
+            # Debug: print episode completions
+            if self.step_count % 50 == 0:  # Print occasionally for debugging
+                print(f"Base environment: {len(env_ids)} episodes completed at step {self.step_count}, total episodes: {self.episode_count}")
             self.reset_environments(env_ids)
         
         # Get current state
