@@ -121,15 +121,19 @@ class PPOTrainerExporter(ExportableNode):
             "CLASS_NAME": "PPOTrainerNode",
             "MAX_EPOCHS": max_epochs,
             "HORIZON_LENGTH": horizon_length,
-            "PPO_EPOCHS": ppo_epochs,
+            # rl_games compatible parameter names
+            "MINI_EPOCHS_NUM": ppo_epochs,  # rl_games naming
             "MINIBATCH_SIZE": minibatch_size,
             "GAMMA": gamma,
-            "GAE_LAMBDA": gae_lambda,
-            "CLIP_PARAM": clip_param,
-            "VALUE_COEF": value_coef,
+            "TAU": gae_lambda,  # rl_games naming: tau instead of gae_lambda
+            "E_CLIP": clip_param,  # rl_games naming: e_clip instead of clip_param
+            "CRITIC_COEF": value_coef,  # rl_games naming: critic_coef instead of value_coef
             "ENTROPY_COEF": entropy_coef,
             "LEARNING_RATE": learning_rate,
-            "MAX_GRAD_NORM": max_grad_norm,
+            "GRAD_NORM": max_grad_norm,  # rl_games naming: grad_norm instead of max_grad_norm
+            "CLIP_VALUE": True,  # rl_games parameter
+            "BOUNDS_LOSS_COEF": 0.0001,  # rl_games parameter
+            "BOUND_LOSS_TYPE": "bound",  # rl_games parameter
             "CHECKPOINT_ENABLED": checkpoint_enabled,
             "CHECKPOINT_TRIGGER_TYPE": checkpoint_trigger_type,
             "CHECKPOINT_TRIGGER_VALUE": checkpoint_trigger_value
@@ -152,6 +156,11 @@ class PPOTrainerExporter(ExportableNode):
     @classmethod
     def get_output_names(cls) -> List[str]:
         return ["loss", "training_complete"]
+    
+    @classmethod
+    def get_dependencies(cls) -> List[str]:
+        """Return list of dependency files that need to be copied to export"""
+        return ["rlgames_ppo_components.py"]
 
 # Registration function
 def register_rl_exporters(exporter):
