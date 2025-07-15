@@ -27,6 +27,43 @@ template_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(template_dir)
 from rlgames_ppo_components import RLGamesPPOComponents
 
+
+class RunningMeanStd:
+    """Tracks running mean and standard deviation for value normalization"""
+    
+    def __init__(self, shape, epsilon=1e-4, device='cpu'):
+        self.mean = torch.zeros(shape, device=device)
+        self.var = torch.ones(shape, device=device)
+        self.count = epsilon
+        self.device = device
+        
+    def update(self, x):
+        """Update running statistics"""
+        if x.dim() > 1:
+            # Flatten all dimensions except last
+            x = x.view(-1, x.shape[-1])
+        batch_mean = x.mean(dim=0)
+        batch_var = x.var(dim=0, unbiased=False)
+        batch_count = x.shape[0]
+        
+        delta = batch_mean - self.mean
+        tot_count = self.count + batch_count
+        
+        self.mean = self.mean + delta * batch_count / tot_count
+        m_a = self.var * self.count
+        m_b = batch_var * batch_count
+        M2 = m_a + m_b + delta**2 * self.count * batch_count / tot_count
+        self.var = M2 / tot_count
+        self.count = tot_count
+        
+    def normalize(self, x):
+        """Normalize input using running statistics"""
+        return (x - self.mean) / torch.sqrt(self.var + 1e-8)
+    
+    def denormalize(self, x):
+        """Denormalize input back to original scale"""
+        return x * torch.sqrt(self.var + 1e-8) + self.mean
+
 class PPOTrainerNode_6(QueueNode):
     """PPO Trainer Node using rl_games components - maintains DNNE async coordination"""
     
@@ -82,6 +119,9 @@ class PPOTrainerNode_6(QueueNode):
         self.step_count = 0
         self.current_epoch = 0
         self.training_complete = False
+        
+        # Value function normalization (matching IsaacGymEnvs)
+        self.value_rms = None  # Will be initialized on first use
         
         # Check if we're in inference mode
         import builtins
@@ -150,12 +190,29 @@ class PPOTrainerNode_6(QueueNode):
         # Compute returns
         returns = advantages + values
         
+        # Initialize value normalization on first use (matching IsaacGymEnvs)
+        if self.value_rms is None and not self.inference_mode:
+            self.value_rms = RunningMeanStd(shape=(1,), device=self.device)
+            self.logger.info("Initialized value function normalization")
+        
+        # Update value normalization statistics with returns (only in training)
+        if self.value_rms is not None and not self.inference_mode:
+            # Flatten returns for statistics update
+            flat_returns = returns.view(-1, 1)
+            self.value_rms.update(flat_returns)
+            
+            # Normalize returns for value function targets
+            normalized_returns = self.value_rms.normalize(flat_returns).view_as(returns)
+        else:
+            # In inference mode or before initialization, use raw returns
+            normalized_returns = returns
+        
         # Create rl_games input dictionary
         input_dict = {
             'old_values': values.detach(),
             'old_logp_actions': log_probs.detach(),
             'advantages': advantages.detach(),
-            'returns': returns.detach(),
+            'returns': normalized_returns.detach(),  # Use normalized returns as value targets
             'actions': actions.detach(),
             'obs': states.detach(),
             'mu': action_means.detach(),
