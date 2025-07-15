@@ -285,7 +285,9 @@ class PPOTrainerNode_6(QueueNode):
             action_std = policy_output.get("action_std", torch.ones_like(action))
             
             # Add to buffer (detach to avoid gradient conflicts)
-            self.buffer_states.append(state.detach().clone())
+            # Use normalized observations if available (critical for correct training)
+            normalized_obs = policy_output.get("normalized_observations", state)
+            self.buffer_states.append(normalized_obs.detach().clone())
             self.buffer_actions.append(action.detach().clone())
             self.buffer_rewards.append(reward.detach().clone())
             self.buffer_values.append(value.detach().clone())

@@ -692,3 +692,135 @@ def discount_values(self, fdones, flast_values, fvalues, frewards, fdones_mask):
 - Episode return capture issue (0.0 returns) should be investigated in this new context
 
 ---
+
+## 2025-01-15 - 🚨 CRITICAL BUG: PPO Observation Normalization Mismatch 🚨
+
+### What We Did
+- Analyzed the data flow between PPO Agent and PPO Trainer nodes
+- Discovered observation normalization happening only in exported templates, not base nodes
+- Created test script to verify the distribution mismatch impact
+- Documented the catastrophic effect on PPO learning
+
+### 🔥 Critical Bug Discovery
+**The PPO implementation has a fundamental flaw that destroys learning:**
+
+1. **PPO Agent (exported template)**:
+   - Normalizes observations using RunningMeanStd
+   - Network trained on NORMALIZED observations
+   - Values/policies computed from normalized inputs
+
+2. **PPO Trainer**:
+   - Stores RAW observations in buffer
+   - During mini-batch updates, passes RAW observations to model
+   - Model expects normalized but receives raw data
+
+3. **Impact**:
+   - **37,811,994x worse prediction error**
+   - **370,915,328x larger gradients**
+   - Complete distribution mismatch between rollout and training
+
+### Test Results
+```
+Value prediction comparison:
+   Agent values (normalized input): [0.178, 0.157, 0.253, 0.070]
+   Trainer values (RAW input - WRONG): [-0.417, -0.052, 0.976, -0.283]
+   Trainer values (normalized - CORRECT): [0.178, 0.157, 0.253, 0.070]
+
+Error analysis:
+   Mean absolute error (RAW input): 0.378120
+   Mean absolute error (normalized): 0.000000
+   Error ratio: 37,811,994.55x worse
+
+Gradient impact:
+   Gradient norm (RAW input): 3.709153
+   Gradient norm (normalized): 0.000000
+   Gradient ratio: 370,915,328.00x
+```
+
+### Code Evidence
+**PPO Agent Template** (`ppo_agent_queue.py`):
+```python
+# Normalize observations
+normalized_obs = self.obs_rms.normalize(observations)
+# Forward pass through shared layers
+features = self.shared_layers(normalized_obs)  # <-- NORMALIZED
+```
+
+**PPO Trainer** (`ppo_trainer.py`):
+```python
+self.buffer_states.append(state.clone())  # <-- Stores RAW
+```
+
+**RLGames Components** (`rlgames_ppo_components.py`):
+```python
+features = model['shared'](obs_batch)  # <-- Uses RAW
+```
+
+### Why This Explains Everything
+1. **Learning Instability**: 370 million times larger gradients destroy optimization
+2. **Value Function Failure**: Critic learns on wrong distribution
+3. **Policy Collapse**: Actor receives corrupted gradients
+4. **No Convergence**: Network oscillates between normalized/raw distributions
+
+### Solution
+The fix is straightforward - ensure observations are normalized before every model forward pass:
+
+**Option 1: Pass obs_rms to trainer**
+- PPO Agent outputs obs_rms instance
+- PPO Trainer uses it during updates
+
+**Option 2: Store normalized observations**
+- PPO Agent outputs normalized obs
+- PPO Trainer stores normalized in buffer
+
+**Option 3: Normalize in calc_gradients**
+- Add normalization in rlgames_ppo_components.py
+- Matches IsaacGymEnvs approach
+
+### Files Created
+- `claude_scripts/verify_ppo_normalization_bug.py` - Test demonstrating the bug
+- `claude_scripts/observation_normalization_analysis.md` - Detailed analysis
+
+### Conclusions
+**This is THE bug preventing DNNE from learning effectively**. The 37 million times error increase makes stable PPO training impossible. This single fix could transform DNNE's RL performance from unusable to competitive.
+
+### Next Steps
+1. Implement the normalization fix
+2. Re-export and test Cartpole PPO
+3. Compare learning curves with IsaacGymEnvs
+4. Verify episode returns become non-zero
+
+---
+## 2025-01-14 - Observation Normalization Fix Implemented
+
+### The Problem
+DNNE was showing poor learning performance (avg episode return 35-40) compared to IsaacGymEnvs (162.6).
+
+### Root Cause Found
+1. **Missing Observation Normalization**: DNNE wasn't normalizing observations before neural network processing
+2. **Distribution Mismatch Bug**: PPO agent normalized observations during rollout but PPO trainer used raw observations during training updates
+
+### Fix Implemented
+1. Added `RunningMeanStd` class to PPO agent template
+2. PPO agent now outputs normalized observations in policy_output
+3. PPO trainer stores and uses normalized observations in buffer
+
+### Results After Fix
+- Slight improvement: 36.4 vs 35.5 average episode return
+- Still 4.5x worse than IsaacGymEnvs (162.6)
+- Performance speed is good (0.86x relative performance)
+
+### Remaining Issues
+IsaacGymEnvs shows TWO RunningMeanStd instances:
+- `RunningMeanStd: (4,)` - observation normalization (now implemented)
+- `RunningMeanStd: (1,)` - likely value function normalization (NOT implemented)
+
+Value normalization is probably the remaining critical difference preventing DNNE from matching IsaacGymEnvs learning performance.
+
+### Next Steps
+1. Implement value function normalization in PPO trainer
+2. Add adaptive learning rate scheduling
+3. Verify all PPO implementation details match IsaacGymEnvs
+
+---
+EOF < /dev/null

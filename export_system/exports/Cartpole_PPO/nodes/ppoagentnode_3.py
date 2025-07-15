@@ -8,6 +8,39 @@ from framework.base import QueueNode, SensorNode
 
 # Template variables - replaced during export
 
+class RunningMeanStd:
+    """Tracks running mean and standard deviation for normalization"""
+    
+    def __init__(self, shape, epsilon=1e-4, device='cpu'):
+        self.mean = torch.zeros(shape, device=device)
+        self.var = torch.ones(shape, device=device)
+        self.count = epsilon
+        self.device = device
+        
+    def update(self, x):
+        """Update running statistics"""
+        batch_mean = x.mean(dim=0)
+        batch_var = x.var(dim=0, unbiased=False)
+        batch_count = x.shape[0]
+        
+        delta = batch_mean - self.mean
+        tot_count = self.count + batch_count
+        
+        self.mean = self.mean + delta * batch_count / tot_count
+        m_a = self.var * self.count
+        m_b = batch_var * batch_count
+        M2 = m_a + m_b + delta**2 * self.count * batch_count / tot_count
+        self.var = M2 / tot_count
+        self.count = tot_count
+        
+    def normalize(self, x):
+        """Normalize input using running statistics"""
+        return (x - self.mean) / torch.sqrt(self.var + 1e-8)
+    
+    def denormalize(self, x):
+        """Denormalize input back to original scale"""
+        return x * torch.sqrt(self.var + 1e-8) + self.mean
+
 class PPOAgentNode_3(QueueNode):
     """PPO Agent Node - Actor-Critic Network for PPO Algorithm"""
     
@@ -28,6 +61,9 @@ class PPOAgentNode_3(QueueNode):
         # Model state
         self.model = None
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        
+        # Observation normalization
+        self.obs_rms = None  # Will be initialized on first observation
         
         # Check if we're in inference mode
         import builtins
@@ -131,8 +167,20 @@ class PPOAgentNode_3(QueueNode):
             if self.model is None:
                 self.build_model(obs_dim)
                 
+            # Initialize observation normalization on first call
+            if self.obs_rms is None:
+                self.obs_rms = RunningMeanStd(obs_dim, device=self.device)
+                self.logger.info(f"Initialized observation normalization for {obs_dim} features")
+                
+            # Update statistics only in training mode
+            if not self.inference_mode:
+                self.obs_rms.update(observations)
+                
+            # Normalize observations
+            normalized_obs = self.obs_rms.normalize(observations)
+                
             # Forward pass through shared layers
-            features = self.shared_layers(observations)
+            features = self.shared_layers(normalized_obs)
             
             # Compute value
             value = self.value_head(features)
@@ -189,7 +237,8 @@ class PPOAgentNode_3(QueueNode):
                 "action": action,
                 "value": value,
                 "log_prob": log_prob,
-                "action_params": action_params
+                "action_params": action_params,
+                "normalized_observations": normalized_obs  # Include normalized observations for training
             }
             
             # Debug logging removed - was causing 95% performance overhead due to tensor string formatting
