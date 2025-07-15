@@ -185,7 +185,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                         self.last_render_time = current_time
             
             # Track episode returns for learning metrics
-            self._update_episode_returns(rewards, done)
+            self._update_episode_returns(rewards, done, info)
             
             # Update step counter
             self.step_count += 1
@@ -210,45 +210,26 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.logger.error(f"Error in simulation step: {e}")
             raise
     
-    def _update_episode_returns(self, rewards, done):
-        """Update episode return tracking with current step rewards and done flags"""
+    def _update_episode_returns(self, rewards, done, info):
+        """Update episode return tracking using info from base environment"""
         import torch
         import numpy as np
         
-        # Initialize current episode returns if needed (first step)
-        if self.current_episode_returns is None:
-            num_envs = len(rewards) if hasattr(rewards, '__len__') else 1
-            self.current_episode_returns = torch.zeros(num_envs, device=rewards.device)
-        
-        # Accumulate rewards for all environments
-        self.current_episode_returns += rewards
-        
-        # Check for completed episodes (done=True)
-        if done.any():
-            # Get completed episode indices
-            completed_episodes = torch.where(done)[0]
-            
-            # Store returns for completed episodes
-            for env_idx in completed_episodes:
-                episode_return = self.current_episode_returns[env_idx].item()
+        # Extract episode returns from info dictionary
+        if "episode_returns" in info and info["episode_returns"]:
+            # Base environment already captured and printed episode returns
+            # Just update our local tracking for metrics
+            for episode_return in info["episode_returns"]:
                 self.episode_returns.append(episode_return)
                 self.episode_count += 1
-                
-                # Print episode return for profiler to capture
-                print(f"Episode {self.episode_count}: episode return = {episode_return:.2f}")
-                
-                # Print rolling average every 10 episodes (for profiler capture)
-                if self.episode_count % 10 == 0:
-                    avg_return = self._get_average_episode_return()
-                    print(f"Average episode return (last {len(self.episode_returns)} episodes) = {avg_return:.2f}")
-                    print(f"avg episode return = {avg_return:.2f}")  # Profiler-friendly format
                 
                 # Keep only last N episodes for efficiency
                 if len(self.episode_returns) > self.last_n_episodes:
                     self.episode_returns.pop(0)
-                
-                # Reset episode return for this environment
-                self.current_episode_returns[env_idx] = 0.0
+        
+        # Update from info if available
+        if "episode_count" in info:
+            self.episode_count = info["episode_count"]
     
     def _get_average_episode_return(self):
         """Get average episode return from last N completed episodes"""

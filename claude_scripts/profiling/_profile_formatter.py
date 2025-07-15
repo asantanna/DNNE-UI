@@ -173,7 +173,7 @@ class ProfileFormatter:
                                fmt=',d')
         
         print("-" * 70)
-        print("Breakdown (avg ms per operation):")
+        print("Breakdown (total ms across all operations):")
         
         # Environment operations
         self._format_timing_row('  env.step() total', 'env_step_total', igenv_timings, dnne_timings)
@@ -194,9 +194,6 @@ class ProfileFormatter:
                                    {'ppo_total': ppo_total_dnne} if ppo_total_dnne else None)
         else:
             print("  PPO epoch total                           ???               ???")
-            
-        self._format_timing_row('  - collect_rollout', 'collect_rollout', igenv_timings, dnne_timings)
-        self._format_timing_row('  - compute_returns', 'compute_returns', igenv_timings, dnne_timings)
         
         # Calculate policy update total if we have the components
         policy_total_igenv = self._calculate_policy_total(igenv_timings) if igenv_timings else None
@@ -444,8 +441,7 @@ class ProfileFormatter:
         learning_metrics = [
             ("Total Episodes", "total_episodes", "d"),
             ("Completed Episodes", "completed_episodes", "d"),
-            ("Avg Episode Return", "average_episode_return", ".1f"),
-            ("Data Source", "source", "s")
+            ("Avg Episode Return", "average_episode_return", ".1f")
         ]
         
         for label, key, fmt in learning_metrics:
@@ -471,6 +467,23 @@ class ProfileFormatter:
             
             print(row)
         
+        # Calculate and display episodes per second
+        row = f"{'Episodes/second':<30}"
+        
+        if igenv_has_data and igenv and igenv.get('total_time', 0) > 0:
+            episodes_per_sec = igenv_learning.get('total_episodes', 0) / igenv.get('total_time', 1)
+            row += f" {episodes_per_sec:>15.1f}"
+        elif igenv_has_data:
+            row += f" {'N/A':>15}"
+        
+        if dnne_has_data and dnne and dnne.get('total_time', 0) > 0:
+            episodes_per_sec = dnne_learning.get('total_episodes', 0) / dnne.get('total_time', 1)
+            row += f" {episodes_per_sec:>15.1f}"
+        elif dnne_has_data:
+            row += f" {'N/A':>15}"
+            
+        print(row)
+        
         # Learning performance comparison
         if igenv_has_data and dnne_has_data:
             igenv_avg = igenv_learning.get("average_episode_return", 0)
@@ -484,10 +497,14 @@ class ProfileFormatter:
                     print("✅ Learning performance is comparable")
                 elif learning_ratio > 1.2:
                     print(f"✅ DNNE learns {learning_ratio:.1f}x better episode returns")
-                else:
+                elif learning_ratio > 0:
                     print(f"❌ DNNE learns {1/learning_ratio:.1f}x worse episode returns")
+                else:
+                    print("❌ DNNE episode returns are zero - no learning detected")
+            elif dnne_avg > 0:
+                print("ℹ️  Cannot compare learning - IsaacGymEnvs baseline is zero but DNNE shows learning")
             else:
-                print("ℹ️  Cannot compare learning - IsaacGymEnvs baseline is zero")
+                print("ℹ️  Cannot compare learning - both systems show zero episode returns")
         elif igenv_has_data:
             print("ℹ️  Only IsaacGymEnvs learning data available")
         else:

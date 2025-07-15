@@ -209,25 +209,58 @@ class IsaacGymEnvironment(ABC):
         self.progress_buf += 1
         self.step_count += 1
         
+        # Get rewards before checking termination
+        rewards = self.compute_rewards()
+        
+        # Initialize episode return tracking if needed
+        if not hasattr(self, 'current_episode_returns'):
+            self.current_episode_returns = torch.zeros(self.num_envs, device=self.torch_device)
+            self.episode_returns = []  # Store completed episode returns
+            
+        # Accumulate rewards
+        self.current_episode_returns += rewards
+        
         # Check for resets and handle them
         self.reset_buf = self.check_termination()
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        
+        # Capture episode returns BEFORE reset
+        episode_return_data = []
         if len(env_ids) > 0:
             # Count completed episodes
             self.episode_count += len(env_ids)
+            
+            # Capture returns for completed episodes
+            for env_idx in env_ids:
+                episode_return = self.current_episode_returns[env_idx].item()
+                episode_return_data.append(episode_return)
+                self.episode_returns.append(episode_return)
+                # Print for profiler capture (without verbose flag)
+                print(f"Episode {self.episode_count - len(env_ids) + len(episode_return_data)}: episode return = {episode_return:.2f}")
+                
+            # Print average periodically
+            if len(self.episode_returns) > 0 and self.episode_count % 10 == 0:
+                avg_return = sum(self.episode_returns[-min(100, len(self.episode_returns)):]) / min(100, len(self.episode_returns))
+                print(f"avg episode return = {avg_return:.2f}")
+                
+            # Reset episode returns for completed environments
+            self.current_episode_returns[env_ids] = 0.0
+            
+            # Now reset the environments
             self.reset_environments(env_ids)
         
         # Get current state
         observations = self.get_observations()
-        rewards = self.compute_rewards()
         done = self.reset_buf.clone()
         
-        # Create info dictionary
+        # Create info dictionary with episode return data
         info = {
             "step_count": self.step_count,
             "episode_count": self.episode_count,
             "num_resets": len(env_ids),
-            "sim_time": self.gym.get_sim_time(self.sim)
+            "sim_time": self.gym.get_sim_time(self.sim),
+            "episode_returns": episode_return_data,  # Add episode returns for this step
+            "average_episode_return": sum(self.episode_returns[-min(100, len(self.episode_returns)):]) / min(100, len(self.episode_returns)) if self.episode_returns else 0.0
         }
         
         # Record last step time AFTER physics simulation completes
