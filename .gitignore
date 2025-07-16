@@ -42,3 +42,6 @@ export_system/exports/*/data/
 claude_scripts/ppo_agent_profile.stats
 ppo_agent_profile.stats
 .coverage*
+
+# Training runs output
+runs/
