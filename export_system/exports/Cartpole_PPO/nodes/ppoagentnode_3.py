@@ -7,6 +7,11 @@ import torch.distributions as dist
 import numpy as np
 from framework.base import QueueNode, SensorNode
 
+# Debug print function for consistent logging
+def DNNE_print(message):
+    """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
+    print(f"[DNNE_DEBUG] {message}")
+
 # Template variables - replaced during export
 
 class RunningMeanStd:
@@ -279,12 +284,12 @@ class PPOAgentNode_3(QueueNode):
                     
                     # Note: reward will come from the environment step, not available here
                     # For now, log what we have
-                    print(f"[PPO_CYCLE] Cycle {cycle_num} Step {step_in_cycle}: action={action_val:.4f}, value={value_val:.4f}, reward=0.0000")
+                    DNNE_print(f"PPO_CYCLE: Cycle {cycle_num} Step {step_in_cycle}: action={action_val:.4f}, value={value_val:.4f}, reward=0.0000")
                 
                 # Stop after N PPO cycles if requested
                 stop_after_env = int(os.environ.get('PPO_STOP_AFTER_CYCLE', '0'))
                 if stop_after_env > 0 and self.step_count >= (stop_after_env * 16):
-                    print(f"[PPO_CYCLE] Completed {stop_after_env} PPO cycle(s) ({stop_after_env * 16} steps), stopping data capture")
+                    DNNE_print(f"PPO_CYCLE: Completed {stop_after_env} PPO cycle(s) ({stop_after_env * 16} steps), stopping data capture")
                     # Set flag to stop logging after specified cycles
                     self.ppo_cycle_debug = False
             

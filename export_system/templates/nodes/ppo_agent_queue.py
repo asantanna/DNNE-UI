@@ -1,3 +1,8 @@
+# Debug print function for consistent logging
+def DNNE_print(message):
+    """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
+    print(f"[DNNE_DEBUG] {message}")
+
 # Template variables - replaced during export
 template_vars = {
     "NODE_ID": "ppo_agent_1",
@@ -172,7 +177,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Build model if needed
             if self.model is None:
                 if self.ppo_cycle_debug and self.step_count == 0:
-                    print("[DNNE_DEBUG] === NETWORK INITIALIZATION ===")
+                    DNNE_print("=== NETWORK INITIALIZATION ===\n")
                 self.build_model(obs_dim)
                 if self.fixed_seed_debug:
                     # Log initial model weights

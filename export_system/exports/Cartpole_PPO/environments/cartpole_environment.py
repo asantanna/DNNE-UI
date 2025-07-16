@@ -8,6 +8,11 @@ force-based action application, and physics state extraction.
 import os
 import torch
 import numpy as np
+
+# Debug print function for consistent logging
+def DNNE_print(message):
+    """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
+    print(f"[DNNE_DEBUG] {message}")
 from typing import Dict, Any, Optional
 from .base_environment import IsaacGymEnvironment
 
@@ -69,7 +74,7 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         import os
         
         if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
-            print("[DNNE_DEBUG] === ENVIRONMENT INITIALIZATION ===")
+            DNNE_print("=== ENVIRONMENT INITIALIZATION ===")
         
         # Set simulation parameters
         self.set_simulation_parameters()
@@ -246,7 +251,7 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         if hasattr(self, 'needs_initial_reset') and self.needs_initial_reset:
             self.needs_initial_reset = False
             if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
-                print("[DNNE_DEBUG] === INITIAL ENVIRONMENT RESET ===")
+                DNNE_print("=== INITIAL ENVIRONMENT RESET ===")
             self.reset_environments(torch.arange(self.num_envs, device=self.torch_device))
         
         # CRITICAL: Refresh DOF state tensor before reading
