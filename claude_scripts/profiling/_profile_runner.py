@@ -16,7 +16,8 @@ class ProfileRunner:
     """Runs profiling for both systems using external cProfile"""
     
     def __init__(self, num_envs=512, timeout=300, override_epochs=None, visual=False,
-                 ppo_cycle_debug=False, stop_after_cycle=None, fixed_seed=None, capture_values=False):
+                 ppo_cycle_debug=False, stop_after_cycle=None, fixed_seed=None, capture_values=False,
+                 enable_cpp_profiling=False):
         self.num_envs = num_envs
         self.timeout = timeout
         self.override_epochs = override_epochs
@@ -25,6 +26,7 @@ class ProfileRunner:
         self.stop_after_cycle = stop_after_cycle
         self.fixed_seed = fixed_seed
         self.capture_values = capture_values
+        self.enable_cpp_profiling = enable_cpp_profiling
     
     def extract_max_epochs_from_workflow(self):
         """Extract max_epochs value from DNNE workflow JSON"""
@@ -87,19 +89,16 @@ class ProfileRunner:
             # Build the command to run IsaacGymEnvs directly with cProfile
             prof_file = '/tmp/isaacgymenvs_training.prof'
             
-            # Set up environment variables for PPO cycle debugging
+            # Set up environment variables for debugging
             env = os.environ.copy()
             
-            # Use debug version of rl_games if available
-            rl_games_debug = os.path.expanduser("~/DNNE-LINUX-SUPPORT/rl_games_debug")
-            if os.path.exists(rl_games_debug):
-                # Temporarily rename for import compatibility
-                rl_games_path = os.path.expanduser("~/DNNE-LINUX-SUPPORT/rl_games")
-                if not os.path.exists(rl_games_path):
-                    os.rename(rl_games_debug, rl_games_path)
-                # Add to PYTHONPATH to prioritize our version
-                env['PYTHONPATH'] = f"{os.path.expanduser('~/DNNE-LINUX-SUPPORT')}:{env.get('PYTHONPATH', '')}"
-                print("  📊 Using rl_games_debug for IsaacGymEnvs")
+            # Check for user-set env vars and fail if found
+            if 'USE_RL_GAMES_DEBUG' in os.environ:
+                raise RuntimeError("USE_RL_GAMES_DEBUG is already set. Profiler must control this variable.")
+            
+            # Set the env var for child processes to use rl_games_debug
+            env['USE_RL_GAMES_DEBUG'] = '1'
+            print("  [DNNE_DEBUG] Setting USE_RL_GAMES_DEBUG=1 for IsaacGymEnvs")
             
             if self.ppo_cycle_debug:
                 env['PPO_CYCLE_DEBUG'] = '1'
@@ -119,7 +118,7 @@ class ProfileRunner:
                 'train.params.config.minibatch_size=8192',
                 f'headless={not self.visual}',  # Visual mode disables headless
                 'test=False',
-                'dnne_profiling=True'  # Enable profiling for C++ timing
+                f'dnne_cpp_profiling={self.enable_cpp_profiling}'  # Use enable_cpp_profiling flag
             ]
             
             # Add fixed seed to command if specified
@@ -221,11 +220,7 @@ class ProfileRunner:
                 return None
         finally:
             os.chdir(original_dir)
-            # Rename rl_games back to rl_games_debug
-            rl_games_path = os.path.expanduser("~/DNNE-LINUX-SUPPORT/rl_games")
-            rl_games_debug = os.path.expanduser("~/DNNE-LINUX-SUPPORT/rl_games_debug")
-            if os.path.exists(rl_games_path) and not os.path.exists(rl_games_debug):
-                os.rename(rl_games_path, rl_games_debug)
+            # No directory renaming - we use environment variables now
     
     def _extract_episode_returns_from_output(self, stdout, stderr):
         """Extract episode return information from IsaacGymEnvs training output"""

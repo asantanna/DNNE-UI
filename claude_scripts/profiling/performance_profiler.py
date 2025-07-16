@@ -48,7 +48,9 @@ Examples:
                         default=['both'],
                         help='Which systems to profile (default: both)')
     parser.add_argument('--visual', action='store_true',
-                        help='Run in visual mode with rendering enabled (slower but shows environments)')
+                        help='Enable visual mode (shows rendering, slower)')
+    parser.add_argument('--enable_cpp_profiling', action='store_true',
+                        help='Enable C++ operation profiling for detailed timing analysis')
     
     # PPO cycle debugging options
     parser.add_argument('--ppo-cycle-debug', action='store_true',
@@ -121,7 +123,8 @@ Examples:
         ppo_cycle_debug=args.ppo_cycle_debug,
         stop_after_cycle=args.stop_after_cycle,
         fixed_seed=args.fixed_seed,
-        capture_values=args.capture_values
+        capture_values=args.capture_values,
+        enable_cpp_profiling=args.enable_cpp_profiling
     )
     
     results = {}
