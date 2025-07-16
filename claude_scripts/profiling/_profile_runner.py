@@ -15,11 +15,16 @@ from pathlib import Path
 class ProfileRunner:
     """Runs profiling for both systems using external cProfile"""
     
-    def __init__(self, num_envs=512, timeout=300, override_epochs=None, visual=False):
+    def __init__(self, num_envs=512, timeout=300, override_epochs=None, visual=False,
+                 ppo_cycle_debug=False, stop_after_cycle=None, fixed_seed=None, capture_values=False):
         self.num_envs = num_envs
         self.timeout = timeout
         self.override_epochs = override_epochs
         self.visual = visual
+        self.ppo_cycle_debug = ppo_cycle_debug
+        self.stop_after_cycle = stop_after_cycle
+        self.fixed_seed = fixed_seed
+        self.capture_values = capture_values
     
     def extract_max_epochs_from_workflow(self):
         """Extract max_epochs value from DNNE workflow JSON"""
@@ -82,6 +87,15 @@ class ProfileRunner:
             # Build the command to run IsaacGymEnvs directly with cProfile
             prof_file = '/tmp/isaacgymenvs_training.prof'
             
+            # Set up environment variables for PPO cycle debugging
+            env = os.environ.copy()
+            if self.ppo_cycle_debug:
+                env['PPO_CYCLE_DEBUG'] = '1'
+                if self.stop_after_cycle:
+                    env['PPO_STOP_AFTER_CYCLE'] = '1'
+            if self.fixed_seed is not None:
+                env['FIXED_SEED'] = str(self.fixed_seed)
+            
             cmd = [
                 'python', '-m', 'cProfile',
                 '-o', prof_file,
@@ -95,6 +109,10 @@ class ProfileRunner:
                 'test=False',
                 'dnne_profiling=True'  # Enable profiling for C++ timing
             ]
+            
+            # Add fixed seed to command if specified
+            if self.fixed_seed is not None:
+                cmd.append(f'seed={self.fixed_seed}')
             
             print(f"  Running {iterations_to_run} epochs with {self.num_envs} environments...")
             # Removed comparison with num_iterations since we no longer have it
@@ -112,7 +130,8 @@ class ProfileRunner:
                     cmd, 
                     capture_output=True, 
                     text=True,
-                    timeout=self.timeout
+                    timeout=self.timeout,
+                    env=env  # Pass the environment with PPO debug flags
                 )
                 
                 total_time = time.time() - start_time
@@ -125,6 +144,10 @@ class ProfileRunner:
                 
                 if result.returncode == 0:
                     print(f"  ✅ Completed in {total_time:.2f}s")
+                    
+                    # Save PPO cycle debug output if enabled
+                    if self.ppo_cycle_debug:
+                        self._save_ppo_cycle_debug(result.stdout, 'isaacgym')
                     
                     # Extract episode returns from training output
                     episode_return_metrics = self._extract_episode_returns_from_output(result.stdout, result.stderr)
@@ -337,6 +360,44 @@ class ProfileRunner:
         
         return episode_metrics
     
+    def _save_ppo_cycle_debug(self, output, system_name):
+        """Save PPO cycle debug output for analysis"""
+        import re
+        
+        debug_data = {
+            'system': system_name,
+            'ppo_cycle_logs': [],
+            'actions': [],
+            'values': [],
+            'rewards': [],
+            'observations': []
+        }
+        
+        # Extract PPO_CYCLE lines
+        for line in output.splitlines():
+            if '[PPO_CYCLE]' in line:
+                debug_data['ppo_cycle_logs'].append(line)
+                
+                # Try to extract numerical values
+                # Pattern: "Step X: action=Y, value=Z, reward=W"
+                match = re.search(r'Step (\d+): action=([-\d.]+), value=([-\d.]+), reward=([-\d.]+)', line)
+                if match:
+                    step, action, value, reward = match.groups()
+                    debug_data['actions'].append(float(action))
+                    debug_data['values'].append(float(value))
+                    debug_data['rewards'].append(float(reward))
+        
+        # Save to JSON file
+        output_file = f'/tmp/{system_name}_ppo_cycle_debug.json'
+        with open(output_file, 'w') as f:
+            json.dump(debug_data, f, indent=2)
+        
+        print(f"  📊 Saved PPO cycle debug data to {output_file}")
+        if debug_data['actions']:
+            print(f"     Captured {len(debug_data['actions'])} steps")
+        else:
+            print(f"     ⚠️  No PPO_CYCLE step data captured - check debug output")
+    
     def profile_dnne(self):
         """Profile DNNE using subprocess with cProfile"""
         print("\n🔬 Running DNNE profiling...")
@@ -366,6 +427,21 @@ class ProfileRunner:
         # Give it plenty of time since it should stop on its own
         dnne_timeout = min(expected_iterations * 6, self.timeout)
         
+        # Set up environment variables for PPO cycle debugging
+        env = os.environ.copy()
+        env['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'  # For deterministic behavior
+        if self.ppo_cycle_debug:
+            env['PPO_CYCLE_DEBUG'] = '1'
+            print(f"  📊 PPO_CYCLE_DEBUG enabled")
+            if self.stop_after_cycle:
+                env['PPO_STOP_AFTER_CYCLE'] = str(self.stop_after_cycle)
+                # Override epochs to 1 for stop after cycle
+                expected_iterations = 1
+                print(f"  📊 Stop after {self.stop_after_cycle} cycle(s) enabled - overriding to 1 epoch")
+        if self.fixed_seed is not None:
+            env['FIXED_SEED'] = str(self.fixed_seed)
+            print(f"  📊 Fixed seed: {self.fixed_seed}")
+        
         cmd = [
             'python', '-m', 'cProfile',
             '-o', prof_file,
@@ -382,6 +458,10 @@ class ProfileRunner:
         # Add epochs override if specified
         if self.override_epochs:
             cmd.extend(['--epochs', str(self.override_epochs)])
+        
+        # Add fixed seed if specified
+        if self.fixed_seed is not None:
+            cmd.extend(['--fixed-seed', str(self.fixed_seed)])
         
         print(f"  Running {expected_iterations} epochs with {self.num_envs} environments...")
         print(f"  Timeout: {dnne_timeout}s (safety timeout - DNNE should stop at {expected_iterations} epochs)")
@@ -400,7 +480,8 @@ class ProfileRunner:
                 capture_output=True,
                 text=True,
                 cwd=str(export_dir),
-                timeout=self.timeout
+                timeout=self.timeout,
+                env=env  # Pass the environment with PPO debug flags
             )
             
             total_time = time.time() - start_time
@@ -414,6 +495,11 @@ class ProfileRunner:
             # Check for success (DNNE may exit with timeout which is OK)
             if result.returncode == 0 or "Completed" in result.stdout or Path(prof_file).exists():
                 print(f"  ✅ Completed in {total_time:.2f}s")
+                
+                # Save PPO cycle debug output if enabled
+                if self.ppo_cycle_debug:
+                    # PPO_CYCLE logs should now be in stdout since we use print()
+                    self._save_ppo_cycle_debug(result.stdout, 'dnne')
                 
                 # Extract step count from output
                 # Look for environment node computations (e.g., "7: 86 computations")

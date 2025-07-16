@@ -50,7 +50,23 @@ Examples:
     parser.add_argument('--visual', action='store_true',
                         help='Run in visual mode with rendering enabled (slower but shows environments)')
     
+    # PPO cycle debugging options
+    parser.add_argument('--ppo-cycle-debug', action='store_true',
+                        help='Enable PPO cycle debugging mode (captures detailed computation values)')
+    parser.add_argument('--stop-after-cycle', type=int, default=None,
+                        help='Stop after N PPO cycles (16 steps each) - requires --ppo-cycle-debug')
+    parser.add_argument('--fixed-seed', type=int, default=None,
+                        help='Use fixed seed for deterministic comparison (e.g., --fixed-seed 42)')
+    parser.add_argument('--capture-values', action='store_true',
+                        help='Capture and save computation values for comparison - requires --ppo-cycle-debug')
+    
     args = parser.parse_args()
+    
+    # Validate PPO cycle debug options
+    if args.stop_after_cycle and not args.ppo_cycle_debug:
+        parser.error("--stop-after-cycle requires --ppo-cycle-debug")
+    if args.capture_values and not args.ppo_cycle_debug:
+        parser.error("--capture-values requires --ppo-cycle-debug")
     
     # Check environment
     if os.environ.get("CONDA_DEFAULT_ENV") != "DNNE_PY38":
@@ -69,6 +85,14 @@ Examples:
     print(f"Timeout: {args.timeout}s per system")
     if args.visual:
         print(f"Visual mode: ENABLED (rendering will show)")
+    if args.ppo_cycle_debug:
+        print(f"PPO Cycle Debug: ENABLED")
+        if args.stop_after_cycle:
+            print(f"  - Stop after {args.stop_after_cycle} cycle(s): YES")
+        if args.fixed_seed is not None:
+            print(f"  - Fixed seed: {args.fixed_seed}")
+        if args.capture_values:
+            print(f"  - Capture values: YES")
     print()
     
     # Import helper modules
@@ -93,7 +117,11 @@ Examples:
         num_envs=args.num_envs,
         timeout=args.timeout,
         override_epochs=args.epochs,
-        visual=args.visual
+        visual=args.visual,
+        ppo_cycle_debug=args.ppo_cycle_debug,
+        stop_after_cycle=args.stop_after_cycle,
+        fixed_seed=args.fixed_seed,
+        capture_values=args.capture_values
     )
     
     results = {}

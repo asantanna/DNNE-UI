@@ -172,16 +172,15 @@ class CartpoleEnvironment(IsaacGymEnvironment):
             # Update simulation with new states (only if dof_state is initialized)
             if hasattr(self, 'dof_state') and self.dof_state is not None:
                 from isaacgym import gymtorch
-                env_ids_int32 = env_ids.to(dtype=torch.int32)
                 
-                # Use tensors on the same device as dof_state for Isaac Gym indexed update
-                env_ids_same_device = env_ids_int32.to(self.dof_state.device)
+                # Convert to int32 for Isaac Gym
+                env_ids_int32 = env_ids.to(dtype=torch.int32)
                 
                 self.gym.set_dof_state_tensor_indexed(
                     self.sim,
                     gymtorch.unwrap_tensor(self.dof_state),
-                    gymtorch.unwrap_tensor(env_ids_same_device),
-                    len(env_ids_same_device)
+                    gymtorch.unwrap_tensor(env_ids_int32),
+                    len(env_ids_int32)
                 )
             
             # Reset tracking buffers

@@ -137,6 +137,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Check if we're in inference mode
         import builtins
         self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        self.fixed_seed_debug = getattr(builtins, 'FIXED_SEED', None) is not None
         
         # Checkpoint configuration
         self.checkpoint_enabled = {CHECKPOINT_ENABLED}
@@ -201,6 +202,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Compute returns
         returns = advantages + values
         
+        if self.fixed_seed_debug:
+            self.logger.info(f"[PPO Trainer Debug] Computing GAE with gamma={self.gamma}, tau={self.tau}")
+            self.logger.info(f"[PPO Trainer Debug] Raw rewards: {rewards[:5].tolist()}")
+            self.logger.info(f"[PPO Trainer Debug] Raw values: {values[:5].tolist()}")
+            self.logger.info(f"[PPO Trainer Debug] Computed advantages: {advantages[:5].tolist()}")
+            self.logger.info(f"[PPO Trainer Debug] Computed returns: {returns[:5].tolist()}")
+        
         # Initialize value normalization on first use (matching IsaacGymEnvs)
         if self.value_rms is None and not self.inference_mode:
             self.value_rms = RunningMeanStd(shape=(1,), device=self.device)
@@ -263,6 +271,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         input_dict = self.prepare_rlgames_input_dict(
             states, actions, rewards, values, log_probs, dones, action_means, action_stds
         )
+        
+        if self.fixed_seed_debug:
+            self.logger.info(f"[PPO Trainer Debug] Starting {self.mini_epochs_num} mini-epochs")
+            self.logger.info(f"[PPO Trainer Debug] Advantages: {input_dict['advantages'][:5].tolist()}")
+            self.logger.info(f"[PPO Trainer Debug] Returns: {input_dict['returns'][:5].tolist()}")
         
         # Multiple mini-epochs over the data (rl_games pattern)
         for mini_epoch in range(self.mini_epochs_num):
@@ -357,6 +370,16 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             normalized_obs = policy_output.get("normalized_observations", state)
             self.buffer_states.append(normalized_obs.detach().clone())
             self.buffer_actions.append(action.detach().clone())
+            
+            if self.fixed_seed_debug and self.step_count == 0:
+                self.logger.info(f"[PPO Trainer Debug] First state shape: {state.shape}")
+                self.logger.info(f"[PPO Trainer Debug] First state (first 5): {state[0][:5].tolist()}")
+                self.logger.info(f"[PPO Trainer Debug] First normalized state (first 5): {normalized_obs[0][:5].tolist()}")
+                self.logger.info(f"[PPO Trainer Debug] Action: {policy_output['action'][0].tolist() if policy_output['action'].dim() > 1 else policy_output['action'].tolist()}")
+                self.logger.info(f"[PPO Trainer Debug] Value: {policy_output['value'][0].item() if policy_output['value'].numel() > 1 else policy_output['value'].item()}")
+                self.logger.info(f"[PPO Trainer Debug] Log prob: {policy_output['log_prob'][0].item() if policy_output['log_prob'].numel() > 1 else policy_output['log_prob'].item()}")
+                self.logger.info(f"[PPO Trainer Debug] Reward: {reward[0].item() if reward.numel() > 1 else reward.item()}")
+                self.logger.info(f"[PPO Trainer Debug] Done: {done[0].item() if done.numel() > 1 else done.item()}")
             self.buffer_rewards.append(reward.detach().clone())
             self.buffer_values.append(value.detach().clone())
             self.buffer_log_probs.append(log_prob.detach().clone())
@@ -366,6 +389,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             # Check if buffer is full (DNNE async coordination maintained)
             if len(self.buffer_states) >= self.horizon_length:
+                if self.fixed_seed_debug:
+                    self.logger.info(f"[PPO Trainer Debug] Starting PPO update with {len(self.buffer_states)} steps")
+                    
                 # Convert buffer to tensors
                 states = torch.stack(self.buffer_states)
                 actions = torch.stack(self.buffer_actions)
@@ -375,6 +401,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 dones = torch.stack(self.buffer_dones)
                 action_means = torch.stack(self.buffer_action_means)
                 action_stds = torch.stack(self.buffer_action_stds)
+                
+                if self.fixed_seed_debug:
+                    self.logger.info(f"[PPO Trainer Debug] Rewards: {rewards.tolist()}")
+                    self.logger.info(f"[PPO Trainer Debug] Values: {values[:5].tolist()}")
+                    self.logger.info(f"[PPO Trainer Debug] Dones: {dones.sum().item()} episodes completed")
                 
                 # Perform PPO training using rl_games components
                 total_loss = self.rlgames_ppo_update(

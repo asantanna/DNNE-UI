@@ -7,7 +7,10 @@
             "path": "../DNNE-UI-Frontend"
         },
         {
-            "path": "../../../../../home/asantanna/DNNE-LINUX-SUPPORT"
+            "path": "\\\\wsl.localhost\\Ubuntu\\home\\asantanna\\DNNE-LINUX-SUPPORT"
+        },
+        {
+            "path": "../../../../../tmp"
         }
     ],
     "settings": {}

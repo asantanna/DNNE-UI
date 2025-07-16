@@ -204,6 +204,29 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Create all environments
             self.environment.create_environments(spacing=4.0)
             
+            # CRITICAL: Reset all environments after creation to initialize states
+            # This matches IsaacGymEnvs behavior and ensures valid initial observations
+            import torch
+            all_env_ids = torch.arange(self.num_envs, device=self.environment.torch_device)
+            
+            # Get observations before reset to debug
+            import builtins
+            if hasattr(builtins, 'FIXED_SEED') and builtins.FIXED_SEED is not None:
+                pre_reset_obs = self.environment.get_observations()
+                self.logger.info(f"[Isaac Gym Env Debug] Pre-reset observations (env 0): {pre_reset_obs[0].tolist()}")
+            
+            self.environment.reset_environments(all_env_ids)
+            self.logger.info(f"Reset all {self.num_envs} environments after creation")
+            
+            # Force a simulation step to propagate the reset state
+            self.gym.simulate(self.sim)
+            self.gym.fetch_results(self.sim, True)
+            
+            # Get observations after reset to debug
+            if hasattr(builtins, 'FIXED_SEED') and builtins.FIXED_SEED is not None:
+                post_reset_obs = self.environment.get_observations()
+                self.logger.info(f"[Isaac Gym Env Debug] Post-reset observations (env 0): {post_reset_obs[0].tolist()}")
+            
             # Enable profiling if requested via command line
             try:
                 import builtins

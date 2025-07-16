@@ -151,6 +151,19 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         """Execute one simulation step using environment class methods"""
         try:
             import torch
+            import builtins
+            
+            # Debug logging for fixed seed mode
+            if hasattr(builtins, 'FIXED_SEED') and builtins.FIXED_SEED is not None:
+                self.logger.info(f"[Isaac Gym Step Debug] Compute called - trigger={trigger is not None}, step_count={self.step_count}")
+                if actions is not None:
+                    self.logger.info(f"[Isaac Gym Step Debug] Actions received: shape={actions.shape if hasattr(actions, 'shape') else type(actions)}")
+                
+                # TEMPORARY: Force exit after 10 steps for debugging
+                if self.step_count >= 10:
+                    self.logger.info("[Isaac Gym Step Debug] FORCING EXIT AFTER 10 STEPS FOR DEBUGGING")
+                    import sys
+                    sys.exit(0)
             
             # Validate simulation handle
             if not hasattr(sim_handle, 'environment') or sim_handle.environment is None:

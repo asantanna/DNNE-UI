@@ -71,8 +71,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Check if we're in inference mode
         import builtins
         self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        self.fixed_seed_debug = getattr(builtins, 'FIXED_SEED', None) is not None
         
         self.logger.info(f"PPOAgentNode {node_id} initialized with action_space={self.action_space}, action_dim={self.action_dim}")
+        if self.fixed_seed_debug:
+            self.logger.info("🔍 Fixed seed debug mode enabled - will log all computation values")
         
     def build_model(self, obs_dim):
         """Build the actor-critic network"""
@@ -169,6 +172,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Build model if needed
             if self.model is None:
                 self.build_model(obs_dim)
+                if self.fixed_seed_debug:
+                    # Log initial model weights
+                    self.logger.info("[PPO Agent Debug] Initial model weights:")
+                    for name, param in self.model.named_parameters():
+                        if param.numel() < 10:
+                            self.logger.info(f"  {name}: {param.data.tolist()}")
+                        else:
+                            self.logger.info(f"  {name}: shape={param.shape}, first 5={param.data.flatten()[:5].tolist()}")
                 
             # Initialize observation normalization on first call
             if self.obs_rms is None:
@@ -181,6 +192,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 
             # Normalize observations
             normalized_obs = self.obs_rms.normalize(observations)
+            
+            # Debug logging for fixed seed mode
+            if self.fixed_seed_debug:
+                self.logger.info(f"[PPO Agent Debug] Raw observations (first 5): {observations[0][:5].tolist()}")
+                self.logger.info(f"[PPO Agent Debug] Obs mean: {self.obs_rms.mean[:5].tolist()}")
+                self.logger.info(f"[PPO Agent Debug] Obs var: {self.obs_rms.var[:5].tolist()}")
+                self.logger.info(f"[PPO Agent Debug] Normalized obs (first 5): {normalized_obs[0][:5].tolist()}")
                 
             # Forward pass through shared layers
             features = self.shared_layers(normalized_obs)
@@ -188,6 +206,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Compute value
             value = self.value_head(features)
             value = value.squeeze(1)  # Remove second dimension: [batch_size, 1] -> [batch_size]
+            
+            if self.fixed_seed_debug:
+                self.logger.info(f"[PPO Agent Debug] Features shape: {features.shape}")
+                self.logger.info(f"[PPO Agent Debug] Features (first 5): {features[0][:5].tolist()}")
+                self.logger.info(f"[PPO Agent Debug] Value output: {value[0].item()}")
                 
             # Compute policy output
             if self.action_space == "continuous":
@@ -207,8 +230,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 # Compute log probability
                 log_prob = policy_dist.log_prob(action).sum(dim=-1)
                 
-                # Store action parameters for later use
-                action_params = torch.cat([action_mean, action_std.expand_as(action_mean)], dim=-1)
+                # Store action parameters separately for PPO trainer
+                # action_params = torch.cat([action_mean, action_std.expand_as(action_mean)], dim=-1)  # Old format
+                
+                if self.fixed_seed_debug:
+                    self.logger.info(f"[PPO Agent Debug] Action mean: {action_mean[0].tolist()}")
+                    self.logger.info(f"[PPO Agent Debug] Action std: {action_std.tolist()}")
+                    self.logger.info(f"[PPO Agent Debug] Sampled action: {action[0].tolist()}")
+                    self.logger.info(f"[PPO Agent Debug] Log prob: {log_prob[0].item()}")
                 
             else:
                 # Discrete action space - Categorical policy
@@ -233,16 +262,26 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if single_sample:
                 action = action.squeeze(0)
                 log_prob = log_prob.squeeze(0)
-                action_params = action_params.squeeze(0)
+                if self.action_space == "continuous":
+                    action_mean = action_mean.squeeze(0)
+                    action_std = action_std.squeeze(0)
+                else:
+                    action_params = action_params.squeeze(0)
                 
             # Create PolicyOutput-like dictionary
             policy_output = {
                 "action": action,
                 "value": value,
                 "log_prob": log_prob,
-                "action_params": action_params,
                 "normalized_observations": normalized_obs  # Include normalized observations for training
             }
+            
+            # Add action parameters based on action space
+            if self.action_space == "continuous":
+                policy_output["action_mean"] = action_mean
+                policy_output["action_std"] = action_std
+            else:
+                policy_output["action_params"] = action_params
             
             # Debug logging removed - was causing 95% performance overhead due to tensor string formatting
             # If you need to debug, use: self.logger.debug(f"Forward pass complete, batch_size={batch_size}")

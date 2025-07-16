@@ -259,8 +259,13 @@ class PPOAgentNode_3(QueueNode):
             if self.ppo_cycle_debug:
                 self.step_count += 1
                 
-                # Log detailed values for first 5 steps (matching IsaacGymEnvs)
-                if self.step_count <= 5:
+                # Log detailed values for first 5 steps per cycle
+                stop_after = int(os.environ.get('PPO_STOP_AFTER_CYCLE', '0'))
+                cycle_num = (self.step_count - 1) // 16 + 1
+                step_in_cycle = ((self.step_count - 1) % 16) + 1
+                
+                # Log first 5 steps of each cycle up to stop_after cycles
+                if (stop_after == 0 or cycle_num <= stop_after) and step_in_cycle <= 5:
                     # Extract scalar values for logging
                     if action.numel() > 0:
                         action_val = action[0].item() if action.dim() > 0 else action.item()
@@ -274,12 +279,13 @@ class PPOAgentNode_3(QueueNode):
                     
                     # Note: reward will come from the environment step, not available here
                     # For now, log what we have
-                    print(f"[PPO_CYCLE] Step {self.step_count}: action={action_val:.4f}, value={value_val:.4f}, reward=0.0000")
+                    print(f"[PPO_CYCLE] Cycle {cycle_num} Step {step_in_cycle}: action={action_val:.4f}, value={value_val:.4f}, reward=0.0000")
                 
-                # Stop after first PPO cycle if requested
-                if os.environ.get('PPO_STOP_AFTER_CYCLE', '0') == '1' and self.step_count >= 16:
-                    print("[PPO_CYCLE] Completed first PPO cycle (16 steps), stopping data capture")
-                    # Set flag to stop logging after first cycle
+                # Stop after N PPO cycles if requested
+                stop_after_env = int(os.environ.get('PPO_STOP_AFTER_CYCLE', '0'))
+                if stop_after_env > 0 and self.step_count >= (stop_after_env * 16):
+                    print(f"[PPO_CYCLE] Completed {stop_after_env} PPO cycle(s) ({stop_after_env * 16} steps), stopping data capture")
+                    # Set flag to stop logging after specified cycles
                     self.ppo_cycle_debug = False
             
             return {
