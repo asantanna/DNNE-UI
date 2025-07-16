@@ -171,6 +171,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             # Build model if needed
             if self.model is None:
+                if self.ppo_cycle_debug and self.step_count == 0:
+                    print("[DNNE_DEBUG] === NETWORK INITIALIZATION ===")
                 self.build_model(obs_dim)
                 if self.fixed_seed_debug:
                     # Log initial model weights
