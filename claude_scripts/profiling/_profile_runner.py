@@ -382,22 +382,109 @@ class ProfileRunner:
             'actions': [],
             'values': [],
             'rewards': [],
-            'observations': []
+            'observations': [],
+            'initial_state': {},
+            'batch_info': {},
+            'gradient_info': {},
+            'loss_components': {},
+            'policy_params': {}
         }
         
-        # Extract PPO_CYCLE lines
+        # Extract all DNNE_DEBUG lines
         for line in output.splitlines():
-            if '[PPO_CYCLE]' in line:
+            if '[DNNE_DEBUG]' in line:
                 debug_data['ppo_cycle_logs'].append(line)
                 
-                # Try to extract numerical values
-                # Pattern: "Step X: action=Y, value=Z, reward=W"
-                match = re.search(r'Step (\d+): action=([-\d.]+), value=([-\d.]+), reward=([-\d.]+)', line)
-                if match:
-                    step, action, value, reward = match.groups()
-                    debug_data['actions'].append(float(action))
-                    debug_data['values'].append(float(value))
-                    debug_data['rewards'].append(float(reward))
+                # Extract PPO_CYCLE step data
+                if 'PPO_CYCLE: Step' in line:
+                    match = re.search(r'Step (\d+): action=([-\d.]+), value=([-\d.]+), reward=([-\d.]+)', line)
+                    if match:
+                        step, action, value, reward = match.groups()
+                        debug_data['actions'].append(float(action))
+                        debug_data['values'].append(float(value))
+                        debug_data['rewards'].append(float(reward))
+                
+                # Extract initial state information
+                elif 'PPO_INITIAL:' in line:
+                    if 'First observation:' in line:
+                        match = re.search(r'First observation: \[([-\d., ]+)\]', line)
+                        if match:
+                            debug_data['initial_state']['first_obs'] = [float(x) for x in match.group(1).split(', ')]
+                    elif 'Observation shape:' in line:
+                        match = re.search(r'Observation shape: torch.Size\(\[([\d, ]+)\]\)', line)
+                        if match:
+                            debug_data['initial_state']['obs_shape'] = [int(x) for x in match.group(1).split(', ')]
+                    elif 'Obs normalization - mean:' in line:
+                        match = re.search(r'mean: \[([-\d., ]+)\]', line)
+                        if match:
+                            debug_data['initial_state']['obs_norm_mean'] = [float(x) for x in match.group(1).split(', ')]
+                    elif 'Obs normalization - var:' in line:
+                        match = re.search(r'var: \[([-\d., ]+)\]', line)
+                        if match:
+                            debug_data['initial_state']['obs_norm_var'] = [float(x) for x in match.group(1).split(', ')]
+                    elif 'Actor first layer weights:' in line:
+                        match = re.search(r'weights: \[([-\d., ]+)\]', line)
+                        if match:
+                            debug_data['initial_state']['actor_weights'] = [float(x) for x in match.group(1).split(', ')]
+                    elif 'Mu layer weights:' in line:
+                        match = re.search(r'weights: \[([-\d., ]+)\]', line)
+                        if match:
+                            debug_data['initial_state']['mu_weights'] = [float(x) for x in match.group(1).split(', ')]
+                    elif 'Sigma vals:' in line:
+                        match = re.search(r'Sigma vals: \[([-\d., ]+)\]', line)
+                        if match:
+                            debug_data['initial_state']['sigma_vals'] = [float(x) for x in match.group(1).split(', ')]
+                
+                # Extract batch information
+                elif 'PPO_BATCH:' in line:
+                    if 'Advantages' in line and 'mean:' in line:
+                        match = re.search(r'mean: ([-\d.]+), std: ([-\d.]+)', line)
+                        if match:
+                            debug_data['batch_info']['advantages_mean'] = float(match.group(1))
+                            debug_data['batch_info']['advantages_std'] = float(match.group(2))
+                    elif 'Returns' in line and 'mean:' in line:
+                        match = re.search(r'mean: ([-\d.]+), std: ([-\d.]+)', line)
+                        if match:
+                            debug_data['batch_info']['returns_mean'] = float(match.group(1))
+                            debug_data['batch_info']['returns_std'] = float(match.group(2))
+                    elif 'Values' in line and 'mean:' in line:
+                        match = re.search(r'mean: ([-\d.]+), std: ([-\d.]+)', line)
+                        if match:
+                            debug_data['batch_info']['values_mean'] = float(match.group(1))
+                            debug_data['batch_info']['values_std'] = float(match.group(2))
+                
+                # Extract gradient information
+                elif 'PPO_GRAD:' in line:
+                    if 'Actor loss:' in line:
+                        match = re.search(r'Actor loss: ([-\d.]+)', line)
+                        if match:
+                            debug_data['loss_components']['actor_loss'] = float(match.group(1))
+                    elif 'Critic loss:' in line:
+                        match = re.search(r'Critic loss: ([-\d.]+)', line)
+                        if match:
+                            debug_data['loss_components']['critic_loss'] = float(match.group(1))
+                    elif 'Entropy:' in line:
+                        match = re.search(r'Entropy: ([-\d.]+)', line)
+                        if match:
+                            debug_data['loss_components']['entropy'] = float(match.group(1))
+                    elif 'Total loss:' in line:
+                        match = re.search(r'Total loss: ([-\d.]+)', line)
+                        if match:
+                            debug_data['loss_components']['total_loss'] = float(match.group(1))
+                    elif 'KL divergence:' in line:
+                        match = re.search(r'KL divergence: ([-\d.]+)', line)
+                        if match:
+                            debug_data['gradient_info']['kl_divergence'] = float(match.group(1))
+                    elif 'Mu shape:' in line and 'mean:' in line:
+                        match = re.search(r'mean: ([-\d.]+), std: ([-\d.]+)', line)
+                        if match:
+                            debug_data['policy_params']['mu_mean'] = float(match.group(1))
+                            debug_data['policy_params']['mu_std'] = float(match.group(2))
+                    elif 'Sigma shape:' in line and 'mean:' in line:
+                        match = re.search(r'mean: ([-\d.]+), std: ([-\d.]+)', line)
+                        if match:
+                            debug_data['policy_params']['sigma_mean'] = float(match.group(1))
+                            debug_data['policy_params']['sigma_std'] = float(match.group(2))
         
         # Save to JSON file
         output_file = f'/tmp/{system_name}_ppo_cycle_debug.json'
@@ -406,9 +493,11 @@ class ProfileRunner:
         
         print(f"  📊 Saved PPO cycle debug data to {output_file}")
         if debug_data['actions']:
-            print(f"     Captured {len(debug_data['actions'])} steps")
-        else:
-            print(f"     ⚠️  No PPO_CYCLE step data captured - check debug output")
+            print(f"     Captured {len(debug_data['actions'])} environment steps")
+        if debug_data['initial_state']:
+            print(f"     Captured initial state information")
+        if debug_data['loss_components']:
+            print(f"     Captured loss components and gradients")
     
     def profile_dnne(self):
         """Profile DNNE using subprocess with cProfile"""
