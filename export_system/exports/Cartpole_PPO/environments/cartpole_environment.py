@@ -66,6 +66,10 @@ class CartpoleEnvironment(IsaacGymEnvironment):
     def create_environments(self, spacing: float = 4.0, num_per_row: int = None) -> None:
         """Create Cartpole environments with IsaacGymEnvs-compatible setup"""
         from isaacgym import gymapi
+        import os
+        
+        if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
+            print("[DNNE_DEBUG] === ENVIRONMENT INITIALIZATION ===")
         
         # Set simulation parameters
         self.set_simulation_parameters()
@@ -100,6 +104,9 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         
         # Initialize state tensors after all environments are created
         self.initialize_state_tensors()
+        
+        # Note: Initial reset will be done after simulation is prepared
+        self.needs_initial_reset = True
         
         self.logger.info(f"Created {self.num_envs} Cartpole environments with {spacing}m spacing")
     
@@ -234,6 +241,13 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         """Get current observations from physics simulation"""
         if env_ids is None:
             env_ids = torch.arange(self.num_envs, device=self.torch_device)
+        
+        # Do initial reset if needed (after sim is prepared)
+        if hasattr(self, 'needs_initial_reset') and self.needs_initial_reset:
+            self.needs_initial_reset = False
+            if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
+                print("[DNNE_DEBUG] === INITIAL ENVIRONMENT RESET ===")
+            self.reset_environments(torch.arange(self.num_envs, device=self.torch_device))
         
         # CRITICAL: Refresh DOF state tensor before reading
         self.gym.refresh_dof_state_tensor(self.sim)
