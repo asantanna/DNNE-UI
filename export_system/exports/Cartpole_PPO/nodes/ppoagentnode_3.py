@@ -1,5 +1,6 @@
 """Node implementation for PPOAgentNode (ID: 3)"""
 from typing import Dict, Any
+import os
 import torch
 import torch.nn as nn
 import torch.distributions as dist
@@ -77,6 +78,9 @@ class PPOAgentNode_3(QueueNode):
             self.logger.info("🔍 Fixed seed debug mode enabled")
         if self.ppo_cycle_debug:
             self.logger.info("🔍 PPO cycle debug mode enabled")
+        
+        # Step counter for PPO cycle debugging
+        self.step_count = 0
         
     def build_model(self, obs_dim):
         """Build the actor-critic network"""
@@ -250,6 +254,33 @@ class PPOAgentNode_3(QueueNode):
             
             # Debug logging removed - was causing 95% performance overhead due to tensor string formatting
             # If you need to debug, use: self.logger.debug(f"Forward pass complete, batch_size={batch_size}")
+            
+            # PPO cycle debug logging
+            if self.ppo_cycle_debug:
+                self.step_count += 1
+                
+                # Log detailed values for first 5 steps (matching IsaacGymEnvs)
+                if self.step_count <= 5:
+                    # Extract scalar values for logging
+                    if action.numel() > 0:
+                        action_val = action[0].item() if action.dim() > 0 else action.item()
+                    else:
+                        action_val = 0.0
+                    
+                    if value.numel() > 0:
+                        value_val = value[0].item() if value.dim() > 0 else value.item()
+                    else:
+                        value_val = 0.0
+                    
+                    # Note: reward will come from the environment step, not available here
+                    # For now, log what we have
+                    print(f"[PPO_CYCLE] Step {self.step_count}: action={action_val:.4f}, value={value_val:.4f}, reward=0.0000")
+                
+                # Stop after first PPO cycle if requested
+                if os.environ.get('PPO_STOP_AFTER_CYCLE', '0') == '1' and self.step_count >= 16:
+                    print("[PPO_CYCLE] Completed first PPO cycle (16 steps), stopping data capture")
+                    # Set flag to stop logging after first cycle
+                    self.ppo_cycle_debug = False
             
             return {
                 "policy_output": policy_output,
