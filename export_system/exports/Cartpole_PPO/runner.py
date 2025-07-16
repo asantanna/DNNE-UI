@@ -65,6 +65,8 @@ async def main():
                        help='Enable profiling for C++ operations (Isaac Gym)')
     parser.add_argument('--epochs', type=int, default=None,
                        help='Override max epochs for training (overrides workflow setting)')
+    parser.add_argument('--fixed-seed', type=int, default=None,
+                       help='Use fixed seed for deterministic execution')
     args = parser.parse_args()
 
     # Parse timeout if provided
@@ -91,7 +93,22 @@ async def main():
     builtins.INFERENCE_MODE = args.inference
     builtins.DNNE_PROFILING = args.dnne_profiling
     builtins.EPOCHS_OVERRIDE = args.epochs
+    builtins.FIXED_SEED = args.fixed_seed
     configure_logging(args.verbose)
+    
+    # Set fixed seed if provided for deterministic execution
+    if args.fixed_seed is not None:
+        import random
+        import numpy as np
+        import torch
+        torch.manual_seed(args.fixed_seed)
+        torch.cuda.manual_seed_all(args.fixed_seed)
+        np.random.seed(args.fixed_seed)
+        random.seed(args.fixed_seed)
+        # For deterministic behavior with CUDA
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        print(f"🌱 Setting fixed seed: {args.fixed_seed}")
 
     print("🚀 Starting DNNE Queue-Based Execution")
     if args.epochs:
