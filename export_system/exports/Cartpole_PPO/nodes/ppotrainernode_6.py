@@ -126,6 +126,7 @@ class PPOTrainerNode_6(QueueNode):
         # Check if we're in inference mode
         import builtins
         self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        self.fixed_seed_debug = getattr(builtins, 'FIXED_SEED', None) is not None
         
         # Checkpoint configuration
         self.checkpoint_enabled = True
@@ -189,6 +190,13 @@ class PPOTrainerNode_6(QueueNode):
         
         # Compute returns
         returns = advantages + values
+        
+        if self.fixed_seed_debug:
+            self.logger.info(f"[PPO Trainer Debug] Computing GAE with gamma={self.gamma}, tau={self.tau}")
+            self.logger.info(f"[PPO Trainer Debug] Raw rewards: {rewards[:5].tolist()}")
+            self.logger.info(f"[PPO Trainer Debug] Raw values: {values[:5].tolist()}")
+            self.logger.info(f"[PPO Trainer Debug] Computed advantages: {advantages[:5].tolist()}")
+            self.logger.info(f"[PPO Trainer Debug] Computed returns: {returns[:5].tolist()}")
         
         # Initialize value normalization on first use (matching IsaacGymEnvs)
         if self.value_rms is None and not self.inference_mode:
@@ -254,6 +262,11 @@ class PPOTrainerNode_6(QueueNode):
         )
         
         # Multiple mini-epochs over the data (rl_games pattern)
+        if self.fixed_seed_debug:
+            self.logger.info(f"[PPO Trainer Debug] Starting {self.mini_epochs_num} mini-epochs")
+            self.logger.info(f"[PPO Trainer Debug] Advantages: {input_dict['advantages'][:5].tolist()}")
+            self.logger.info(f"[PPO Trainer Debug] Returns: {input_dict['returns'][:5].tolist()}")
+        
         for mini_epoch in range(self.mini_epochs_num):
             # Create minibatches
             indices = torch.randperm(batch_size)
@@ -353,6 +366,16 @@ class PPOTrainerNode_6(QueueNode):
             self.buffer_action_means.append(action_mean.detach().clone())
             self.buffer_action_stds.append(action_std.detach().clone())
             
+            if self.fixed_seed_debug and self.step_count == 0:
+                self.logger.info(f"[PPO Trainer Debug] First state shape: {state.shape}")
+                self.logger.info(f"[PPO Trainer Debug] First state (first 5): {state[0][:5].tolist()}")
+                self.logger.info(f"[PPO Trainer Debug] First normalized state (first 5): {normalized_obs[0][:5].tolist()}")
+                self.logger.info(f"[PPO Trainer Debug] Action: {policy_output['action'][0].tolist() if policy_output['action'].dim() > 1 else policy_output['action'].tolist()}")
+                self.logger.info(f"[PPO Trainer Debug] Value: {policy_output['value'][0].item() if policy_output['value'].numel() > 1 else policy_output['value'].item()}")
+                self.logger.info(f"[PPO Trainer Debug] Log prob: {policy_output['log_prob'][0].item() if policy_output['log_prob'].numel() > 1 else policy_output['log_prob'].item()}")
+                self.logger.info(f"[PPO Trainer Debug] Reward: {reward[0].item() if reward.numel() > 1 else reward.item()}")
+                self.logger.info(f"[PPO Trainer Debug] Done: {done[0].item() if done.numel() > 1 else done.item()}")
+            
             # Check if buffer is full (DNNE async coordination maintained)
             if len(self.buffer_states) >= self.horizon_length:
                 # Convert buffer to tensors
@@ -365,6 +388,12 @@ class PPOTrainerNode_6(QueueNode):
                 action_means = torch.stack(self.buffer_action_means)
                 action_stds = torch.stack(self.buffer_action_stds)
                 
+                if self.fixed_seed_debug:
+                    self.logger.info(f"[PPO Trainer Debug] Rewards: {rewards.tolist()}")
+                    self.logger.info(f"[PPO Trainer Debug] Values: {values[:5].tolist()}")
+                    self.logger.info(f"[PPO Trainer Debug] Dones: {dones.sum().item()} episodes completed")
+                    self.logger.info(f"[PPO Trainer Debug] Starting PPO update with {len(self.buffer_states)} steps")
+                    
                 # Perform PPO training using rl_games components
                 total_loss = self.rlgames_ppo_update(
                     states, actions, rewards, values, log_probs, dones, 
