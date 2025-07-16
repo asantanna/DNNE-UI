@@ -67,12 +67,16 @@ class PPOAgentNode_3(QueueNode):
         
         # Check if we're in inference mode
         import builtins
+        import os
         self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
         self.fixed_seed_debug = getattr(builtins, 'FIXED_SEED', None) is not None
+        self.ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
         
         self.logger.info(f"PPOAgentNode {node_id} initialized with action_space={self.action_space}, action_dim={self.action_dim}")
         if self.fixed_seed_debug:
             self.logger.info("🔍 Fixed seed debug mode enabled")
+        if self.ppo_cycle_debug:
+            self.logger.info("🔍 PPO cycle debug mode enabled")
         
     def build_model(self, obs_dim):
         """Build the actor-critic network"""
