@@ -89,6 +89,18 @@ class ProfileRunner:
             
             # Set up environment variables for PPO cycle debugging
             env = os.environ.copy()
+            
+            # Use debug version of rl_games if available
+            rl_games_debug = os.path.expanduser("~/DNNE-LINUX-SUPPORT/rl_games_debug")
+            if os.path.exists(rl_games_debug):
+                # Temporarily rename for import compatibility
+                rl_games_path = os.path.expanduser("~/DNNE-LINUX-SUPPORT/rl_games")
+                if not os.path.exists(rl_games_path):
+                    os.rename(rl_games_debug, rl_games_path)
+                # Add to PYTHONPATH to prioritize our version
+                env['PYTHONPATH'] = f"{os.path.expanduser('~/DNNE-LINUX-SUPPORT')}:{env.get('PYTHONPATH', '')}"
+                print("  📊 Using rl_games_debug for IsaacGymEnvs")
+            
             if self.ppo_cycle_debug:
                 env['PPO_CYCLE_DEBUG'] = '1'
                 if self.stop_after_cycle:
@@ -209,6 +221,11 @@ class ProfileRunner:
                 return None
         finally:
             os.chdir(original_dir)
+            # Rename rl_games back to rl_games_debug
+            rl_games_path = os.path.expanduser("~/DNNE-LINUX-SUPPORT/rl_games")
+            rl_games_debug = os.path.expanduser("~/DNNE-LINUX-SUPPORT/rl_games_debug")
+            if os.path.exists(rl_games_path) and not os.path.exists(rl_games_debug):
+                os.rename(rl_games_path, rl_games_debug)
     
     def _extract_episode_returns_from_output(self, stdout, stderr):
         """Extract episode return information from IsaacGymEnvs training output"""
