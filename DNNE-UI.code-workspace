@@ -1,17 +1,22 @@
 {
 	"folders": [
         {
+            "name": "DNNE-UI",
             "path": "."
         },
         {
+            "name": "DNNE-UI-Frontend",
             "path": "../DNNE-UI-Frontend"
         },
         {
-            "path": "../../../../../tmp"
+            "name": "DNNE-LINUX-SUPPORT",
+            "path": "/home/asantanna/DNNE-LINUX-SUPPORT"
         },
         {
-            "path": "../../../../../home/asantanna/DNNE-LINUX-SUPPORT"
-        }
+            "name": "TMP",
+            "path": "/tmp"
+        },
+
     ],
     "settings": {}
 }
