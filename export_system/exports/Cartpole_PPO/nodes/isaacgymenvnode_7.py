@@ -132,6 +132,14 @@ class IsaacGymEnvNode_7(QueueNode):
             raise RuntimeError("Environment not initialized")
         
         try:
+            # Debug: Track how many times this is called
+            if not hasattr(self, 'compute_count'):
+                self.compute_count = 0
+            self.compute_count += 1
+            
+            if self.ppo_cycle_debug:
+                print(f"[PPO_CYCLE_DEBUG] IsaacGymEnvNode.compute() call #{self.compute_count}")
+            
             # Get initial observations
             initial_observations = self.env.get_initial_observations()
             

@@ -539,7 +539,8 @@ class GraphExporter:
             shutil.copy2(source_path, target_path)
             self.logger.info(f"Copied dependency: {dep_filename} -> {target_path}")
         else:
-            self.logger.warning(f"Dependency file not found: {source_path}")
+            raise FileNotFoundError(f"Required dependency file not found: {source_path}. "
+                                    f"The node requires '{dep_filename}' but it does not exist in templates/nodes/")
     
     def _process_template(self, template: str, variables: Dict[str, Any]) -> str:
         """Process template by replacing variables"""

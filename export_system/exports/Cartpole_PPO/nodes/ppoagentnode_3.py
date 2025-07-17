@@ -51,6 +51,9 @@ class PPOAgentNode_3(QueueNode):
         import os
         self.ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
         
+        # Initialize step counter
+        self.step_count = 0
+        
         self.logger.info(f"PPOAgentNode {node_id} initialized with action_space={self.action_space}, action_dim={self.action_dim}")
         if self.fixed_seed_debug:
             self.logger.info("🔍 Fixed seed debug mode enabled - will log all computation values")
@@ -196,7 +199,8 @@ class PPOAgentNode_3(QueueNode):
             if self.action_space == "continuous":
                 # Continuous action space - Gaussian policy
                 action_mean = self.policy_mean(features)
-                action_std = torch.exp(self.policy_log_std)
+                # CRITICAL FIX: Expand action_std to match batch dimension
+                action_std = torch.exp(self.policy_log_std).expand_as(action_mean)
                 
                 # Create distribution
                 policy_dist = dist.Normal(action_mean, action_std)
@@ -209,6 +213,9 @@ class PPOAgentNode_3(QueueNode):
                     
                 # Compute log probability
                 log_prob = policy_dist.log_prob(action).sum(dim=-1)
+                
+                # Increment step counter
+                self.step_count += 1
                 
                 # Store action parameters separately for PPO trainer
                 # action_params = torch.cat([action_mean, action_std.expand_as(action_mean)], dim=-1)  # Old format

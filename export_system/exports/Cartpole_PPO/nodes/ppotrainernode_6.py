@@ -239,7 +239,15 @@ class PPOTrainerNode_6(QueueNode):
                 # Create minibatch input_dict
                 mb_input_dict = {}
                 for key, value in input_dict.items():
-                    mb_input_dict[key] = value[mb_indices]
+                    try:
+                        mb_input_dict[key] = value[mb_indices]
+                    except IndexError as e:
+                        self.logger.error(f"IndexError in minibatch creation:")
+                        self.logger.error(f"  Key: {key}")
+                        self.logger.error(f"  Value shape: {value.shape}")
+                        self.logger.error(f"  mb_indices max: {mb_indices.max().item()}")
+                        self.logger.error(f"  batch_size: {batch_size}")
+                        raise e
                 
                 # Use rl_games PPO components for loss computation
                 train_result, loss = self.ppo_components.train_actor_critic(mb_input_dict, model)
@@ -337,12 +345,22 @@ class PPOTrainerNode_6(QueueNode):
             self.buffer_action_means.append(action_mean.detach().clone())
             self.buffer_action_stds.append(action_std.detach().clone())
             
+            # Add debug to track buffer growth
+            import os
+            ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+            if ppo_cycle_debug:
+                print(f"[PPO_CYCLE_DEBUG] Buffer size: {len(self.buffer_states)}, horizon: {self.horizon_length}")
+            
             # Check if buffer is full (DNNE async coordination maintained)
+            # CRITICAL FIX: Each buffer entry contains data for ALL environments
+            # So we need horizon_length entries, not horizon_length * num_envs
             if len(self.buffer_states) >= self.horizon_length:
                 if self.fixed_seed_debug:
                     self.logger.info(f"[PPO Trainer Debug] Starting PPO update with {len(self.buffer_states)} steps")
+                    self.logger.info(f"[PPO Trainer Debug] Buffer state shape: {self.buffer_states[0].shape}")
                     
                 # Convert buffer to tensors
+                # Stack creates [horizon_length, num_envs, ...] tensors
                 states = torch.stack(self.buffer_states)
                 actions = torch.stack(self.buffer_actions)
                 rewards = torch.stack(self.buffer_rewards)
@@ -351,6 +369,69 @@ class PPOTrainerNode_6(QueueNode):
                 dones = torch.stack(self.buffer_dones)
                 action_means = torch.stack(self.buffer_action_means)
                 action_stds = torch.stack(self.buffer_action_stds)
+                
+                # CRITICAL FIX: Reshape from [horizon_length, num_envs, ...] to [horizon_length * num_envs, ...]
+                # This matches what rl_games expects for minibatch creation
+                # Enable PPO_CYCLE_DEBUG logging if set
+                import os
+                ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+                
+                if ppo_cycle_debug:
+                    print(f"[PPO_CYCLE_DEBUG] Stacked shapes:")
+                    print(f"  states: {states.shape}")
+                    print(f"  actions: {actions.shape}")
+                    print(f"  rewards: {rewards.shape}")
+                    print(f"  values: {values.shape}")
+                    print(f"  log_probs: {log_probs.shape}")
+                    print(f"  dones: {dones.shape}")
+                    print(f"  action_means: {action_means.shape}")
+                    print(f"  action_stds: {action_stds.shape}")
+                
+                # Handle both possible shapes: [steps, features] or [steps, num_envs, features]
+                if states.dim() == 2:
+                    # Already flattened, probably single environment
+                    batch_size = states.shape[0]
+                    num_envs = 1
+                else:
+                    # Use actual number of steps collected, not horizon_length
+                    num_steps = states.shape[0]
+                    num_envs = states.shape[1]
+                    batch_size = num_steps * num_envs
+                
+                # Apply swap_and_flatten01 pattern from rl_games
+                # This transposes [horizon, envs, ...] to [envs, horizon, ...] then flattens to [envs*horizon, ...]
+                def swap_and_flatten(tensor):
+                    if tensor.dim() == 2:
+                        # Already [horizon*envs, features]
+                        return tensor
+                    elif tensor.dim() == 3:
+                        # [horizon, envs, features] -> [envs, horizon, features] -> [envs*horizon, features]
+                        return tensor.transpose(0, 1).reshape(batch_size, -1)
+                    elif tensor.dim() == 1:
+                        # Special case for scalars that were incorrectly shaped
+                        # This shouldn't happen but let's handle it
+                        return tensor.unsqueeze(-1).expand(batch_size, 1).squeeze(-1)
+                    else:
+                        # For higher dims, just flatten after transpose
+                        return tensor.transpose(0, 1).reshape(batch_size, *tensor.shape[2:])
+                
+                states = swap_and_flatten(states)
+                actions = swap_and_flatten(actions)
+                rewards = swap_and_flatten(rewards).squeeze() if rewards.dim() > 1 else rewards
+                values = swap_and_flatten(values).squeeze() if values.dim() > 1 else values
+                log_probs = swap_and_flatten(log_probs).squeeze() if log_probs.dim() > 1 else log_probs
+                dones = swap_and_flatten(dones).squeeze() if dones.dim() > 1 else dones
+                action_means = swap_and_flatten(action_means)
+                action_stds = swap_and_flatten(action_stds)
+                
+                if ppo_cycle_debug:
+                    print(f"[PPO_CYCLE_DEBUG] After swap_and_flatten:")
+                    print(f"  states: {states.shape}")
+                    print(f"  actions: {actions.shape}")
+                    print(f"  rewards: {rewards.shape}")
+                    print(f"  values: {values.shape}")
+                    print(f"  log_probs: {log_probs.shape}")
+                    print(f"  batch_size: {batch_size}")
                 
                 if self.fixed_seed_debug:
                     self.logger.info(f"[PPO Trainer Debug] Rewards: {rewards.tolist()}")
@@ -452,6 +533,9 @@ class PPOTrainerNode_6(QueueNode):
                 
         except Exception as e:
             self.logger.error(f"Error in PPOTrainerNode {self.node_id}: {e}")
+            
+            # CRITICAL: Reset buffer even on error to prevent infinite growth
+            self.reset_buffer()
             
             # Return safe defaults
             safe_loss = torch.tensor(-1.0, device=self.device)

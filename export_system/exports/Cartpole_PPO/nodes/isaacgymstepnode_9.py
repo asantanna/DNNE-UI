@@ -30,12 +30,20 @@ class IsaacGymStepNode_9(QueueNode):
     async def compute(self, env_handle, actions, trigger) -> Dict[str, Any]:
         """Execute simulation step with dual-mode support"""
         
+        if self.ppo_cycle_debug:
+            print(f"[PPO_CYCLE_DEBUG] IsaacGymStepNode.compute() called!")
+            print(f"[PPO_CYCLE_DEBUG] - env_handle: {type(env_handle)}")
+            print(f"[PPO_CYCLE_DEBUG] - actions: {type(actions)}, shape={actions.shape if hasattr(actions, 'shape') else 'N/A'}")
+            print(f"[PPO_CYCLE_DEBUG] - trigger: {trigger}")
+        
         # Extract environment from handle
         env = env_handle["environment"]
         num_envs = env_handle["num_envs"]
         
         # Handle trigger-based output mode
-        if trigger is not None:
+        # CRITICAL FIX: Only use trigger mode for actual training_complete signals
+        # "collecting" signals should run normal mode
+        if trigger is not None and isinstance(trigger, dict) and trigger.get('signal_type') != 'collecting':
             # Return cached observations from previous step
             next_observations = self.cached_observations if self.cached_observations is not None else torch.zeros(num_envs, 4)
             

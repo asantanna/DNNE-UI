@@ -79,10 +79,9 @@ class CartpoleDNNE(Cartpole):
     
     def get_initial_observations(self):
         """Get initial observations after reset for DNNE"""
-        # Use VecTask's reset() which returns observations dict
+        # Match IGE behavior: just return current obs_buf (zeros initially)
+        # The actual reset happens on first step when post_physics_step sees reset_buf=1
         obs_dict = self.reset()
-        
-        # Extract observations tensor
         return obs_dict["obs"]
     
     def set_custom_reward_fn(self, reward_fn):

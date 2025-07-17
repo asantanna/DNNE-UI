@@ -31,47 +31,37 @@ class CartpoleActionNode_11(QueueNode):
         """
         
         import torch
+        import os
+        
+        ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
         
         try:
             # Extract action tensor from PolicyOutput dictionary
             action_tensor = policy["action"]
             
-            # Ensure action_tensor is properly shaped
-            if action_tensor.dim() > 1:
-                action_tensor = action_tensor.squeeze()
+            if ppo_cycle_debug:
+                print(f"[PPO_CYCLE_DEBUG] CartpoleActionNode.compute() called!")
+                print(f"[PPO_CYCLE_DEBUG] Input action_tensor shape: {action_tensor.shape}")
             
-            if action_tensor.dim() == 0:
-                action_tensor = action_tensor.unsqueeze(0)
-                
-            # Scale by max effort (same as IsaacGym Cartpole implementation)
-            scaled_force = action_tensor[0] * self.max_push_effort
+            # CRITICAL FIX: Return action tensor directly for Isaac Gym
+            # The VecTask expects a simple tensor of shape [num_envs, num_actions]
+            # NOT a dictionary with forces/torques
             
-            # For Cartpole: 2 DOF (cart translation, pole rotation)
-            # Only cart (DOF 0) is actuated, pole (DOF 1) is passive
-            forces = torch.zeros(2, dtype=torch.float32, device=action_tensor.device)
-            forces[0] = scaled_force  # Apply force to cart only
-            
-            # Create ACTION object (simplified for export)
-            action = {
-                "forces": forces,
-                "joint_commands": None,  # Not used for Cartpole
-                "torques": None          # Not used for Cartpole
-            }
-            
-            self.logger.debug(f"Generated action force: {scaled_force.item():.3f}")
+            if ppo_cycle_debug:
+                print(f"[PPO_CYCLE_DEBUG] Returning action_tensor directly: shape={action_tensor.shape}")
+                print(f"[PPO_CYCLE_DEBUG] Action values: min={action_tensor.min().item():.4f}, max={action_tensor.max().item():.4f}")
             
             return {
-                "action": action
+                "action": action_tensor  # Return raw action tensor, scaling happens in pre_physics_step
             }
             
         except Exception as e:
             self.logger.error(f"Error in CartpoleActionNode {self.node_id}: {e}")
-            # Return safe default
-            default_action = {
-                "forces": torch.zeros(2, dtype=torch.float32),
-                "joint_commands": None,
-                "torques": None
-            }
+            # Return safe default - zeros for all environments
+            import torch
+            # Assume 512 environments if we can't determine from policy
+            num_envs = 512
+            default_action = torch.zeros(num_envs, 1, dtype=torch.float32)
             return {
                 "action": default_action
             }
