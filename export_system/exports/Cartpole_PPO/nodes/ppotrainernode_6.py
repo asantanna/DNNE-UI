@@ -135,21 +135,39 @@ class PPOTrainerNode_6(QueueNode):
         self.buffer_action_stds = []   # Store sigma for rl_games
         self.buffer_full = False
         
-    def prepare_rlgames_input_dict(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds):
+    def prepare_rlgames_input_dict(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds, 
+                                   last_values, last_dones, horizon_length, num_envs):
         """
         Convert DNNE buffer data to rl_games input_dict format
         
         Args:
-            states, actions, rewards, values, log_probs, dones: DNNE trajectory data
+            states, actions, rewards, values, log_probs, dones: DNNE trajectory data (already flattened)
             action_means, action_stds: Policy parameters for rl_games
+            last_values: Value of the state after the last action (bootstrap value)
+            last_dones: Done flags for the state after the last action
+            horizon_length: Number of steps in trajectory
+            num_envs: Number of parallel environments
             
         Returns:
             input_dict: rl_games compatible data dictionary
         """
-        # Compute GAE advantages using rl_games method
-        advantages = self.ppo_components.discount_values(rewards, values, dones)
+        # Reshape flattened tensors back to [horizon_length, num_envs] for GAE computation
+        rewards_2d = rewards.view(horizon_length, num_envs)
+        values_2d = values.view(horizon_length, num_envs)
+        dones_2d = dones.view(horizon_length, num_envs)
         
-        # Compute returns
+        # Append bootstrap values and dones for GAE computation
+        # rl_games expects values and dones to have shape [horizon_length + 1, num_envs]
+        values_with_bootstrap = torch.cat([values_2d, last_values.unsqueeze(0)], dim=0)
+        dones_with_bootstrap = torch.cat([dones_2d, last_dones.unsqueeze(0)], dim=0)
+        
+        # Compute GAE advantages using rl_games method
+        advantages = self.ppo_components.discount_values(rewards_2d, values_with_bootstrap, dones_with_bootstrap)
+        
+        # Flatten advantages back to match the flattened format
+        advantages = advantages.transpose(0, 1).reshape(-1)
+        
+        # Compute returns (only for the trajectory, not including bootstrap)
         returns = advantages + values
         
         if self.fixed_seed_debug:
@@ -189,9 +207,19 @@ class PPOTrainerNode_6(QueueNode):
             'dones': dones.detach()
         }
         
+        # PPO_BATCH debug logging to match IGE
+        import os
+        if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
+            # Note: IGE shows shapes before flattening, but we show after
+            print(f"[DNNE_DEBUG] PPO_BATCH: Advantages shape: {advantages.shape}, mean: {advantages.mean().item():.4f}, std: {advantages.std().item():.4f}")
+            print(f"[DNNE_DEBUG] PPO_BATCH: Returns shape: {returns.shape}, mean: {returns.mean().item():.4f}, std: {returns.std().item():.4f}")
+            print(f"[DNNE_DEBUG] PPO_BATCH: Values shape: {values.shape}, mean: {values.mean().item():.4f}, std: {values.std().item():.4f}")
+            print(f"[DNNE_DEBUG] PPO_BATCH: First 5 advantages: {advantages.flatten()[:5].tolist()}")
+            print(f"[DNNE_DEBUG] PPO_BATCH: First 5 returns: {returns.flatten()[:5].tolist()}")
+        
         return input_dict
     
-    def rlgames_ppo_update(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds, model):
+    def rlgames_ppo_update(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds, model, last_state, last_done):
         """
         Perform PPO update using rl_games components
         Replaces custom ppo_update() method with rl_games implementation
@@ -200,6 +228,8 @@ class PPOTrainerNode_6(QueueNode):
             states, actions, rewards, values, log_probs, dones: Trajectory data
             action_means, action_stds: Policy parameters
             model: PyTorch model to update
+            last_state: The state after the last action (for bootstrap value)
+            last_done: Done flag after the last action
             
         Returns:
             average_loss: Average loss over all updates
@@ -229,9 +259,21 @@ class PPOTrainerNode_6(QueueNode):
         total_losses = []
         batch_size = len(states)
         
+        # Get bootstrap value from the model for the last state
+        with torch.no_grad():
+            # Get shared features for last state
+            last_features = model['shared'](last_state)
+            # Get value prediction
+            last_values = model['value'](last_features).squeeze(-1)
+        
+        # Calculate dimensions for reshape
+        num_envs = last_state.shape[0]  # Number of environments
+        horizon_length = batch_size // num_envs  # Number of timesteps
+        
         # Prepare rl_games input dictionary
         input_dict = self.prepare_rlgames_input_dict(
-            states, actions, rewards, values, log_probs, dones, action_means, action_stds
+            states, actions, rewards, values, log_probs, dones, action_means, action_stds, 
+            last_values, last_done, horizon_length, num_envs
         )
         
         if self.fixed_seed_debug:
@@ -344,6 +386,17 @@ class PPOTrainerNode_6(QueueNode):
             normalized_obs = policy_output.get("normalized_observations", state)
             self.buffer_states.append(normalized_obs.detach().clone())
             self.buffer_actions.append(action.detach().clone())
+            
+            # PPO_CYCLE_DEBUG logging to match IGE
+            import os
+            ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+            if ppo_cycle_debug and len(self.buffer_states) < 5:
+                step_num = len(self.buffer_states)
+                # Get first environment's values for logging
+                first_action = action[0].item() if action.dim() > 0 else action.item()
+                first_value = value[0].item() if value.dim() > 0 else value.item()
+                first_reward = reward[0].item() if reward.dim() > 0 else reward.item()
+                print(f"[DNNE_DEBUG] PPO_CYCLE: Step {step_num}: action={first_action:.4f}, value={first_value:.4f}, reward={first_reward:.4f}")
             
             if self.fixed_seed_debug and self.step_count == 0:
                 self.logger.info(f"[PPO Trainer Debug] First state shape: {state.shape}")
@@ -462,9 +515,10 @@ class PPOTrainerNode_6(QueueNode):
                 try:
                     if ppo_cycle_debug:
                         print(f"[PPO_CYCLE_DEBUG] Calling rlgames_ppo_update...")
+                    # Pass the current state and done flag as bootstrap values
                     total_loss = self.rlgames_ppo_update(
                         states, actions, rewards, values, log_probs, dones, 
-                        action_means, action_stds, model
+                        action_means, action_stds, model, state, done
                     )
                     if ppo_cycle_debug:
                         print(f"[PPO_CYCLE_DEBUG] rlgames_ppo_update completed! Loss: {total_loss.item()}")
