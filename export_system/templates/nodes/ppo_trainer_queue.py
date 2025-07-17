@@ -31,49 +31,10 @@ import torch.distributions as dist
 import numpy as np
 from framework.base import QueueNode, SensorNode
 
-# Import rl_games PPO components
+# Import PPO components from rl_games_dnne
 import sys
-import os
-template_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(template_dir)
-from rlgames_ppo_components import RLGamesPPOComponents
-
-
-class RunningMeanStd:
-    """Tracks running mean and standard deviation for value normalization"""
-    
-    def __init__(self, shape, epsilon=1e-4, device='cpu'):
-        self.mean = torch.zeros(shape, device=device)
-        self.var = torch.ones(shape, device=device)
-        self.count = epsilon
-        self.device = device
-        
-    def update(self, x):
-        """Update running statistics"""
-        if x.dim() > 1:
-            # Flatten all dimensions except last
-            x = x.view(-1, x.shape[-1])
-        batch_mean = x.mean(dim=0)
-        batch_var = x.var(dim=0, unbiased=False)
-        batch_count = x.shape[0]
-        
-        delta = batch_mean - self.mean
-        tot_count = self.count + batch_count
-        
-        self.mean = self.mean + delta * batch_count / tot_count
-        m_a = self.var * self.count
-        m_b = batch_var * batch_count
-        M2 = m_a + m_b + delta**2 * self.count * batch_count / tot_count
-        self.var = M2 / tot_count
-        self.count = tot_count
-        
-    def normalize(self, x):
-        """Normalize input using running statistics"""
-        return (x - self.mean) / torch.sqrt(self.var + 1e-8)
-    
-    def denormalize(self, x):
-        """Denormalize input back to original scale"""
-        return x * torch.sqrt(self.var + 1e-8) + self.mean
+sys.path.append('/home/asantanna/DNNE-LINUX-SUPPORT')
+from rl_games_dnne.dnne_exports import PPOComponents, RunningMeanStd
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """PPO Trainer Node using rl_games components - maintains DNNE async coordination"""
@@ -108,8 +69,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             'bound_loss_type': "{BOUND_LOSS_TYPE}"
         }}
         
-        # Initialize rl_games PPO components
-        self.ppo_components = RLGamesPPOComponents(rlgames_config)
+        # Initialize PPO components
+        self.ppo_components = PPOComponents(rlgames_config)
         
         # Maintain DNNE parameter access (for backward compatibility)
         self.horizon_length = {HORIZON_LENGTH}

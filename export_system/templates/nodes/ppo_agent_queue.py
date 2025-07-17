@@ -1,3 +1,8 @@
+# Import RunningMeanStd from rl_games_dnne
+import sys
+sys.path.append('/home/asantanna/DNNE-LINUX-SUPPORT')
+from rl_games_dnne.dnne_exports import RunningMeanStd
+
 # Debug print function for consistent logging
 def DNNE_print(message):
     """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
@@ -15,39 +20,6 @@ template_vars = {
     "DETERMINISTIC": False,
     "INIT_LOG_STD": 0.0  # sigma_init val: 0 from IsaacGymEnvs
 }
-
-class RunningMeanStd:
-    """Tracks running mean and standard deviation for normalization"""
-    
-    def __init__(self, shape, epsilon=1e-4, device='cpu'):
-        self.mean = torch.zeros(shape, device=device)
-        self.var = torch.ones(shape, device=device)
-        self.count = epsilon
-        self.device = device
-        
-    def update(self, x):
-        """Update running statistics"""
-        batch_mean = x.mean(dim=0)
-        batch_var = x.var(dim=0, unbiased=False)
-        batch_count = x.shape[0]
-        
-        delta = batch_mean - self.mean
-        tot_count = self.count + batch_count
-        
-        self.mean = self.mean + delta * batch_count / tot_count
-        m_a = self.var * self.count
-        m_b = batch_var * batch_count
-        M2 = m_a + m_b + delta**2 * self.count * batch_count / tot_count
-        self.var = M2 / tot_count
-        self.count = tot_count
-        
-    def normalize(self, x):
-        """Normalize input using running statistics"""
-        return (x - self.mean) / torch.sqrt(self.var + 1e-8)
-    
-    def denormalize(self, x):
-        """Denormalize input back to original scale"""
-        return x * torch.sqrt(self.var + 1e-8) + self.mean
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """PPO Agent Node - Actor-Critic Network for PPO Algorithm"""
@@ -77,6 +49,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import builtins
         self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
         self.fixed_seed_debug = getattr(builtins, 'FIXED_SEED', None) is not None
+        
+        # Enable PPO_CYCLE_DEBUG logging if set
+        import os
+        self.ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
         
         self.logger.info(f"PPOAgentNode {node_id} initialized with action_space={self.action_space}, action_dim={self.action_dim}")
         if self.fixed_seed_debug:

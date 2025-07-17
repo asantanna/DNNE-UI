@@ -16,7 +16,8 @@ ROBOTICS_TYPES = {
     "SENSOR_DATA": "SENSOR_DATA",
     "ACTION": "ACTION",
     "CONTEXT": "CONTEXT",
-    "SIM_HANDLE": "SIM_HANDLE",  # For Isaac Gym integration
+    "SIM_HANDLE": "SIM_HANDLE",  # For Isaac Gym integration (legacy)
+    "ENV_HANDLE": "ENV_HANDLE",  # For new Isaac Gym environment handle
     "SYNC": "SYNC",  # For node synchronization and training coordination
 }
 

@@ -66,7 +66,7 @@ async def main():
     parser.add_argument('--epochs', type=int, default=None,
                        help='Override max epochs for training (overrides workflow setting)')
     parser.add_argument('--fixed-seed', type=int, default=None,
-                       help='Use fixed seed for deterministic execution')
+                       help='Use fixed random seed for deterministic execution')
     args = parser.parse_args()
 
     # Parse timeout if provided
@@ -95,20 +95,23 @@ async def main():
     builtins.EPOCHS_OVERRIDE = args.epochs
     builtins.FIXED_SEED = args.fixed_seed
     configure_logging(args.verbose)
-    
+
     # Set fixed seed if provided for deterministic execution
     if args.fixed_seed is not None:
         import random
         import numpy as np
         import torch
-        torch.manual_seed(args.fixed_seed)
-        torch.cuda.manual_seed_all(args.fixed_seed)
-        np.random.seed(args.fixed_seed)
-        random.seed(args.fixed_seed)
-        # For deterministic behavior with CUDA
+        seed = args.fixed_seed
+        print(f"🔒 Using fixed seed: {seed}")
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        # Enable deterministic algorithms
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-        print(f"🌱 Setting fixed seed: {args.fixed_seed}")
+        # Note: use_deterministic_algorithms requires CUBLAS_WORKSPACE_CONFIG env var
+        # which we'll set manually when running comparisons
 
     print("🚀 Starting DNNE Queue-Based Execution")
     if args.epochs:
@@ -152,7 +155,7 @@ async def main():
         ("3", "policy_output", "6", "policy_output"),
         ("3", "model", "6", "model"),
         ("7", "observations", "2", "input_a"),
-        ("7", "sim_handle", "9", "sim_handle"),
+        ("7", "env_handle", "9", "env_handle"),
         ("9", "observations", "6", "state"),
         ("9", "observations", "2", "input_b"),
         ("6", "training_complete", "9", "trigger"),

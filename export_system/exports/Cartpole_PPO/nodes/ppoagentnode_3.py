@@ -1,11 +1,15 @@
 """Node implementation for PPOAgentNode (ID: 3)"""
 from typing import Dict, Any
-import os
 import torch
 import torch.nn as nn
 import torch.distributions as dist
 import numpy as np
 from framework.base import QueueNode, SensorNode
+
+# Import RunningMeanStd from rl_games_dnne
+import sys
+sys.path.append('/home/asantanna/DNNE-LINUX-SUPPORT')
+from rl_games_dnne.dnne_exports import RunningMeanStd
 
 # Debug print function for consistent logging
 def DNNE_print(message):
@@ -13,39 +17,6 @@ def DNNE_print(message):
     print(f"[DNNE_DEBUG] {message}")
 
 # Template variables - replaced during export
-
-class RunningMeanStd:
-    """Tracks running mean and standard deviation for normalization"""
-    
-    def __init__(self, shape, epsilon=1e-4, device='cpu'):
-        self.mean = torch.zeros(shape, device=device)
-        self.var = torch.ones(shape, device=device)
-        self.count = epsilon
-        self.device = device
-        
-    def update(self, x):
-        """Update running statistics"""
-        batch_mean = x.mean(dim=0)
-        batch_var = x.var(dim=0, unbiased=False)
-        batch_count = x.shape[0]
-        
-        delta = batch_mean - self.mean
-        tot_count = self.count + batch_count
-        
-        self.mean = self.mean + delta * batch_count / tot_count
-        m_a = self.var * self.count
-        m_b = batch_var * batch_count
-        M2 = m_a + m_b + delta**2 * self.count * batch_count / tot_count
-        self.var = M2 / tot_count
-        self.count = tot_count
-        
-    def normalize(self, x):
-        """Normalize input using running statistics"""
-        return (x - self.mean) / torch.sqrt(self.var + 1e-8)
-    
-    def denormalize(self, x):
-        """Denormalize input back to original scale"""
-        return x * torch.sqrt(self.var + 1e-8) + self.mean
 
 class PPOAgentNode_3(QueueNode):
     """PPO Agent Node - Actor-Critic Network for PPO Algorithm"""
@@ -73,19 +44,16 @@ class PPOAgentNode_3(QueueNode):
         
         # Check if we're in inference mode
         import builtins
-        import os
         self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
         self.fixed_seed_debug = getattr(builtins, 'FIXED_SEED', None) is not None
+        
+        # Enable PPO_CYCLE_DEBUG logging if set
+        import os
         self.ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
         
         self.logger.info(f"PPOAgentNode {node_id} initialized with action_space={self.action_space}, action_dim={self.action_dim}")
         if self.fixed_seed_debug:
-            self.logger.info("🔍 Fixed seed debug mode enabled")
-        if self.ppo_cycle_debug:
-            self.logger.info("🔍 PPO cycle debug mode enabled")
-        
-        # Step counter for PPO cycle debugging
-        self.step_count = 0
+            self.logger.info("🔍 Fixed seed debug mode enabled - will log all computation values")
         
     def build_model(self, obs_dim):
         """Build the actor-critic network"""
@@ -181,7 +149,17 @@ class PPOAgentNode_3(QueueNode):
             
             # Build model if needed
             if self.model is None:
+                if self.ppo_cycle_debug and self.step_count == 0:
+                    DNNE_print("=== NETWORK INITIALIZATION ===\n")
                 self.build_model(obs_dim)
+                if self.fixed_seed_debug:
+                    # Log initial model weights
+                    self.logger.info("[PPO Agent Debug] Initial model weights:")
+                    for name, param in self.model.named_parameters():
+                        if param.numel() < 10:
+                            self.logger.info(f"  {name}: {param.data.tolist()}")
+                        else:
+                            self.logger.info(f"  {name}: shape={param.shape}, first 5={param.data.flatten()[:5].tolist()}")
                 
             # Initialize observation normalization on first call
             if self.obs_rms is None:
@@ -194,6 +172,13 @@ class PPOAgentNode_3(QueueNode):
                 
             # Normalize observations
             normalized_obs = self.obs_rms.normalize(observations)
+            
+            # Debug logging for fixed seed mode
+            if self.fixed_seed_debug:
+                self.logger.info(f"[PPO Agent Debug] Raw observations (first 5): {observations[0][:5].tolist()}")
+                self.logger.info(f"[PPO Agent Debug] Obs mean: {self.obs_rms.mean[:5].tolist()}")
+                self.logger.info(f"[PPO Agent Debug] Obs var: {self.obs_rms.var[:5].tolist()}")
+                self.logger.info(f"[PPO Agent Debug] Normalized obs (first 5): {normalized_obs[0][:5].tolist()}")
                 
             # Forward pass through shared layers
             features = self.shared_layers(normalized_obs)
@@ -201,6 +186,11 @@ class PPOAgentNode_3(QueueNode):
             # Compute value
             value = self.value_head(features)
             value = value.squeeze(1)  # Remove second dimension: [batch_size, 1] -> [batch_size]
+            
+            if self.fixed_seed_debug:
+                self.logger.info(f"[PPO Agent Debug] Features shape: {features.shape}")
+                self.logger.info(f"[PPO Agent Debug] Features (first 5): {features[0][:5].tolist()}")
+                self.logger.info(f"[PPO Agent Debug] Value output: {value[0].item()}")
                 
             # Compute policy output
             if self.action_space == "continuous":
@@ -220,8 +210,14 @@ class PPOAgentNode_3(QueueNode):
                 # Compute log probability
                 log_prob = policy_dist.log_prob(action).sum(dim=-1)
                 
-                # Store action parameters for later use
-                action_params = torch.cat([action_mean, action_std.expand_as(action_mean)], dim=-1)
+                # Store action parameters separately for PPO trainer
+                # action_params = torch.cat([action_mean, action_std.expand_as(action_mean)], dim=-1)  # Old format
+                
+                if self.fixed_seed_debug:
+                    self.logger.info(f"[PPO Agent Debug] Action mean: {action_mean[0].tolist()}")
+                    self.logger.info(f"[PPO Agent Debug] Action std: {action_std.tolist()}")
+                    self.logger.info(f"[PPO Agent Debug] Sampled action: {action[0].tolist()}")
+                    self.logger.info(f"[PPO Agent Debug] Log prob: {log_prob[0].item()}")
                 
             else:
                 # Discrete action space - Categorical policy
@@ -246,52 +242,29 @@ class PPOAgentNode_3(QueueNode):
             if single_sample:
                 action = action.squeeze(0)
                 log_prob = log_prob.squeeze(0)
-                action_params = action_params.squeeze(0)
+                if self.action_space == "continuous":
+                    action_mean = action_mean.squeeze(0)
+                    action_std = action_std.squeeze(0)
+                else:
+                    action_params = action_params.squeeze(0)
                 
             # Create PolicyOutput-like dictionary
             policy_output = {
                 "action": action,
                 "value": value,
                 "log_prob": log_prob,
-                "action_params": action_params,
                 "normalized_observations": normalized_obs  # Include normalized observations for training
             }
             
+            # Add action parameters based on action space
+            if self.action_space == "continuous":
+                policy_output["action_mean"] = action_mean
+                policy_output["action_std"] = action_std
+            else:
+                policy_output["action_params"] = action_params
+            
             # Debug logging removed - was causing 95% performance overhead due to tensor string formatting
             # If you need to debug, use: self.logger.debug(f"Forward pass complete, batch_size={batch_size}")
-            
-            # PPO cycle debug logging
-            if self.ppo_cycle_debug:
-                self.step_count += 1
-                
-                # Log detailed values for first 5 steps per cycle
-                stop_after = int(os.environ.get('PPO_STOP_AFTER_CYCLE', '0'))
-                cycle_num = (self.step_count - 1) // 16 + 1
-                step_in_cycle = ((self.step_count - 1) % 16) + 1
-                
-                # Log first 5 steps of each cycle up to stop_after cycles
-                if (stop_after == 0 or cycle_num <= stop_after) and step_in_cycle <= 5:
-                    # Extract scalar values for logging
-                    if action.numel() > 0:
-                        action_val = action[0].item() if action.dim() > 0 else action.item()
-                    else:
-                        action_val = 0.0
-                    
-                    if value.numel() > 0:
-                        value_val = value[0].item() if value.dim() > 0 else value.item()
-                    else:
-                        value_val = 0.0
-                    
-                    # Note: reward will come from the environment step, not available here
-                    # For now, log what we have
-                    DNNE_print(f"PPO_CYCLE: Cycle {cycle_num} Step {step_in_cycle}: action={action_val:.4f}, value={value_val:.4f}, reward=0.0000")
-                
-                # Stop after N PPO cycles if requested
-                stop_after_env = int(os.environ.get('PPO_STOP_AFTER_CYCLE', '0'))
-                if stop_after_env > 0 and self.step_count >= (stop_after_env * 16):
-                    DNNE_print(f"PPO_CYCLE: Completed {stop_after_env} PPO cycle(s) ({stop_after_env * 16} steps), stopping data capture")
-                    # Set flag to stop logging after specified cycles
-                    self.ppo_cycle_debug = False
             
             return {
                 "policy_output": policy_output,

@@ -28,12 +28,18 @@ from .rl_nodes import (
     register_rl_exporters
 )
 
+from .utility_nodes import (
+    ORNodeExporter,
+    register_utility_exporters
+)
+
 # Register all exporters
 def register_all_exporters(exporter):
     """Register all node exporters with the graph exporter"""
     register_ml_exporters(exporter)
     register_robotics_exporters(exporter)
     register_rl_exporters(exporter)
+    register_utility_exporters(exporter)
     
     # Log registration summary
     import logging
@@ -59,9 +65,12 @@ __all__ = [
     # RL nodes
     'PPOAgentExporter',
     'PPOTrainerExporter',
+    # Utility nodes
+    'ORNodeExporter',
     # Registration functions
     'register_all_exporters',
     'register_ml_exporters',
     'register_robotics_exporters',
-    'register_rl_exporters'
+    'register_rl_exporters',
+    'register_utility_exporters'
 ]

@@ -18,7 +18,6 @@ from .isaac_gym_nodes import *
 _ROBOTICS_NODES = [
     ("IsaacGymEnvNode", IsaacGymEnvNode, "Isaac Gym Environment"),
     ("IsaacGymStepNode", IsaacGymStepNode, "Isaac Gym Step"),
-    ("ORNode", ORNode, "OR/ANY Router"),
     ("CartpoleActionNode", CartpoleActionNode, "Cartpole Action Converter"),
     ("CartpoleRewardNode", CartpoleRewardNode, "Cartpole Reward Calculator"),
     # Add new nodes here - they'll be automatically sorted by display name

@@ -1,14 +1,14 @@
-"""Node implementation for IsaacGymEnvNode (ID: 7)"""
-from typing import Dict, Any
-import isaacgym
-import torch
-import numpy as np
-import os
-from framework.base import QueueNode, SensorNode
-
 # Template variables - replaced during export
+template_vars = {
+    "NODE_ID": "isaac_gym_1",
+    "CLASS_NAME": "IsaacGymEnvNode",
+    "ENV_NAME": "Cartpole",
+    "NUM_ENVS": 64,
+    "HEADLESS": True,
+    "DEVICE": "cuda",
+}
 
-class IsaacGymEnvNode_7(QueueNode):
+class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """Isaac Gym environment node using new CartpoleDNNE approach"""
     
     def __init__(self, node_id: str):
@@ -17,10 +17,10 @@ class IsaacGymEnvNode_7(QueueNode):
         self.setup_outputs(["env_handle", "observations"])
         
         # Configuration
-        self.env_name = "Cartpole"
-        self.num_envs = 512
-        self.headless = True
-        self.device = "cuda"
+        self.env_name = "{ENV_NAME}"
+        self.num_envs = {NUM_ENVS}
+        self.headless = {HEADLESS}
+        self.device = "{DEVICE}"
         
         # Check for command line override of headless setting
         try:

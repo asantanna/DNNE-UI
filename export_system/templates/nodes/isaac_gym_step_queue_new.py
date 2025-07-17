@@ -1,13 +1,10 @@
-"""Node implementation for IsaacGymStepNode (ID: 9)"""
-from typing import Dict, Any
-import torch
-import numpy as np
-# Isaac Gym imports are handled at runtime in the template
-from framework.base import QueueNode, SensorNode
-
 # Template variables - replaced during export
+template_vars = {
+    "NODE_ID": "isaac_gym_step_1",
+    "CLASS_NAME": "IsaacGymStepNode",
+}
 
-class IsaacGymStepNode_9(QueueNode):
+class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """Isaac Gym step node with dual-mode execution for RL synchronization"""
     
     def __init__(self, node_id: str):

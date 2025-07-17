@@ -7,7 +7,7 @@ You are resuming work on debugging the DNNE PPO implementation. In DNNE, the wor
 ```
 @docs-dnne/code-quality-checklist.md
 @docs-dnne/for_claude/debug_strategy_for_ppo.md  
-@docs-dnne/for_claude/dnne_debug_improvements.md
+@docs-dnne/for_claude/isaac_gym_reorganization_plan.md
 ```
 
 ## Useful Tools
@@ -18,18 +18,4 @@ You are resuming work on debugging the DNNE PPO implementation. In DNNE, the wor
 
 ## Current Status
 
-We are debugging why DNNE's PPO implementation doesn't learn properly compared to IsaacGymEnvs. The strategy is to make both implementations deterministic and compare their execution step-by-step to find divergences. NOTE: we have broken something with regards to running IsaacGymEnvs under the key tool we use in 
-
-## Key Findings So Far
-
-1. **Initial Environment Reset**: We think that DNNE does not reset the environment initially like IsaacGymEnvs. We tried to add code to do it is now commented out because it was causing all sorts of CUDA and tensor errors.
-2. **Debug Infrastructure**: Added `[DNNE_DEBUG]` markers for filtering for our debug messages more easily. We should be using the function DNNE_print() to print debug messages to guarantee this prefix is always present.
-3. **Remaining Issues**: 
-   - Network weight initialization differences
-   - Observation normalization (RunningMeanStd) initialization
-   - Action divergence from different network/normalization initialization
-
-## Next Steps
-
-1. Find out why running IsaacGymEnvs "train.py" script works when we run it directly but doesn't learn correctly under the profiler. We added some debug code in there which may have broken things?
-2. Focus on matching the network initialization and observation normalization between DNNE and IsaacGymEnvs to eliminate the action divergence that starts from the first step.
+We decided to change our approach to use rl_games code more directly. See the file @docs-dnne/for_claude/isaac_gym_reorganization_plan.md

@@ -204,7 +204,7 @@ class RobotControllerExporter(ExportableNode):
 class IsaacGymEnvExporter(ExportableNode):
     @classmethod
     def get_template_name(cls):
-        return "nodes/isaac_gym_env_queue.py"
+        return "nodes/isaac_gym_env_queue_new.py"
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
@@ -273,13 +273,13 @@ class IsaacGymEnvExporter(ExportableNode):
     
     @classmethod
     def get_output_names(cls):
-        return ["sim_handle", "observations"]
+        return ["env_handle", "observations"]
 
 
 class IsaacGymStepExporter(ExportableNode):
     @classmethod
     def get_template_name(cls):
-        return "nodes/isaac_gym_step_queue.py"
+        return "nodes/isaac_gym_step_queue_new.py"
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
@@ -301,40 +301,13 @@ class IsaacGymStepExporter(ExportableNode):
     
     @classmethod
     def get_input_names(cls):
-        return ["sim_handle", "actions", "trigger"]
+        return ["env_handle", "actions", "trigger"]
     
     @classmethod
     def get_output_names(cls):
         return ["observations", "rewards", "done", "info", "next_observations"]
 
 
-class ORNodeExporter(ExportableNode):
-    @classmethod
-    def get_template_name(cls):
-        return "nodes/or_node_queue.py"
-    
-    @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        params = node_data.get("inputs", {})
-        return {
-            "NODE_ID": node_id,
-            "CLASS_NAME": "ORNode"
-        }
-    
-    @classmethod
-    def get_imports(cls):
-        return [
-            "import torch",
-            "from typing import Dict, Any, Optional",
-        ]
-    
-    @classmethod
-    def get_input_names(cls):
-        return ["input_a", "input_b", "input_c"]
-    
-    @classmethod
-    def get_output_names(cls):
-        return ["output"]
 
 
 class CartpoleActionNodeExporter(ExportableNode):
@@ -425,8 +398,6 @@ def register_robotics_exporters(exporter):
     exporter.register_node("IsaacGymStep", IsaacGymStepExporter)
     exporter.register_node("IsaacGymStepNode", IsaacGymStepExporter)
     
-    # Utility nodes
-    exporter.register_node("ORNode", ORNodeExporter)
     
     # Cartpole RL nodes
     exporter.register_node("CartpoleActionNode", CartpoleActionNodeExporter)

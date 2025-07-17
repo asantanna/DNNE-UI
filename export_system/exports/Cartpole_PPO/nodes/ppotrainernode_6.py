@@ -20,49 +20,10 @@ import torch.distributions as dist
 import numpy as np
 from framework.base import QueueNode, SensorNode
 
-# Import rl_games PPO components
+# Import PPO components from rl_games_dnne
 import sys
-import os
-template_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(template_dir)
-from rlgames_ppo_components import RLGamesPPOComponents
-
-
-class RunningMeanStd:
-    """Tracks running mean and standard deviation for value normalization"""
-    
-    def __init__(self, shape, epsilon=1e-4, device='cpu'):
-        self.mean = torch.zeros(shape, device=device)
-        self.var = torch.ones(shape, device=device)
-        self.count = epsilon
-        self.device = device
-        
-    def update(self, x):
-        """Update running statistics"""
-        if x.dim() > 1:
-            # Flatten all dimensions except last
-            x = x.view(-1, x.shape[-1])
-        batch_mean = x.mean(dim=0)
-        batch_var = x.var(dim=0, unbiased=False)
-        batch_count = x.shape[0]
-        
-        delta = batch_mean - self.mean
-        tot_count = self.count + batch_count
-        
-        self.mean = self.mean + delta * batch_count / tot_count
-        m_a = self.var * self.count
-        m_b = batch_var * batch_count
-        M2 = m_a + m_b + delta**2 * self.count * batch_count / tot_count
-        self.var = M2 / tot_count
-        self.count = tot_count
-        
-    def normalize(self, x):
-        """Normalize input using running statistics"""
-        return (x - self.mean) / torch.sqrt(self.var + 1e-8)
-    
-    def denormalize(self, x):
-        """Denormalize input back to original scale"""
-        return x * torch.sqrt(self.var + 1e-8) + self.mean
+sys.path.append('/home/asantanna/DNNE-LINUX-SUPPORT')
+from rl_games_dnne.dnne_exports import PPOComponents, RunningMeanStd
 
 class PPOTrainerNode_6(QueueNode):
     """PPO Trainer Node using rl_games components - maintains DNNE async coordination"""
@@ -76,9 +37,9 @@ class PPOTrainerNode_6(QueueNode):
         import builtins
         if hasattr(builtins, 'EPOCHS_OVERRIDE') and builtins.EPOCHS_OVERRIDE is not None:
             self.max_epochs = builtins.EPOCHS_OVERRIDE
-            self.logger.info(f"Using epochs override: {self.max_epochs} (instead of workflow value: 5)")
+            self.logger.info(f"Using epochs override: {self.max_epochs} (instead of workflow value: 100)")
         else:
-            self.max_epochs = 5
+            self.max_epochs = 100
             
         # rl_games compatible configuration
         rlgames_config = {
@@ -97,8 +58,8 @@ class PPOTrainerNode_6(QueueNode):
             'bound_loss_type': "bound"
         }
         
-        # Initialize rl_games PPO components
-        self.ppo_components = RLGamesPPOComponents(rlgames_config)
+        # Initialize PPO components
+        self.ppo_components = PPOComponents(rlgames_config)
         
         # Maintain DNNE parameter access (for backward compatibility)
         self.horizon_length = 16
@@ -261,12 +222,12 @@ class PPOTrainerNode_6(QueueNode):
             states, actions, rewards, values, log_probs, dones, action_means, action_stds
         )
         
-        # Multiple mini-epochs over the data (rl_games pattern)
         if self.fixed_seed_debug:
             self.logger.info(f"[PPO Trainer Debug] Starting {self.mini_epochs_num} mini-epochs")
             self.logger.info(f"[PPO Trainer Debug] Advantages: {input_dict['advantages'][:5].tolist()}")
             self.logger.info(f"[PPO Trainer Debug] Returns: {input_dict['returns'][:5].tolist()}")
         
+        # Multiple mini-epochs over the data (rl_games pattern)
         for mini_epoch in range(self.mini_epochs_num):
             # Create minibatches
             indices = torch.randperm(batch_size)
@@ -359,12 +320,6 @@ class PPOTrainerNode_6(QueueNode):
             normalized_obs = policy_output.get("normalized_observations", state)
             self.buffer_states.append(normalized_obs.detach().clone())
             self.buffer_actions.append(action.detach().clone())
-            self.buffer_rewards.append(reward.detach().clone())
-            self.buffer_values.append(value.detach().clone())
-            self.buffer_log_probs.append(log_prob.detach().clone())
-            self.buffer_dones.append(done.detach().clone())
-            self.buffer_action_means.append(action_mean.detach().clone())
-            self.buffer_action_stds.append(action_std.detach().clone())
             
             if self.fixed_seed_debug and self.step_count == 0:
                 self.logger.info(f"[PPO Trainer Debug] First state shape: {state.shape}")
@@ -375,9 +330,18 @@ class PPOTrainerNode_6(QueueNode):
                 self.logger.info(f"[PPO Trainer Debug] Log prob: {policy_output['log_prob'][0].item() if policy_output['log_prob'].numel() > 1 else policy_output['log_prob'].item()}")
                 self.logger.info(f"[PPO Trainer Debug] Reward: {reward[0].item() if reward.numel() > 1 else reward.item()}")
                 self.logger.info(f"[PPO Trainer Debug] Done: {done[0].item() if done.numel() > 1 else done.item()}")
+            self.buffer_rewards.append(reward.detach().clone())
+            self.buffer_values.append(value.detach().clone())
+            self.buffer_log_probs.append(log_prob.detach().clone())
+            self.buffer_dones.append(done.detach().clone())
+            self.buffer_action_means.append(action_mean.detach().clone())
+            self.buffer_action_stds.append(action_std.detach().clone())
             
             # Check if buffer is full (DNNE async coordination maintained)
             if len(self.buffer_states) >= self.horizon_length:
+                if self.fixed_seed_debug:
+                    self.logger.info(f"[PPO Trainer Debug] Starting PPO update with {len(self.buffer_states)} steps")
+                    
                 # Convert buffer to tensors
                 states = torch.stack(self.buffer_states)
                 actions = torch.stack(self.buffer_actions)
@@ -392,8 +356,7 @@ class PPOTrainerNode_6(QueueNode):
                     self.logger.info(f"[PPO Trainer Debug] Rewards: {rewards.tolist()}")
                     self.logger.info(f"[PPO Trainer Debug] Values: {values[:5].tolist()}")
                     self.logger.info(f"[PPO Trainer Debug] Dones: {dones.sum().item()} episodes completed")
-                    self.logger.info(f"[PPO Trainer Debug] Starting PPO update with {len(self.buffer_states)} steps")
-                    
+                
                 # Perform PPO training using rl_games components
                 total_loss = self.rlgames_ppo_update(
                     states, actions, rewards, values, log_probs, dones, 
