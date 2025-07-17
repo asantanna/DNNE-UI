@@ -1,4 +1,3 @@
-"""Node implementation for CartpoleActionNode (ID: 11)"""
 from typing import Dict, Any
 import torch
 from typing import Dict, Any, Optional

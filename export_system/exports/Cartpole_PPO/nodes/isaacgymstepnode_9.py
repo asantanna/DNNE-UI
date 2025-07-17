@@ -1,4 +1,3 @@
-"""Node implementation for IsaacGymStepNode (ID: 9)"""
 from typing import Dict, Any
 import torch
 import numpy as np

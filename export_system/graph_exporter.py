@@ -1005,9 +1005,7 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         filename = f"{filename_base}.py"
         
         # Prepare the file content
-        file_content = [
-            f'"""Node implementation for {node_type} (ID: {node_id})"""'
-        ]
+        file_content = []
         
         # Check if node code uses Dict, Any, asyncio, or time and add necessary imports
         code_needs_dict_any = 'Dict[' in node_code or 'Any]' in node_code or '-> Dict' in node_code

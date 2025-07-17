@@ -36,7 +36,7 @@ import sys
 sys.path.append('/home/asantanna/DNNE-LINUX-SUPPORT')
 from rl_games_dnne.dnne_exports import PPOComponents, RunningMeanStd
 
-class {CLASS_NAME}_{NODE_ID}(QueueNode):
+class PPOTrainerNode_6(QueueNode):
     """PPO Trainer Node using rl_games components - maintains DNNE async coordination"""
     
     def __init__(self, node_id: str):
@@ -48,41 +48,41 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import builtins
         if hasattr(builtins, 'EPOCHS_OVERRIDE') and builtins.EPOCHS_OVERRIDE is not None:
             self.max_epochs = builtins.EPOCHS_OVERRIDE
-            self.logger.info(f"Using epochs override: {{self.max_epochs}} (instead of workflow value: {MAX_EPOCHS})")
+            self.logger.info(f"Using epochs override: {self.max_epochs} (instead of workflow value: 100)")
         else:
-            self.max_epochs = {MAX_EPOCHS}
+            self.max_epochs = 100
             
         # rl_games compatible configuration
-        rlgames_config = {{
-            'horizon_length': {HORIZON_LENGTH},
-            'mini_epochs_num': {MINI_EPOCHS_NUM},
-            'minibatch_size': {MINIBATCH_SIZE},
-            'gamma': {GAMMA},
-            'tau': {TAU},
-            'e_clip': {E_CLIP},
-            'critic_coef': {CRITIC_COEF},
-            'entropy_coef': {ENTROPY_COEF},
-            'learning_rate': {LEARNING_RATE},
-            'grad_norm': {GRAD_NORM},
-            'clip_value': {CLIP_VALUE},
-            'bounds_loss_coef': {BOUNDS_LOSS_COEF},
-            'bound_loss_type': "{BOUND_LOSS_TYPE}"
-        }}
+        rlgames_config = {
+            'horizon_length': 16,
+            'mini_epochs_num': 8,
+            'minibatch_size': 8192,
+            'gamma': 0.99,
+            'tau': 0.95,
+            'e_clip': 0.2,
+            'critic_coef': 4,
+            'entropy_coef': 0,
+            'learning_rate': 0.0003,
+            'grad_norm': 1,
+            'clip_value': True,
+            'bounds_loss_coef': 0.0001,
+            'bound_loss_type': "bound"
+        }
         
         # Initialize PPO components
         self.ppo_components = PPOComponents(rlgames_config)
         
         # Maintain DNNE parameter access (for backward compatibility)
-        self.horizon_length = {HORIZON_LENGTH}
-        self.mini_epochs_num = {MINI_EPOCHS_NUM}
-        self.minibatch_size = {MINIBATCH_SIZE}
-        self.gamma = {GAMMA}
-        self.tau = {TAU}
-        self.e_clip = {E_CLIP}
-        self.critic_coef = {CRITIC_COEF}
-        self.entropy_coef = {ENTROPY_COEF}
-        self.learning_rate = {LEARNING_RATE}
-        self.grad_norm = {GRAD_NORM}
+        self.horizon_length = 16
+        self.mini_epochs_num = 8
+        self.minibatch_size = 8192
+        self.gamma = 0.99
+        self.tau = 0.95
+        self.e_clip = 0.2
+        self.critic_coef = 4
+        self.entropy_coef = 0
+        self.learning_rate = 0.0003
+        self.grad_norm = 1
         
         # Training state
         self.reset_buffer()
@@ -101,9 +101,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.fixed_seed_debug = getattr(builtins, 'FIXED_SEED', None) is not None
         
         # Checkpoint configuration
-        self.checkpoint_enabled = {CHECKPOINT_ENABLED}
-        self.checkpoint_trigger_type = "{CHECKPOINT_TRIGGER_TYPE}"
-        self.checkpoint_trigger_value = "{CHECKPOINT_TRIGGER_VALUE}"
+        self.checkpoint_enabled = True
+        self.checkpoint_trigger_type = "epoch"
+        self.checkpoint_trigger_value = "5"
         self.checkpoint_save_on_exit = True
         self.checkpoint_manager = None
         self.last_loss = None
@@ -112,11 +112,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if self.checkpoint_enabled:
             from run_utils import CheckpointManager, validate_checkpoint_config
             
-            checkpoint_config = {{
+            checkpoint_config = {
                 'enabled': self.checkpoint_enabled,
                 'trigger_type': self.checkpoint_trigger_type,
                 'trigger_value': self.checkpoint_trigger_value
-            }}
+            }
             
             try:
                 validate_checkpoint_config(checkpoint_config)
@@ -127,12 +127,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                     node_id=node_id,
                     checkpoint_dir=save_checkpoint_dir
                 )
-                self.logger.info(f"Checkpoint manager initialized: {{self.checkpoint_trigger_type}} trigger")
+                self.logger.info(f"Checkpoint manager initialized: {self.checkpoint_trigger_type} trigger")
             except ValueError as e:
-                self.logger.error(f"Checkpoint configuration error: {{e}}")
+                self.logger.error(f"Checkpoint configuration error: {e}")
                 self.checkpoint_enabled = False
         
-        self.logger.info(f"PPOTrainerNode {{node_id}} initialized with rl_games components - max_epochs={{self.max_epochs}}, horizon={{self.horizon_length}}, mini_epochs={{self.mini_epochs_num}}")
+        self.logger.info(f"PPOTrainerNode {node_id} initialized with rl_games components - max_epochs={self.max_epochs}, horizon={self.horizon_length}, mini_epochs={self.mini_epochs_num}")
         
     def reset_buffer(self):
         """Reset the trajectory buffer"""
@@ -146,29 +146,47 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.buffer_action_stds = []   # Store sigma for rl_games
         self.buffer_full = False
         
-    def prepare_rlgames_input_dict(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds):
+    def prepare_rlgames_input_dict(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds, 
+                                   last_values, last_dones, horizon_length, num_envs):
         """
         Convert DNNE buffer data to rl_games input_dict format
         
         Args:
-            states, actions, rewards, values, log_probs, dones: DNNE trajectory data
+            states, actions, rewards, values, log_probs, dones: DNNE trajectory data (already flattened)
             action_means, action_stds: Policy parameters for rl_games
+            last_values: Value of the state after the last action (bootstrap value)
+            last_dones: Done flags for the state after the last action
+            horizon_length: Number of steps in trajectory
+            num_envs: Number of parallel environments
             
         Returns:
             input_dict: rl_games compatible data dictionary
         """
-        # Compute GAE advantages using rl_games method
-        advantages = self.ppo_components.discount_values(rewards, values, dones)
+        # Reshape flattened tensors back to [horizon_length, num_envs] for GAE computation
+        rewards_2d = rewards.view(horizon_length, num_envs)
+        values_2d = values.view(horizon_length, num_envs)
+        dones_2d = dones.view(horizon_length, num_envs)
         
-        # Compute returns
+        # Append bootstrap values and dones for GAE computation
+        # rl_games expects values and dones to have shape [horizon_length + 1, num_envs]
+        values_with_bootstrap = torch.cat([values_2d, last_values.unsqueeze(0)], dim=0)
+        dones_with_bootstrap = torch.cat([dones_2d, last_dones.unsqueeze(0)], dim=0)
+        
+        # Compute GAE advantages using rl_games method
+        advantages = self.ppo_components.discount_values(rewards_2d, values_with_bootstrap, dones_with_bootstrap)
+        
+        # Flatten advantages back to match the flattened format
+        advantages = advantages.transpose(0, 1).reshape(-1)
+        
+        # Compute returns (only for the trajectory, not including bootstrap)
         returns = advantages + values
         
         if self.fixed_seed_debug:
-            self.logger.info(f"[PPO Trainer Debug] Computing GAE with gamma={self.gamma}, tau={self.tau}")
-            self.logger.info(f"[PPO Trainer Debug] Raw rewards: {rewards[:5].tolist()}")
-            self.logger.info(f"[PPO Trainer Debug] Raw values: {values[:5].tolist()}")
-            self.logger.info(f"[PPO Trainer Debug] Computed advantages: {advantages[:5].tolist()}")
-            self.logger.info(f"[PPO Trainer Debug] Computed returns: {returns[:5].tolist()}")
+            self.logger.info(f"[PPO Trainer Debug] Computing GAE with gamma={{self.gamma}}, tau={{self.tau}}")
+            self.logger.info(f"[PPO Trainer Debug] Raw rewards: {{rewards[:5].tolist()}}")
+            self.logger.info(f"[PPO Trainer Debug] Raw values: {{values[:5].tolist()}}")
+            self.logger.info(f"[PPO Trainer Debug] Computed advantages: {{advantages[:5].tolist()}}")
+            self.logger.info(f"[PPO Trainer Debug] Computed returns: {{returns[:5].tolist()}}")
         
         # Initialize value normalization on first use (matching IsaacGymEnvs)
         if self.value_rms is None and not self.inference_mode:
@@ -200,9 +218,19 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             'dones': dones.detach()
         }}
         
+        # PPO_BATCH debug logging to match IGE
+        import os
+        if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
+            # Note: IGE shows shapes before flattening, but we show after
+            print(f"[DNNE_DEBUG] PPO_BATCH: Advantages shape: {{advantages.shape}}, mean: {{advantages.mean().item():.4f}}, std: {{advantages.std().item():.4f}}")
+            print(f"[DNNE_DEBUG] PPO_BATCH: Returns shape: {{returns.shape}}, mean: {{returns.mean().item():.4f}}, std: {{returns.std().item():.4f}}")
+            print(f"[DNNE_DEBUG] PPO_BATCH: Values shape: {{values.shape}}, mean: {{values.mean().item():.4f}}, std: {{values.std().item():.4f}}")
+            print(f"[DNNE_DEBUG] PPO_BATCH: First 5 advantages: {{advantages.flatten()[:5].tolist()}}")
+            print(f"[DNNE_DEBUG] PPO_BATCH: First 5 returns: {{returns.flatten()[:5].tolist()}}")
+        
         return input_dict
     
-    def rlgames_ppo_update(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds, model):
+    def rlgames_ppo_update(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds, model, last_state, last_done):
         """
         Perform PPO update using rl_games components
         Replaces custom ppo_update() method with rl_games implementation
@@ -211,6 +239,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             states, actions, rewards, values, log_probs, dones: Trajectory data
             action_means, action_stds: Policy parameters
             model: PyTorch model to update
+            last_state: The state after the last action (for bootstrap value)
+            last_done: Done flag after the last action
             
         Returns:
             average_loss: Average loss over all updates
@@ -220,6 +250,18 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if self.inference_mode:
             return torch.zeros(1, device=self.device)
         
+        # Debug shapes
+        import os
+        ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+        if ppo_cycle_debug:
+            print(f"[PPO_CYCLE_DEBUG] rlgames_ppo_update input shapes:")
+            print(f"  states: {states.shape}")
+            print(f"  actions: {actions.shape}")
+            print(f"  rewards: {rewards.shape}")
+            print(f"  values: {values.shape}")
+            print(f"  log_probs: {log_probs.shape}")
+            print(f"  dones: {dones.shape}")
+        
         # Setup optimizer if needed
         if self.optimizer is None:
             self.optimizer = optim.Adam(model.parameters(), lr=self.learning_rate)
@@ -228,9 +270,21 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         total_losses = []
         batch_size = len(states)
         
+        # Get bootstrap value from the model for the last state
+        with torch.no_grad():
+            # Get shared features for last state
+            last_features = model['shared'](last_state)
+            # Get value prediction
+            last_values = model['value'](last_features).squeeze(-1)
+        
+        # Calculate dimensions for reshape
+        num_envs = last_state.shape[0]  # Number of environments
+        horizon_length = batch_size // num_envs  # Number of timesteps
+        
         # Prepare rl_games input dictionary
         input_dict = self.prepare_rlgames_input_dict(
-            states, actions, rewards, values, log_probs, dones, action_means, action_stds
+            states, actions, rewards, values, log_probs, dones, action_means, action_stds, 
+            last_values, last_done, horizon_length, num_envs
         )
         
         if self.fixed_seed_debug:
@@ -243,14 +297,26 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Create minibatches
             indices = torch.randperm(batch_size)
             
+            if ppo_cycle_debug and mini_epoch == 0:
+                print(f"[PPO_CYCLE_DEBUG] Mini-epoch {mini_epoch}: batch_size={batch_size}, minibatch_size={self.minibatch_size}")
+                print(f"[PPO_CYCLE_DEBUG] Number of minibatches: {(batch_size + self.minibatch_size - 1) // self.minibatch_size}")
+            
             for start in range(0, batch_size, self.minibatch_size):
                 end = min(start + self.minibatch_size, batch_size)
                 mb_indices = indices[start:end]
                 
                 # Create minibatch input_dict
-                mb_input_dict = {{}}
+                mb_input_dict = {}
                 for key, value in input_dict.items():
-                    mb_input_dict[key] = value[mb_indices]
+                    try:
+                        mb_input_dict[key] = value[mb_indices]
+                    except IndexError as e:
+                        self.logger.error(f"IndexError in minibatch creation:")
+                        self.logger.error(f"  Key: {key}")
+                        self.logger.error(f"  Value shape: {value.shape}")
+                        self.logger.error(f"  mb_indices max: {mb_indices.max().item()}")
+                        self.logger.error(f"  batch_size: {batch_size}")
+                        raise e
                 
                 # Use rl_games PPO components for loss computation
                 train_result, loss = self.ppo_components.train_actor_critic(mb_input_dict, model)
@@ -271,10 +337,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     async def run(self):
         """Override run to send initial training_complete trigger"""
         self.running = True
-        self.logger.info(f"Starting PPOTrainer node {{self.node_id}} with rl_games components")
+        self.logger.info(f"Starting PPOTrainer node {self.node_id} with rl_games components")
         
         # CRITICAL: Send initial training_complete trigger to break circular dependency
-        await self.send_output("training_complete", {{"trigger": True, "step": 0}})
+        await self.send_output("training_complete", {"trigger": True, "step": 0})
         self.logger.info("Sent initial training_complete trigger to break circular dependency")
         
         # Now proceed with normal QueueNode execution
@@ -298,17 +364,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         # In inference mode, just pass through signals without training
         if self.inference_mode:
-            return {{
+            return {
                 "loss": torch.zeros(1, device=self.device),
-                "training_complete": {{"signal": "complete", "timestamp": time.time()}}
-            }}
+                "training_complete": {"signal": "complete", "timestamp": time.time()}
+            }
         
         # If training is complete, stop processing immediately
         if self.training_complete:
             from framework.base import TrainingCompleteException
             raise TrainingCompleteException(
                 self.node_id, 
-                f"PPO training complete after {{self.current_epoch}}/{{self.max_epochs}} epochs"
+                f"PPO training complete after {self.current_epoch}/{self.max_epochs} epochs"
             )
         
         try:
@@ -332,6 +398,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.buffer_states.append(normalized_obs.detach().clone())
             self.buffer_actions.append(action.detach().clone())
             
+            # PPO_CYCLE_DEBUG logging to match IGE
+            import os
+            ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+            if ppo_cycle_debug and len(self.buffer_states) < 5:
+                step_num = len(self.buffer_states)
+                # Get first environment's values for logging
+                first_action = action[0].item() if action.dim() > 0 else action.item()
+                first_value = value[0].item() if value.dim() > 0 else value.item()
+                first_reward = reward[0].item() if reward.dim() > 0 else reward.item()
+                print(f"[DNNE_DEBUG] PPO_CYCLE: Step {step_num}: action={first_action:.4f}, value={first_value:.4f}, reward={first_reward:.4f}")
+            
             if self.fixed_seed_debug and self.step_count == 0:
                 self.logger.info(f"[PPO Trainer Debug] First state shape: {state.shape}")
                 self.logger.info(f"[PPO Trainer Debug] First state (first 5): {state[0][:5].tolist()}")
@@ -348,20 +425,97 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.buffer_action_means.append(action_mean.detach().clone())
             self.buffer_action_stds.append(action_std.detach().clone())
             
+            # Add debug to track buffer growth
+            import os
+            ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+            if ppo_cycle_debug:
+                print(f"[PPO_CYCLE_DEBUG] Buffer size: {len(self.buffer_states)}, horizon: {self.horizon_length}")
+            
             # Check if buffer is full (DNNE async coordination maintained)
+            # CRITICAL FIX: Each buffer entry contains data for ALL environments
+            # So we need horizon_length entries, not horizon_length * num_envs
             if len(self.buffer_states) >= self.horizon_length:
+                if ppo_cycle_debug:
+                    print(f"[PPO_CYCLE_DEBUG] Buffer full! Length: {len(self.buffer_states)}")
                 if self.fixed_seed_debug:
                     self.logger.info(f"[PPO Trainer Debug] Starting PPO update with {len(self.buffer_states)} steps")
+                    self.logger.info(f"[PPO Trainer Debug] Buffer state shape: {self.buffer_states[0].shape}")
                     
                 # Convert buffer to tensors
-                states = torch.stack(self.buffer_states)
-                actions = torch.stack(self.buffer_actions)
-                rewards = torch.stack(self.buffer_rewards)
-                values = torch.stack(self.buffer_values)
-                log_probs = torch.stack(self.buffer_log_probs)
-                dones = torch.stack(self.buffer_dones)
-                action_means = torch.stack(self.buffer_action_means)
-                action_stds = torch.stack(self.buffer_action_stds)
+                # CRITICAL: Only use exactly horizon_length items to avoid index errors
+                # Stack creates [horizon_length, num_envs, ...] tensors
+                states = torch.stack(self.buffer_states[:self.horizon_length])
+                actions = torch.stack(self.buffer_actions[:self.horizon_length])
+                rewards = torch.stack(self.buffer_rewards[:self.horizon_length])
+                values = torch.stack(self.buffer_values[:self.horizon_length])
+                log_probs = torch.stack(self.buffer_log_probs[:self.horizon_length])
+                dones = torch.stack(self.buffer_dones[:self.horizon_length])
+                action_means = torch.stack(self.buffer_action_means[:self.horizon_length])
+                action_stds = torch.stack(self.buffer_action_stds[:self.horizon_length])
+                
+                # CRITICAL FIX: Reshape from [horizon_length, num_envs, ...] to [horizon_length * num_envs, ...]
+                # This matches what rl_games expects for minibatch creation
+                # Enable PPO_CYCLE_DEBUG logging if set
+                import os
+                ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+                
+                if ppo_cycle_debug:
+                    print(f"[PPO_CYCLE_DEBUG] Stacked shapes:")
+                    print(f"  states: {states.shape}")
+                    print(f"  actions: {actions.shape}")
+                    print(f"  rewards: {rewards.shape}")
+                    print(f"  values: {values.shape}")
+                    print(f"  log_probs: {log_probs.shape}")
+                    print(f"  dones: {dones.shape}")
+                    print(f"  action_means: {action_means.shape}")
+                    print(f"  action_stds: {action_stds.shape}")
+                
+                # Handle both possible shapes: [steps, features] or [steps, num_envs, features]
+                if states.dim() == 2:
+                    # Already flattened, probably single environment
+                    batch_size = states.shape[0]
+                    num_envs = 1
+                else:
+                    # Use actual number of steps collected, not horizon_length
+                    num_steps = states.shape[0]
+                    num_envs = states.shape[1]
+                    batch_size = num_steps * num_envs
+                
+                # Apply swap_and_flatten01 pattern from rl_games
+                # This transposes [horizon, envs, ...] to [envs, horizon, ...] then flattens to [envs*horizon, ...]
+                def swap_and_flatten(tensor):
+                    if tensor.dim() == 2:
+                        # Already [horizon*envs, features]
+                        return tensor
+                    elif tensor.dim() == 3:
+                        # [horizon, envs, features] -> [envs, horizon, features] -> [envs*horizon, features]
+                        return tensor.transpose(0, 1).reshape(batch_size, -1)
+                    elif tensor.dim() == 1:
+                        # Special case for scalars that were incorrectly shaped
+                        # This shouldn't happen but let's handle it
+                        return tensor.unsqueeze(-1).expand(batch_size, 1).squeeze(-1)
+                    else:
+                        # For higher dims, just flatten after transpose
+                        return tensor.transpose(0, 1).reshape(batch_size, *tensor.shape[2:])
+                
+                states = swap_and_flatten(states)
+                actions = swap_and_flatten(actions)
+                # For scalar tensors (rewards, values, etc), we need to flatten to 1D
+                rewards = rewards.transpose(0, 1).reshape(-1)
+                values = values.transpose(0, 1).reshape(-1)
+                log_probs = log_probs.transpose(0, 1).reshape(-1)
+                dones = dones.transpose(0, 1).reshape(-1)
+                action_means = swap_and_flatten(action_means)
+                action_stds = swap_and_flatten(action_stds)
+                
+                if ppo_cycle_debug:
+                    print(f"[PPO_CYCLE_DEBUG] After swap_and_flatten:")
+                    print(f"  states: {states.shape}")
+                    print(f"  actions: {actions.shape}")
+                    print(f"  rewards: {rewards.shape}")
+                    print(f"  values: {values.shape}")
+                    print(f"  log_probs: {log_probs.shape}")
+                    print(f"  batch_size: {batch_size}")
                 
                 if self.fixed_seed_debug:
                     self.logger.info(f"[PPO Trainer Debug] Rewards: {rewards.tolist()}")
@@ -369,10 +523,19 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                     self.logger.info(f"[PPO Trainer Debug] Dones: {dones.sum().item()} episodes completed")
                 
                 # Perform PPO training using rl_games components
-                total_loss = self.rlgames_ppo_update(
-                    states, actions, rewards, values, log_probs, dones, 
-                    action_means, action_stds, model
-                )
+                try:
+                    if ppo_cycle_debug:
+                        print(f"[PPO_CYCLE_DEBUG] Calling rlgames_ppo_update...")
+                    # Pass the current state and done flag as bootstrap values
+                    total_loss = self.rlgames_ppo_update(
+                        states, actions, rewards, values, log_probs, dones, 
+                        action_means, action_stds, model, state, done
+                    )
+                    if ppo_cycle_debug:
+                        print(f"[PPO_CYCLE_DEBUG] rlgames_ppo_update completed! Loss: {total_loss.item()}")
+                except Exception as e:
+                    self.logger.error(f"Error in rlgames_ppo_update: {e}")
+                    raise
                 
                 # Update step count and epoch count
                 self.step_count += 1
@@ -381,7 +544,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 # Check if we've reached max epochs
                 if self.current_epoch >= self.max_epochs:
                     self.training_complete = True
-                    self.logger.info(f"🎯 PPO Trainer reached max_epochs ({{self.max_epochs}}) - signaling completion")
+                    self.logger.info(f"🎯 PPO Trainer reached max_epochs ({self.max_epochs}) - signaling completion")
                 
                 # Handle checkpointing (unchanged from original)
                 if self.checkpoint_enabled and self.checkpoint_manager:
@@ -403,13 +566,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                         )
                     
                     if should_checkpoint:
-                        metadata = {{
+                        metadata = {
                             'trigger_type': self.checkpoint_trigger_type,
                             'trigger_value': self.checkpoint_trigger_value,
                             'training_step': self.step_count,
                             'loss': current_loss,
                             'optimizer_state': self.optimizer.state_dict() if self.optimizer else None,
-                            'hyperparameters': {{
+                            'hyperparameters': {
                                 'max_epochs': self.max_epochs,
                                 'horizon_length': self.horizon_length,
                                 'mini_epochs_num': self.mini_epochs_num,
@@ -421,8 +584,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                                 'entropy_coef': self.entropy_coef,
                                 'learning_rate': self.learning_rate,
                                 'grad_norm': self.grad_norm
-                            }}
-                        }}
+                            }
+                        }
                         
                         self.checkpoint_manager.save_checkpoint(
                             model.state_dict(), metadata=metadata
@@ -432,50 +595,55 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 self.reset_buffer()
                 
                 # Create completion signal
-                training_complete = {{
+                training_complete = {
                     "signal_type": "training_complete",
                     "step": self.step_count,
                     "loss": total_loss.item(),
-                    "source_node": f"ppo_trainer_{{self.node_id}}"
-                }}
+                    "source_node": f"ppo_trainer_{self.node_id}"
+                }
                 
-                self.logger.info(f"PPO training step {{self.step_count}} complete (rl_games), loss: {{total_loss.item():.4f}}")
+                self.logger.info(f"PPO training step {self.step_count} complete (rl_games), loss: {total_loss.item():.4f}")
                 
-                return {{
+                return {
                     "loss": total_loss,
                     "training_complete": training_complete
-                }}
+                }
             
             else:
                 # Still collecting, return dummy outputs (DNNE async coordination maintained)
                 dummy_loss = torch.tensor(0.0, device=self.device)
-                dummy_signal = {{
+                dummy_signal = {
                     "signal_type": "collecting", 
                     "buffer_size": len(self.buffer_states),
                     "horizon_length": self.horizon_length,
-                    "source_node": f"ppo_trainer_{{self.node_id}}"
-                }}
+                    "source_node": f"ppo_trainer_{self.node_id}"
+                }
                 
-                return {{
+                return {
                     "loss": dummy_loss,
                     "training_complete": dummy_signal
-                }}
+                }
                 
         except Exception as e:
-            self.logger.error(f"Error in PPOTrainerNode {{self.node_id}}: {{e}}")
+            self.logger.error(f"Error in PPOTrainerNode {self.node_id}: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # CRITICAL: Reset buffer even on error to prevent infinite growth
+            self.reset_buffer()
             
             # Return safe defaults
             safe_loss = torch.tensor(-1.0, device=self.device)
-            safe_signal = {{
+            safe_signal = {
                 "signal_type": "error",
                 "error": str(e),
-                "source_node": f"ppo_trainer_{{self.node_id}}"
-            }}
+                "source_node": f"ppo_trainer_{self.node_id}"
+            }
             
-            return {{
+            return {
                 "loss": safe_loss,
                 "training_complete": safe_signal
-            }}
+            }
     
     async def save_checkpoint_on_exit(self, exit_reason: str) -> bool:
         """Save checkpoint on exit if enabled (unchanged from original)"""
@@ -485,7 +653,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         try:
             import time
             
-            metadata = {{
+            metadata = {
                 'exit_type': 'on_exit',
                 'exit_reason': exit_reason,
                 'timestamp': time.time(),
@@ -495,7 +663,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 'horizon_length': self.horizon_length,
                 'mini_epochs_num': self.mini_epochs_num,
                 'minibatch_size': self.minibatch_size,
-                'hyperparameters': {{
+                'hyperparameters': {
                     'gamma': self.gamma,
                     'tau': self.tau,
                     'e_clip': self.e_clip,
@@ -503,22 +671,22 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                     'entropy_coef': self.entropy_coef,
                     'learning_rate': self.learning_rate,
                     'grad_norm': self.grad_norm
-                }},
+                },
                 'last_loss': self.last_loss,
                 'rlgames_integration': True
-            }}
+            }
             
             success = self.checkpoint_manager.save_checkpoint(
-                {{}}, metadata=metadata
+                {}, metadata=metadata
             )
             
             if success:
-                self.logger.info(f"💾 Exit checkpoint saved for rl_games PPOTrainer node {{self.node_id}}")
+                self.logger.info(f"💾 Exit checkpoint saved for rl_games PPOTrainer node {self.node_id}")
                 return True
             else:
-                self.logger.warning(f"⚠️ Failed to save exit checkpoint for rl_games PPOTrainer node {{self.node_id}}")
+                self.logger.warning(f"⚠️ Failed to save exit checkpoint for rl_games PPOTrainer node {self.node_id}")
                 return False
                 
         except Exception as e:
-            self.logger.error(f"Error saving exit checkpoint: {{e}}")
+            self.logger.error(f"Error saving exit checkpoint: {e}")
             return False

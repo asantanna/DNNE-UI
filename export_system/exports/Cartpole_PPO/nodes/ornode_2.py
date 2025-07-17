@@ -1,4 +1,3 @@
-"""Node implementation for ORNode (ID: 2)"""
 import asyncio
 import time
 from typing import Dict, Any

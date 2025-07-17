@@ -204,7 +204,7 @@ class RobotControllerExporter(ExportableNode):
 class IsaacGymEnvExporter(ExportableNode):
     @classmethod
     def get_template_name(cls):
-        return "nodes/isaac_gym_env_queue_new.py"
+        return "nodes/isaac_gym_env_queue.py"
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
@@ -274,12 +274,16 @@ class IsaacGymEnvExporter(ExportableNode):
     @classmethod
     def get_output_names(cls):
         return ["env_handle", "observations"]
+    
+    @classmethod
+    def get_dependencies(cls):
+        return ["cartpole_dnne.py"]
 
 
 class IsaacGymStepExporter(ExportableNode):
     @classmethod
     def get_template_name(cls):
-        return "nodes/isaac_gym_step_queue_new.py"
+        return "nodes/isaac_gym_step_queue.py"
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):

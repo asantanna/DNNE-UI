@@ -1,4 +1,3 @@
-"""Node implementation for IsaacGymEnvNode (ID: 7)"""
 from typing import Dict, Any
 import isaacgym
 import torch

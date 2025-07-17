@@ -1,4 +1,3 @@
-"""Node implementation for PPOTrainerNode (ID: 6)"""
 import time
 from typing import Dict, Any
 import torch

@@ -1,10 +1,11 @@
-"""Node implementation for PPOAgentNode (ID: 3)"""
 from typing import Dict, Any
 import torch
 import torch.nn as nn
 import torch.distributions as dist
 import numpy as np
 from framework.base import QueueNode, SensorNode
+
+# Template variables - replaced during export
 
 # Import RunningMeanStd from rl_games_dnne
 import sys
@@ -15,8 +16,6 @@ from rl_games_dnne.dnne_exports import RunningMeanStd
 def DNNE_print(message):
     """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
     print(f"[DNNE_DEBUG] {message}")
-
-# Template variables - replaced during export
 
 class PPOAgentNode_3(QueueNode):
     """PPO Agent Node - Actor-Critic Network for PPO Algorithm"""

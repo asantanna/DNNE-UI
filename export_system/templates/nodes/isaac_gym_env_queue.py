@@ -1,40 +1,26 @@
 # Template variables - replaced during export
 template_vars = {
-    "NODE_ID": "isaac_gym_1",
+    "NODE_ID": "isaac_gym_env_1",
     "CLASS_NAME": "IsaacGymEnvNode",
     "ENV_NAME": "Cartpole",
-    "NUM_ENVS": 64,
-    "ISAAC_GYM_PATH": "/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym",
-    "ISAAC_GYM_ENVS_PATH": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs",
+    "NUM_ENVS": 512,
     "HEADLESS": True,
-    "DEVICE": "cuda",
-    "PHYSICS_ENGINE": "physx",
-    # Camera configuration
-    "USE_DEFAULT_CAMERA": True,
-    "CAMERA_POSITION_X": 20.0,
-    "CAMERA_POSITION_Y": 25.0,
-    "CAMERA_POSITION_Z": 3.0,
-    "CAMERA_TARGET_X": 10.0,
-    "CAMERA_TARGET_Y": 15.0,
-    "CAMERA_TARGET_Z": 0.0
+    "DEVICE": "cuda"
 }
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
-    """Isaac Gym environment node using clean class hierarchy"""
+    """Isaac Gym environment node using new CartpoleDNNE approach"""
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
         self.setup_inputs(required=[])
-        self.setup_outputs(["observations", "sim_handle"])
+        self.setup_outputs(["env_handle", "observations"])
         
         # Configuration
         self.env_name = "{ENV_NAME}"
         self.num_envs = {NUM_ENVS}
-        self.isaac_gym_path = "{ISAAC_GYM_PATH}"
-        self.isaac_gym_envs_path = "{ISAAC_GYM_ENVS_PATH}"
         self.headless = {HEADLESS}
         self.device = "{DEVICE}"
-        self.physics_engine = "{PHYSICS_ENGINE}"
         
         # Check for command line override of headless setting
         try:
@@ -48,241 +34,142 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         except:
             pass  # Use default from template
         
-        # Isaac Gym objects
-        self.gym = None
-        self.sim = None
-        self.viewer = None
-        self.sim_params = None
-        self.device_id = 0 if self.device == "cuda" else -1
-        self.enable_viewer_sync = True  # Match IsaacGymEnvs default
-        self.force_render = True  # Always render when viewer is enabled
-        
-        # Environment instance (using clean class hierarchy)
-        self.environment = None
+        # Environment instance
+        self.env = None
         self.env_initialized = False
         
-        # Initialize Isaac Gym
-        self._initialize_isaac_gym()
-    
-    def _initialize_isaac_gym(self):
-        """Initialize Isaac Gym simulation"""
-        try:
-            # Isaac Gym must be imported before torch
-            import isaacgym
-            from isaacgym import gymapi, gymutil, gymtorch
-            import isaacgym.torch_utils as torch_utils
-            
-            # Validate paths
-            import os
-            if not os.path.exists(self.isaac_gym_path):
-                raise ValueError(f"Isaac Gym path does not exist: {self.isaac_gym_path}")
-            
-            if not os.path.exists(self.isaac_gym_envs_path):
-                raise ValueError(f"Isaac Gym Envs path does not exist: {self.isaac_gym_envs_path}")
-            
-            # Initialize Isaac Gym
-            self.gym = gymapi.acquire_gym()
-            
-            # Configure simulation parameters
-            self.sim_params = gymapi.SimParams()
-            
-            # Physics engine setup
-            if self.physics_engine == "physx":
-                self.sim_params.physx.solver_type = 1
-                self.sim_params.physx.num_position_iterations = 4
-                self.sim_params.physx.num_velocity_iterations = 1
-                self.sim_params.physx.num_threads = 4
-                self.sim_params.physx.use_gpu = (self.device == "cuda")
-                self.sim_params.use_gpu_pipeline = (self.device == "cuda")
-            else:  # flex
-                self.sim_params.flex.solver_type = 5
-                self.sim_params.flex.num_outer_iterations = 4
-                self.sim_params.flex.num_inner_iterations = 10
-            
-            # General simulation parameters
-            self.sim_params.gravity = gymapi.Vec3(0.0, 0.0, -9.81)
-            self.sim_params.up_axis = gymapi.UP_AXIS_Z  # Match IsaacGymEnvs Cartpole setting
-            
-            # Create simulation
-            compute_device = self.device_id if self.device == "cuda" else 0
-            graphics_device = 0 if not self.headless else -1
-            
-            self.sim = self.gym.create_sim(
-                compute_device, graphics_device, 
-                gymapi.SIM_PHYSX if self.physics_engine == "physx" else gymapi.SIM_FLEX,
-                self.sim_params
-            )
-            
-            if self.sim is None:
-                raise RuntimeError("Failed to create Isaac Gym simulation")
-            
-            # Create ground plane
-            plane_params = gymapi.PlaneParams()
-            plane_params.normal = gymapi.Vec3(0.0, 0.0, 1.0)
-            self.gym.add_ground(self.sim, plane_params)
-            
-            # Create environment using clean class hierarchy
-            self._create_environment()
-            
-            # Prepare simulation (MUST be before viewer creation to match IsaacGymEnvs)
-            self.gym.prepare_sim(self.sim)
-            
-            # Create viewer if not headless
-            if not self.headless:
-                self.viewer = self.gym.create_viewer(self.sim, gymapi.CameraProperties())
-                if self.viewer is None:
-                    self.logger.warning("Failed to create viewer")
-                else:
-                    # Subscribe to keyboard events like IsaacGymEnvs
-                    self.gym.subscribe_viewer_keyboard_event(
-                        self.viewer, gymapi.KEY_ESCAPE, "QUIT")
-                    self.gym.subscribe_viewer_keyboard_event(
-                        self.viewer, gymapi.KEY_V, "toggle_viewer_sync")
-                    
-                    # Need to render one frame first to establish viewport
-                    # This matches IsaacGymEnvs behavior
-                    self.gym.step_graphics(self.sim)
-                    self.gym.draw_viewer(self.viewer, self.sim, False)
-                    
-                    # Now set camera position after viewport is established
-                    if {USE_DEFAULT_CAMERA}:
-                        # Use IsaacGymEnvs default camera settings
-                        sim_params = self.gym.get_sim_params(self.sim)
-                        if sim_params.up_axis == gymapi.UP_AXIS_Z:
-                            cam_pos = gymapi.Vec3(20.0, 25.0, 3.0)
-                            cam_target = gymapi.Vec3(10.0, 15.0, 0.0)
-                        else:
-                            cam_pos = gymapi.Vec3(20.0, 3.0, 25.0)
-                            cam_target = gymapi.Vec3(10.0, 0.0, 15.0)
-                    else:
-                        # Use custom camera settings from template
-                        cam_pos = gymapi.Vec3({CAMERA_POSITION_X}, {CAMERA_POSITION_Y}, {CAMERA_POSITION_Z})
-                        cam_target = gymapi.Vec3({CAMERA_TARGET_X}, {CAMERA_TARGET_Y}, {CAMERA_TARGET_Z})
-                    
-                    self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
-                    self.logger.info(f"Camera set: pos={cam_pos}, target={cam_target}")
-                    
-                    # Debug: Print actual up axis
-                    self.logger.info(f"Sim up_axis: {sim_params.up_axis} (Z={gymapi.UP_AXIS_Z}, Y={gymapi.UP_AXIS_Y})")
-            
-            self.env_initialized = True
-            self.logger.info(f"Isaac Gym initialized: {self.env_name} with {self.num_envs} environments")
-            
-        except ImportError as e:
-            self.logger.error(f"Isaac Gym not available: {e}")
-            raise RuntimeError("Isaac Gym is not installed or not available")
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Isaac Gym: {e}")
-            raise
-    
-    def _create_environment(self):
-        """Create environment instance using clean class hierarchy"""
-        try:
-            # Import environment factory
-            import sys
-            import os
-            
-            # Add templates directory to path to import environment classes
-            template_dir = os.path.join(os.path.dirname(__file__), "..", "templates")
-            if template_dir not in sys.path:
-                sys.path.insert(0, template_dir)
-            
-            from environments import create_environment
-            
-            # Create environment instance
-            self.environment = create_environment(
-                env_name=self.env_name,
-                gym=self.gym,
-                sim=self.sim,
-                sim_params=self.sim_params,
-                num_envs=self.num_envs,
-                device=self.device,
-                logger=self.logger,
-                isaac_gym_envs_path=self.isaac_gym_envs_path
-            )
-            
-            # Create all environments
-            self.environment.create_environments(spacing=4.0)
-            
-            # CRITICAL: Reset all environments after creation to initialize states
-            # This matches IsaacGymEnvs behavior and ensures valid initial observations
-            import torch
-            all_env_ids = torch.arange(self.num_envs, device=self.environment.torch_device)
-            
-            # Get observations before reset to debug
-            import builtins
-            if hasattr(builtins, 'FIXED_SEED') and builtins.FIXED_SEED is not None:
-                pre_reset_obs = self.environment.get_observations()
-                self.logger.info(f"[Isaac Gym Env Debug] Pre-reset observations (env 0): {pre_reset_obs[0].tolist()}")
-            
-            self.environment.reset_environments(all_env_ids)
-            self.logger.info(f"Reset all {self.num_envs} environments after creation")
-            
-            # Force a simulation step to propagate the reset state
-            self.gym.simulate(self.sim)
-            self.gym.fetch_results(self.sim, True)
-            
-            # Get observations after reset to debug
-            if hasattr(builtins, 'FIXED_SEED') and builtins.FIXED_SEED is not None:
-                post_reset_obs = self.environment.get_observations()
-                self.logger.info(f"[Isaac Gym Env Debug] Post-reset observations (env 0): {post_reset_obs[0].tolist()}")
-            
-            # Enable profiling if requested via command line
-            try:
-                import builtins
-                if hasattr(builtins, 'DNNE_PROFILING') and builtins.DNNE_PROFILING:
-                    self.environment.enable_profiling()
-                    self.logger.info("DNNE profiling enabled for environment")
-            except:
-                pass
-            
-            self.logger.info(f"Created {self.environment.get_environment_name()} environment with {self.num_envs} instances")
-            
-        except Exception as e:
-            self.logger.error(f"Failed to create environment: {e}")
-            raise RuntimeError(f"Environment creation failed: {e}")
-    
-    async def compute(self, actions=None) -> Dict[str, Any]:
-        """Execute environment step and return observations"""
-        if not self.env_initialized or self.environment is None:
-            raise RuntimeError("Isaac Gym environment not initialized")
+        # Enable PPO_CYCLE_DEBUG logging if set
+        import os
+        self.ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
         
+        # Initialize environment
+        self._initialize_environment()
+    
+    def _initialize_environment(self):
+        """Initialize environment using CartpoleDNNE"""
         try:
-            # Get initial observations (for environment setup)
-            observations = self.environment.get_observations()
+            # Add Isaac Gym to path
+            import sys
+            sys.path.append("/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/python")
+            sys.path.append("/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs")
             
-            # Update viewer if available
-            if self.viewer is not None:
-                self.environment.update_viewer(self.viewer)
+            # Import Isaac Gym first (before torch)
+            import isaacgym
             
-            # Return observations and environment handle
-            return {
-                "observations": observations,
-                "sim_handle": self  # Pass environment node as sim_handle
+            # Import CartpoleDNNE from exported directory structure
+            import os
+            nodes_dir = os.path.join(os.path.dirname(__file__))
+            if nodes_dir not in sys.path:
+                sys.path.insert(0, nodes_dir)
+            
+            from cartpole_dnne import CartpoleDNNE
+            
+            # Create config for environment (matching IsaacGymEnvs format)
+            cfg = {
+                "name": "Cartpole",
+                "physics_engine": "physx",
+                "env": {
+                    "numEnvs": self.num_envs,
+                    "envSpacing": 2.0,
+                    "resetDist": 2.0,
+                    "maxEffort": 10.0,
+                    "numObservations": 4,
+                    "numActions": 1,
+                },
+                "sim": {
+                    "dt": 1.0/60.0,
+                    "substeps": 2,
+                    "up_axis": "z",
+                    "use_gpu_pipeline": self.device == "cuda",
+                    "gravity": [0.0, 0.0, -9.81],
+                    "physx": {
+                        "num_threads": 4,
+                        "solver_type": 1,
+                        "use_gpu": self.device == "cuda",
+                        "num_position_iterations": 4,
+                        "num_velocity_iterations": 1,
+                        "contact_offset": 0.02,
+                        "rest_offset": 0.001,
+                        "bounce_threshold_velocity": 0.2,
+                        "max_depenetration_velocity": 100.0,
+                        "default_buffer_size_multiplier": 5.0,
+                        "max_gpu_contact_pairs": 8388608,
+                        "num_subscenes": 4,
+                        "contact_collection": 0,
+                    },
+                },
             }
             
+            # Set up devices
+            rl_device = self.device + ":0" if self.device == "cuda" else self.device
+            sim_device = self.device + ":0" if self.device == "cuda" else self.device
+            graphics_device_id = -1 if self.headless else 0
+            
+            # Create environment instance
+            self.env = CartpoleDNNE(
+                cfg=cfg,
+                rl_device=rl_device,
+                sim_device=sim_device,
+                graphics_device_id=graphics_device_id,
+                headless=self.headless,
+                virtual_screen_capture=False,
+                force_render=False
+            )
+            
+            self.env_initialized = True
+            self.logger.info(f"CartpoleDNNE initialized with {{self.num_envs}} environments")
+            
+            if self.ppo_cycle_debug:
+                print(f"[PPO_CYCLE_DEBUG] IsaacGymEnvNode - Initialized CartpoleDNNE")
+            
         except Exception as e:
-            self.logger.error(f"Error in environment compute: {e}")
-            raise
+            self.logger.error(f"Failed to initialize environment: {{e}}")
+            raise RuntimeError(f"Environment initialization failed: {{e}}")
     
-    def step_environment(self, actions):
-        """Step the environment with actions (called by IsaacGymStep node)"""
-        if self.environment is None:
+    async def compute(self) -> Dict[str, Any]:
+        """Get initial observations and return environment handle"""
+        if not self.env_initialized or self.env is None:
             raise RuntimeError("Environment not initialized")
         
-        # Use environment's step_simulation method
-        return self.environment.step_simulation(actions)
+        try:
+            # Debug: Track how many times this is called
+            if not hasattr(self, 'compute_count'):
+                self.compute_count = 0
+            self.compute_count += 1
+            
+            if self.ppo_cycle_debug:
+                print(f"[PPO_CYCLE_DEBUG] IsaacGymEnvNode.compute() call #{{self.compute_count}}")
+            
+            # Get initial observations
+            initial_observations = self.env.get_initial_observations()
+            
+            # Create environment handle
+            env_handle = {
+                "environment": self.env,
+                "gym": self.env.gym,
+                "sim": self.env.sim,
+                "viewer": self.env.viewer if hasattr(self.env, 'viewer') else None,
+                "device": self.device,
+                "num_envs": self.num_envs,
+            }
+            
+            if self.ppo_cycle_debug:
+                print(f"[PPO_CYCLE_DEBUG] IsaacGymEnvNode - Initial observations shape: {{initial_observations.shape}}")
+                print(f"[PPO_CYCLE_DEBUG] Initial obs: min={{initial_observations.min().item():.4f}}, max={{initial_observations.max().item():.4f}}, mean={{initial_observations.mean().item():.4f}}")
+            
+            return {{
+                "env_handle": env_handle,
+                "observations": initial_observations
+            }}
+            
+        except Exception as e:
+            self.logger.error(f"Error in environment compute: {{e}}")
+            raise
     
     def cleanup(self):
-        """Clean up Isaac Gym resources"""
-        # Save timing data if profiling was enabled
-        if hasattr(self.environment, 'timing_data') and self.environment.timing_data:
-            self.environment.save_timing_data('/tmp/dnne_cpp_timings.json')
+        """Clean up environment resources"""
+        if self.env is not None:
+            # VecTask handles cleanup automatically
+            pass
         
-        if self.viewer is not None:
-            self.gym.destroy_viewer(self.viewer)
-        
-        if self.sim is not None:
-            self.gym.destroy_sim(self.sim)
-        
-        self.logger.info("Isaac Gym resources cleaned up")
+        self.logger.info("Environment resources cleaned up")

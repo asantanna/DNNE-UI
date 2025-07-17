@@ -1,262 +1,96 @@
 # Template variables - replaced during export
 template_vars = {
-    "NODE_ID": "isaac_step_1",
+    "NODE_ID": "isaac_gym_step_1",
     "CLASS_NAME": "IsaacGymStepNode"
 }
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
-    """Isaac Gym step node with dual-mode execution using clean environment classes"""
+    """Isaac Gym step node with dual-mode execution for RL synchronization"""
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=["sim_handle", "actions", "trigger"])
+        # Setup all inputs including optional ones
+        self.setup_inputs(required=["env_handle", "actions", "trigger"])
         self.setup_outputs(["observations", "rewards", "done", "info", "next_observations"])
         
-        # Step tracking
+        # State caching for RL synchronization
+        self.cached_observations = None
+        self.cached_rewards = None
+        self.cached_done = None
+        self.cached_info = None
         self.step_count = 0
-        self.control_step_count = 0
-        self.control_freq_inv = 16  # Number of physics steps per control step (match IsaacGymEnvs)
-        self.physics_step_count = 0  # Track physics steps for render frequency
-        self.last_render_time = 0.0
-        self.render_interval = 1.0 / 60.0  # 60 FPS backup for viewer updates
         
-        # Episode return tracking for learning metrics
-        self.episode_returns = []  # Store cumulative returns for completed episodes
-        self.current_episode_returns = None  # Cumulative returns for current episodes
-        self.episode_count = 0
-        self.last_n_episodes = 100  # Track last N episodes for averaging
-        
-    async def run(self):
-        """Dual-mode execution: training vs inference timing"""
-        self.running = True
-        self.logger.info(f"Starting node {self.node_id}")
-        
-        # Check if we're in inference mode
-        import builtins
-        inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
-        
-        try:
-            # Wait for sim_handle first
-            sim_handle = await self.input_queues["sim_handle"].get()
-            self.logger.info(f"Received simulation handle: {sim_handle.environment.get_environment_name()}")
-            
-            if inference_mode:
-                # Inference mode: Auto-trigger with real-time timing
-                self.logger.info("🎮 Inference mode: Auto-triggering with real-time timing")
-                await self._run_inference_mode(sim_handle)
-            else:
-                # Training mode: Trigger-based execution at maximum speed
-                self.logger.info("🏃 Training mode: Trigger-based execution for maximum speed")
-                await self._run_training_mode(sim_handle)
-                
-        except asyncio.CancelledError:
-            self.logger.info(f"Node {self.node_id} cancelled")
-            raise
-        finally:
-            self.running = False
+        # Enable PPO_CYCLE_DEBUG logging if set
+        import os
+        self.ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
     
-    async def _run_training_mode(self, sim_handle):
-        """Training mode: Trigger-based execution for maximum speed"""
-        while self.running:
-            try:
-                # Wait for actions and trigger inputs
-                actions = await self.input_queues["actions"].get()
-                trigger = await self.input_queues["trigger"].get()
-                
-                # Execute computation 
-                outputs = await self.compute(sim_handle, actions, trigger)
-                self.compute_count += 1  # Track computation count
-                
-                # Send outputs immediately (no timing delay)
-                if outputs:
-                    for output_name, value in outputs.items():
-                        await self.send_output(output_name, value)
-                        
-            except Exception as e:
-                self.logger.error(f"Training mode error: {e}")
-                await asyncio.sleep(0.1)
-    
-    async def _run_inference_mode(self, sim_handle):
-        """Inference mode: Auto-trigger with real-time timing loop"""
-        import time
-        import asyncio
+    async def compute(self, env_handle, actions, trigger) -> Dict[str, Any]:
+        """Execute simulation step with dual-mode support"""
         
-        # Get environment-specific simulation timing
-        sim_params = sim_handle.environment.get_simulation_params()
-        target_dt = sim_params.get("dt", 0.0166)  # Default to 60Hz
+        if self.ppo_cycle_debug:
+            print(f"[PPO_CYCLE_DEBUG] IsaacGymStepNode.compute() called!")
+            print(f"[PPO_CYCLE_DEBUG] - env_handle: {{type(env_handle)}}")
+            print(f"[PPO_CYCLE_DEBUG] - actions: {{type(actions)}}, shape={{actions.shape if hasattr(actions, 'shape') else 'N/A'}}")
+            print(f"[PPO_CYCLE_DEBUG] - trigger: {{trigger}}")
         
-        # Check if viewer is enabled (only throttle for visual observation)
-        viewer_enabled = hasattr(sim_handle, 'viewer') and sim_handle.viewer is not None
-        use_realtime_throttling = viewer_enabled
+        # Extract environment from handle
+        env = env_handle["environment"]
+        num_envs = env_handle["num_envs"]
         
-        if use_realtime_throttling:
-            self.logger.info(f"🕐 Real-time visual mode: target_dt={target_dt}s ({1/target_dt:.1f}Hz)")
-        else:
-            self.logger.info(f"🚀 Headless inference mode: Maximum speed (no throttling)")
+        # Handle trigger-based output mode
+        # CRITICAL FIX: Only use trigger mode for actual training_complete signals
+        # "collecting" signals should run normal mode
+        if trigger is not None and isinstance(trigger, dict) and trigger.get('signal_type') != 'collecting':
+            # Return cached observations from previous step
+            next_observations = self.cached_observations if self.cached_observations is not None else torch.zeros(num_envs, 4)
+            
+            if self.ppo_cycle_debug and self.cached_observations is not None:
+                print(f"[PPO_CYCLE_DEBUG] IsaacGymStepNode TRIGGER MODE - Releasing cached observations")
+                print(f"[PPO_CYCLE_DEBUG] Cached obs shape: {{next_observations.shape}}")
+            
+            return {{
+                "observations": torch.zeros(num_envs, 4),  # dummy
+                "rewards": torch.zeros(num_envs),          # dummy  
+                "done": torch.zeros(num_envs, dtype=torch.bool),  # dummy
+                "info": {{}},                                # dummy
+                "next_observations": next_observations,    # cached
+            }}
         
-        # In inference mode, we don't wait for triggers - we auto-generate them
-        while self.running:
-            try:
-                loop_start_time = time.time()
-                
-                # Get latest actions (non-blocking with timeout)
-                actions = None
-                try:
-                    actions = await asyncio.wait_for(self.input_queues["actions"].get(), timeout=0.001)
-                except asyncio.TimeoutError:
-                    # No new actions available, use None (maintain last actions in simulation)
-                    pass
-                
-                # Clear any pending triggers (we don't use them in inference mode)
-                try:
-                    while not self.input_queues["trigger"].empty():
-                        await asyncio.wait_for(self.input_queues["trigger"].get(), timeout=0.001)
-                except (asyncio.TimeoutError, asyncio.QueueEmpty):
-                    pass
-                
-                # Execute simulation step (no trigger in inference mode)
-                outputs = await self.compute(sim_handle, actions, None)
-                self.compute_count += 1  # Track computation count
-                
-                # Send outputs
-                if outputs:
-                    for output_name, value in outputs.items():
-                        await self.send_output(output_name, value)
-                
-                # Smart throttling: Only when viewer is enabled for visual observation
-                elapsed = time.time() - loop_start_time
-                if use_realtime_throttling:
-                    sleep_time = max(0, target_dt - elapsed)
-                    
-                    if sleep_time > 0:
-                        await asyncio.sleep(sleep_time)
-                    else:
-                        # Log if we're running behind real-time (for viewer)
-                        if self.step_count % 100 == 0:  # Log every 100 steps
-                            self.logger.warning(f"Behind real-time: {elapsed:.4f}s > {target_dt:.4f}s (target)")
-                else:
-                    # No throttling for headless inference - run at maximum speed
-                    if self.step_count % 1000 == 0:  # Log every 1000 steps
-                        effective_hz = 1.0 / elapsed if elapsed > 0 else float('inf')
-                        self.logger.info(f"Headless performance: {elapsed*1000:.2f}ms per step ({effective_hz:.1f}Hz)")
-                        
-            except Exception as e:
-                self.logger.error(f"Inference mode error: {e}")
-                if use_realtime_throttling:
-                    await asyncio.sleep(target_dt)  # Maintain timing for viewer
-                else:
-                    await asyncio.sleep(0.001)  # Minimal delay for stability
-    
-    async def compute(self, sim_handle, actions, trigger=None) -> Dict[str, Any]:
-        """Execute one simulation step using environment class methods"""
-        try:
-            import torch
-            import builtins
-            
-            # Debug logging for fixed seed mode
-            if hasattr(builtins, 'FIXED_SEED') and builtins.FIXED_SEED is not None:
-                self.logger.info(f"[Isaac Gym Step Debug] Compute called - trigger={trigger is not None}, step_count={self.step_count}")
-                if actions is not None:
-                    self.logger.info(f"[Isaac Gym Step Debug] Actions received: shape={actions.shape if hasattr(actions, 'shape') else type(actions)}")
-                
-                # TEMPORARY: Force exit after 10 steps for debugging
-                if self.step_count >= 10:
-                    self.logger.info("[Isaac Gym Step Debug] FORCING EXIT AFTER 10 STEPS FOR DEBUGGING")
-                    import sys
-                    sys.exit(0)
-            
-            # Validate simulation handle
-            if not hasattr(sim_handle, 'environment') or sim_handle.environment is None:
-                raise RuntimeError("Invalid simulation handle or environment not initialized")
-            
-            environment = sim_handle.environment
-            num_envs = environment.num_envs
-            
-            # Always step simulation when we have actions
-            if actions is not None:
-                # Step environment with actions
-                observations, rewards, done, info = environment.step_simulation(actions)
-            else:
-                # No actions - just get current state
-                observations = environment.get_observations()
-                rewards = environment.compute_rewards()
-                done = environment.check_termination()
-                info = {"step_count": self.step_count}
-            
-            # Update viewer if available (control-frequency based like IsaacGymEnvs)
-            if hasattr(sim_handle, 'viewer') and sim_handle.viewer is not None:
-                # Increment physics step counter
-                self.physics_step_count += 1
-                
-                # Only render every control_freq_inv steps (like IsaacGymEnvs force_render pattern)
-                if self.physics_step_count % self.control_freq_inv == 0:
-                    # Additional time-based limiting as backup (60 FPS max)
-                    import time
-                    current_time = time.time()
-                    if current_time - self.last_render_time >= self.render_interval:
-                        environment.update_viewer(sim_handle.viewer)
-                        self.last_render_time = current_time
-            
-            # Track episode returns for learning metrics
-            self._update_episode_returns(rewards, done, info)
-            
-            # Update step counter
-            self.step_count += 1
-            
-            # Log progress periodically
-            if self.step_count % 1000 == 0:
-                avg_reward = torch.mean(rewards).item() if len(rewards) > 0 else 0.0
-                avg_return = self._get_average_episode_return()
-                self.logger.info(f"Step {self.step_count}: avg reward = {avg_reward:.4f}, avg episode return = {avg_return:.1f}")
-            
-            # Return current step results
-            # The trigger parameter is just for synchronization, not for changing behavior
-            return {
-                "observations": observations,              # Current step observations
-                "rewards": rewards,                       # Current step rewards
-                "done": done,                            # Current step done flags
-                "info": info,                            # Current step info
-                "next_observations": observations         # For PPO, next_obs = current obs
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error in simulation step: {e}")
-            raise
-    
-    def _update_episode_returns(self, rewards, done, info):
-        """Update episode return tracking using info from base environment"""
-        import torch
-        import numpy as np
+        # Normal execution mode: step environment
+        if self.ppo_cycle_debug:
+            print(f"[PPO_CYCLE_DEBUG] IsaacGymStepNode step {{self.step_count + 1}} - NORMAL MODE")
+            print(f"[PPO_CYCLE_DEBUG] Input actions shape: {{actions.shape}}")
+            print(f"[PPO_CYCLE_DEBUG] Actions: min={{actions.min().item():.4f}}, max={{actions.max().item():.4f}}, mean={{actions.mean().item():.4f}}")
         
-        # Extract episode returns from info dictionary
-        if "episode_returns" in info and info["episode_returns"]:
-            # Base environment already captured and printed episode returns
-            # Just update our local tracking for metrics
-            for episode_return in info["episode_returns"]:
-                self.episode_returns.append(episode_return)
-                self.episode_count += 1
-                
-                # Keep only last N episodes for efficiency
-                if len(self.episode_returns) > self.last_n_episodes:
-                    self.episode_returns.pop(0)
+        # Use CartpoleDNNE's step_async method
+        observations, rewards, done, info = env.step_async(actions)
         
-        # Update from info if available
-        if "episode_count" in info:
-            self.episode_count = info["episode_count"]
-    
-    def _get_average_episode_return(self):
-        """Get average episode return from last N completed episodes"""
-        if len(self.episode_returns) == 0:
-            return 0.0
-        import numpy as np
-        return np.mean(self.episode_returns)
-    
-    def get_learning_metrics(self):
-        """Get learning performance metrics for comparison"""
-        return {
-            "total_episodes": self.episode_count,
-            "completed_episodes": len(self.episode_returns),
-            "average_episode_return": self._get_average_episode_return(),
-            "last_n_episodes": self.last_n_episodes,
-            "episode_returns": self.episode_returns.copy() if self.episode_returns else []
-        }
+        # Cache for later trigger-based output
+        self.cached_observations = observations
+        self.cached_rewards = rewards
+        self.cached_done = done
+        self.cached_info = info
+        
+        self.step_count += 1
+        
+        # PPO_CYCLE_DEBUG logging for outputs
+        if self.ppo_cycle_debug:
+            print(f"[PPO_CYCLE_DEBUG] IsaacGymStepNode - After step {{self.step_count}}:")
+            print(f"[PPO_CYCLE_DEBUG] Observations cached: shape={{observations.shape}}")
+            print(f"[PPO_CYCLE_DEBUG] Rewards: min={{rewards.min().item():.4f}}, max={{rewards.max().item():.4f}}, mean={{rewards.mean().item():.4f}}")
+            print(f"[PPO_CYCLE_DEBUG] Done count: {{done.sum().item()}}")
+        
+        # Regular debug logging
+        if self.step_count % 100 == 0:
+            self.logger.info(f"Step {{self.step_count}}: "
+                           f"obs_shape={{observations.shape}}, "
+                           f"reward_mean={{rewards.mean().item():.3f}}, "
+                           f"done_count={{done.sum().item()}}")
+        
+        return {{
+            "observations": observations,              # Current observations
+            "rewards": rewards,                       # Current rewards
+            "done": done,                            # Current done flags
+            "info": info,                            # Current info
+            "next_observations": torch.zeros(num_envs, 4), # empty until triggered
+        }}
