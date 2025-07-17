@@ -209,6 +209,18 @@ class PPOTrainerNode_6(QueueNode):
         if self.inference_mode:
             return torch.zeros(1, device=self.device)
         
+        # Debug shapes
+        import os
+        ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+        if ppo_cycle_debug:
+            print(f"[PPO_CYCLE_DEBUG] rlgames_ppo_update input shapes:")
+            print(f"  states: {states.shape}")
+            print(f"  actions: {actions.shape}")
+            print(f"  rewards: {rewards.shape}")
+            print(f"  values: {values.shape}")
+            print(f"  log_probs: {log_probs.shape}")
+            print(f"  dones: {dones.shape}")
+        
         # Setup optimizer if needed
         if self.optimizer is None:
             self.optimizer = optim.Adam(model.parameters(), lr=self.learning_rate)
@@ -231,6 +243,10 @@ class PPOTrainerNode_6(QueueNode):
         for mini_epoch in range(self.mini_epochs_num):
             # Create minibatches
             indices = torch.randperm(batch_size)
+            
+            if ppo_cycle_debug and mini_epoch == 0:
+                print(f"[PPO_CYCLE_DEBUG] Mini-epoch {mini_epoch}: batch_size={batch_size}, minibatch_size={self.minibatch_size}")
+                print(f"[PPO_CYCLE_DEBUG] Number of minibatches: {(batch_size + self.minibatch_size - 1) // self.minibatch_size}")
             
             for start in range(0, batch_size, self.minibatch_size):
                 end = min(start + self.minibatch_size, batch_size)
@@ -355,20 +371,23 @@ class PPOTrainerNode_6(QueueNode):
             # CRITICAL FIX: Each buffer entry contains data for ALL environments
             # So we need horizon_length entries, not horizon_length * num_envs
             if len(self.buffer_states) >= self.horizon_length:
+                if ppo_cycle_debug:
+                    print(f"[PPO_CYCLE_DEBUG] Buffer full! Length: {len(self.buffer_states)}")
                 if self.fixed_seed_debug:
                     self.logger.info(f"[PPO Trainer Debug] Starting PPO update with {len(self.buffer_states)} steps")
                     self.logger.info(f"[PPO Trainer Debug] Buffer state shape: {self.buffer_states[0].shape}")
                     
                 # Convert buffer to tensors
+                # CRITICAL: Only use exactly horizon_length items to avoid index errors
                 # Stack creates [horizon_length, num_envs, ...] tensors
-                states = torch.stack(self.buffer_states)
-                actions = torch.stack(self.buffer_actions)
-                rewards = torch.stack(self.buffer_rewards)
-                values = torch.stack(self.buffer_values)
-                log_probs = torch.stack(self.buffer_log_probs)
-                dones = torch.stack(self.buffer_dones)
-                action_means = torch.stack(self.buffer_action_means)
-                action_stds = torch.stack(self.buffer_action_stds)
+                states = torch.stack(self.buffer_states[:self.horizon_length])
+                actions = torch.stack(self.buffer_actions[:self.horizon_length])
+                rewards = torch.stack(self.buffer_rewards[:self.horizon_length])
+                values = torch.stack(self.buffer_values[:self.horizon_length])
+                log_probs = torch.stack(self.buffer_log_probs[:self.horizon_length])
+                dones = torch.stack(self.buffer_dones[:self.horizon_length])
+                action_means = torch.stack(self.buffer_action_means[:self.horizon_length])
+                action_stds = torch.stack(self.buffer_action_stds[:self.horizon_length])
                 
                 # CRITICAL FIX: Reshape from [horizon_length, num_envs, ...] to [horizon_length * num_envs, ...]
                 # This matches what rl_games expects for minibatch creation
@@ -417,10 +436,11 @@ class PPOTrainerNode_6(QueueNode):
                 
                 states = swap_and_flatten(states)
                 actions = swap_and_flatten(actions)
-                rewards = swap_and_flatten(rewards).squeeze() if rewards.dim() > 1 else rewards
-                values = swap_and_flatten(values).squeeze() if values.dim() > 1 else values
-                log_probs = swap_and_flatten(log_probs).squeeze() if log_probs.dim() > 1 else log_probs
-                dones = swap_and_flatten(dones).squeeze() if dones.dim() > 1 else dones
+                # For scalar tensors (rewards, values, etc), we need to flatten to 1D
+                rewards = rewards.transpose(0, 1).reshape(-1)
+                values = values.transpose(0, 1).reshape(-1)
+                log_probs = log_probs.transpose(0, 1).reshape(-1)
+                dones = dones.transpose(0, 1).reshape(-1)
                 action_means = swap_and_flatten(action_means)
                 action_stds = swap_and_flatten(action_stds)
                 
@@ -439,10 +459,18 @@ class PPOTrainerNode_6(QueueNode):
                     self.logger.info(f"[PPO Trainer Debug] Dones: {dones.sum().item()} episodes completed")
                 
                 # Perform PPO training using rl_games components
-                total_loss = self.rlgames_ppo_update(
-                    states, actions, rewards, values, log_probs, dones, 
-                    action_means, action_stds, model
-                )
+                try:
+                    if ppo_cycle_debug:
+                        print(f"[PPO_CYCLE_DEBUG] Calling rlgames_ppo_update...")
+                    total_loss = self.rlgames_ppo_update(
+                        states, actions, rewards, values, log_probs, dones, 
+                        action_means, action_stds, model
+                    )
+                    if ppo_cycle_debug:
+                        print(f"[PPO_CYCLE_DEBUG] rlgames_ppo_update completed! Loss: {total_loss.item()}")
+                except Exception as e:
+                    self.logger.error(f"Error in rlgames_ppo_update: {e}")
+                    raise
                 
                 # Update step count and epoch count
                 self.step_count += 1
@@ -533,6 +561,8 @@ class PPOTrainerNode_6(QueueNode):
                 
         except Exception as e:
             self.logger.error(f"Error in PPOTrainerNode {self.node_id}: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
             
             # CRITICAL: Reset buffer even on error to prevent infinite growth
             self.reset_buffer()
