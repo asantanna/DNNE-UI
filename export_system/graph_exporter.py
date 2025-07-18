@@ -525,14 +525,27 @@ class GraphExporter:
         return template_path.read_text(encoding='utf-8')
     
     def _copy_dependency(self, target_dir: Path, dep_filename: str):
-        """Copy a dependency file from templates/nodes to the target export directory"""
+        """Copy a dependency file from templates to the target export directory"""
         import shutil
         
-        # Source path in templates/nodes
-        source_path = self.templates_dir / "nodes" / dep_filename
-        
-        # Target path in export nodes directory
-        target_path = target_dir / dep_filename
+        # Handle paths that may include subdirectories
+        if '/' in dep_filename:
+            # Split into directory and filename
+            dep_parts = dep_filename.split('/')
+            dep_subdir = '/'.join(dep_parts[:-1])
+            dep_file = dep_parts[-1]
+            
+            # Source path in templates/nodes
+            source_path = self.templates_dir / "nodes" / dep_subdir / dep_file
+            
+            # Target path maintains the same structure in nodes directory
+            target_subdir = target_dir / dep_subdir
+            target_subdir.mkdir(parents=True, exist_ok=True)
+            target_path = target_subdir / dep_file
+        else:
+            # Single file without subdirectory - in nodes/
+            source_path = self.templates_dir / "nodes" / dep_filename
+            target_path = target_dir / dep_filename
         
         if source_path.exists():
             # Copy the dependency file
@@ -540,7 +553,7 @@ class GraphExporter:
             self.logger.info(f"Copied dependency: {dep_filename} -> {target_path}")
         else:
             raise FileNotFoundError(f"Required dependency file not found: {source_path}. "
-                                    f"The node requires '{dep_filename}' but it does not exist in templates/nodes/")
+                                    f"The node requires '{dep_filename}' but it does not exist in templates/")
     
     def _process_template(self, template: str, variables: Dict[str, Any]) -> str:
         """Process template by replacing variables"""
@@ -836,159 +849,35 @@ class PlaceholderNode_{node_id}(QueueNode):
         framework_dir.mkdir(exist_ok=True)
         nodes_dir = output_path / "nodes"
         nodes_dir.mkdir(exist_ok=True)
-        environments_dir = output_path / "environments"
-        environments_dir.mkdir(exist_ok=True)
         
         # Create __init__.py files
         (output_path / "__init__.py").write_text("# DNNE Generated Package\n", encoding='utf-8')
-        (framework_dir / "__init__.py").write_text("from .base import QueueNode, SensorNode, GraphRunner\n", encoding='utf-8')
-        
-        # Create environments module with factory function
-        environments_init_content = '''"""Environment factory and base classes"""
-
-from .base_environment import IsaacGymEnvironment
-from .cartpole_environment import CartpoleEnvironment
-
-# Environment registry
-ENVIRONMENT_REGISTRY = {
-    "Cartpole": CartpoleEnvironment,
-    "cartpole": CartpoleEnvironment,
-}
-
-def create_environment(env_name: str, gym, sim, sim_params, num_envs: int, device: str, logger, isaac_gym_envs_path: str):
-    """
-    Factory function to create environment instances
-    
-    Args:
-        env_name: Name of the environment to create
-        gym: Isaac Gym instance
-        sim: Isaac Gym simulation handle
-        sim_params: Simulation parameters
-        num_envs: Number of parallel environments
-        device: Device for tensor operations
-        logger: Logger instance
-        isaac_gym_envs_path: Path to IsaacGymEnvs repository
-        
-    Returns:
-        Environment instance
-    """
-    if env_name not in ENVIRONMENT_REGISTRY:
-        raise ValueError(f"Unknown environment: {env_name}. Available environments: {list(ENVIRONMENT_REGISTRY.keys())}")
-    
-    env_class = ENVIRONMENT_REGISTRY[env_name]
-    return env_class(gym, sim, sim_params, num_envs, device, logger, isaac_gym_envs_path)
-'''
-        (environments_dir / "__init__.py").write_text(environments_init_content, encoding='utf-8')
-        
-        # Copy environment template files
-        self._export_environment_templates(environments_dir)
         
         return framework_dir, nodes_dir
     
-    def _export_environment_templates(self, environments_dir: Path):
-        """Copy environment template files to the export directory"""
-        try:
-            # Copy base environment class
-            base_env_content = self._load_template("environments/base_environment.py")
-            (environments_dir / "base_environment.py").write_text(base_env_content, encoding='utf-8')
-            
-            # Copy cartpole environment class
-            cartpole_env_content = self._load_template("environments/cartpole_environment.py")
-            (environments_dir / "cartpole_environment.py").write_text(cartpole_env_content, encoding='utf-8')
-            
-            self.logger.info("Exported environment templates")
-            
-        except Exception as e:
-            self.logger.warning(f"Could not export environment templates: {e}")
-            # Create minimal fallback environment files
-            self._create_fallback_environments(environments_dir)
-    
-    def _create_fallback_environments(self, environments_dir: Path):
-        """Create minimal fallback environment files if templates are missing"""
-        self.logger.info("Creating fallback environment files")
-        
-        # Minimal base environment
-        base_env_fallback = '''"""
-Fallback Base Isaac Gym Environment Class
-"""
-
-import torch
-import numpy as np
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, Tuple
-import logging
-
-class IsaacGymEnvironment(ABC):
-    """Minimal base class for Isaac Gym environment implementations"""
-    
-    def __init__(self, gym, sim, sim_params, num_envs: int, device: str, logger: logging.Logger):
-        self.gym = gym
-        self.sim = sim
-        self.sim_params = sim_params
-        self.num_envs = num_envs
-        self.device = device
-        self.logger = logger
-        self.torch_device = torch.device(device if device == "cuda" and torch.cuda.is_available() else "cpu")
-        
-        # Initialize placeholders
-        self.envs = []
-        self.actors = []
-        self.dof_state = None
-        self.dof_pos = None
-        self.dof_vel = None
-        self.num_dof = 0
-'''
-        
-        # Minimal cartpole environment  
-        cartpole_env_fallback = '''"""
-Fallback Cartpole Environment Implementation
-"""
-
-import torch
-import numpy as np
-from .base_environment import IsaacGymEnvironment
-
-class CartpoleEnvironment(IsaacGymEnvironment):
-    """Minimal Cartpole environment implementation"""
-    
-    def __init__(self, gym, sim, sim_params, num_envs: int, device: str, logger, isaac_gym_envs_path: str):
-        super().__init__(gym, sim, sim_params, num_envs, device, logger)
-        self.isaac_gym_envs_path = isaac_gym_envs_path
-        self.num_dof = 2
-        
-        self.logger.warning("Using fallback Cartpole environment - functionality may be limited")
-'''
-        
-        (environments_dir / "base_environment.py").write_text(base_env_fallback, encoding='utf-8')
-        (environments_dir / "cartpole_environment.py").write_text(cartpole_env_fallback, encoding='utf-8')
     
     def _export_framework(self, framework_dir: Path):
-        """Export the queue framework to framework/base.py"""
-        base_framework = self._load_template("base/queue_framework.py")
+        """Export the queue framework components to framework/"""
         
-        # Add proper module header
-        framework_content = [
-            '"""Queue-Based Node Framework"""',
-            "import asyncio",
-            "import time",
-            "import logging",
-            "from typing import Dict, Any, List, Optional",
-            "from abc import ABC, abstractmethod",
-            "from asyncio import Queue",
-            "",
-            base_framework
-        ]
+        # Export framework __init__.py
+        framework_init = self._load_template("framework/__init__.py")
+        (framework_dir / "__init__.py").write_text(framework_init, encoding='utf-8')
         
-        (framework_dir / "base.py").write_text("\n".join(framework_content), encoding='utf-8')
+        # Export exceptions.py
+        exceptions_content = self._load_template("framework/exceptions.py")
+        (framework_dir / "exceptions.py").write_text(exceptions_content, encoding='utf-8')
         
-        # Also export run_utils.py to the root directory (not framework dir)
-        # This matches the import path: from run_utils import ...
-        try:
-            run_utils_content = self._load_template("base/run_utils.py")
-            output_root = framework_dir.parent  # Go up one level to the export root
-            (output_root / "run_utils.py").write_text(run_utils_content, encoding='utf-8')
-        except Exception as e:
-            self.logger.warning(f"Could not export run_utils.py: {e}")
+        # Export base_nodes.py
+        base_nodes_content = self._load_template("framework/base_nodes.py")
+        (framework_dir / "base_nodes.py").write_text(base_nodes_content, encoding='utf-8')
+        
+        # Export graph_runner.py
+        graph_runner_content = self._load_template("framework/graph_runner.py")
+        (framework_dir / "graph_runner.py").write_text(graph_runner_content, encoding='utf-8')
+        
+        # Export checkpoint.py (formerly run_utils.py)
+        checkpoint_content = self._load_template("framework/checkpoint.py")
+        (framework_dir / "checkpoint.py").write_text(checkpoint_content, encoding='utf-8')
     
     def _export_node_to_file(self, nodes_dir: Path, node_id: str, node_type: str, 
                             node_code: str, node_imports: List[str]) -> str:
@@ -1022,7 +911,7 @@ class CartpoleEnvironment(IsaacGymEnvironment):
         
         # Add node-specific imports
         file_content.extend(node_imports)
-        file_content.append("from framework.base import QueueNode, SensorNode")
+        file_content.append("from framework import QueueNode, SensorNode")
         file_content.append("")
         
         # Add the node implementation (without template_vars section)
@@ -1154,7 +1043,7 @@ class CartpoleEnvironment(IsaacGymEnvironment):
             runner_content.append("")
         
         runner_content.extend([
-            "from framework.base import GraphRunner",
+            "from framework import GraphRunner",
             "# NOTE: Removed 'from nodes import *' - caused double Isaac Gym initialization",
             "# All required nodes are imported explicitly above",
             "",
@@ -1198,7 +1087,7 @@ class CartpoleEnvironment(IsaacGymEnvironment):
             "    duration_seconds = None",
             "    if args.timeout:",
             "        try:",
-            "            from run_utils import CheckpointManager",
+            "            from framework import CheckpointManager",
             "            manager = CheckpointManager(\"temp\")",
             "            duration_seconds = manager.parse_time_format(args.timeout)",
             "            print(f\"⏱️  Running for {args.timeout} ({duration_seconds:.0f} seconds)\")",

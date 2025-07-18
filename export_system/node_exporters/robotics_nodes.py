@@ -277,7 +277,7 @@ class IsaacGymEnvExporter(ExportableNode):
     
     @classmethod
     def get_dependencies(cls):
-        return ["cartpole_dnne.py"]
+        return ["gym_envs/cartpole_dnne.py"]
 
 
 class IsaacGymStepExporter(ExportableNode):

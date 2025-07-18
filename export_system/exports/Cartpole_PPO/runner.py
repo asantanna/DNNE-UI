@@ -29,7 +29,7 @@ from nodes.ornode_2 import ORNode_2
 from nodes.ppoagentnode_3 import PPOAgentNode_3
 from nodes.cartpoleactionnode_11 import CartpoleActionNode_11
 
-from framework.base import GraphRunner
+from framework import GraphRunner
 # NOTE: Removed 'from nodes import *' - caused double Isaac Gym initialization
 # All required nodes are imported explicitly above
 
@@ -73,7 +73,7 @@ async def main():
     duration_seconds = None
     if args.timeout:
         try:
-            from run_utils import CheckpointManager
+            from framework import CheckpointManager
             manager = CheckpointManager("temp")
             duration_seconds = manager.parse_time_format(args.timeout)
             print(f"⏱️  Running for {args.timeout} ({duration_seconds:.0f} seconds)")

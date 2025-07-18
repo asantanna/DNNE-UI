@@ -2,7 +2,7 @@ from typing import Dict, Any
 import torch
 import numpy as np
 # Isaac Gym imports are handled at runtime in the template
-from framework.base import QueueNode, SensorNode
+from framework import QueueNode, SensorNode
 
 # Template variables - replaced during export
 

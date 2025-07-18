@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.distributions as dist
 import numpy as np
-from framework.base import QueueNode, SensorNode
+from framework import QueueNode, SensorNode
 
 # Template variables - replaced during export
 

@@ -371,7 +371,7 @@ class PPOTrainerNode_6(QueueNode):
         
         # If training is complete, stop processing immediately
         if self.training_complete:
-            from framework.base import TrainingCompleteException
+            from framework import TrainingCompleteException
             raise TrainingCompleteException(
                 self.node_id, 
                 f"PPO training complete after {self.current_epoch}/{self.max_epochs} epochs"

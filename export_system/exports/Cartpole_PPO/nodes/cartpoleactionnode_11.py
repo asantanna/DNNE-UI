@@ -1,7 +1,7 @@
 from typing import Dict, Any
 import torch
 from typing import Dict, Any, Optional
-from framework.base import QueueNode, SensorNode
+from framework import QueueNode, SensorNode
 
 # Template variables - replaced during export
 

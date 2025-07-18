@@ -56,11 +56,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Import Isaac Gym first (before torch)
             import isaacgym
             
-            # Import CartpoleDNNE from exported directory structure
+            # Import CartpoleDNNE from gym_envs subdirectory
             import os
             nodes_dir = os.path.join(os.path.dirname(__file__))
-            if nodes_dir not in sys.path:
-                sys.path.insert(0, nodes_dir)
+            gym_envs_dir = os.path.join(nodes_dir, 'gym_envs')
+            if gym_envs_dir not in sys.path:
+                sys.path.insert(0, gym_envs_dir)
             
             from cartpole_dnne import CartpoleDNNE
             
