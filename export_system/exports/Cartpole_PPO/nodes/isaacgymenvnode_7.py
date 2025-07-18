@@ -77,8 +77,8 @@ class IsaacGymEnvNode_7(QueueNode):
                 "physics_engine": "physx",
                 "env": {
                     "numEnvs": self.num_envs,
-                    "envSpacing": 2.0,
-                    "resetDist": 2.0,
+                    "envSpacing": 4.0,
+                    "resetDist": 3.0,
                     "maxEffort": 10.0,
                     "numObservations": 4,
                     "numActions": 1,

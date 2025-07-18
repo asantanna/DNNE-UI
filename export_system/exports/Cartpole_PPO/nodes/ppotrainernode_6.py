@@ -99,6 +99,13 @@ class PPOTrainerNode_6(QueueNode):
         # Value function normalization (matching IsaacGymEnvs)
         self.value_rms = None  # Will be initialized on first use
         
+        # Episode tracking for profiler compatibility
+        self.episode_rewards = None  # Will track rewards for each environment
+        self.episode_lengths = None  # Will track episode lengths
+        self.completed_episodes = 0
+        self.total_episode_return = 0.0
+        self.episode_count = 0
+        
         # Check if we're in inference mode
         import builtins
         self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
@@ -150,6 +157,43 @@ class PPOTrainerNode_6(QueueNode):
         self.buffer_action_means = []  # Store mu for rl_games
         self.buffer_action_stds = []   # Store sigma for rl_games
         self.buffer_full = False
+        
+    def _track_episode_returns(self, rewards, dones):
+        """Track episode returns for each environment"""
+        num_envs = rewards.shape[0]
+        
+        # Initialize tracking arrays if needed
+        if self.episode_rewards is None:
+            self.episode_rewards = torch.zeros(num_envs, device=rewards.device)
+            self.episode_lengths = torch.zeros(num_envs, dtype=torch.int32, device=rewards.device)
+        
+        # Update episode rewards
+        self.episode_rewards += rewards
+        self.episode_lengths += 1
+        
+        # Check for completed episodes
+        done_indices = torch.where(dones)[0]
+        if len(done_indices) > 0:
+            for idx in done_indices:
+                episode_return = self.episode_rewards[idx].item()
+                episode_length = self.episode_lengths[idx].item()
+                
+                # Log episode return (matching profiler's expected format)
+                print(f"Episode {self.completed_episodes + 1}: episode return = {episode_return:.1f}", flush=True)
+                
+                # Update tracking
+                self.completed_episodes += 1
+                self.total_episode_return += episode_return
+                self.episode_count += 1
+                
+                # Reset for this environment
+                self.episode_rewards[idx] = 0
+                self.episode_lengths[idx] = 0
+            
+            # Log average episode return periodically
+            if self.completed_episodes % 10 == 0 and self.episode_count > 0:
+                avg_return = self.total_episode_return / self.episode_count
+                print(f"avg episode return = {avg_return:.1f} (over {self.episode_count} episodes)", flush=True)
         
     def prepare_rlgames_input_dict(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds, 
                                    last_values, last_dones, horizon_length, num_envs):
@@ -450,6 +494,11 @@ class PPOTrainerNode_6(QueueNode):
             self.buffer_dones.append(done.detach().clone())
             self.buffer_action_means.append(action_mean.detach().clone())
             self.buffer_action_stds.append(action_std.detach().clone())
+            
+            # Track episode returns for profiler compatibility
+            import builtins
+            if getattr(builtins, 'DNNE_PROFILING', False):
+                self._track_episode_returns(reward, done)
             
             # Add debug to track buffer growth
             import os
