@@ -23,6 +23,7 @@ template_vars = {
 
 """Node implementation for PPOTrainerNode using rl_games components"""
 import time
+import os
 from typing import Dict, Any
 import torch
 import torch.nn as nn
@@ -91,6 +92,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.step_count = 0
         self.current_epoch = 0
         self.training_complete = False
+        
+        # PPO cycle tracking
+        self.ppo_cycles_completed = 0
+        self.stop_after_cycle = None
+        ppo_stop_env = os.environ.get('PPO_STOP_AFTER_CYCLE')
+        if ppo_stop_env:
+            try:
+                self.stop_after_cycle = int(ppo_stop_env)
+                self.logger.info(f"PPO_STOP_AFTER_CYCLE set to {self.stop_after_cycle}")
+            except ValueError:
+                self.logger.warning(f"Invalid PPO_STOP_AFTER_CYCLE value: {ppo_stop_env}")
         
         # Value function normalization (matching IsaacGymEnvs)
         self.value_rms = None  # Will be initialized on first use
@@ -387,9 +399,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # print(f"[DEBUG] PPOTrainerNode.compute() - training_complete is True, raising TrainingCompleteException")
             # print(f"[DEBUG] Current epoch: {self.current_epoch}, max_epochs: {self.max_epochs}")
             from framework import TrainingCompleteException
+            stop_reason = []
+            if self.current_epoch >= self.max_epochs:
+                stop_reason.append(f"{self.current_epoch}/{self.max_epochs} epochs")
+            if self.stop_after_cycle and self.ppo_cycles_completed >= self.stop_after_cycle:
+                stop_reason.append(f"{self.ppo_cycles_completed}/{self.stop_after_cycle} PPO cycles")
+            
             raise TrainingCompleteException(
                 self.node_id, 
-                f"PPO training complete after {self.current_epoch}/{self.max_epochs} epochs"
+                f"PPO training complete after {' and '.join(stop_reason)}"
             )
         
         try:
@@ -556,12 +574,22 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 self.step_count += 1
                 self.current_epoch += 1
                 
+                # Update PPO cycle count
+                self.ppo_cycles_completed += 1
+                if ppo_cycle_debug or self.stop_after_cycle:
+                    self.logger.info(f"PPO cycle {self.ppo_cycles_completed} completed")
+                
                 # Check if we've reached max epochs
                 if self.current_epoch >= self.max_epochs:
                     self.training_complete = True
                     # print(f"[DEBUG] PPOTrainerNode - Setting training_complete=True")
                     # print(f"[DEBUG] current_epoch={self.current_epoch}, max_epochs={self.max_epochs}")
                     self.logger.info(f"🎯 PPO Trainer reached max_epochs ({self.max_epochs}) - signaling completion")
+                
+                # Check if we've reached PPO cycle limit
+                if self.stop_after_cycle and self.ppo_cycles_completed >= self.stop_after_cycle:
+                    self.training_complete = True
+                    self.logger.info(f"🎯 PPO Trainer reached PPO cycle limit ({self.stop_after_cycle}) - signaling completion")
                 
                 # Handle checkpointing (unchanged from original)
                 if self.checkpoint_enabled and self.checkpoint_manager:

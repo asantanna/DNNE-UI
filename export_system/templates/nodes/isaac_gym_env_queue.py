@@ -37,6 +37,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Environment instance
         self.env = None
         self.env_initialized = False
+        self.initial_observations = None  # Cache initial observations
         
         # Enable PPO_CYCLE_DEBUG logging if set
         import os

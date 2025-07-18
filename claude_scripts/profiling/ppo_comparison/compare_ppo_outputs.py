@@ -62,8 +62,9 @@ def parse_debug_output(filename):
 
 def compare_outputs():
     """Compare DNNE and IGE outputs"""
-    dnne_data = parse_debug_output('/tmp/dnne_ppo_cycle_output.log')
-    ige_data = parse_debug_output('/tmp/ige_ppo_cycle_output.log')
+    # Use the most recent log files
+    dnne_data = parse_debug_output('/tmp/dnne_1cycle_final.log')
+    ige_data = parse_debug_output('/tmp/ige_1cycle_final.log')
     
     print("=== PPO Cycle Comparison: DNNE vs IGE ===\n")
     

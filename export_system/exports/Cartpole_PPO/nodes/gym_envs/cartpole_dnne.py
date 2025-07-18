@@ -81,8 +81,7 @@ class CartpoleDNNE(Cartpole):
         """Get initial observations after reset for DNNE"""
         # Match IGE behavior: just return current obs_buf (zeros initially)
         # The actual reset happens on first step when post_physics_step sees reset_buf=1
-        obs_dict = self.reset()
-        return obs_dict["obs"]
+        return self.obs_buf
     
     def set_custom_reward_fn(self, reward_fn):
         """Allow custom reward computation for DNNE flexibility"""
