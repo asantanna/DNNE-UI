@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.distributions as dist
 import numpy as np
-from framework.base import QueueNode, SensorNode
+from framework import QueueNode, SensorNode
 
 # Import PPO components from rl_games_dnne
 import sys
@@ -98,7 +98,7 @@ class PPOTrainerNode_6(QueueNode):
         
         # Initialize checkpoint manager if enabled
         if self.checkpoint_enabled:
-            from run_utils import CheckpointManager, validate_checkpoint_config
+            from framework.checkpoint import CheckpointManager, validate_checkpoint_config
             
             checkpoint_config = {
                 'enabled': self.checkpoint_enabled,
