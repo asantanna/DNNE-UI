@@ -4,9 +4,8 @@ template_vars = {
     "CLASS_NAME": "IsaacGymStepNode"
 }
 
-def DNNE_print(message):
-    """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
-    print(f"[DNNE_DEBUG] {message}")
+# Import DNNE_print from centralized location
+from isaacgymenvs.utils.debug_utils import DNNE_print
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """Isaac Gym step node with dual-mode execution for RL synchronization"""

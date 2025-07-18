@@ -6,9 +6,8 @@ from framework import QueueNode, SensorNode
 
 # Template variables - replaced during export
 
-def DNNE_print(message):
-    """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
-    print(f"[DNNE_DEBUG] {message}")
+# Import DNNE_print from centralized location
+from isaacgymenvs.utils.debug_utils import DNNE_print
 
 class IsaacGymStepNode_9(QueueNode):
     """Isaac Gym step node with dual-mode execution for RL synchronization"""

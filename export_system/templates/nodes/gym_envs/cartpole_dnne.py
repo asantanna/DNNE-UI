@@ -9,12 +9,8 @@ import os
 import torch
 import sys
 
-def DNNE_print(message):
-    """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
-    print(f"[DNNE_DEBUG] {message}")
-
-# Add IsaacGymEnvs to path
-sys.path.append("/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs")
+# Import DNNE_print from centralized location
+from isaacgymenvs.utils.debug_utils import DNNE_print
 
 # Import Isaac Gym first (before torch imports in parent class)
 import isaacgym

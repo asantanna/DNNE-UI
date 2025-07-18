@@ -15,6 +15,9 @@ from pathlib import Path
 # Add current directory to Python path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
+# Add IsaacGymEnvs to path for DNNE_print and other utilities
+sys.path.append('/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs')
+
 import asyncio
 import logging
 

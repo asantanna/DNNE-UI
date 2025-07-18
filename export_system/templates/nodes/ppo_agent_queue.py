@@ -16,10 +16,8 @@ import sys
 sys.path.append('/home/asantanna/DNNE-LINUX-SUPPORT')
 from rl_games_dnne.dnne_exports import RunningMeanStd
 
-# Debug print function for consistent logging
-def DNNE_print(message):
-    """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
-    print(f"[DNNE_DEBUG] {message}")
+# Import DNNE_print from centralized location
+from isaacgymenvs.utils.debug_utils import DNNE_print
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """PPO Agent Node - Actor-Critic Network for PPO Algorithm"""
