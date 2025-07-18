@@ -7,6 +7,10 @@ from framework import QueueNode, SensorNode
 
 # Template variables - replaced during export
 
+def DNNE_print(message):
+    """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
+    print(f"[DNNE_DEBUG] {message}")
+
 class IsaacGymEnvNode_7(QueueNode):
     """Isaac Gym environment node using new CartpoleDNNE approach"""
     
@@ -36,10 +40,13 @@ class IsaacGymEnvNode_7(QueueNode):
         # Environment instance
         self.env = None
         self.env_initialized = False
+        self.initial_observations = None  # Cache initial observations
         
-        # Enable PPO_CYCLE_DEBUG logging if set
+        # Enable PPO_CYCLE_DEBUG and verbose logging
         import os
+        import builtins
         self.ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+        self.verbose = getattr(builtins, 'VERBOSE', False)
         
         # Initialize environment
         self._initialize_environment()
@@ -116,11 +123,14 @@ class IsaacGymEnvNode_7(QueueNode):
                 force_render=False
             )
             
+            # Call reset to match IGE initialization behavior
+            _ = self.env.reset()
+            
             self.env_initialized = True
             self.logger.info(f"CartpoleDNNE initialized with {self.num_envs} environments")
             
-            if self.ppo_cycle_debug:
-                print(f"[PPO_CYCLE_DEBUG] IsaacGymEnvNode - Initialized CartpoleDNNE")
+            if self.verbose:
+                print(f"IsaacGymEnvNode - Initialized CartpoleDNNE")
             
         except Exception as e:
             self.logger.error(f"Failed to initialize environment: {e}")
@@ -137,8 +147,8 @@ class IsaacGymEnvNode_7(QueueNode):
                 self.compute_count = 0
             self.compute_count += 1
             
-            if self.ppo_cycle_debug:
-                print(f"[PPO_CYCLE_DEBUG] IsaacGymEnvNode.compute() call #{self.compute_count}")
+            if self.verbose:
+                print(f"IsaacGymEnvNode.compute() call #{self.compute_count}")
             
             # Get initial observations
             initial_observations = self.env.get_initial_observations()
@@ -153,9 +163,9 @@ class IsaacGymEnvNode_7(QueueNode):
                 "num_envs": self.num_envs,
             }
             
-            if self.ppo_cycle_debug:
-                print(f"[PPO_CYCLE_DEBUG] IsaacGymEnvNode - Initial observations shape: {initial_observations.shape}")
-                print(f"[PPO_CYCLE_DEBUG] Initial obs: min={initial_observations.min().item():.4f}, max={initial_observations.max().item():.4f}, mean={initial_observations.mean().item():.4f}")
+            if self.verbose:
+                print(f"IsaacGymEnvNode - Initial observations shape: {initial_observations.shape}")
+                print(f"Initial obs: min={initial_observations.min().item():.4f}, max={initial_observations.max().item():.4f}, mean={initial_observations.mean().item():.4f}")
             
             return {
                 "env_handle": env_handle,

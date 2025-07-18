@@ -20,17 +20,9 @@ You are resuming work on debugging the DNNE PPO implementation. In DNNE, the wor
 
 **Major Progress**: DNNE has been successfully refactored to use IsaacGymEnvs' cartpole infrastructure and multiple critical debugging issues have been resolved.
 
-**Key Fixes Completed**:
-- ✅ Bootstrap value computation for GAE (fixed index out of bounds)
-- ✅ Tensor reshaping patterns (swap_and_flatten01) 
-- ✅ Action format corrections (raw tensors vs dictionaries)
-- ✅ Trigger mode handling in IsaacGymStepNode
-- ✅ Initial observation reset issues
-- ✅ PPO buffer management and minibatch creation
-
 **Current Phase**: Correctness verification - ensuring DNNE matches IGE behavior exactly before performance optimization.
 
-**Debugging Methodology**: Use matching debug prints (`PPO_CYCLE_DEBUG=1`) to compare DNNE vs IGE execution step-by-step.
+**Debugging Methodology**: Use matching debug prints (`PPO_CYCLE_DEBUG=1`) to compare DNNE vs IGE execution step-by-step. Run only one PPO cycle because debug prints are very verbose (`PPO_STOP_AFTER_CYCLE=1`)
 
 **Next Priority**: Verify that PPO training completes successfully and produces learning behavior identical to IGE.
 
@@ -41,9 +33,9 @@ You are resuming work on debugging the DNNE PPO implementation. In DNNE, the wor
 cd /mnt/e/ALS-Projects/DNNE/DNNE-UI
 python claude_scripts/programmatic_export.py
 cd export_system/exports/Cartpole_PPO
-PPO_CYCLE_DEBUG=1 python runner.py --timeout 30s
+PPO_CYCLE_DEBUG=1 PPO_STOP_AFTER_CYCLE=1 python runner.p
 
 # Run IGE for comparison (separate terminal)
 cd /home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs
-PPO_CYCLE_DEBUG=1 USE_RL_GAMES_DNNE=1 python isaacgymenvs/train.py task=Cartpole --timeout 30s
+PPO_CYCLE_DEBUG=1 PPO_STOP_AFTER_CYCLE=1 python isaacgymenvs/train.py task=Cartpole --timeout 30s
 ```

@@ -14,6 +14,7 @@ The primary innovation is the **export system** that converts visual node graphs
 #### Code Locations
 - Backend code is checked out to: `/mnt/e/ALS-Projects/DNNE/DNNE-UI`
 - Front end code is checked out to: `/mnt/e/ALS-Projects/DNNE/DNNE-UI-Frontend`
+- Linux support code is checked out to: `/home/asantanna/DNNE-LINUX-SUPPORT`
 
 #### Backend Repository (This Repository)
 Contains the main DNNE-UI backend with:
@@ -43,8 +44,9 @@ If the conda environment is not activated, you may encounter errors like:
 
 ### Isaac Gym Integration
 IsaacGym and IsaacGymEnvs are installed and verified working:
-- **IsaacGym**: `~/isaacgym` - Core physics simulation library
-- **IsaacGymEnvs**: `~/IsaacGymEnvs` - Pre-built reinforcement learning environments
+- **IsaacGym**: `/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym` - Core physics simulation library
+- **IsaacGymEnvs**: `/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs` - Pre-built reinforcement learning environments
+- **rl_games_dnne**: `/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne` - Replacement for rl_games with additional features and debug messages
 - **Import Order**: Always import `isaacgym` before `torch` to avoid conflicts
 - **GPU Support**: Verified working with CUDA and GPU PhysX acceleration
 - **Environment Testing**: Cartpole and other environments tested successfully
@@ -52,7 +54,7 @@ IsaacGym and IsaacGymEnvs are installed and verified working:
 **⚠️ CRITICAL ISAAC GYM IMPORT ORDER FIX ⚠️**
 The export system MUST ensure Isaac Gym nodes are imported before any torch-using nodes in `nodes/__init__.py`. This is handled in `graph_exporter._generate_node_init()` which sorts Isaac Gym nodes first. Without this, you get "PyTorch was imported before isaacgym" errors.
 
-### Starting the Application
+### Starting the Server (Windows only!)
 ```bash
 python main.py
 ```
@@ -64,12 +66,7 @@ pip install -r requirements.txt
 
 ### Testing Export System
 ```bash
-python export_system/test_export.py
-python export_system/test_exporter_linear.py
-python claude_scripts/test_modular_export.py
-python claude_scripts/test_modular_run.py
-python claude_scripts/debug_runner.py
-python claude_scripts/benchmark_pytorch_direct.py
+python /mnt/e/ALS-Projects/DNNE/DNNE-UI/claude_scripts/programmatic_export.py
 ```
 
 ### Running Exported Scripts
@@ -81,18 +78,14 @@ python runner.py
 Note: Ensure the conda environment is activated before running exported scripts.
 
 ### Common Development Tasks
-- **Export workflows to Python**: Use the export system via the UI or programmatically through `export_system/graph_exporter.py`
+- **Export workflows to Python**: Use the export system via the UI or programmatically through `claude_scripts/programmatic_export.py`
 - **Add new node types**: Implement in `custom_nodes/ml_nodes/` or `custom_nodes/robotics_nodes/`
-- **Test node templates**: Use the test files in `export_system/`
-- **Debug execution**: Use scripts in `claude_scripts/` for troubleshooting and testing
-- **Benchmark performance**: Use `claude_scripts/benchmark_pytorch_direct.py` for performance comparisons
 
 ## Architecture Overview
 
 ### Core System Structure
-- **Entry Point**: `main.py` - Initializes ComfyUI with ML/robotics extensions
+- **Entry Point**: `main.py` - Initializes DNNE server with ML/robotics extensions
 - **Node System**: `nodes.py` - Base DNNE node classes and robotics type integration
-- **Execution**: `execution.py` - Minimal execution engine optimized for robotics workflows
 - **Server**: `server.py` - Web API and interface
 
 ### Custom Node Categories
@@ -121,7 +114,7 @@ The export system is the project's most sophisticated feature, converting visual
 
 #### Export Patterns
 - **Queue Templates**: Generate async queue-based code for real-time robotics applications
-- **Training Runners**: Complete training loop implementations
+- **Training Runners**: Complete training loop implementations (runner.py in exported code)
 
 ### System Components
 The system has three main components:
@@ -132,8 +125,8 @@ The system has three main components:
 ### Data Flow
 1. **Visual Design**: Users create workflows in the visual graph editor
 2. **Node Graph**: System represents workflows as connected node graphs
-3. **Code Generation**: Export system converts graphs to Python modules (saved to `export_system/exports/{workflow_name}/runner.py and potentially other files in that directory`)
-4. **Execution**: Generated code runs independently on target platforms with async queue-based architecture
+3. **Code Generation**: Export system converts graphs to Python modules (saved as a package to `export_system/exports/{workflow_name}`)
+4. **Execution**: Generated code runs independently on target platforms
 
 ## Important Development Notes
 
@@ -149,7 +142,7 @@ The system has three main components:
 - Context used by nodes is now implicit (global) - no explicit context connections needed
 
 ### Export System Guidelines
-- Each node type requires a queue template only (standard templates are obsoleted)
+- Each node type requires a queue template only (non-async templates are obsoleted)
 - Templates use string formatting for parameter injection
 - Generated code follows queue-based reactive patterns for robotics applications
 - All exports include proper import management and error handling
@@ -157,7 +150,7 @@ The system has three main components:
 - All node communication uses async queue-based design similar to ROS (Robot Operating System)
 
 ### Testing Approach
-- Unit tests in `tests-unit/` directory
+- Tests driven by script `dnne-test`
 - Export system tests verify code generation and execution
 - Integration tests use example workflows like "MNIST Test.json"
 - Queue-based tests validate real-time execution patterns
@@ -187,25 +180,12 @@ The system has three main components:
 **⚠️ ABSOLUTE PROHIBITION: NEVER create ANY files in the project root directory (/mnt/e/ALS-Projects/DNNE/DNNE-UI/) ⚠️**
 
 **EXPORTS MUST GO TO**: `export_system/exports/{workflow_name}/` ONLY
-**TEST FILES MUST GO TO**: `claude_scripts/` or `tests-dnne/` directories ONLY
-
-**REPEATED VIOLATIONS**: Creating files in project root has happened multiple times. 
-**ALWAYS double-check export paths before running ANY export command.**
-**The export system default behavior exports to project root - you MUST override this.**
-- **Project root**: Keep clean of temporary/test files
-- Before creating ANY file, verify you're in the correct directory
+**TEST FILES MUST GO TO**: `dnne-test-suite` directories ONLY
 
 ### File Structure Conventions
 - Queue templates end with `_queue.py` for async execution
 - Node exporters mirror the custom_nodes directory structure
 - Generated code follows consistent naming and structure patterns
-
-### Migration Context
-The project recently underwent a context removal migration:
-- Removed explicit context connections from UI
-- Made context implicit in generated code
-- Simplified visual workflows while maintaining functionality
-- Backup files with context logic preserved for reference
 
 ## Key Dependencies
 
@@ -268,14 +248,6 @@ The export system generates clean, executable Python code that correctly impleme
 - **Slot Mapping Resolution**: Fixed ComfyUI slot corruption issue with JSON-based workaround
 - **Template System**: Complete template-based code generation with proper variable substitution
 - **MNIST Classification Pipeline**: Full working example achieving standard ML performance benchmarks
-
-### Recent Major Achievements (June 2025)
-1. **Slot Mapping Fix**: Resolved critical issue where ComfyUI pipeline corrupted all `to_slot` values to 0, implemented JSON-based workaround that reads original workflow to restore correct connections
-2. **Network Node Implementation**: Successfully implemented Network node pattern that consolidates multiple LinearLayer nodes into unified PyTorch Sequential models
-3. **Training Progress System**: Added EpochTracker, enhanced GetBatch and CrossEntropyLoss nodes to provide real-time training statistics and epoch summaries
-4. **MNIST Optimization**: Implemented and tested optimized MNIST training with proper learning rate (0.1), momentum (0.9), achieving expected training behavior
-5. **Device Compatibility**: Fixed GPU/CPU device mismatch issues in loss computation templates
-6. **Export Registration**: Completed node exporter registration system for all ML nodes
 
 ### Export System Architecture Details
 - **Graph Exporter** (`graph_exporter.py`): Core export logic with slot corruption workaround via `_fix_corrupted_slots()` method

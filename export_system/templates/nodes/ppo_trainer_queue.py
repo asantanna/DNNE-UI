@@ -21,6 +21,10 @@ template_vars = {
     "CHECKPOINT_TRIGGER_VALUE": "10"
 }
 
+def DNNE_print(message):
+    """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
+    print(f"[DNNE_DEBUG] {message}")
+
 """Node implementation for PPOTrainerNode using rl_games components"""
 import time
 import os
@@ -111,6 +115,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import builtins
         self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
         self.fixed_seed_debug = getattr(builtins, 'FIXED_SEED', None) is not None
+        self.verbose = getattr(builtins, 'VERBOSE', False)
         
         # Checkpoint configuration
         self.checkpoint_enabled = True
@@ -266,8 +271,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Debug shapes
         import os
         ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
-        if ppo_cycle_debug:
-            print(f"[PPO_CYCLE_DEBUG] rlgames_ppo_update input shapes:")
+        if self.verbose:
+            print(f"rlgames_ppo_update input shapes:")
             print(f"  states: {states.shape}")
             print(f"  actions: {actions.shape}")
             print(f"  rewards: {rewards.shape}")
@@ -311,9 +316,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Create minibatches
             indices = torch.randperm(batch_size)
             
-            if ppo_cycle_debug and mini_epoch == 0:
-                print(f"[PPO_CYCLE_DEBUG] Mini-epoch {mini_epoch}: batch_size={batch_size}, minibatch_size={self.minibatch_size}")
-                print(f"[PPO_CYCLE_DEBUG] Number of minibatches: {(batch_size + self.minibatch_size - 1) // self.minibatch_size}")
+            if self.verbose and mini_epoch == 0:
+                print(f"Mini-epoch {mini_epoch}: batch_size={batch_size}, minibatch_size={self.minibatch_size}")
+                print(f"Number of minibatches: {(batch_size + self.minibatch_size - 1) // self.minibatch_size}")
             
             minibatch_count = 0
             for start in range(0, batch_size, self.minibatch_size):
@@ -468,8 +473,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # CRITICAL FIX: Each buffer entry contains data for ALL environments
             # So we need horizon_length entries, not horizon_length * num_envs
             if len(self.buffer_states) >= self.horizon_length:
+                # Print PPO training cycle start message to match IGE
                 if ppo_cycle_debug:
-                    print(f"[PPO_CYCLE_DEBUG] Buffer full! Length: {len(self.buffer_states)}")
+                    DNNE_print(f"=== PPO TRAINING CYCLE {self.ppo_cycles_completed + 1} START ===")
+                    
+                if self.verbose:
+                    print(f"Buffer full! Length: {len(self.buffer_states)}")
                 if self.fixed_seed_debug:
                     self.logger.info(f"[PPO Trainer Debug] Starting PPO update with {len(self.buffer_states)} steps")
                     self.logger.info(f"[PPO Trainer Debug] Buffer state shape: {self.buffer_states[0].shape}")
@@ -492,8 +501,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 import os
                 ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
                 
-                if ppo_cycle_debug:
-                    print(f"[PPO_CYCLE_DEBUG] Stacked shapes:")
+                if self.verbose:
+                    print(f"Stacked shapes:")
                     print(f"  states: {states.shape}")
                     print(f"  actions: {actions.shape}")
                     print(f"  rewards: {rewards.shape}")
@@ -541,8 +550,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 action_means = swap_and_flatten(action_means)
                 action_stds = swap_and_flatten(action_stds)
                 
-                if ppo_cycle_debug:
-                    print(f"[PPO_CYCLE_DEBUG] After swap_and_flatten:")
+                if self.verbose:
+                    print(f"After swap_and_flatten:")
                     print(f"  states: {states.shape}")
                     print(f"  actions: {actions.shape}")
                     print(f"  rewards: {rewards.shape}")
@@ -557,15 +566,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 
                 # Perform PPO training using rl_games components
                 try:
-                    if ppo_cycle_debug:
-                        print(f"[PPO_CYCLE_DEBUG] Calling rlgames_ppo_update...")
+                    if self.verbose:
+                        print(f"Calling rlgames_ppo_update...")
                     # Pass the current state and done flag as bootstrap values
                     total_loss = self.rlgames_ppo_update(
                         states, actions, rewards, values, log_probs, dones, 
                         action_means, action_stds, model, state, done
                     )
-                    if ppo_cycle_debug:
-                        print(f"[PPO_CYCLE_DEBUG] rlgames_ppo_update completed! Loss: {total_loss.item()}")
+                    if self.verbose:
+                        print(f"rlgames_ppo_update completed! Loss: {total_loss.item()}")
                 except Exception as e:
                     self.logger.error(f"Error in rlgames_ppo_update: {e}")
                     raise
@@ -589,6 +598,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 # Check if we've reached PPO cycle limit
                 if self.stop_after_cycle and self.ppo_cycles_completed >= self.stop_after_cycle:
                     self.training_complete = True
+                    if ppo_cycle_debug:
+                        DNNE_print(f"PPO_STOP: Stopping after {self.ppo_cycles_completed} cycle(s) as requested")
                     self.logger.info(f"🎯 PPO Trainer reached PPO cycle limit ({self.stop_after_cycle}) - signaling completion")
                 
                 # Handle checkpointing (unchanged from original)

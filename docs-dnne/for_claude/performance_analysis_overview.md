@@ -73,7 +73,7 @@ PPO_CYCLE_DEBUG=1 python runner.py --timeout 30s
 
 # Compare with IGE (in separate terminal)
 cd /home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs
-PPO_CYCLE_DEBUG=1 python isaacgymenvs/train.py task=Cartpole --timeout 30s
+PPO_CYCLE_DEBUG=1 python isaacgymenvs/train.py task=Cartpole
 ```
 
 ### 2. Performance Testing (After Correctness Verified)

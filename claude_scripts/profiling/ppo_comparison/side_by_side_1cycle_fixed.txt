@@ -1,0 +1,438 @@
+Comparing /tmp/dnne_1cycle_final.log and /tmp/ige_1cycle_with_training.log...
+Preprocessing files...
+Aligning files...
+
+Comparison Results:
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+IGE Log (dnne_1cycle_final.log)                                                | DNNE Log (ige_1cycle_with_training.log)                                       
+============================================================================== | ==============================================================================
+                                                                               | [32m[DNNE_DEBUG] Using rl_games_dnne (default)                                    [0m
+Importing module 'gym_38' (/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/pyth... | Importing module 'gym_38' (/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/pyth...
+Setting GYM_USD_PLUG_INFO_PATH to /home/asantanna/DNNE-LINUX-SUPPORT/isaacg... | Setting GYM_USD_PLUG_INFO_PATH to /home/asantanna/DNNE-LINUX-SUPPORT/isaacg...
+[33m🔒 Using fixed seed: 42                                                        [0m | [33mPyTorch version 2.4.1+cu121                                                   [0m
+[33m🚀 Starting DNNE Queue-Based Execution                                         [0m | [33mDevice count 1                                                                [0m
+[33m📊 Epochs override: 999                                                        [0m | [33m/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/python/isaacgym/_bindings/src/g...[0m
+[33m📊 Quiet mode - showing epoch summaries only                                   [0m | [33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/hydra/...[0m
+[33m============================================================                  [0m | [33mSee https://hydra.cc/docs/1.2/upgrades/1.1_to_1.2/changes_to_job_working_di...[0m
+[33mPyTorch version 2.4.1+cu121                                                   [0m | [33m  ret = run_job(                                                              [0m
+[31mDevice count 1                                                                [0m |                                                                               
+[31m/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/python/isaacgym/_bindings/src/g...[0m |                                                                               
+Using /home/asantanna/.cache/torch_extensions/py38_cu121 as PyTorch extensi... | Using /home/asantanna/.cache/torch_extensions/py38_cu121 as PyTorch extensi...
+Emitting ninja build file /home/asantanna/.cache/torch_extensions/py38_cu12... | Emitting ninja build file /home/asantanna/.cache/torch_extensions/py38_cu12...
+Building extension module gymtorch...                                          | Building extension module gymtorch...                                         
+Allowing ninja to set a default number of workers... (overridable by settin... | Allowing ninja to set a default number of workers... (overridable by settin...
+ninja: no work to do.                                                          | ninja: no work to do.                                                         
+Loading extension module gymtorch...                                           | Loading extension module gymtorch...                                          
+[33m2025-07-18 02:14:54,609 - INFO - logger - logger initialized                  [0m | [33m2025-07-18 12:22:07,525 - INFO - logger - logger initialized                  [0m
+[31m2025-07-18 02:14:54,609 - poselib - logger initialized                        [0m |                                                                               
+[Warning] [carb.gym.plugin] useGpu is set, forcing single scene (0 subscenes)  | [Warning] [carb.gym.plugin] useGpu is set, forcing single scene (0 subscenes) 
+Not connected to PVD                                                           | Not connected to PVD                                                          
++++ Using GPU PhysX                                                            | +++ Using GPU PhysX                                                           
+Physics Engine: PhysX                                                          | Physics Engine: PhysX                                                         
+Physics Device: cuda:0                                                         | Physics Device: cuda:0                                                        
+GPU Pipeline: enabled                                                          | GPU Pipeline: enabled                                                         
+Error: FBX library failed to load - importing FBX data will not succeed. Me... | Error: FBX library failed to load - importing FBX data will not succeed. Me...
+FBX tools must be installed from https://help.autodesk.com/view/FBX/2020/EN... | FBX tools must be installed from https://help.autodesk.com/view/FBX/2020/EN...
+[33m[CartpoleDNNE] Initialized with 512 environments                              [0m | [33mtask:                                                                         [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] CartpoleDNNE initialized: num_envs=512, devi...[0m | [33m    name: Cartpole                                                            [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m    physics_engine: physx                                                     [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m    env:                                                                      [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m        numEnvs: 512                                                          [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m        envSpacing: 4.0                                                       [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m        resetDist: 3.0                                                        [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m        maxEffort: 400.0                                                      [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m        clipObservations: 5.0                                                 [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m        clipActions: 1.0                                                      [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m        asset:                                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m            assetRoot: ../../assets                                           [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m            assetFileName: urdf/cartpole.urdf                                 [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m        enableCameraSensors: False                                            [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m    sim:                                                                      [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m        dt: 0.0166                                                            [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m        substeps: 2                                                           [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m        up_axis: z                                                            [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m        use_gpu_pipeline: True                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m        gravity: [0.0, 0.0, -9.81]                                            [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m        physx:                                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m            num_threads: 4                                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m            solver_type: 1                                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m            use_gpu: True                                                     [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m            num_position_iterations: 4                                        [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m            num_velocity_iterations: 0                                        [0m
+[33m[DNNE_DEBUG] === NETWORK INITIALIZATION ===                                   [0m | [33m            contact_offset: 0.02                                              [0m
+[33m                                                                              [0m | [33m            rest_offset: 0.001                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m            bounce_threshold_velocity: 0.2                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m            max_depenetration_velocity: 100.0                                 [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m            default_buffer_size_multiplier: 2.0                               [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m            max_gpu_contact_pairs: 1048576                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m            num_subscenes: 4                                                  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m            contact_collection: 0                                             [0m
+[33m[DNNE_DEBUG] PPO_CYCLE: Step 1: action=0.0110, value=-0.0393, reward=0.0000   [0m | [33m    task:                                                                     [0m
+[33m[PPO_CYCLE_DEBUG] Buffer size: 1, horizon: 16                                 [0m | [33m        randomize: False                                                      [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33mtrain:                                                                        [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m    params:                                                                   [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m        seed: 42                                                              [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m        algo:                                                                 [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m            name: a2c_continuous                                              [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m | [33m        model:                                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #1                         [0m | [33m            name: continuous_a2c_logstd                                       [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m        network:                                                              [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #1                         [0m | [33m            name: actor_critic                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m            separate: False                                                   [0m
+[33m[DNNE_DEBUG] PPO_CYCLE: Step 2: action=-0.0439, value=-0.0393, reward=0.9946  [0m | [33m            space:                                                            [0m
+[33m[PPO_CYCLE_DEBUG] Buffer size: 2, horizon: 16                                 [0m | [33m                continuous:                                                   [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m                    mu_activation: None                                       [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m                    sigma_activation: None                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m                    mu_init:                                                  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-0.2499, max=0.2491, mean=-...[0m | [33m                        name: default                                         [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m                    sigma_init:                                               [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-0.2499, max=0.2491, mean=-...[0m | [33m                        name: const_initializer                               [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #2                         [0m | [33m                        val: 0                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m                    fixed_sigma: True                                         [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #2                         [0m | [33m            mlp:                                                              [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m                units: [32, 32]                                               [0m
+[33m[DNNE_DEBUG] PPO_CYCLE: Step 3: action=-1.4513, value=-0.0393, reward=0.9936  [0m | [33m                activation: elu                                               [0m
+[33m[PPO_CYCLE_DEBUG] Buffer size: 3, horizon: 16                                 [0m | [33m                initializer:                                                  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m                    name: default                                             [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m                regularizer:                                                  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m                    name: None                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-0.5400, max=0.4986, mean=-...[0m | [33m        load_checkpoint: False                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m        load_path:                                                            [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-0.5400, max=0.4986, mean=-...[0m | [33m        config:                                                               [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #3                         [0m | [33m            name: Cartpole                                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m            full_experiment_name: Cartpole                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #3                         [0m | [33m            env_name: rlgpu                                                   [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m            multi_gpu: False                                                  [0m
+[33m[DNNE_DEBUG] PPO_CYCLE: Step 4: action=1.2809, value=-0.0393, reward=0.9933   [0m | [33m            ppo: True                                                         [0m
+[33m[PPO_CYCLE_DEBUG] Buffer size: 4, horizon: 16                                 [0m | [33m            mixed_precision: False                                            [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m            normalize_input: True                                             [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m            normalize_value: True                                             [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m            num_actors: 512                                                   [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-0.8228, max=0.5499, mean=-...[0m | [33m            reward_shaper:                                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m                scale_value: 0.1                                              [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-0.8228, max=0.5499, mean=-...[0m | [33m            normalize_advantage: True                                         [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #4                         [0m | [33m            gamma: 0.99                                                       [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m            tau: 0.95                                                         [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #4                         [0m | [33m            learning_rate: 0.0003                                             [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m            lr_schedule: adaptive                                             [0m
+[33m[PPO_CYCLE_DEBUG] Buffer size: 5, horizon: 16                                 [0m | [33m            kl_threshold: 0.008                                               [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m            score_to_win: 20000                                               [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m            max_epochs: 100                                                   [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m            save_best_after: 50                                               [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-0.8973, max=0.7358, mean=-...[0m | [33m            save_frequency: 25                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m            grad_norm: 1.0                                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-0.8973, max=0.7358, mean=-...[0m | [33m            entropy_coef: 0.0                                                 [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #5                         [0m | [33m            truncate_grads: True                                              [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m            e_clip: 0.2                                                       [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #5                         [0m | [33m            horizon_length: 16                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m            minibatch_size: 8192                                              [0m
+[33m[PPO_CYCLE_DEBUG] Buffer size: 6, horizon: 16                                 [0m | [33m            mini_epochs: 8                                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m            critic_coef: 4                                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m            clip_value: True                                                  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m            seq_len: 4                                                        [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.0299, max=0.7956, mean=-...[0m | [33m            bounds_loss_coef: 0.0001                                          [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33mpbt:                                                                          [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.0299, max=0.7956, mean=-...[0m | [33m    enabled: False                                                            [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #6                         [0m | [33mtask_name: Cartpole                                                           [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33mexperiment:                                                                   [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #6                         [0m | [33mnum_envs:                                                                     [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33mseed: 42                                                                      [0m
+[33m[PPO_CYCLE_DEBUG] Buffer size: 7, horizon: 16                                 [0m | [33mtorch_deterministic: False                                                    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33mmax_iterations:                                                               [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33mphysics_engine: physx                                                         [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33mpipeline: gpu                                                                 [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.1958, max=0.8610, mean=-...[0m | [33msim_device: cuda:0                                                            [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33mrl_device: cuda:0                                                             [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.1958, max=0.8610, mean=-...[0m | [33mgraphics_device_id: 0                                                         [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #7                         [0m | [33mnum_threads: 4                                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33msolver_type: 1                                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #7                         [0m | [33mnum_subscenes: 4                                                              [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33mtest: False                                                                   [0m
+[33m[PPO_CYCLE_DEBUG] Buffer size: 8, horizon: 16                                 [0m | [33mcheckpoint:                                                                   [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33msigma:                                                                        [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33mmulti_gpu: False                                                              [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33mwandb_activate: False                                                         [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.2210, max=0.8272, mean=-...[0m | [33mwandb_group:                                                                  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33mwandb_name: Cartpole                                                          [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.2210, max=0.8272, mean=-...[0m | [33mwandb_entity:                                                                 [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #8                         [0m | [33mwandb_project: isaacgymenvs                                                   [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33mwandb_tags: []                                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #8                         [0m | [33mwandb_logcode_dir:                                                            [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33mcapture_video: False                                                          [0m
+[33m[PPO_CYCLE_DEBUG] Buffer size: 9, horizon: 16                                 [0m | [33mcapture_video_freq: 1464                                                      [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33mcapture_video_len: 100                                                        [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33mforce_render: True                                                            [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33mheadless: True                                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.2062, max=1.0174, mean=-...[0m | [33mdnne_cpp_profiling: False                                                     [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33mSetting seed: 42                                                              [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.2062, max=1.0174, mean=-...[0m | [33mUsing rl_device: cuda:0                                                       [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #9                         [0m | [33mUsing sim_device: cuda:0                                                      [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m{'name': 'Cartpole', 'full_experiment_name': None, 'env_name': 'rlgpu', 'mu...[0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #9                         [0m | [33mself.seed = 42                                                                [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33mStarted to train                                                              [0m
+[33m[PPO_CYCLE_DEBUG] Buffer size: 10, horizon: 16                                [0m | [33mBox(-1.0, 1.0, (1,), float32) Box(-inf, inf, (4,), float32)                   [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33mWARNING: seq_len is deprecated, use seq_length instead                        [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33mseq_length: 4                                                                 [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33mcurrent training device: cuda:0                                               [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.2224, max=1.0312, mean=-...[0m | [33mbuild mlp: 4                                                                  [0m
+                                                                               | [32mRunningMeanStd:  (1,)                                                         [0m
+                                                                               | [32mRunningMeanStd:  (4,)                                                         [0m
+                                                                               | [32m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])             | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.2224, max=1.0312, mean=-...[0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=0.0000, max=0.0000, mean=0....[0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #10                        [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #1                         [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:... | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #10                        [0m | [33m[DNNE_DEBUG] === PPO TRAINING CYCLE 1 START ===                               [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m | [33m[DNNE_DEBUG] PPO_INITIAL: First observation: [0.09754373133182526, 0.162933...[0m
+[33m[PPO_CYCLE_DEBUG] Buffer size: 11, horizon: 16                                [0m | [33m[DNNE_DEBUG] PPO_INITIAL: Observation shape: torch.Size([512, 4])             [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] PPO_INITIAL: Obs normalization - mean: [0.0, 0.0, 0.0, 0.0]      [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] PPO_INITIAL: Obs normalization - var: [1.0, 1.0, 1.0, 1.0]       [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m[DNNE_DEBUG] PPO_INITIAL: Obs normalization - count: 1.0                      [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.3949, max=1.1414, mean=-...[0m | [33m[DNNE_DEBUG] PPO_INITIAL: Actor first layer weights: [-0.10955178737640381,...[0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m[DNNE_DEBUG] PPO_INITIAL: Actor first layer bias: [0.0, 0.0, 0.0, 0.0]        [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.3949, max=1.1414, mean=-...[0m | [33m[DNNE_DEBUG] PPO_INITIAL: Mu layer weights: [-0.016931548714637756, -0.0521...[0m
+                                                                               | [32m[DNNE_DEBUG] PPO_INITIAL: Mu layer bias: [0.0]                                [0m
+                                                                               | [32m[DNNE_DEBUG] PPO_CYCLE: Step 1: action=0.1940, value=0.0000, reward=0.9921    [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #11                        [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #2                         [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:... | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...
+                                                                               | [32m[DNNE_DEBUG] PPO_CYCLE: Step 2: action=-0.7019, value=-0.0040, reward=0.9373  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #11                        [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #3                         [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:... | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...
+[33m[PPO_CYCLE_DEBUG] Buffer size: 12, horizon: 16                                [0m | [33m[DNNE_DEBUG] PPO_CYCLE: Step 3: action=-1.3826, value=-0.1838, reward=0.8241  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #4                         [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m[DNNE_DEBUG] PPO_CYCLE: Step 4: action=1.3681, value=-0.2712, reward=0.8593   [0m
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.5390, max=1.0705, mean=-...[0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.5390, max=1.0705, mean=-...[0m |                                                                               
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #12                        [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #5                         [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:... | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...
+                                                                               | [32m[DNNE_DEBUG] PPO_CYCLE: Step 5: action=-1.7917, value=-0.1555, reward=0.7110  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #12                        [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #6                         [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:... | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...
+[33m[PPO_CYCLE_DEBUG] Buffer size: 13, horizon: 16                                [0m | [33m[DNNE_DEBUG] PPO_CYCLE: Step 6: action=0.7200, value=-0.2704, reward=0.6719   [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #7                         [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m[DNNE_DEBUG] PPO_CYCLE: Step 7: action=0.7596, value=-0.2282, reward=0.6737   [0m
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.7449, max=1.2039, mean=-...[0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.7449, max=1.2039, mean=-...[0m |                                                                               
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #13                        [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #8                         [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:... | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...
+                                                                               | [32m[DNNE_DEBUG] PPO_CYCLE: Step 8: action=1.0262, value=-0.0408, reward=0.6615   [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #13                        [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #9                         [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:... | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...
+[33m[PPO_CYCLE_DEBUG] Buffer size: 14, horizon: 16                                [0m | [33m[DNNE_DEBUG] PPO_CYCLE: Step 9: action=-0.8503, value=-0.1362, reward=0.6882  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #10                        [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m[DNNE_DEBUG] PPO_CYCLE: Step 10: action=0.6261, value=-0.0174, reward=0.6709  [0m
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.6776, max=1.3105, mean=-...[0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-1.6776, max=1.3105, mean=-...[0m |                                                                               
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #14                        [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #11                        [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:... | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...
+                                                                               | [32m[DNNE_DEBUG] PPO_CYCLE: Step 11: action=1.3576, value=-0.0393, reward=0.6743  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #14                        [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #12                        [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:... | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...
+[33m[PPO_CYCLE_DEBUG] Buffer size: 15, horizon: 16                                [0m | [33m[DNNE_DEBUG] PPO_CYCLE: Step 12: action=0.3496, value=-0.3554, reward=0.7355  [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #13                        [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m[DNNE_DEBUG] PPO_CYCLE: Step 13: action=-1.5773, value=-0.3720, reward=0.8338 [0m
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-2.0827, max=1.3193, mean=-...[0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-2.0827, max=1.3193, mean=-...[0m |                                                                               
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #15                        [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #14                        [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:... | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...
+                                                                               | [32m[DNNE_DEBUG] PPO_CYCLE: Step 14: action=0.7566, value=-0.1090, reward=0.8265  [0m
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #15                         | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #15                        
+[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:... | [DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...
+[33m[PPO_CYCLE_DEBUG] Buffer size: 16, horizon: 16                                [0m | [33m[DNNE_DEBUG] PPO_CYCLE: Step 15: action=-0.3396, value=-0.3627, reward=0.8799 [0m
+[33m[DNNE_DEBUG] === PPO TRAINING CYCLE 1 START ===                               [0m | [33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.step() call #16                        [0m
+                                                                               | [32m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Actions shape: torch.Size([512, 1]), device:...[0m
+                                                                               | [32m[DNNE_DEBUG] PPO_CYCLE: Step 16: action=0.7484, value=-0.2482, reward=0.8618  [0m
+[33m[DNNE_DEBUG] PPO_BATCH: Advantages shape: torch.Size([8192]), mean: 5.9374,...[0m | [33m[DNNE_DEBUG] PPO_BATCH: Advantages shape: torch.Size([16, 512, 1]), mean: 0...[0m
+[33m[DNNE_DEBUG] PPO_BATCH: Returns shape: torch.Size([8192]), mean: 5.9608, st...[0m | [33m[DNNE_DEBUG] PPO_BATCH: Returns shape: torch.Size([16, 512, 1]), mean: 0.03...[0m
+[33m[DNNE_DEBUG] PPO_BATCH: Values shape: torch.Size([8192]), mean: 0.0234, std...[0m | [33m[DNNE_DEBUG] PPO_BATCH: Values shape: torch.Size([16, 512, 1]), mean: -0.19...[0m
+[33m[DNNE_DEBUG] PPO_BATCH: First 5 advantages: [0.017277535051107407, 0.017952...[0m | [33m[DNNE_DEBUG] PPO_BATCH: First 5 advantages: [0.5999592542648315, 0.57843631...[0m
+[33m[DNNE_DEBUG] PPO_BATCH: First 5 returns: [-0.022014062851667404, -0.0213387...[0m | [33m[DNNE_DEBUG] PPO_BATCH: First 5 returns: [0.5999592542648315, 0.57843631505...[0m
+[DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                        | [DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                       
+[33m[DNNE_DEBUG] PPO_GRAD: Actor loss: 0.000000                                   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.014568                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 0.535202                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 2.126658                                  [0m
+[DNNE_DEBUG] PPO_GRAD: Entropy: 1.418939                                       | [DNNE_DEBUG] PPO_GRAD: Entropy: 1.418939                                      
+[33m[DNNE_DEBUG] PPO_GRAD: Total loss: 2.140807                                   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Total loss: 4.238749                                   [0m
+[DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                    | [DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                   
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [0.04957302287220955, -1.8592183...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [1.1714503765106201, 0.974112093...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [-0.940153956413269, -1.88771...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [0.9377601742744446, 1.162098...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [-0.940153956413269, -1.88771...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [0.9385033845901489, 1.154244...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000000                                [0m | [33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.013232                                [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: -0.1094, std:...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: 0.0161, std: ...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([1]), mean: 1.0000, std: nan   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([8192, 1]), mean: 1.0000, st...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [0.13481760025024414]               [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.0037935590371489525]            [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma values: [1.0]                                    [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 sigma values: [1.0]                            [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [0.13481758534908295]           [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [0.0]                           [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [[1.0], [1.0], [1.0], [1.0...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [1.0]                        [0m
+[DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                        | [DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                       
+[33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.000009                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.014985                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 0.532225                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 2.124209                                  [0m
+[DNNE_DEBUG] PPO_GRAD: Entropy: 1.419239                                       | [DNNE_DEBUG] PPO_GRAD: Entropy: 1.419239                                      
+[33m[DNNE_DEBUG] PPO_GRAD: Total loss: 2.128891                                   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Total loss: 4.233434                                   [0m
+[DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                    | [DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                   
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [-0.7994261980056763, 1.39246225...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [1.1714503765106201, 0.974112093...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [-1.0766781568527222, -1.0143...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [0.9377601742744446, 1.162098...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [-1.07550048828125, -1.014966...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [0.9387850165367126, 1.154327...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000001                                [0m | [33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000011                                [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: -0.1105, std:...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: 0.0159, std: ...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([1]), mean: 1.0003, std: nan   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([8192, 1]), mean: 1.0003, st...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.10060574114322662]              [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.0037600870709866285]            [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma values: [1.0003000497817993]                     [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 sigma values: [1.0003000497817993]             [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.09813656657934189]          [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.0037935590371489525]        [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [[1.0], [1.0], [1.0], [1.0...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [1.0]                        [0m
+[DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                        | [DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                       
+[33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.000018                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.015379                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 0.529379                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 2.121761                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.419539                                      [0m | [33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.419537                                      [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Total loss: 2.117499                                   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Total loss: 4.228143                                   [0m
+[DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                    | [DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                   
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [-0.263805091381073, 1.047343015...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [1.1714503765106201, 0.974112093...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [-1.1364591121673584, -1.0126...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [0.9377601742744446, 1.162098...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [-1.1357600688934326, -1.0123...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [0.9390643239021301, 1.154408...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000005                                [0m | [33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000010                                [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: -0.1116, std:...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: 0.0157, std: ...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([1]), mean: 1.0006, std: nan   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([8192, 1]), mean: 1.0006, st...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.25288403034210205]              [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.0037203675601631403]            [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma values: [1.0006005764007568]                     [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 sigma values: [1.0005989074707031]             [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.25446224212646484]          [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.0037600870709866285]        [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [[1.0], [1.0], [1.0], [1.0...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [1.0003000497817993]         [0m
+[DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                        | [DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                       
+[33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.000027                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.015936                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 0.526662                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 2.118092                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.419840                                      [0m | [33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.419983                                      [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Total loss: 2.106622                                   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Total loss: 4.220247                                   [0m
+[DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                    | [DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                   
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [-1.2222477197647095, 0.76422590...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [1.1714503765106201, 0.974112093...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [-0.9835971593856812, -2.6789...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [0.9377601742744446, 1.162098...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [-0.9829072952270508, -2.6815...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [0.9394814372062683, 1.154526...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000012                                [0m | [33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000017                                [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: -0.1128, std:...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: 0.0154, std: ...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([1]), mean: 1.0009, std: nan   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([8192, 1]), mean: 1.0010, st...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.025864824652671814]             [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.0036640260368585587]            [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma values: [1.000901699066162]                      [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 sigma values: [1.0010449886322021]             [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.02173299342393875]          [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.0037203675601631403]        [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [[1.0], [1.0], [1.0], [1.0...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [1.0005989074707031]         [0m
+[DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                        | [DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                       
+[33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.000036                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.016701                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 0.524069                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 2.112592                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.420142                                      [0m | [33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.420644                                      [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Total loss: 2.096242                                   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Total loss: 4.208483                                   [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Advantage mean: 0.0000, std: 1.0000                    [0m | [33m[DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                   [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [1.0027204751968384, 1.000819444...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [1.1714503765106201, 0.974112093...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [-2.610377311706543, -0.91953...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [0.9377601742744446, 1.162098...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [-2.6139941215515137, -0.9208...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [0.9401069283485413, 1.154668...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000022                                [0m | [33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000030                                [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: -0.1139, std:...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: 0.0148, std: ...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([1]), mean: 1.0012, std: nan   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([8192, 1]), mean: 1.0017, st...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.18656422197818756]              [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.003613433800637722]             [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma values: [1.0012037754058838]                     [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 sigma values: [1.0017071962356567]             [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.18303678929805756]          [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.0036640260368585587]        [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [[1.0], [1.0], [1.0], [1.0...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [1.0010449886322021]         [0m
+[DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                        | [DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                       
+[33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.000044                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.017662                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 0.521602                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 2.104354                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.420444                                      [0m | [33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.421598                                      [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Total loss: 2.086362                                   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Total loss: 4.191046                                   [0m
+[DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                    | [DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                   
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [0.7073526978492737, -0.03032116...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [1.1714503765106201, 0.974112093...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [-0.9871694445610046, -2.1915...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [0.9377601742744446, 1.162098...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [-0.9901136159896851, -2.1857...[0m | [33m<unknown>:3: DeprecationWarning: invalid escape sequence \*                   [0m
+[33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000034                                [0m | [33m/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/python/isaacgym/torch_utils.py:...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: -0.1151, std:...[0m | [33mDeprecated in NumPy 1.20; for more details and guidance: https://numpy.org/...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([1]), mean: 1.0015, std: nan   [0m | [33m  def get_axis_params(value, axis_idx, x_value=0., dtype=np.float, n_dims=3): [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.18747243285179138]              [0m | [33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/networ...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma values: [1.001507043838501]                      [0m | [33m  from collections import Mapping                                             [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.18303678929805756]          [0m | [33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/networ...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [[1.0], [1.0], [1.0], [1.0...[0m | [33m  from collections import Mapping, Set, Iterable                              [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                       [0m | [33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/networ...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.000054                                  [0m | [33mDeprecated in NumPy 1.20; for more details and guidance: https://numpy.org/...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 0.519317                                  [0m | [33m  (np.int, "int"), (np.int8, "int"),                                          [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.420749                                      [0m | [33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/networ...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Total loss: 2.077214                                   [0m | [33m  from pkg_resources import parse_version                                     [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                   [0m | [33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/pkg_re...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [1.0134092569351196, 1.076722025...[0m | [33mImplementing implicit namespace packages (as specified in PEP 420) is prefe...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [-1.818078637123108, -2.75955...[0m | [33m  declare_namespace(pkg)                                                      [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [-1.8095245361328125, -2.7445...[0m | [33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/gym/sp...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000050                                [0m | [33m  logger.warn(f"Box bound precision lowered by casting to {self.dtype}")      [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: -0.1162, std:...[0m | [33m/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne/common/a2c_common.py:259: ...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([1]), mean: 1.0018, std: nan   [0m | [33m  self.scaler = torch.cuda.amp.GradScaler(enabled=self.mixed_precision)       [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.18837235867977142]              [0m | [33m/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne/algos_torch/a2c_continuous...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma values: [1.0018117427825928]                     [0m | [33m  with torch.cuda.amp.autocast(enabled=self.mixed_precision):                 [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.18303678929805756]          [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [0.9410184621810913, 1.154829...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [[1.0], [1.0], [1.0], [1.0...[0m | [33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000057                                [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                       [0m | [33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: 0.0137, std: ...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.000063                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([8192, 1]), mean: 1.0027, st...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 0.517332                                  [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.003585647325962782]             [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.421054                                      [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 sigma values: [1.002663254737854]              [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Total loss: 2.069267                                   [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.003613433800637722]         [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Advantage mean: 0.0000, std: 1.0000                    [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [1.0017071962356567]         [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [-1.8568706512451172, -1.8462432...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                       [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [-1.1639500856399536, -2.1625...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.018797                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [-1.1693751811981201, -2.1433...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 2.091982                                  [0m
+[33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000068                                [0m | [33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.422921                                      [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: -0.1173, std:...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Total loss: 4.165167                                   [0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([1]), mean: 1.0021, std: nan   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                   [0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.18924087285995483]              [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [1.1714503765106201, 0.974112093...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: Sigma values: [1.0021182298660278]                     [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [0.9377601742744446, 1.162098...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.18303678929805756]          [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [0.9422777891159058, 1.155060...[0m
+[33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [[1.0], [1.0], [1.0], [1.0...[0m | [33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000107                                [0m
+[33m[DNNE_DEBUG] PPO_STOP: Stopping after 1 cycle(s) as requested                 [0m | [33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: 0.0117, std: ...[0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([8192, 1]), mean: 1.0040, st...[0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.00352423544973135]              [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 sigma values: [1.0039904117584229]             [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-2.2828, max=1.4788, mean=-...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.003585647325962782]         [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [1.002663254737854]          [0m
+[33m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-2.2828, max=1.4788, mean=-...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Batch size: 8192                                       [0m
+[33m<unknown>:3: DeprecationWarning: invalid escape sequence \*                   [0m | [33m[DNNE_DEBUG] PPO_GRAD: Actor loss: -0.019949                                  [0m
+[33m/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/python/isaacgym/torch_utils.py:...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Critic loss: 2.073365                                  [0m
+[33mDeprecated in NumPy 1.20; for more details and guidance: https://numpy.org/...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Entropy: 1.424580                                      [0m
+[33m  def get_axis_params(value, axis_idx, x_value=0., dtype=np.float, n_dims=3): [0m | [33m[DNNE_DEBUG] PPO_GRAD: Total loss: 4.126781                                   [0m
+[33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/networ...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Advantage mean: -0.0000, std: 1.0000                   [0m
+[33m  from collections import Mapping                                             [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 advantages: [1.1714503765106201, 0.974112093...[0m
+[33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/networ...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old log probs: [0.9377601742744446, 1.162098...[0m
+[33m  from collections import Mapping, Set, Iterable                              [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 new log probs: [0.9438176155090332, 1.155441...[0m
+[33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/networ...[0m | [33m[DNNE_DEBUG] PPO_GRAD: KL divergence: 0.000199                                [0m
+[33mDeprecated in NumPy 1.20; for more details and guidance: https://numpy.org/...[0m | [33m[DNNE_DEBUG] PPO_GRAD: Mu shape: torch.Size([8192, 1]), mean: 0.0084, std: ...[0m
+[33m  (np.int, "int"), (np.int8, "int"),                                          [0m | [33m[DNNE_DEBUG] PPO_GRAD: Sigma shape: torch.Size([8192, 1]), mean: 1.0057, st...[0m
+[33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/networ...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 mu values: [-0.0032413010485470295]            [0m
+[33m  from pkg_resources import parse_version                                     [0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 sigma values: [1.00565767288208]               [0m
+[33m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/pkg_re...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old mu values: [-0.00352423544973135]          [0m
+[33mImplementing implicit namespace packages (as specified in PEP 420) is prefe...[0m | [33m[DNNE_DEBUG] PPO_GRAD: First 5 old sigma values: [1.0039904117584229]         [0m
+[33m  declare_namespace(pkg)                                                      [0m | [33m[DNNE_DEBUG] PPO_STOP: Stopping after 1 full PPO cycle(s) as requested (inc...[0m
+[31m/home/asantanna/miniconda/envs/DNNE_PY38/lib/python3.8/site-packages/gym/sp...[0m |                                                                               
+[31m  logger.warn(f"Box bound precision lowered by casting to {self.dtype}")      [0m |                                                                               
+[31m/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne/dnne_exports.py:210: UserW...[0m |                                                                               
+[31m  print(f"[DNNE_DEBUG] PPO_GRAD: Sigma shape: {action_std.shape}, mean: {ac...[0m |                                                                               
+[31m2025-07-18 02:14:58,983 - Node.6 - ⚠️ Failed to save exit checkpoint for rl...[0m |                                                                               
+[31m[DEBUG] QueueNode.run() caught TrainingCompleteException from node 6          [0m |                                                                               
+[31m[DEBUG] Exception message: Node 6: PPO training complete after 1/1 PPO cycles [0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] VecTask.reset() called                         [0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-2.2828, max=1.4788, mean=-...[0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] obs_buf shape: torch.Size([512, 4])            [0m |                                                                               
+[31m[DNNE_DEBUG] [PPO_CYCLE_DEBUG] Initial obs: min=-2.2828, max=1.4788, mean=-...[0m |                                                                               
+[31m[DEBUG] GraphRunner caught TrainingCompleteException (no timeout)             [0m |                                                                               
+[31m[DEBUG] Exception: Node 6: PPO training complete after 1/1 PPO cycles         [0m |                                                                               
+[31m📊 Final Statistics:                                                           [0m |                                                                               
+[31m  6: 16 computations, avg time: 0.798s                                        [0m |                                                                               
+[31m  9: 17 computations, avg time: 0.000s                                        [0m |                                                                               
+[31m  2: 18 computations, avg time: 0.000s                                        [0m |                                                                               
+[31m  3: 18 computations, avg time: 0.006s                                        [0m |                                                                               
+[31m  11: 18 computations, avg time: 0.000s                                       [0m |                                                                               
+[31m  7: 44 computations, avg time: 0.001s                                        [0m |                                                                               
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Summary:
+  Matched lines: 119
+  Lines only in IGE: 37
+  Lines only in DNNE: 14
+  Different lines: 252

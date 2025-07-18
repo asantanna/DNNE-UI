@@ -5,6 +5,10 @@ template_vars = {
     "MAX_PUSH_EFFORT": 10
 }
 
+def DNNE_print(message):
+    """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
+    print(f"[DNNE_DEBUG] {message}")
+
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """Cartpole Action Node - Convert network output to Isaac Gym ACTION format"""
     
@@ -31,24 +35,26 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         import torch
         import os
+        import builtins
         
         ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+        verbose = getattr(builtins, 'VERBOSE', False)
         
         try:
             # Extract action tensor from PolicyOutput dictionary
             action_tensor = policy["action"]
             
-            if ppo_cycle_debug:
-                print(f"[PPO_CYCLE_DEBUG] CartpoleActionNode.compute() called!")
-                print(f"[PPO_CYCLE_DEBUG] Input action_tensor shape: {{action_tensor.shape}}")
+            if verbose:
+                print(f"CartpoleActionNode.compute() called!")
+                print(f"Input action_tensor shape: {{action_tensor.shape}}")
             
             # CRITICAL FIX: Return action tensor directly for Isaac Gym
             # The VecTask expects a simple tensor of shape [num_envs, num_actions]
             # NOT a dictionary with forces/torques
             
-            if ppo_cycle_debug:
-                print(f"[PPO_CYCLE_DEBUG] Returning action_tensor directly: shape={{action_tensor.shape}}")
-                print(f"[PPO_CYCLE_DEBUG] Action values: min={{action_tensor.min().item():.4f}}, max={{action_tensor.max().item():.4f}}")
+            if verbose:
+                print(f"Returning action_tensor directly: shape={{action_tensor.shape}}")
+                print(f"Action values: min={{action_tensor.min().item():.4f}}, max={{action_tensor.max().item():.4f}}")
             
             return {{
                 "action": action_tensor  # Return raw action tensor, scaling happens in pre_physics_step

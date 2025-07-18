@@ -58,7 +58,8 @@ def main():
     base_env = os.environ.copy()
     base_env['PPO_CYCLE_DEBUG'] = '1'
     base_env['PPO_STOP_AFTER_CYCLE'] = '1'
-    base_env['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+    # commenting out CUBLAS_WORKSPACE_CONFIG as it may not be needed
+    # base_env['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
     
     # Run DNNE
     dnne_cmd = 'source /home/asantanna/miniconda/bin/activate DNNE_PY38 && python runner.py --fixed-seed 42 --epochs 999 --headless'

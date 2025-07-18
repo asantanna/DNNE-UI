@@ -9,6 +9,10 @@ import os
 import torch
 import sys
 
+def DNNE_print(message):
+    """Print with [DNNE_DEBUG] prefix for easy grep filtering"""
+    print(f"[DNNE_DEBUG] {message}")
+
 # Add IsaacGymEnvs to path
 sys.path.append("/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs")
 
@@ -31,58 +35,67 @@ class CartpoleDNNE(Cartpole):
         
         # Add any DNNE-specific initialization here
         self.dnne_mode = True
-        self.step_count = 0
         
         # Enable PPO_CYCLE_DEBUG logging if set
         import os
+        import builtins
         self.ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+        self.verbose = getattr(builtins, 'VERBOSE', False)
         
         # Call parent class initialization
         super().__init__(cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render)
         
         print(f"[CartpoleDNNE] Initialized with {self.num_envs} environments")
         if self.ppo_cycle_debug:
-            print(f"[PPO_CYCLE_DEBUG] CartpoleDNNE initialized: num_envs={self.num_envs}, device={self.device}")
+            DNNE_print(f"[PPO_CYCLE_DEBUG] CartpoleDNNE initialized: num_envs={self.num_envs}, device={self.device}")
         
     def step_async(self, actions):
         """
         DNNE-compatible async step function
         Calls the standard step() but can be used in async context
         """
-        self.step_count += 1
-        
-        # PPO_CYCLE_DEBUG logging for actions
-        if self.ppo_cycle_debug:
-            print(f"[PPO_CYCLE_DEBUG] CartpoleDNNE step {self.step_count} - actions shape: {actions.shape}")
-            print(f"[PPO_CYCLE_DEBUG] Actions: min={actions.min().item():.4f}, max={actions.max().item():.4f}, mean={actions.mean().item():.4f}")
-        
+        # Don't log here - the parent class step() already logs PPO_CYCLE_DEBUG messages
         # Use the parent class step() which handles everything properly
         obs_dict, rewards, dones, infos = self.step(actions)
         
         # Extract observations from dict (VecTask returns {"obs": tensor})
         observations = obs_dict["obs"]
         
-        # PPO_CYCLE_DEBUG logging for outputs
-        if self.ppo_cycle_debug:
-            print(f"[PPO_CYCLE_DEBUG] CartpoleDNNE step {self.step_count} - observations shape: {observations.shape}")
-            print(f"[PPO_CYCLE_DEBUG] Rewards: min={rewards.min().item():.4f}, max={rewards.max().item():.4f}, mean={rewards.mean().item():.4f}")
-            print(f"[PPO_CYCLE_DEBUG] Dones: {dones.sum().item()} environments done")
+        # Verbose logging for outputs
+        if self.verbose:
+            step_num = getattr(self, '_step_count', 0)
+            print(f"CartpoleDNNE step {step_num} - observations shape: {observations.shape}")
+            print(f"Rewards: min={rewards.min().item():.4f}, max={rewards.max().item():.4f}, mean={rewards.mean().item():.4f}")
+            print(f"Dones: {dones.sum().item()} environments done")
             
             # Log some observation details (cart pos, cart vel, pole angle, pole vel)
             if observations.shape[1] >= 4:
                 cart_pos = observations[:, 0]
                 pole_angle = observations[:, 2]
-                print(f"[PPO_CYCLE_DEBUG] Cart pos: min={cart_pos.min().item():.4f}, max={cart_pos.max().item():.4f}")
-                print(f"[PPO_CYCLE_DEBUG] Pole angle: min={pole_angle.min().item():.4f}, max={pole_angle.max().item():.4f}")
+                print(f"Cart pos: min={cart_pos.min().item():.4f}, max={cart_pos.max().item():.4f}")
+                print(f"Pole angle: min={pole_angle.min().item():.4f}, max={pole_angle.max().item():.4f}")
         
         return observations, rewards, dones, infos
     
+    def reset(self):
+        """Override reset to add PPO_CYCLE_DEBUG logging"""
+        if self.ppo_cycle_debug:
+            DNNE_print("[PPO_CYCLE_DEBUG] VecTask.reset() called")
+        
+        # Call parent reset
+        obs_dict = super().reset()
+        
+        if self.ppo_cycle_debug:
+            DNNE_print(f"[PPO_CYCLE_DEBUG] obs_buf shape: {self.obs_buf.shape}")
+            DNNE_print(f"[PPO_CYCLE_DEBUG] Initial obs: min={self.obs_buf.min().item():.4f}, max={self.obs_buf.max().item():.4f}, mean={self.obs_buf.mean().item():.4f}")
+        
+        return obs_dict
+    
     def get_initial_observations(self):
         """Get initial observations after reset for DNNE"""
-        # Match IGE behavior: just return current obs_buf (zeros initially)
-        # The actual reset happens on first step when post_physics_step sees reset_buf=1
-        obs_dict = self.reset()
-        return obs_dict["obs"]
+        # Match IGE behavior: just return current obs_buf without calling reset again
+        # The environment has already been reset during initialization
+        return self.obs_buf.clone()
     
     def set_custom_reward_fn(self, reward_fn):
         """Allow custom reward computation for DNNE flexibility"""

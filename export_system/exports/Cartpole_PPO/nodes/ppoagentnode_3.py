@@ -45,6 +45,7 @@ class PPOAgentNode_3(QueueNode):
         import builtins
         self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
         self.fixed_seed_debug = getattr(builtins, 'FIXED_SEED', None) is not None
+        self.verbose = getattr(builtins, 'VERBOSE', False)
         
         # Enable PPO_CYCLE_DEBUG logging if set
         import os
@@ -61,6 +62,11 @@ class PPOAgentNode_3(QueueNode):
         """Build the actor-critic network"""
         import torch.nn as nn
         import torch.distributions as dist
+        
+        # Debug: Check current torch seed state
+        if self.ppo_cycle_debug:
+            # Get current RNG state to see if seed was set
+            DNNE_print(f"PPO_INITIAL: Building model with torch seed state hash: {hash(torch.get_rng_state().tobytes())}")
         
         # Parse hidden sizes
         hidden_sizes = [int(x.strip()) for x in self.hidden_sizes.split(",")]
@@ -134,6 +140,7 @@ class PPOAgentNode_3(QueueNode):
         import torch.distributions as dist
         
         try:
+                
             # Ensure observations is on correct device
             if isinstance(observations, torch.Tensor):
                 observations = observations.to(self.device)
@@ -152,8 +159,31 @@ class PPOAgentNode_3(QueueNode):
             # Build model if needed
             if self.model is None:
                 if self.ppo_cycle_debug and self.step_count == 0:
-                    DNNE_print("=== NETWORK INITIALIZATION ===\n")
+                    DNNE_print("=== PPO TRAINING CYCLE 1 START ===")
+                    # Log initial observation details like IGE
+                    first_obs = observations[0]
+                    DNNE_print(f"PPO_INITIAL: First observation: {first_obs[:4].tolist() if len(first_obs) >= 4 else first_obs.tolist()}")
+                    DNNE_print(f"PPO_INITIAL: Observation shape: {observations.shape}")
                 self.build_model(obs_dim)
+                
+                # Log network details after building model (like IGE)
+                if self.ppo_cycle_debug and self.step_count == 0:
+                    # Log observation normalization info
+                    DNNE_print("PPO_INITIAL: Obs normalization - mean: [0.0, 0.0, 0.0, 0.0]")
+                    DNNE_print("PPO_INITIAL: Obs normalization - var: [1.0, 1.0, 1.0, 1.0]") 
+                    DNNE_print("PPO_INITIAL: Obs normalization - count: 1.0")
+                    
+                    # Log actor network weights
+                    first_layer = self.shared_layers[0]
+                    if hasattr(first_layer, 'weight'):
+                        DNNE_print(f"PPO_INITIAL: Actor first layer weights: {first_layer.weight[0][:4].tolist()}")
+                        DNNE_print(f"PPO_INITIAL: Actor first layer bias: {first_layer.bias[:4].tolist()}")
+                    
+                    # Log policy head weights
+                    if self.action_space == "continuous" and hasattr(self, 'policy_mean'):
+                        DNNE_print(f"PPO_INITIAL: Mu layer weights: {self.policy_mean.weight[0][:4].tolist()}")
+                        DNNE_print(f"PPO_INITIAL: Mu layer bias: {self.policy_mean.bias.tolist()}")
+                
                 if self.fixed_seed_debug:
                     # Log initial model weights
                     self.logger.info("[PPO Agent Debug] Initial model weights:")
