@@ -11,7 +11,7 @@ def run_ige_test():
     # Set environment variables for debugging
     env = os.environ.copy()
     env['PPO_CYCLE_DEBUG'] = '1'
-    env['USE_RL_GAMES_DNNE'] = '1'  # Use rl_games_dnne which has debug output
+    # No need to set USE_RL_GAMES_DNNE - it's the default now
     env['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'  # For deterministic CUDA
     
     # Command to run IGE with minimal overrides

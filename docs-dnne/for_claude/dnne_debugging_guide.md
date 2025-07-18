@@ -153,7 +153,7 @@ self.reset()  # Critical for proper initial observations
 ### Environment Variables
 
 - `PPO_CYCLE_DEBUG=1`: Enables detailed PPO cycle logging
-- `USE_RL_GAMES_DNNE=1`: Makes IGE use instrumented rl_games version
+- `USE_STANDARD_RL_GAMES=1`: Makes IGE use standard rl_games instead of rl_games_dnne (which is now default)
 - `FIXED_SEED=42`: Forces deterministic execution
 
 ### Debug Print Categories
@@ -174,10 +174,13 @@ if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
 
 ### Using rl_games_dnne
 
-Created an instrumented fork of rl_games that includes debug prints:
+Created an instrumented fork of rl_games that includes debug prints. This is now the default in IGE:
 ```bash
-# Make IGE use instrumented version
-USE_RL_GAMES_DNNE=1 python isaacgymenvs/train.py task=Cartpole
+# IGE uses rl_games_dnne by default
+python isaacgymenvs/train.py task=Cartpole
+
+# To use standard rl_games instead:
+USE_STANDARD_RL_GAMES=1 python isaacgymenvs/train.py task=Cartpole
 ```
 
 ## Integration Patterns

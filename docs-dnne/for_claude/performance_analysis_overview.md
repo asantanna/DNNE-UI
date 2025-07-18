@@ -34,14 +34,14 @@ Visual Workflow (JSON) → Graph Exporter → Node Templates → Generated Pytho
 
 **Debug Environment Variables**:
 - `PPO_CYCLE_DEBUG=1` - Enables detailed PPO cycle logging
-- `USE_RL_GAMES_DNNE=1` - Makes IGE use instrumented rl_games version
+- `USE_STANDARD_RL_GAMES=1` - Makes IGE use standard rl_games instead of rl_games_dnne (which is now default)
 - `FIXED_SEED=42` - Forces deterministic execution
 
 **Verification Commands**:
 ```bash
-# Run IGE with debug output
+# Run IGE with debug output (rl_games_dnne is default)
 cd /home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs
-PPO_CYCLE_DEBUG=1 USE_RL_GAMES_DNNE=1 python isaacgymenvs/train.py task=Cartpole > /tmp/ige_debug.txt
+PPO_CYCLE_DEBUG=1 python isaacgymenvs/train.py task=Cartpole > /tmp/ige_debug.txt
 
 # Run DNNE with debug output  
 cd /mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/exports/Cartpole_PPO
@@ -73,7 +73,7 @@ PPO_CYCLE_DEBUG=1 python runner.py --timeout 30s
 
 # Compare with IGE (in separate terminal)
 cd /home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs
-PPO_CYCLE_DEBUG=1 USE_RL_GAMES_DNNE=1 python isaacgymenvs/train.py task=Cartpole --timeout 30s
+PPO_CYCLE_DEBUG=1 python isaacgymenvs/train.py task=Cartpole --timeout 30s
 ```
 
 ### 2. Performance Testing (After Correctness Verified)

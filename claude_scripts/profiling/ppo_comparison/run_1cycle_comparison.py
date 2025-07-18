@@ -69,9 +69,9 @@ def main():
         dnne_cmd, dnne_cwd, base_env, dnne_output, "DNNE (1 PPO cycle)"
     )
     
-    # Run IGE with rl_games_dnne
+    # Run IGE (rl_games_dnne is now default)
     ige_env = base_env.copy()
-    ige_env['USE_RL_GAMES_DNNE'] = '1'  # Use rl_games_dnne for PPO_STOP_AFTER_CYCLE support
+    # No need to set USE_RL_GAMES_DNNE - it's the default now
     
     ige_cmd = 'source /home/asantanna/miniconda/bin/activate DNNE_PY38 && python train.py task=Cartpole seed=42 headless=True'
     ige_cwd = '/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs'

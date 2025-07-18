@@ -92,13 +92,8 @@ class ProfileRunner:
             # Set up environment variables for debugging
             env = os.environ.copy()
             
-            # Check for user-set env vars and fail if found
-            if 'USE_RL_GAMES_DEBUG' in os.environ:
-                raise RuntimeError("USE_RL_GAMES_DEBUG is already set. Profiler must control this variable.")
-            
-            # Set the env var for child processes to use rl_games_debug
-            env['USE_RL_GAMES_DEBUG'] = '1'
-            print("  [DNNE_DEBUG] Setting USE_RL_GAMES_DEBUG=1 for IsaacGymEnvs")
+            # rl_games_dnne is now the default, no need to set environment variables
+            # If user wants standard rl_games, they can set USE_STANDARD_RL_GAMES=1
             
             if self.ppo_cycle_debug:
                 env['PPO_CYCLE_DEBUG'] = '1'
