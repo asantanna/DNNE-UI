@@ -6,7 +6,7 @@ set -e
 
 # Source the existing command functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/claude_scripts/dnne_test_commands.sh"
+source "$SCRIPT_DIR/dnne-test-suite/scripts/commands.sh"
 
 # Colors for output
 GREEN='\033[0;32m'

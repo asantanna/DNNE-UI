@@ -70,7 +70,9 @@ class QueueNode(ABC):
                 for output_name, value in outputs.items():
                     await self.send_output(output_name, value)
                     
-        except TrainingCompleteException:
+        except TrainingCompleteException as e:
+            print(f"[DEBUG] QueueNode.run() caught TrainingCompleteException from node {self.node_id}")
+            print(f"[DEBUG] Exception message: {e}")
             self.logger.info(f"Node {self.node_id} signaled training complete")
             raise  # Re-raise to propagate to GraphRunner
         except asyncio.CancelledError:

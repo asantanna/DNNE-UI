@@ -2,12 +2,14 @@
 
 Centralized test organization for the DNNE (Drag and Drop Neural Network Environment) project.
 
+**Note**: As of July 2025, the test suite has been consolidated into this single location. The previous `tests-dnne/` directory has been removed as it was a complete duplicate of `dnne-test-suite/core/`. All test infrastructure is now contained within `dnne-test-suite/`.
+
 ## Structure
 
 ```
 dnne-test-suite/
 ├── README.md                          # This file
-├── core/                              # Core pytest-based tests (moved from tests-dnne/)
+├── core/                              # Core pytest-based tests
 │   ├── unit/                          # Unit tests
 │   ├── integration/                   # Integration tests
 │   ├── fixtures/                      # Test utilities and data
@@ -19,11 +21,16 @@ dnne-test-suite/
 │   ├── mnist_inference_complete.py   # Inference mode tests
 │   └── export_system/                # Export system tests
 ├── profiling/                         # Performance tests
-├── archived/                          # Historical tests (from claude_scripts/archive/)
+├── archived/                          # Historical tests
 ├── utilities/                         # Test utilities
 │   ├── programmatic_export.py        # Export utility
-│   ├── validate_connections.py       # Connection validator
-│   └── command_aliases/               # dnne-test-* command scripts
+│   └── validate_connections.py       # Connection validator
+├── scripts/                           # Test command infrastructure
+│   ├── commands.sh                    # Main test command implementations
+│   ├── dnne-test                      # Wrapper: main test suite
+│   ├── dnne-test-unit                 # Wrapper: unit tests only
+│   ├── dnne-test-ml                   # Wrapper: ML tests only
+│   └── ... (all test commands)
 └── outputs/                           # Test outputs and logs
     ├── coverage/                      # Coverage reports (htmlcov/)
     └── logs/                          # Test execution logs

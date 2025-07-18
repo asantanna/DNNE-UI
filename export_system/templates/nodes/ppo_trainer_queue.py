@@ -36,7 +36,7 @@ import sys
 sys.path.append('/home/asantanna/DNNE-LINUX-SUPPORT')
 from rl_games_dnne.dnne_exports import PPOComponents, RunningMeanStd
 
-class PPOTrainerNode_6(QueueNode):
+class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """PPO Trainer Node using rl_games components - maintains DNNE async coordination"""
     
     def __init__(self, node_id: str):
@@ -245,6 +245,7 @@ class PPOTrainerNode_6(QueueNode):
         Returns:
             average_loss: Average loss over all updates
         """
+        # print(f"[DEBUG] rlgames_ppo_update STARTED - current_epoch={self.current_epoch}, max_epochs={self.max_epochs}")
         
         # Skip training in inference mode
         if self.inference_mode:
@@ -294,6 +295,7 @@ class PPOTrainerNode_6(QueueNode):
         
         # Multiple mini-epochs over the data (rl_games pattern)
         for mini_epoch in range(self.mini_epochs_num):
+            # print(f"[DEBUG] Starting mini-epoch {mini_epoch + 1}/{self.mini_epochs_num}")
             # Create minibatches
             indices = torch.randperm(batch_size)
             
@@ -301,6 +303,7 @@ class PPOTrainerNode_6(QueueNode):
                 print(f"[PPO_CYCLE_DEBUG] Mini-epoch {mini_epoch}: batch_size={batch_size}, minibatch_size={self.minibatch_size}")
                 print(f"[PPO_CYCLE_DEBUG] Number of minibatches: {(batch_size + self.minibatch_size - 1) // self.minibatch_size}")
             
+            minibatch_count = 0
             for start in range(0, batch_size, self.minibatch_size):
                 end = min(start + self.minibatch_size, batch_size)
                 mb_indices = indices[start:end]
@@ -318,8 +321,14 @@ class PPOTrainerNode_6(QueueNode):
                         self.logger.error(f"  batch_size: {batch_size}")
                         raise e
                 
+                minibatch_count += 1
+                # if minibatch_count == 1 or minibatch_count % 10 == 0:
+                #     print(f"[DEBUG] Mini-epoch {mini_epoch + 1}, Minibatch {minibatch_count}")
+                
                 # Use rl_games PPO components for loss computation
+                # print(f"[DEBUG] Calling train_actor_critic...")
                 train_result, loss = self.ppo_components.train_actor_critic(mb_input_dict, model)
+                # print(f"[DEBUG] train_actor_critic returned, loss={loss.item():.4f}")
                 
                 # Backpropagation (DNNE maintains control over optimization)
                 self.optimizer.zero_grad()
@@ -331,8 +340,12 @@ class PPOTrainerNode_6(QueueNode):
                 self.optimizer.step()
                 
                 total_losses.append(loss.item())
+            
+            # print(f"[DEBUG] Completed mini-epoch {mini_epoch + 1}/{self.mini_epochs_num}")
                 
-        return torch.tensor(np.mean(total_losses), device=self.device)
+        result = torch.tensor(np.mean(total_losses), device=self.device)
+        # print(f"[DEBUG] rlgames_ppo_update COMPLETED - returning loss={result.item()}")
+        return result
     
     async def run(self):
         """Override run to send initial training_complete trigger"""
@@ -371,6 +384,8 @@ class PPOTrainerNode_6(QueueNode):
         
         # If training is complete, stop processing immediately
         if self.training_complete:
+            # print(f"[DEBUG] PPOTrainerNode.compute() - training_complete is True, raising TrainingCompleteException")
+            # print(f"[DEBUG] Current epoch: {self.current_epoch}, max_epochs: {self.max_epochs}")
             from framework import TrainingCompleteException
             raise TrainingCompleteException(
                 self.node_id, 
@@ -544,6 +559,8 @@ class PPOTrainerNode_6(QueueNode):
                 # Check if we've reached max epochs
                 if self.current_epoch >= self.max_epochs:
                     self.training_complete = True
+                    # print(f"[DEBUG] PPOTrainerNode - Setting training_complete=True")
+                    # print(f"[DEBUG] current_epoch={self.current_epoch}, max_epochs={self.max_epochs}")
                     self.logger.info(f"🎯 PPO Trainer reached max_epochs ({self.max_epochs}) - signaling completion")
                 
                 # Handle checkpointing (unchanged from original)
