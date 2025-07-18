@@ -190,7 +190,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 episode_length = self.episode_lengths[idx].item()
                 
                 # Log episode return (matching profiler's expected format)
-                print(f"Episode {self.completed_episodes + 1}: episode return = {episode_return:.1f}", flush=True)
+                from isaacgymenvs.utils.debug_utils import DNNE_print
+                DNNE_print("D", "EPISODE", f"Episode {self.completed_episodes + 1}: episode return = {episode_return:.1f}")
                 
                 # Update tracking
                 self.completed_episodes += 1
@@ -204,7 +205,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Log average episode return periodically
             if self.completed_episodes % 10 == 0 and self.episode_count > 0:
                 avg_return = self.total_episode_return / self.episode_count
-                print(f"avg episode return = {avg_return:.1f} (over {self.episode_count} episodes)", flush=True)
+                DNNE_print("D", "EPISODE", f"avg episode return = {avg_return:.1f} (over {self.episode_count} episodes)")
         
     def prepare_rlgames_input_dict(self, states, actions, rewards, values, log_probs, dones, action_means, action_stds, 
                                    last_values, last_dones, horizon_length, num_envs):
@@ -282,11 +283,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import os
         if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
             # Note: IGE shows shapes before flattening, but we show after
-            print(f"[DNNE_DEBUG] PPO_BATCH: Advantages shape: {{advantages.shape}}, mean: {{advantages.mean().item():.4f}}, std: {{advantages.std().item():.4f}}")
-            print(f"[DNNE_DEBUG] PPO_BATCH: Returns shape: {{returns.shape}}, mean: {{returns.mean().item():.4f}}, std: {{returns.std().item():.4f}}")
-            print(f"[DNNE_DEBUG] PPO_BATCH: Values shape: {{values.shape}}, mean: {{values.mean().item():.4f}}, std: {{values.std().item():.4f}}")
-            print(f"[DNNE_DEBUG] PPO_BATCH: First 5 advantages: {{advantages.flatten()[:5].tolist()}}")
-            print(f"[DNNE_DEBUG] PPO_BATCH: First 5 returns: {{returns.flatten()[:5].tolist()}}")
+            from isaacgymenvs.utils.debug_utils import DNNE_print
+            DNNE_print("D", "PPO_BATCH", f"Advantages shape: {{advantages.shape}}, mean: {{advantages.mean().item():.4f}}, std: {{advantages.std().item():.4f}}")
+            DNNE_print("D", "PPO_BATCH", f"Returns shape: {{returns.shape}}, mean: {{returns.mean().item():.4f}}, std: {{returns.std().item():.4f}}")
+            DNNE_print("D", "PPO_BATCH", f"Values shape: {{values.shape}}, mean: {{values.mean().item():.4f}}, std: {{values.std().item():.4f}}")
+            DNNE_print("D", "PPO_BATCH", f"First 5 advantages: {{advantages.flatten()[:5].tolist()}}")
+            DNNE_print("D", "PPO_BATCH", f"First 5 returns: {{returns.flatten()[:5].tolist()}}")
         
         return input_dict
     
@@ -315,13 +317,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import os
         ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
         if self.verbose:
-            print(f"rlgames_ppo_update input shapes:")
-            print(f"  states: {states.shape}")
-            print(f"  actions: {actions.shape}")
-            print(f"  rewards: {rewards.shape}")
-            print(f"  values: {values.shape}")
-            print(f"  log_probs: {log_probs.shape}")
-            print(f"  dones: {dones.shape}")
+            from isaacgymenvs.utils.debug_utils import DNNE_print
+            DNNE_print("D", "PPO_UPDATE", "rlgames_ppo_update input shapes:")
+            DNNE_print("D", "PPO_UPDATE", f"  states: {states.shape}")
+            DNNE_print("D", "PPO_UPDATE", f"  actions: {actions.shape}")
+            DNNE_print("D", "PPO_UPDATE", f"  rewards: {rewards.shape}")
+            DNNE_print("D", "PPO_UPDATE", f"  values: {values.shape}")
+            DNNE_print("D", "PPO_UPDATE", f"  log_probs: {log_probs.shape}")
+            DNNE_print("D", "PPO_UPDATE", f"  dones: {dones.shape}")
         
         # Setup optimizer if needed
         if self.optimizer is None:
@@ -360,8 +363,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             indices = torch.randperm(batch_size)
             
             if self.verbose and mini_epoch == 0:
-                print(f"Mini-epoch {mini_epoch}: batch_size={batch_size}, minibatch_size={self.minibatch_size}")
-                print(f"Number of minibatches: {(batch_size + self.minibatch_size - 1) // self.minibatch_size}")
+                DNNE_print("D", "PPO_UPDATE", f"Mini-epoch {mini_epoch}: batch_size={batch_size}, minibatch_size={self.minibatch_size}")
+                DNNE_print("D", "PPO_UPDATE", f"Number of minibatches: {(batch_size + self.minibatch_size - 1) // self.minibatch_size}")
             
             minibatch_count = 0
             for start in range(0, batch_size, self.minibatch_size):
@@ -488,7 +491,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 first_action = action[0].item() if action.dim() > 0 else action.item()
                 first_value = value[0].item() if value.dim() > 0 else value.item()
                 first_reward = reward[0].item() if reward.dim() > 0 else reward.item()
-                print(f"[DNNE_DEBUG] PPO_CYCLE: Step {step_num}: action={first_action:.4f}, value={first_value:.4f}, reward={first_reward:.4f}")
+                from isaacgymenvs.utils.debug_utils import DNNE_print
+                DNNE_print("D", "PPO_CYCLE", f"Step {step_num}: action={first_action:.4f}, value={first_value:.4f}, reward={first_reward:.4f}")
             
             if self.fixed_seed_debug and self.step_count == 0:
                 self.logger.info(f"[PPO Trainer Debug] First state shape: {state.shape}")
@@ -515,7 +519,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             import os
             ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
             if ppo_cycle_debug:
-                print(f"[PPO_CYCLE_DEBUG] Buffer size: {len(self.buffer_states)}, horizon: {self.horizon_length}")
+                DNNE_print("D", "PPO_CYCLE", f"Buffer size: {len(self.buffer_states)}, horizon: {self.horizon_length}")
             
             # Check if buffer is full (DNNE async coordination maintained)
             # CRITICAL FIX: Each buffer entry contains data for ALL environments
@@ -523,10 +527,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if len(self.buffer_states) >= self.horizon_length:
                 # Print PPO training cycle start message to match IGE
                 if ppo_cycle_debug:
-                    DNNE_print(f"=== PPO TRAINING CYCLE {self.ppo_cycles_completed + 1} START ===")
+                    DNNE_print("D", "PPO_CYCLE", f"=== PPO TRAINING CYCLE {self.ppo_cycles_completed + 1} START ===")
                     
                 if self.verbose:
-                    print(f"Buffer full! Length: {len(self.buffer_states)}")
+                    DNNE_print("D", "PPO_BUFFER", f"Buffer full! Length: {len(self.buffer_states)}")
                 if self.fixed_seed_debug:
                     self.logger.info(f"[PPO Trainer Debug] Starting PPO update with {len(self.buffer_states)} steps")
                     self.logger.info(f"[PPO Trainer Debug] Buffer state shape: {self.buffer_states[0].shape}")
@@ -550,15 +554,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
                 
                 if self.verbose:
-                    print(f"Stacked shapes:")
-                    print(f"  states: {states.shape}")
-                    print(f"  actions: {actions.shape}")
-                    print(f"  rewards: {rewards.shape}")
-                    print(f"  values: {values.shape}")
-                    print(f"  log_probs: {log_probs.shape}")
-                    print(f"  dones: {dones.shape}")
-                    print(f"  action_means: {action_means.shape}")
-                    print(f"  action_stds: {action_stds.shape}")
+                    DNNE_print("D", "PPO_BUFFER", "Stacked shapes:")
+                    DNNE_print("D", "PPO_BUFFER", f"  states: {states.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  actions: {actions.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  rewards: {rewards.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  values: {values.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  log_probs: {log_probs.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  dones: {dones.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  action_means: {action_means.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  action_stds: {action_stds.shape}")
                 
                 # Handle both possible shapes: [steps, features] or [steps, num_envs, features]
                 if states.dim() == 2:
@@ -599,13 +603,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 action_stds = swap_and_flatten(action_stds)
                 
                 if self.verbose:
-                    print(f"After swap_and_flatten:")
-                    print(f"  states: {states.shape}")
-                    print(f"  actions: {actions.shape}")
-                    print(f"  rewards: {rewards.shape}")
-                    print(f"  values: {values.shape}")
-                    print(f"  log_probs: {log_probs.shape}")
-                    print(f"  batch_size: {batch_size}")
+                    DNNE_print("D", "PPO_BUFFER", "After swap_and_flatten:")
+                    DNNE_print("D", "PPO_BUFFER", f"  states: {states.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  actions: {actions.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  rewards: {rewards.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  values: {values.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  log_probs: {log_probs.shape}")
+                    DNNE_print("D", "PPO_BUFFER", f"  batch_size: {batch_size}")
                 
                 if self.fixed_seed_debug:
                     self.logger.info(f"[PPO Trainer Debug] Rewards: {rewards.tolist()}")
@@ -615,14 +619,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 # Perform PPO training using rl_games components
                 try:
                     if self.verbose:
-                        print(f"Calling rlgames_ppo_update...")
+                        DNNE_print("D", "PPO_UPDATE", "Calling rlgames_ppo_update...")
                     # Pass the current state and done flag as bootstrap values
                     total_loss = self.rlgames_ppo_update(
                         states, actions, rewards, values, log_probs, dones, 
                         action_means, action_stds, model, state, done
                     )
                     if self.verbose:
-                        print(f"rlgames_ppo_update completed! Loss: {total_loss.item()}")
+                        DNNE_print("D", "PPO_UPDATE", f"rlgames_ppo_update completed! Loss: {total_loss.item()}")
                 except Exception as e:
                     self.logger.error(f"Error in rlgames_ppo_update: {e}")
                     raise
@@ -647,7 +651,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 if self.stop_after_cycle and self.ppo_cycles_completed >= self.stop_after_cycle:
                     self.training_complete = True
                     if ppo_cycle_debug:
-                        DNNE_print(f"PPO_STOP: Stopping after {self.ppo_cycles_completed} cycle(s) as requested")
+                        DNNE_print("D", "PPO_STOP", f"Stopping after {self.ppo_cycles_completed} cycle(s) as requested")
                     self.logger.info(f"🎯 PPO Trainer reached PPO cycle limit ({self.stop_after_cycle}) - signaling completion")
                 
                 # Handle checkpointing (unchanged from original)

@@ -41,9 +41,10 @@ class CartpoleDNNE(Cartpole):
         # Call parent class initialization
         super().__init__(cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render)
         
-        print(f"[CartpoleDNNE] Initialized with {self.num_envs} environments")
+        from isaacgymenvs.utils.debug_utils import DNNE_print
+        DNNE_print("B", "ENV_INIT", f"CartpoleDNNE initialized with {self.num_envs} environments")
         if self.ppo_cycle_debug:
-            DNNE_print(f"[PPO_CYCLE_DEBUG] CartpoleDNNE initialized: num_envs={self.num_envs}, device={self.device}")
+            DNNE_print("B", "PPO_CYCLE", f"CartpoleDNNE initialized: num_envs={self.num_envs}, device={self.device}")
         
     def step_async(self, actions):
         """
@@ -60,30 +61,30 @@ class CartpoleDNNE(Cartpole):
         # Verbose logging for outputs
         if self.verbose:
             step_num = getattr(self, '_step_count', 0)
-            print(f"CartpoleDNNE step {step_num} - observations shape: {observations.shape}")
-            print(f"Rewards: min={rewards.min().item():.4f}, max={rewards.max().item():.4f}, mean={rewards.mean().item():.4f}")
-            print(f"Dones: {dones.sum().item()} environments done")
+            DNNE_print("D", "PPO_STEP", f"CartpoleDNNE step {step_num} - observations shape: {observations.shape}")
+            DNNE_print("D", "PPO_STEP", f"Rewards: min={rewards.min().item():.4f}, max={rewards.max().item():.4f}, mean={rewards.mean().item():.4f}")
+            DNNE_print("D", "PPO_STEP", f"Dones: {dones.sum().item()} environments done")
             
             # Log some observation details (cart pos, cart vel, pole angle, pole vel)
             if observations.shape[1] >= 4:
                 cart_pos = observations[:, 0]
                 pole_angle = observations[:, 2]
-                print(f"Cart pos: min={cart_pos.min().item():.4f}, max={cart_pos.max().item():.4f}")
-                print(f"Pole angle: min={pole_angle.min().item():.4f}, max={pole_angle.max().item():.4f}")
+                DNNE_print("D", "PPO_STEP", f"Cart pos: min={cart_pos.min().item():.4f}, max={cart_pos.max().item():.4f}")
+                DNNE_print("D", "PPO_STEP", f"Pole angle: min={pole_angle.min().item():.4f}, max={pole_angle.max().item():.4f}")
         
         return observations, rewards, dones, infos
     
     def reset(self):
         """Override reset to add PPO_CYCLE_DEBUG logging"""
         if self.ppo_cycle_debug:
-            DNNE_print("[PPO_CYCLE_DEBUG] VecTask.reset() called")
+            DNNE_print("B", "PPO_CYCLE", "VecTask.reset() called")
         
         # Call parent reset
         obs_dict = super().reset()
         
         if self.ppo_cycle_debug:
-            DNNE_print(f"[PPO_CYCLE_DEBUG] obs_buf shape: {self.obs_buf.shape}")
-            DNNE_print(f"[PPO_CYCLE_DEBUG] Initial obs: min={self.obs_buf.min().item():.4f}, max={self.obs_buf.max().item():.4f}, mean={self.obs_buf.mean().item():.4f}")
+            DNNE_print("B", "PPO_CYCLE", f"obs_buf shape: {self.obs_buf.shape}")
+            DNNE_print("B", "PPO_CYCLE", f"Initial obs: min={self.obs_buf.min().item():.4f}, max={self.obs_buf.max().item():.4f}, mean={self.obs_buf.mean().item():.4f}")
         
         return obs_dict
     

@@ -130,7 +130,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.logger.info(f"CartpoleDNNE initialized with {{self.num_envs}} environments")
             
             if self.verbose:
-                print(f"IsaacGymEnvNode - Initialized CartpoleDNNE")
+                from isaacgymenvs.utils.debug_utils import DNNE_print
+                DNNE_print("D", "ENV_INIT", "IsaacGymEnvNode - Initialized CartpoleDNNE")
             
         except Exception as e:
             self.logger.error(f"Failed to initialize environment: {{e}}")
@@ -148,7 +149,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.compute_count += 1
             
             if self.verbose:
-                print(f"IsaacGymEnvNode.compute() call #{{self.compute_count}}")
+                from isaacgymenvs.utils.debug_utils import DNNE_print
+                DNNE_print("D", "ENV_COMPUTE", f"IsaacGymEnvNode.compute() call #{{self.compute_count}}")
             
             # Get initial observations
             initial_observations = self.env.get_initial_observations()
@@ -164,8 +166,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             }
             
             if self.verbose:
-                print(f"IsaacGymEnvNode - Initial observations shape: {{initial_observations.shape}}")
-                print(f"Initial obs: min={{initial_observations.min().item():.4f}}, max={{initial_observations.max().item():.4f}}, mean={{initial_observations.mean().item():.4f}}")
+                DNNE_print("D", "ENV_COMPUTE", f"IsaacGymEnvNode - Initial observations shape: {{initial_observations.shape}}")
+                DNNE_print("D", "ENV_COMPUTE", f"Initial obs: min={{initial_observations.min().item():.4f}}, max={{initial_observations.max().item():.4f}}, mean={{initial_observations.mean().item():.4f}}")
             
             return {{
                 "env_handle": env_handle,
