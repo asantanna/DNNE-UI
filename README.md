@@ -1,4 +1,4 @@
-# DNNE - Drag and Drop Neural Network Environment
+# DNNE - Distributed Neural Network Editor
 
 DNNE is a visual programming environment for building neural networks and robotics control systems. It transforms ComfyUI's visual node-based interface from a diffusion model platform into a comprehensive ML/robotics development environment with code export capabilities.
 
@@ -12,10 +12,12 @@ DNNE is a visual programming environment for building neural networks and roboti
 
 ## Quick Start
 
-### 1. Clone the Repository
+### 1. Clone the Repositories
 
 ```bash
-git clone https://github.com/your_org/DNNE-UI.git
+git clone https://github.com/asantanna/DNNE-UI.git
+git clone https://github.com/asantanna/DNNE-UI-Frontend.git
+git clone https://github.com/asantanna/DNNE-LINUX-SUPPORT.git
 cd DNNE-UI
 ```
 
@@ -42,9 +44,17 @@ See [CONFIGURATION_GUIDE.md](CONFIGURATION_GUIDE.md) for detailed configuration 
 conda create -n DNNE_PY38 python=3.8
 conda activate DNNE_PY38
 
-# Install requirements
+# Install core requirements
 pip install -r requirements.txt
+
+# For Isaac Gym/RL support (optional)
+pip install -r requirements-robotics.txt
+
+# For development (optional)
+pip install -r requirements-dev.txt
 ```
+
+Note: Isaac Gym, IsaacGymEnvs, and rl_games_dnne require manual installation. See [CLAUDE.md](CLAUDE.md) for details.
 
 ### 4. Run Tests
 
@@ -52,7 +62,7 @@ pip install -r requirements.txt
 ./dnne-test full
 ```
 
-### 5. Start the Server
+### 5. Start the Server (WINDOWS ONLY)
 
 ```bash
 python main.py
@@ -146,8 +156,8 @@ Run the comprehensive test suite:
 
 ## Related Repositories
 
-- **Frontend**: [DNNE-UI-Frontend](https://github.com/your_org/DNNE-UI-Frontend) - Vue.js-based visual editor
-- **Linux Support**: [DNNE-LINUX-SUPPORT](https://github.com/your_org/DNNE-LINUX-SUPPORT) - Isaac Gym and dependencies
+- **Frontend**: [DNNE-UI-Frontend](https://github.com/asantanna/DNNE-UI-Frontend) - Vue.js-based visual editor
+- **Linux Support**: [DNNE-LINUX-SUPPORT](https://github.com/asantanna/DNNE-LINUX-SUPPORT) - Isaac Gym and dependencies
 
 ## Original ComfyUI
 

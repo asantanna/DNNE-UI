@@ -1,0 +1,39 @@
+# Robotics & RL Dependencies for DNNE
+# These are required for Isaac Gym and RL functionality
+
+# Configuration Management (required by IsaacGymEnvs)
+hydra-core>=1.3.0
+omegaconf>=2.3.0
+hydra-submitit-launcher>=1.2.0
+
+# Reinforcement Learning
+gym>=0.26.0
+tensorboard>=2.11.0
+matplotlib>=3.5.0
+
+# RL Games Dependencies
+ray>=2.3.0
+torch-tb-profiler>=0.4.0
+
+# Isaac Gym Environment Dependencies
+plyfile>=0.7.0  # For mesh handling
+trimesh>=3.20.0  # 3D mesh processing
+pyvirtualdisplay>=3.0  # Headless rendering
+
+# Note on Isaac Gym Components:
+# The following are included in DNNE-LINUX-SUPPORT and are used directly:
+#
+# 1. Isaac Gym:
+#    - Location: DNNE-LINUX-SUPPORT/isaacgym
+#    - Usage: Added to sys.path dynamically (no pip install needed)
+#
+# 2. IsaacGymEnvs:
+#    - Location: DNNE-LINUX-SUPPORT/IsaacGymEnvs
+#    - Usage: Added to sys.path dynamically (no pip install needed)
+#
+# 3. rl_games_dnne (custom fork with DNNE modifications):
+#    - Location: DNNE-LINUX-SUPPORT/rl_games_dnne
+#    - Usage: Added to sys.path dynamically (no pip install needed)
+#
+# Note: The code currently uses hardcoded paths that should be updated
+# to use the configuration system for portability

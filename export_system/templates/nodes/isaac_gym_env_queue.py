@@ -54,12 +54,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     def _initialize_environment(self):
         """Initialize environment using CartpoleDNNE"""
         try:
-            # Add Isaac Gym to path
-            import sys
-            sys.path.append("/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/python")
-            sys.path.append("/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs")
-            
-            # Import Isaac Gym first (before torch)
+            # Paths should already be configured in runner.py
+            # Isaac Gym must be imported before torch
             import isaacgym
             
             # Import CartpoleDNNE from gym_envs subdirectory

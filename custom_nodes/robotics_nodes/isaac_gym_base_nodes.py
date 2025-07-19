@@ -13,9 +13,31 @@ from inspect import cleandoc
 from .base_node import LearningNodeBase
 from .robotics_types import SimHandle
 
-# Add paths for Isaac Gym
-sys.path.append("/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/python")
-sys.path.append("/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs")
+# Add paths for Isaac Gym using configuration
+import sys
+import os
+from pathlib import Path
+
+# Try to import dnne_config from project root
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+try:
+    from dnne_config import DNNEConfig
+    config = DNNEConfig()
+    isaac_gym_path = config.get('paths.isaac_gym')
+    isaac_gym_envs_path = config.get('paths.isaac_gym_envs')
+    
+    if isaac_gym_path:
+        sys.path.append(os.path.join(isaac_gym_path, "python"))
+    if isaac_gym_envs_path:
+        sys.path.append(isaac_gym_envs_path)
+except ImportError:
+    # Fallback to environment variables or defaults
+    isaac_gym_path = os.environ.get('DNNE_ISAAC_GYM', "/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym")
+    isaac_gym_envs_path = os.environ.get('DNNE_ISAAC_GYM_ENVS', "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs")
+    sys.path.append(os.path.join(isaac_gym_path, "python"))
+    sys.path.append(isaac_gym_envs_path)
 
 # Isaac Gym imports (with proper error handling)
 try:

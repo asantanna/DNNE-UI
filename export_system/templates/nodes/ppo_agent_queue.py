@@ -11,9 +11,7 @@ template_vars = {
     "INIT_LOG_STD": 0
 }
 
-# Import RunningMeanStd from rl_games_dnne
-import sys
-sys.path.append('/home/asantanna/DNNE-LINUX-SUPPORT')
+# Import RunningMeanStd from rl_games_dnne (paths configured in runner.py)
 from rl_games_dnne.dnne_exports import RunningMeanStd
 
 # Import DNNE_print from centralized location

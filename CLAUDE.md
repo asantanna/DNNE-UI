@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**DNNE** (Drag and Drop Neural Network Environment) is a visual programming environment for building neural networks and robotics control systems. It's based on ComfyUI's architecture but adapted for machine learning and robotics applications instead of image generation. The project transforms ComfyUI's visual node-based interface from a diffusion model platform into a comprehensive ML/robotics development environment with code export capabilities.
+**DNNE** (Distributed Neural Network Editor) is a visual programming environment for building neural networks and robotics control systems. It's based on ComfyUI's architecture but adapted for machine learning and robotics applications instead of image generation. The project transforms ComfyUI's visual node-based interface from a diffusion model platform into a comprehensive ML/robotics development environment with code export capabilities.
 
 ### Key Innovation
 The primary innovation is the **export system** that converts visual node graphs into standalone, production-ready Python modules that can run on WSL2, GPU cloud providers (like Lambda), or integrate with robotics simulators like NVIDIA Isaac Gym. Unlike ComfyUI, DNNE doesn't execute graphs directly - instead, it exports them as Python scripts designed to run in tight loops with simulators.

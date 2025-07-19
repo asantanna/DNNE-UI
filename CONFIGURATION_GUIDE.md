@@ -1,6 +1,6 @@
 # DNNE Configuration Guide
 
-This guide explains how to configure DNNE (Drag and Drop Neural Network Environment) for your specific system setup.
+This guide explains how to configure DNNE (Distributed Neural Network Editor) for your specific system setup.
 
 ## Overview
 
@@ -94,23 +94,27 @@ export DNNE_CONDA_ENV="DNNE_PY38"
 
 ```bash
 cd /workspace  # or your preferred directory
-git clone https://github.com/your_org/DNNE-UI.git
-git clone https://github.com/your_org/DNNE-LINUX-SUPPORT.git
+git clone https://github.com/asantanna/DNNE-UI.git
+git clone https://github.com/asantanna/DNNE-UI-Frontend.git
+git clone https://github.com/asantanna/DNNE-LINUX-SUPPORT.git
 
-# Clone dependencies into DNNE-LINUX-SUPPORT
-cd DNNE-LINUX-SUPPORT
-git clone https://github.com/NVIDIA-Omniverse/IsaacGymEnvs.git
-git clone https://github.com/your_org/rl_games_dnne.git
-# Download and extract Isaac Gym here
+# DNNE-LINUX-SUPPORT already contains:
+# - isaacgym/
+# - IsaacGymEnvs/
+# - rl_games_dnne/
 ```
 
-### 2. Create Conda Environment
+### 2. Create Conda Environment and Install Dependencies
 
 ```bash
 conda create -n DNNE_PY38 python=3.8
 conda activate DNNE_PY38
 cd /workspace/DNNE-UI
 pip install -r requirements.txt
+
+# Isaac Gym components in DNNE-LINUX-SUPPORT are used directly via sys.path
+# No installation needed - the code adds these paths dynamically
+# Note: This currently uses hardcoded paths that need to be updated to use the configuration system
 ```
 
 ### 3. Configure DNNE
@@ -308,13 +312,10 @@ WORKSPACE="/workspace"
 
 # Clone repositories
 cd $WORKSPACE
-git clone https://github.com/your_org/DNNE-UI.git
-git clone https://github.com/your_org/DNNE-LINUX-SUPPORT.git
-
-# Clone dependencies
-cd $WORKSPACE/DNNE-LINUX-SUPPORT
-git clone https://github.com/NVIDIA-Omniverse/IsaacGymEnvs.git
-git clone https://github.com/your_org/rl_games_dnne.git
+git clone https://github.com/asantanna/DNNE-UI.git
+git clone https://github.com/asantanna/DNNE-UI-Frontend.git
+git clone https://github.com/asantanna/DNNE-LINUX-SUPPORT.git
+# DNNE-LINUX-SUPPORT already contains isaacgym/, IsaacGymEnvs/, and rl_games_dnne/
 
 # Create conda environment
 conda create -n DNNE_PY38 python=3.8 -y

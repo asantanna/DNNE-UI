@@ -12,10 +12,43 @@ import sys
 import os
 from pathlib import Path
 
-# Add paths for isaacgym
-sys.path.append("/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym/python")
-sys.path.append("/home/asantanna/DNNE-LINUX-SUPPORT")
-sys.path.append("/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs")
+# Configure paths using DNNE configuration system
+try:
+    # Try to import configuration module
+    from dnne_config import DNNEConfig
+    config = DNNEConfig()
+    
+    # Add paths from configuration
+    isaac_gym_path = config.get('paths.isaac_gym')
+    isaac_gym_envs_path = config.get('paths.isaac_gym_envs')
+    linux_support_path = config.get('paths.linux_support')
+    rl_games_path = config.get('paths.rl_games_dnne')
+    
+    if isaac_gym_path:
+        sys.path.append(os.path.join(isaac_gym_path, "python"))
+    if linux_support_path:
+        sys.path.append(linux_support_path)
+    if isaac_gym_envs_path:
+        sys.path.append(isaac_gym_envs_path)
+    if rl_games_path:
+        sys.path.append(rl_games_path)
+    
+    print(f"Using paths from configuration: isaac_gym={isaac_gym_path}")
+    
+except ImportError:
+    # Fallback to environment variables or defaults if config not available
+    isaac_gym_path = os.environ.get('DNNE_ISAAC_GYM', "/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym")
+    isaac_gym_envs_path = os.environ.get('DNNE_ISAAC_GYM_ENVS', "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs")
+    linux_support_path = os.environ.get('DNNE_LINUX_SUPPORT', "/home/asantanna/DNNE-LINUX-SUPPORT")
+    rl_games_path = os.environ.get('DNNE_RL_GAMES', "/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne")
+    
+    sys.path.append(os.path.join(isaac_gym_path, "python"))
+    sys.path.append(linux_support_path)
+    sys.path.append(isaac_gym_envs_path)
+    if rl_games_path and os.path.exists(rl_games_path):
+        sys.path.append(rl_games_path)
+    
+    print(f"Using paths from environment/defaults: isaac_gym={isaac_gym_path}")
 
 # Isaac Gym must be imported before torch
 import isaacgym
