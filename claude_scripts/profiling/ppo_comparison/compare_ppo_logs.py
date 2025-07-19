@@ -26,24 +26,38 @@ class PPOLogComparator:
         
     def preprocess_line(self, line: str) -> str:
         """Remove numbers from a line for structural comparison"""
+        # First remove the shared attribute from DNNE_DEBUG lines
+        # [DNNE_DEBUG] B/PPO_CYCLE: -> [DNNE_DEBUG] ?/PPO_CYCLE:
+        if '[DNNE_DEBUG]' in line:
+            line = re.sub(r'\[DNNE_DEBUG\] [DIB]/', '[DNNE_DEBUG] ?/', line)
+        
+        # Normalize caller information (e.g., "called by cartpole_dnne.CartpoleDNNE.step" -> "called by CALLER")
+        line = re.sub(r'called by \S+', 'called by CALLER', line)
+        line = re.sub(r'call #\d+ by \S+', 'call #<NUM> by CALLER', line)
+        
         # First handle special patterns
         line = self.tensor_shape_pattern.sub('torch.Size([<NUM>])', line)
         line = self.list_pattern.sub('[<NUM>]', line)
         # Then handle remaining numbers
         line = self.number_pattern.sub('<NUM>', line)
+        
+        # Normalize step numbers
+        line = re.sub(r'Step \d+:', 'Step <NUM>:', line)
+        
         return line
     
     def preprocess_file(self, filepath: Path) -> Path:
         """Create a preprocessed version of the file with numbers removed"""
-        temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='_preprocessed.txt')
+        # Save to /tmp with predictable name
+        preprocessed_path = Path(f"/tmp/preproc_{filepath.name}")
         
-        with open(filepath, 'r') as f:
-            for line in f:
+        with open(filepath, 'r') as f_in, open(preprocessed_path, 'w') as f_out:
+            for line in f_in:
                 preprocessed = self.preprocess_line(line.rstrip())
-                temp_file.write(preprocessed + '\n')
+                f_out.write(preprocessed + '\n')
         
-        temp_file.close()
-        return Path(temp_file.name)
+        print(f"Saved preprocessed file: {preprocessed_path}")
+        return preprocessed_path
     
     def run_diff(self, file1: Path, file2: Path) -> List[str]:
         """Run diff on two files and return the output lines"""
@@ -103,7 +117,7 @@ class PPOLogComparator:
             else:
                 # Try to find next match within a window
                 found_match = False
-                window_size = 5
+                window_size = 20  # Increased window size to handle larger offsets
                 
                 # Check if file1[i] appears soon in file2
                 for k in range(j, min(j + window_size, len(prep2_lines))):
@@ -241,9 +255,8 @@ class PPOLogComparator:
             print(f"  Different lines: {different}")
             
         finally:
-            # Cleanup
-            os.unlink(preprocessed1)
-            os.unlink(preprocessed2)
+            # Don't cleanup - preprocessed files are saved in /tmp for inspection
+            pass
 
 
 def main():

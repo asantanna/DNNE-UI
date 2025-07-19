@@ -64,7 +64,8 @@ class PPOAgentNode_3(QueueNode):
         # Debug: Check current torch seed state
         if self.ppo_cycle_debug:
             # Get current RNG state to see if seed was set
-            DNNE_print(f"PPO_INITIAL: Building model with torch seed state hash: {hash(torch.get_rng_state().tobytes())}")
+            from isaacgymenvs.utils.debug_utils import DNNE_print
+            DNNE_print("D", "PPO_INITIAL", f"Building model with torch seed state hash: {hash(torch.get_rng_state().cpu().numpy().tobytes())}")
         
         # Parse hidden sizes
         hidden_sizes = [int(x.strip()) for x in self.hidden_sizes.split(",")]
@@ -157,30 +158,31 @@ class PPOAgentNode_3(QueueNode):
             # Build model if needed
             if self.model is None:
                 if self.ppo_cycle_debug and self.step_count == 0:
-                    DNNE_print("=== PPO TRAINING CYCLE 1 START ===")
+                    from isaacgymenvs.utils.debug_utils import DNNE_print
+                    DNNE_print("D", "PPO_CYCLE", "=== PPO TRAINING CYCLE 1 START ===")
                     # Log initial observation details like IGE
                     first_obs = observations[0]
-                    DNNE_print(f"PPO_INITIAL: First observation: {first_obs[:4].tolist() if len(first_obs) >= 4 else first_obs.tolist()}")
-                    DNNE_print(f"PPO_INITIAL: Observation shape: {observations.shape}")
+                    DNNE_print("D", "PPO_INITIAL", f"First observation: {first_obs[:4].tolist() if len(first_obs) >= 4 else first_obs.tolist()}")
+                    DNNE_print("D", "PPO_INITIAL", f"Observation shape: {observations.shape}")
                 self.build_model(obs_dim)
                 
                 # Log network details after building model (like IGE)
                 if self.ppo_cycle_debug and self.step_count == 0:
                     # Log observation normalization info
-                    DNNE_print("PPO_INITIAL: Obs normalization - mean: [0.0, 0.0, 0.0, 0.0]")
-                    DNNE_print("PPO_INITIAL: Obs normalization - var: [1.0, 1.0, 1.0, 1.0]") 
-                    DNNE_print("PPO_INITIAL: Obs normalization - count: 1.0")
+                    DNNE_print("D", "PPO_INITIAL", "Obs normalization - mean: [0.0, 0.0, 0.0, 0.0]")
+                    DNNE_print("D", "PPO_INITIAL", "Obs normalization - var: [1.0, 1.0, 1.0, 1.0]") 
+                    DNNE_print("D", "PPO_INITIAL", "Obs normalization - count: 1.0")
                     
                     # Log actor network weights
                     first_layer = self.shared_layers[0]
                     if hasattr(first_layer, 'weight'):
-                        DNNE_print(f"PPO_INITIAL: Actor first layer weights: {first_layer.weight[0][:4].tolist()}")
-                        DNNE_print(f"PPO_INITIAL: Actor first layer bias: {first_layer.bias[:4].tolist()}")
+                        DNNE_print("D", "PPO_INITIAL", f"Actor first layer weights: {first_layer.weight[0][:4].tolist()}")
+                        DNNE_print("D", "PPO_INITIAL", f"Actor first layer bias: {first_layer.bias[:4].tolist()}")
                     
                     # Log policy head weights
                     if self.action_space == "continuous" and hasattr(self, 'policy_mean'):
-                        DNNE_print(f"PPO_INITIAL: Mu layer weights: {self.policy_mean.weight[0][:4].tolist()}")
-                        DNNE_print(f"PPO_INITIAL: Mu layer bias: {self.policy_mean.bias.tolist()}")
+                        DNNE_print("D", "PPO_INITIAL", f"Mu layer weights: {self.policy_mean.weight[0][:4].tolist()}")
+                        DNNE_print("D", "PPO_INITIAL", f"Mu layer bias: {self.policy_mean.bias.tolist()}")
                 
                 if self.fixed_seed_debug:
                     # Log initial model weights

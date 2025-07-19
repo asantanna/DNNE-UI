@@ -44,16 +44,17 @@ class CartpoleActionNode_11(QueueNode):
             action_tensor = policy["action"]
             
             if verbose:
-                print(f"CartpoleActionNode.compute() called!")
-                print(f"Input action_tensor shape: {action_tensor.shape}")
+                from isaacgymenvs.utils.debug_utils import DNNE_print
+                DNNE_print("D", "PPO_ACTION", "CartpoleActionNode.compute() called!")
+                DNNE_print("D", "PPO_ACTION", f"Input action_tensor shape: {action_tensor.shape}")
             
             # CRITICAL FIX: Return action tensor directly for Isaac Gym
             # The VecTask expects a simple tensor of shape [num_envs, num_actions]
             # NOT a dictionary with forces/torques
             
             if verbose:
-                print(f"Returning action_tensor directly: shape={action_tensor.shape}")
-                print(f"Action values: min={action_tensor.min().item():.4f}, max={action_tensor.max().item():.4f}")
+                DNNE_print("D", "PPO_ACTION", f"Returning action_tensor directly: shape={action_tensor.shape}")
+                DNNE_print("D", "PPO_ACTION", f"Action values: min={action_tensor.min().item():.4f}, max={action_tensor.max().item():.4f}")
             
             return {
                 "action": action_tensor  # Return raw action tensor, scaling happens in pre_physics_step

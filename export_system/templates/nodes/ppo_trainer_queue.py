@@ -519,6 +519,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             import os
             ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
             if ppo_cycle_debug:
+                from isaacgymenvs.utils.debug_utils import DNNE_print
                 DNNE_print("D", "PPO_CYCLE", f"Buffer size: {len(self.buffer_states)}, horizon: {self.horizon_length}")
             
             # Check if buffer is full (DNNE async coordination maintained)
@@ -527,9 +528,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if len(self.buffer_states) >= self.horizon_length:
                 # Print PPO training cycle start message to match IGE
                 if ppo_cycle_debug:
+                    from isaacgymenvs.utils.debug_utils import DNNE_print
                     DNNE_print("D", "PPO_CYCLE", f"=== PPO TRAINING CYCLE {self.ppo_cycles_completed + 1} START ===")
                     
                 if self.verbose:
+                    from isaacgymenvs.utils.debug_utils import DNNE_print
                     DNNE_print("D", "PPO_BUFFER", f"Buffer full! Length: {len(self.buffer_states)}")
                 if self.fixed_seed_debug:
                     self.logger.info(f"[PPO Trainer Debug] Starting PPO update with {len(self.buffer_states)} steps")
@@ -554,6 +557,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
                 
                 if self.verbose:
+                    from isaacgymenvs.utils.debug_utils import DNNE_print
                     DNNE_print("D", "PPO_BUFFER", "Stacked shapes:")
                     DNNE_print("D", "PPO_BUFFER", f"  states: {states.shape}")
                     DNNE_print("D", "PPO_BUFFER", f"  actions: {actions.shape}")
@@ -603,6 +607,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 action_stds = swap_and_flatten(action_stds)
                 
                 if self.verbose:
+                    from isaacgymenvs.utils.debug_utils import DNNE_print
                     DNNE_print("D", "PPO_BUFFER", "After swap_and_flatten:")
                     DNNE_print("D", "PPO_BUFFER", f"  states: {states.shape}")
                     DNNE_print("D", "PPO_BUFFER", f"  actions: {actions.shape}")
@@ -619,6 +624,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 # Perform PPO training using rl_games components
                 try:
                     if self.verbose:
+                        from isaacgymenvs.utils.debug_utils import DNNE_print
                         DNNE_print("D", "PPO_UPDATE", "Calling rlgames_ppo_update...")
                     # Pass the current state and done flag as bootstrap values
                     total_loss = self.rlgames_ppo_update(
@@ -651,6 +657,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 if self.stop_after_cycle and self.ppo_cycles_completed >= self.stop_after_cycle:
                     self.training_complete = True
                     if ppo_cycle_debug:
+                        from isaacgymenvs.utils.debug_utils import DNNE_print
                         DNNE_print("D", "PPO_STOP", f"Stopping after {self.ppo_cycles_completed} cycle(s) as requested")
                     self.logger.info(f"🎯 PPO Trainer reached PPO cycle limit ({self.stop_after_cycle}) - signaling completion")
                 

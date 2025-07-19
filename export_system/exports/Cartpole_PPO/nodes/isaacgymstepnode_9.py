@@ -35,10 +35,11 @@ class IsaacGymStepNode_9(QueueNode):
         """Execute simulation step with dual-mode support"""
         
         if self.verbose:
-            print(f"IsaacGymStepNode.compute() called!")
-            print(f"- env_handle: {type(env_handle)}")
-            print(f"- actions: {type(actions)}, shape={actions.shape if hasattr(actions, 'shape') else 'N/A'}")
-            print(f"- trigger: {trigger}")
+            from isaacgymenvs.utils.debug_utils import DNNE_print
+            DNNE_print("D", "STEP_COMPUTE", "IsaacGymStepNode.compute() called!")
+            DNNE_print("D", "STEP_COMPUTE", f"- env_handle: {type(env_handle)}")
+            DNNE_print("D", "STEP_COMPUTE", f"- actions: {type(actions)}, shape={actions.shape if hasattr(actions, 'shape') else 'N/A'}")
+            DNNE_print("D", "STEP_COMPUTE", f"- trigger: {trigger}")
         
         # Extract environment from handle
         env = env_handle["environment"]
@@ -52,8 +53,8 @@ class IsaacGymStepNode_9(QueueNode):
             next_observations = self.cached_observations if self.cached_observations is not None else torch.zeros(num_envs, 4)
             
             if self.verbose and self.cached_observations is not None:
-                print(f"IsaacGymStepNode TRIGGER MODE - Releasing cached observations")
-                print(f"Cached obs shape: {next_observations.shape}")
+                DNNE_print("D", "STEP_TRIGGER", "IsaacGymStepNode TRIGGER MODE - Releasing cached observations")
+                DNNE_print("D", "STEP_TRIGGER", f"Cached obs shape: {next_observations.shape}")
             
             return {
                 "observations": torch.zeros(num_envs, 4),  # dummy
@@ -65,9 +66,9 @@ class IsaacGymStepNode_9(QueueNode):
         
         # Normal execution mode: step environment
         if self.verbose:
-            print(f"IsaacGymStepNode step {self.step_count + 1} - NORMAL MODE")
-            print(f"Input actions shape: {actions.shape}")
-            print(f"Actions: min={actions.min().item():.4f}, max={actions.max().item():.4f}, mean={actions.mean().item():.4f}")
+            DNNE_print("D", "STEP_NORMAL", f"IsaacGymStepNode step {self.step_count + 1} - NORMAL MODE")
+            DNNE_print("D", "STEP_NORMAL", f"Input actions shape: {actions.shape}")
+            DNNE_print("D", "STEP_NORMAL", f"Actions: min={actions.min().item():.4f}, max={actions.max().item():.4f}, mean={actions.mean().item():.4f}")
         
         # Use CartpoleDNNE's step_async method
         observations, rewards, done, info = env.step_async(actions)
@@ -86,10 +87,10 @@ class IsaacGymStepNode_9(QueueNode):
         
         # Verbose logging for outputs
         if self.verbose:
-            print(f"IsaacGymStepNode - After step {self.step_count}:")
-            print(f"Observations cached: shape={observations.shape}")
-            print(f"Rewards: min={rewards.min().item():.4f}, max={rewards.max().item():.4f}, mean={rewards.mean().item():.4f}")
-            print(f"Done count: {done.sum().item()}")
+            DNNE_print("D", "STEP_RESULT", f"IsaacGymStepNode - After step {self.step_count}:")
+            DNNE_print("D", "STEP_RESULT", f"Observations cached: shape={observations.shape}")
+            DNNE_print("D", "STEP_RESULT", f"Rewards: min={rewards.min().item():.4f}, max={rewards.max().item():.4f}, mean={rewards.mean().item():.4f}")
+            DNNE_print("D", "STEP_RESULT", f"Done count: {done.sum().item()}")
         
         # Regular debug logging
         if self.step_count % 100 == 0:

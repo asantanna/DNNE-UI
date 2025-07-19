@@ -75,16 +75,11 @@ class CartpoleDNNE(Cartpole):
         return observations, rewards, dones, infos
     
     def reset(self):
-        """Override reset to add PPO_CYCLE_DEBUG logging"""
-        if self.ppo_cycle_debug:
-            DNNE_print("B", "PPO_CYCLE", "VecTask.reset() called")
-        
-        # Call parent reset
+        """Override reset - parent class handles debug logging"""
+        # Call parent reset (which already logs the reset with caller info)
         obs_dict = super().reset()
         
-        if self.ppo_cycle_debug:
-            DNNE_print("B", "PPO_CYCLE", f"obs_buf shape: {self.obs_buf.shape}")
-            DNNE_print("B", "PPO_CYCLE", f"Initial obs: min={self.obs_buf.min().item():.4f}, max={self.obs_buf.max().item():.4f}, mean={self.obs_buf.mean().item():.4f}")
+        # Add any DNNE-specific reset logic here if needed
         
         return obs_dict
     
