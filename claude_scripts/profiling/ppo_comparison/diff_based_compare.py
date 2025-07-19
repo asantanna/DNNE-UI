@@ -10,9 +10,10 @@ from typing import List, Tuple, Optional, Dict
 import argparse
 
 class DiffBasedComparer:
-    def __init__(self, width: int = 80):
+    def __init__(self, width: int = 80, ignore_shared_differences: bool = False):
         self.width = width
         self.debug = False
+        self.ignore_shared_differences = ignore_shared_differences
         
     def preprocess_line(self, line: str) -> str:
         """Preprocess a log line to remove changing values for structural comparison"""
@@ -50,6 +51,18 @@ class DiffBasedComparer:
         line = re.sub(r'hash: -?\d+', 'hash: <NUM>', line)
         
         return line
+    
+    def only_shared_attr_differs(self, line1: str, line2: str) -> bool:
+        """Check if two lines differ only in the shared attribute (D/I/B)"""
+        # Check if both lines have DNNE_DEBUG
+        if '[DNNE_DEBUG]' not in line1 or '[DNNE_DEBUG]' not in line2:
+            return False
+        
+        # Replace shared attributes with same placeholder and compare
+        normalized1 = re.sub(r'\[DNNE_DEBUG\] [DIB]/', '[DNNE_DEBUG] ?/', line1)
+        normalized2 = re.sub(r'\[DNNE_DEBUG\] [DIB]/', '[DNNE_DEBUG] ?/', line2)
+        
+        return normalized1 == normalized2
     
     def save_preprocessed(self, filepath: Path) -> Path:
         """Create preprocessed version of a file"""
@@ -134,6 +147,8 @@ class DiffBasedComparer:
                         
                         if orig1_lines[i1] == orig2_lines[i2]:
                             alignment.append(('match', i1, i2))
+                        elif self.ignore_shared_differences and self.only_shared_attr_differs(orig1_lines[i1], orig2_lines[i2]):
+                            alignment.append(('match', i1, i2))  # Treat as match if only shared attr differs
                         else:
                             alignment.append(('yellow', i1, i2))
                         i1 += 1
@@ -195,6 +210,8 @@ class DiffBasedComparer:
         while i1 < len(orig1_lines) and i2 < len(orig2_lines):
             if orig1_lines[i1] == orig2_lines[i2]:
                 alignment.append(('match', i1, i2))  # White
+            elif self.ignore_shared_differences and self.only_shared_attr_differs(orig1_lines[i1], orig2_lines[i2]):
+                alignment.append(('match', i1, i2))  # Treat as match if only shared attr differs
             else:
                 alignment.append(('yellow', i1, i2))  # Yellow
             i1 += 1
@@ -312,6 +329,8 @@ def main():
     parser.add_argument('file2', nargs='?', default='/tmp/ige_1cycle_final.log', help='Second log file (default: /tmp/ige_1cycle_final.log)')
     parser.add_argument('--width', '-w', type=int, default=80, help='Column width (default: 80)')
     parser.add_argument('--debug', '-d', action='store_true', help='Enable debug output')
+    parser.add_argument('--ignore-shared-differences', action='store_true',
+                        help='Ignore differences in shared attributes (D/I/B) when comparing lines')
     
     args = parser.parse_args()
     
@@ -325,7 +344,7 @@ def main():
         print(f"Error: {file2} does not exist")
         sys.exit(1)
     
-    comparer = DiffBasedComparer(width=args.width)
+    comparer = DiffBasedComparer(width=args.width, ignore_shared_differences=args.ignore_shared_differences)
     comparer.debug = args.debug  # Enable debug if requested
     comparer.compare_files(file1, file2)
 

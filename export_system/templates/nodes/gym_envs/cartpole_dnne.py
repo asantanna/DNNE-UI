@@ -85,8 +85,13 @@ class CartpoleDNNE(Cartpole):
     
     def get_initial_observations(self):
         """Get initial observations after reset for DNNE"""
-        # Match IGE behavior: just return current obs_buf without calling reset again
-        # The environment has already been reset during initialization
+        # DNNE needs to trigger the initial reset that IGE does during its first step
+        # Check if environments need to be reset (reset_buf initialized to 1)
+        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        if len(env_ids) > 0:
+            self.reset_idx(env_ids)
+            self.compute_observations()
+        
         return self.obs_buf.clone()
     
     def set_custom_reward_fn(self, reward_fn):
