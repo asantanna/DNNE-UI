@@ -5,7 +5,13 @@ Both systems now support PPO_STOP_AFTER_CYCLE=1
 """
 import subprocess
 import os
+import sys
 import time
+from pathlib import Path
+
+# Add parent directory to Python path to import dnne_config
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from dnne_config import config
 
 def run_command_with_output(cmd, cwd, env, output_file, description):
     """Run command and save output to file"""
@@ -62,9 +68,9 @@ def main():
     # base_env['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
     
     # Run DNNE
-    dnne_cmd = 'source /home/asantanna/miniconda/bin/activate DNNE_PY38 && python runner.py --fixed-seed 42 --epochs 999 --headless'
-    dnne_cwd = '/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/exports/Cartpole_PPO'
-    dnne_output = '/tmp/dnne_1cycle_final.log'
+    dnne_cmd = f'{config.get_conda_activate()} && python runner.py --fixed-seed 42 --epochs 999 --headless'
+    dnne_cwd = str(config.get_export_path('Cartpole_PPO'))
+    dnne_output = str(config.get_temp_dir() / 'dnne_1cycle_final.log')
     
     dnne_code, dnne_time = run_command_with_output(
         dnne_cmd, dnne_cwd, base_env, dnne_output, "DNNE (1 PPO cycle)"
@@ -74,9 +80,9 @@ def main():
     ige_env = base_env.copy()
     # No need to set USE_RL_GAMES_DNNE - it's the default now
     
-    ige_cmd = 'source /home/asantanna/miniconda/bin/activate DNNE_PY38 && python train.py task=Cartpole seed=42 headless=True'
-    ige_cwd = '/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs'
-    ige_output = '/tmp/ige_1cycle_final.log'
+    ige_cmd = f'{config.get_conda_activate()} && python train.py task=Cartpole seed=42 headless=True'
+    ige_cwd = str(Path(config.get_path('isaac_gym_envs')) / 'isaacgymenvs')
+    ige_output = str(config.get_temp_dir() / 'ige_1cycle_final.log')
     
     ige_code, ige_time = run_command_with_output(
         ige_cmd, ige_cwd, ige_env, ige_output, "IGE with rl_games_dnne (1 PPO cycle)"

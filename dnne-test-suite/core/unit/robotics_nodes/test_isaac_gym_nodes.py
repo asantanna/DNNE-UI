@@ -87,7 +87,7 @@ def test_isaac_gym_step_node_structure():
 @pytest.mark.timeout(30)
 def test_or_node_structure():
     """Test OR node basic structure."""
-    from custom_nodes.robotics_nodes.isaac_gym_nodes import ORNode
+    from custom_nodes.utility_nodes.or_node import ORNode
     
     node = ORNode()
     
@@ -115,13 +115,13 @@ def test_or_node_structure():
 @pytest.mark.timeout(30)
 def test_robotics_node_categories():
     """Test that robotics nodes have appropriate categories."""
-    from custom_nodes.robotics_nodes.isaac_gym_nodes import ORNode
+    from custom_nodes.utility_nodes.or_node import ORNode
     
     node = ORNode()
     assert hasattr(node, "CATEGORY")
     
     category = node.CATEGORY.lower()
-    assert any(keyword in category for keyword in ["robotics", "control", "rl", "dnne"])
+    assert any(keyword in category for keyword in ["robotics", "control", "rl", "dnne", "utility"])
 
 
 @pytest.mark.robotics

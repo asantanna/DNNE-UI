@@ -12,6 +12,10 @@ import sys
 import os
 from pathlib import Path
 
+# Add parent directory to Python path to import dnne_config
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from dnne_config import config
+
 # Add profiling directory to Python path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -162,7 +166,7 @@ Examples:
         formatter.format_comparison(results)
         
         # Save combined results
-        output_file = Path('/tmp/performance_comparison_results.json')
+        output_file = config.get_temp_dir() / 'performance_comparison_results.json'
         with open(output_file, 'w') as f:
             json.dump({
                 'config': {

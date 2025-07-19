@@ -9,6 +9,10 @@ from pathlib import Path
 from typing import List, Tuple, Optional, Dict
 import argparse
 
+# Add parent directory to Python path to import dnne_config
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from dnne_config import config
+
 class DiffBasedComparer:
     def __init__(self, width: int = 80, ignore_shared_differences: bool = False):
         self.width = width
@@ -66,7 +70,7 @@ class DiffBasedComparer:
     
     def save_preprocessed(self, filepath: Path) -> Path:
         """Create preprocessed version of a file"""
-        output_path = Path(f"/tmp/preproc_{filepath.name}")
+        output_path = config.get_temp_dir() / f"preproc_{filepath.name}"
         
         with open(filepath, 'r') as f_in, open(output_path, 'w') as f_out:
             for line in f_in:
@@ -325,8 +329,8 @@ class DiffBasedComparer:
 
 def main():
     parser = argparse.ArgumentParser(description='Compare PPO logs using diff for alignment')
-    parser.add_argument('file1', nargs='?', default='/tmp/dnne_1cycle_final.log', help='First log file (default: /tmp/dnne_1cycle_final.log)')
-    parser.add_argument('file2', nargs='?', default='/tmp/ige_1cycle_final.log', help='Second log file (default: /tmp/ige_1cycle_final.log)')
+    parser.add_argument('file1', nargs='?', default=str(config.get_temp_dir() / 'dnne_1cycle_final.log'), help=f'First log file (default: {config.get_temp_dir()}/dnne_1cycle_final.log)')
+    parser.add_argument('file2', nargs='?', default=str(config.get_temp_dir() / 'ige_1cycle_final.log'), help=f'Second log file (default: {config.get_temp_dir()}/ige_1cycle_final.log)')
     parser.add_argument('--width', '-w', type=int, default=80, help='Column width (default: 80)')
     parser.add_argument('--debug', '-d', action='store_true', help='Enable debug output')
     parser.add_argument('--ignore-shared-differences', action='store_true',

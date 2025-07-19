@@ -49,7 +49,7 @@ class NetworkNode_{NODE_ID}(QueueNode):
         
         # Initialize checkpoint manager if enabled
         if self.checkpoint_enabled:
-            from run_utils import CheckpointManager, validate_checkpoint_config
+            from framework import CheckpointManager, validate_checkpoint_config
             
             # Validate checkpoint configuration
             checkpoint_config = {{

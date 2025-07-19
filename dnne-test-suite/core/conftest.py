@@ -28,6 +28,10 @@ import numpy as np
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+# Add core directory to Python path so fixtures can be imported
+CORE_DIR = Path(__file__).parent
+sys.path.insert(0, str(CORE_DIR))
+
 # Test data directory
 TEST_DATA_DIR = Path(__file__).parent / "fixtures"
 

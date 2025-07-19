@@ -45,3 +45,8 @@ ppo_agent_profile.stats
 
 # Training runs output
 runs/
+
+# User-specific configuration files
+.dnne/
+dnne_config.local.json
+*.config.local.json

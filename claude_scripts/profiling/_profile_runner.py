@@ -3,14 +3,19 @@
 Profile Runner - Executes profiling for IsaacGymEnvs and DNNE
 
 Uses python -m cProfile to profile each system externally.
-Saves profile data and basic metrics to /tmp/.
+Saves profile data and basic metrics to configured temp directory.
 """
 
 import subprocess
 import time
 import json
 import os
+import sys
 from pathlib import Path
+
+# Add parent directory to Python path to import dnne_config
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from dnne_config import config
 
 class ProfileRunner:
     """Runs profiling for both systems using external cProfile"""
@@ -30,7 +35,7 @@ class ProfileRunner:
     
     def extract_max_epochs_from_workflow(self):
         """Extract max_epochs value from DNNE workflow JSON"""
-        workflow_file = Path("/mnt/e/ALS-Projects/DNNE/DNNE-UI/user/default/workflows/Cartpole_PPO.json")
+        workflow_file = config.get_workflow_path("Cartpole_PPO")
         if not workflow_file.exists():
             raise FileNotFoundError(f"Workflow file not found: {workflow_file}")
             
@@ -77,7 +82,7 @@ class ProfileRunner:
         
         # Change to IsaacGymEnvs directory
         original_dir = os.getcwd()
-        isaac_dir = '/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs'
+        isaac_dir = config.get_path('isaac_gym_envs')
         
         if not Path(isaac_dir).exists():
             print(f"❌ IsaacGymEnvs directory not found: {isaac_dir}")
@@ -87,7 +92,7 @@ class ProfileRunner:
         
         try:
             # Build the command to run IsaacGymEnvs directly with cProfile
-            prof_file = '/tmp/isaacgymenvs_training.prof'
+            prof_file = str(config.get_temp_dir() / 'isaacgymenvs_training.prof')
             
             # Set up environment variables for debugging
             env = os.environ.copy()
@@ -130,7 +135,7 @@ class ProfileRunner:
             # Run with profiling
             try:
                 # Save debug output
-                debug_file = open('/tmp/isaacgymenvs_profile_debug.log', 'w')
+                debug_file = open(config.get_temp_dir() / 'isaacgymenvs_profile_debug.log', 'w')
                 
                 result = subprocess.run(
                     cmd, 
@@ -172,7 +177,7 @@ class ProfileRunner:
                     }
                     
                     # Save metrics
-                    metrics_file = '/tmp/isaacgymenvs_metrics.json'
+                    metrics_file = str(config.get_temp_dir() / 'isaacgymenvs_metrics.json')
                     with open(metrics_file, 'w') as f:
                         json.dump(metrics, f, indent=2)
                     
@@ -482,7 +487,7 @@ class ProfileRunner:
                             debug_data['policy_params']['sigma_std'] = float(match.group(2))
         
         # Save to JSON file
-        output_file = f'/tmp/{system_name}_ppo_cycle_debug.json'
+        output_file = str(config.get_temp_dir() / f'{system_name}_ppo_cycle_debug.json')
         with open(output_file, 'w') as f:
             json.dump(debug_data, f, indent=2)
         
@@ -498,14 +503,14 @@ class ProfileRunner:
         """Profile DNNE using subprocess with cProfile"""
         print("\n🔬 Running DNNE profiling...")
         
-        export_dir = Path("/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/exports/Cartpole_PPO")
+        export_dir = config.get_export_path("Cartpole_PPO")
         if not export_dir.exists():
             print(f"  ❌ DNNE export not found at: {export_dir}")
             print("  Please export the Cartpole_PPO workflow first")
             return None
         
         # Build the command to run DNNE directly with cProfile
-        prof_file = '/tmp/dnne_training.prof'
+        prof_file = str(config.get_temp_dir() / 'dnne_training.prof')
         runner_script = export_dir / 'runner.py'
         
         # Always extract workflow value to know the default
@@ -569,7 +574,7 @@ class ProfileRunner:
         # Run with profiling
         try:
             # Save debug output
-            debug_file = open('/tmp/dnne_profile_debug.log', 'w')
+            debug_file = open(config.get_temp_dir() / 'dnne_profile_debug.log', 'w')
             
             result = subprocess.run(
                 cmd,
@@ -641,7 +646,7 @@ class ProfileRunner:
                 }
                 
                 # Save metrics
-                metrics_file = '/tmp/dnne_metrics.json'
+                metrics_file = str(config.get_temp_dir() / 'dnne_metrics.json')
                 with open(metrics_file, 'w') as f:
                     json.dump(metrics, f, indent=2)
                 
@@ -650,7 +655,7 @@ class ProfileRunner:
                 
             else:
                 print(f"  ❌ Failed with return code {result.returncode}")
-                print(f"  Check /tmp/dnne_profile_debug.log for details")
+                print(f"  Check {config.get_temp_dir()}/dnne_profile_debug.log for details")
                 return None
                 
         except subprocess.TimeoutExpired:

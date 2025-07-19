@@ -1,0 +1,21 @@
+{
+  "paths": {
+    "dnne_root": "/mnt/e/ALS-Projects/DNNE/DNNE-UI",
+    "linux_support": "/home/asantanna/DNNE-LINUX-SUPPORT",
+    "isaac_gym_envs": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs",
+    "isaac_gym": "/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym",
+    "rl_games_dnne": "/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne",
+    "conda_path": "/home/asantanna/miniconda",
+    "conda_env": "DNNE_PY38"
+  },
+  "export": {
+    "default_workflow": "Cartpole_PPO",
+    "workflow_path": "user/default/workflows",
+    "export_base": "export_system/exports"
+  },
+  "profiling": {
+    "default_num_envs": 512,
+    "default_timeout": 300,
+    "temp_directory": "/tmp"
+  }
+}

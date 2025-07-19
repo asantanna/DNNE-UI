@@ -311,8 +311,8 @@ class TestCodeGeneration:
             assert framework_dir.is_dir(), "framework should be a directory"
             
             # Should contain base framework files
-            base_file = framework_dir / "base.py"
-            assert base_file.exists(), "Framework should contain base.py"
+            base_file = framework_dir / "base_nodes.py"
+            assert base_file.exists(), "Framework should contain base_nodes.py"
             
             content = base_file.read_text()
             assert "QueueNode" in content or "class" in content, "Base file should contain framework code"

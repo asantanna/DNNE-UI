@@ -17,6 +17,10 @@ from pathlib import Path
 from typing import List, Tuple, Dict, Optional
 import argparse
 
+# Add parent directory to Python path to import dnne_config
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from dnne_config import config
+
 class PPOLogComparator:
     def __init__(self, width: int = 80):
         self.width = width
@@ -48,8 +52,8 @@ class PPOLogComparator:
     
     def preprocess_file(self, filepath: Path) -> Path:
         """Create a preprocessed version of the file with numbers removed"""
-        # Save to /tmp with predictable name
-        preprocessed_path = Path(f"/tmp/preproc_{filepath.name}")
+        # Save to temp directory with predictable name
+        preprocessed_path = config.get_temp_dir() / f"preproc_{filepath.name}"
         
         with open(filepath, 'r') as f_in, open(preprocessed_path, 'w') as f_out:
             for line in f_in:
