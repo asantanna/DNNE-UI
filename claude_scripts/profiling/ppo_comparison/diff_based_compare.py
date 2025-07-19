@@ -12,6 +12,7 @@ import argparse
 class DiffBasedComparer:
     def __init__(self, width: int = 80):
         self.width = width
+        self.debug = False
         
     def preprocess_line(self, line: str) -> str:
         """Preprocess a log line to remove changing values for structural comparison"""
@@ -63,10 +64,10 @@ class DiffBasedComparer:
         return output_path
     
     def run_diff(self, file1: Path, file2: Path) -> List[str]:
-        """Run diff --minimal -U 0 on two files"""
+        """Run diff -U 0 on two files"""
         try:
             result = subprocess.run(
-                ['diff', '--minimal', '-U', '0', str(file1), str(file2)],
+                ['diff', '-U', '0', str(file1), str(file2)],
                 capture_output=True,
                 text=True
             )
@@ -81,13 +82,13 @@ class DiffBasedComparer:
         """
         Parse unified diff output to create alignment.
         Returns list of (type, index1, index2) where type is:
-        - 'match': lines match structurally
-        - 'both': lines are paired by diff but different
-        - 'only1': line only in file1
-        - 'only2': line only in file2
+        - 'match': lines match exactly (white)
+        - 'yellow': lines match only after preprocessing
+        - 'hunk': part of a diff hunk (red/green)
         """
         alignment = []
         i1, i2 = 0, 0  # Current position in files
+        debug = self.debug  # Use the instance debug flag
         
         i = 0
         while i < len(diff_output):
@@ -105,40 +106,81 @@ class DiffBasedComparer:
                 start2 = int(match.group(3)) - 1
                 count2 = int(match.group(4)) if match.group(4) else 1
                 
-                # Add any skipped matching lines before this hunk
-                while i1 < start1 and i2 < start2:
-                    # These lines exist in both files and match
-                    alignment.append(('match', i1, i2))
-                    i1 += 1
-                    i2 += 1
+                if debug:
+                    print(f"\nDEBUG: Processing hunk {line}")
+                    print(f"  Current positions: i1={i1}, i2={i2}")
+                    print(f"  Hunk targets: start1={start1} (count={count1}), start2={start2} (count={count2})")
                 
-                # Process the hunk content
+                # Handle lines between hunks
+                # Key insight: The diff tells us which lines in the preprocessed files correspond
+                # For a zero-length hunk, the position indicates where content would be inserted
+                
+                if debug:
+                    print(f"  Catch-up phase from ({i1},{i2}) to ({start1},{start2})")
+
+                # ALS: special case for empty hunks
+                if count1 == 0:
+                    start1 += 1
+                if count2 == 0:
+                    start2 += 1
+                    
+                # Pair lines between current position and hunk start
+                # We need to handle the fact that positions may be offset due to previous edits
+                while i1 < start1 or i2 < start2:
+                    if i1 < start1 and i2 < start2:
+                        # Both files have lines before the hunk
+                        if debug:
+                            print(f"    Pairing ({i1},{i2}): '{orig1_lines[i1][:30]}...' <-> '{orig2_lines[i2][:30]}...'")
+                        
+                        if orig1_lines[i1] == orig2_lines[i2]:
+                            alignment.append(('match', i1, i2))
+                        else:
+                            alignment.append(('yellow', i1, i2))
+                        i1 += 1
+                        i2 += 1
+                    elif i1 < start1:
+                        # Only file1 has lines left before hunk
+                        if debug:
+                            print(f"    Red {i1}: '{orig1_lines[i1][:30]}...'")
+                        alignment.append(('hunk', i1, None))
+                        i1 += 1
+                    elif i2 < start2:
+                        # Only file2 has lines left before hunk
+                        if debug:
+                            print(f"    Green {i2}: '{orig2_lines[i2][:30]}...'")
+                        alignment.append(('hunk', None, i2))
+                        i2 += 1
+                
+                # Process the hunk itself
+                # Read all lines from the hunk
                 i += 1
-                hunk_lines = []
-                while i < len(diff_output) and not diff_output[i].startswith('@@') and not diff_output[i].startswith('---') and not diff_output[i].startswith('+++'):
-                    hunk_lines.append(diff_output[i])
+                del_lines = []  # Line indices for deletions
+                add_lines = []  # Line indices for additions
+                
+                # Collect deletion indices
+                hunk_i1 = i1
+                while i < len(diff_output) and diff_output[i].startswith('-'):
+                    del_lines.append(hunk_i1)
+                    hunk_i1 += 1
                     i += 1
                 
-                # Process each line in the hunk
-                for hunk_line in hunk_lines:
-                    if hunk_line.startswith('-'):
-                        # Line only in file1
-                        alignment.append(('only1', i1, None))
-                        i1 += 1
-                    elif hunk_line.startswith('+'):
-                        # Line only in file2
-                        alignment.append(('only2', None, i2))
-                        i2 += 1
-                    elif hunk_line.startswith(' '):
-                        # Line in both files (context line with -U 0 shouldn't happen often)
-                        # Check if they actually match after preprocessing
-                        if i1 < len(prep1_lines) and i2 < len(prep2_lines):
-                            if prep1_lines[i1] == prep2_lines[i2]:
-                                alignment.append(('match', i1, i2))
-                            else:
-                                alignment.append(('both', i1, i2))
-                        i1 += 1
-                        i2 += 1
+                # Collect addition indices  
+                hunk_i2 = i2
+                while i < len(diff_output) and diff_output[i].startswith('+'):
+                    add_lines.append(hunk_i2)
+                    hunk_i2 += 1
+                    i += 1
+                
+                # Create alignment for the hunk using max length
+                max_count = max(len(del_lines), len(add_lines))
+                for j in range(max_count):
+                    left_idx = del_lines[j] if j < len(del_lines) else None
+                    right_idx = add_lines[j] if j < len(add_lines) else None
+                    alignment.append(('hunk', left_idx, right_idx))
+                
+                # Update positions after processing the hunk
+                i1 = hunk_i1
+                i2 = hunk_i2
                 
                 continue
                 
@@ -149,22 +191,22 @@ class DiffBasedComparer:
             else:
                 i += 1
         
-        # Add any remaining matching lines
+        # Handle any remaining lines after all hunks
         while i1 < len(orig1_lines) and i2 < len(orig2_lines):
-            if i1 < len(prep1_lines) and i2 < len(prep2_lines) and prep1_lines[i1] == prep2_lines[i2]:
-                alignment.append(('match', i1, i2))
+            if orig1_lines[i1] == orig2_lines[i2]:
+                alignment.append(('match', i1, i2))  # White
             else:
-                alignment.append(('both', i1, i2))
+                alignment.append(('yellow', i1, i2))  # Yellow
             i1 += 1
             i2 += 1
         
-        # Add any remaining lines from either file
+        # Handle any trailing lines
         while i1 < len(orig1_lines):
-            alignment.append(('only1', i1, None))
+            alignment.append(('hunk', i1, None))
             i1 += 1
             
         while i2 < len(orig2_lines):
-            alignment.append(('only2', None, i2))
+            alignment.append(('hunk', None, i2))
             i2 += 1
         
         return alignment
@@ -183,12 +225,10 @@ class DiffBasedComparer:
         print("=" * (self.width * 2 + len(divider)))
         
         # Statistics
-        stats = {'match': 0, 'both': 0, 'only1': 0, 'only2': 0}
+        stats = {'match': 0, 'yellow': 0, 'red': 0, 'green': 0, 'both': 0}
         
         # Display each aligned pair
         for align_type, idx1, idx2 in alignment:
-            stats[align_type] += 1
-            
             # Get the actual lines (or empty for fillers)
             line1 = orig1_lines[idx1] if idx1 is not None else ""
             line2 = orig2_lines[idx2] if idx2 is not None else ""
@@ -198,38 +238,41 @@ class DiffBasedComparer:
             formatted2 = line2[:self.width].ljust(self.width)
             
             if align_type == 'match':
-                # White - structural match
+                # White - exact match
                 print(f"{formatted1}{divider}{formatted2}")
+                stats['match'] += 1
                 
-            elif align_type == 'both':
-                # Yellow - both present but different
-                # Double-check they're actually different after preprocessing
-                if idx1 is not None and idx2 is not None and idx1 < len(prep1_lines) and idx2 < len(prep2_lines):
-                    if prep1_lines[idx1] == prep2_lines[idx2]:
-                        # Actually matches, show as white
-                        print(f"{formatted1}{divider}{formatted2}")
-                        stats['both'] -= 1
-                        stats['match'] += 1
-                    else:
-                        # Truly different, show as yellow
-                        print(f"\033[33m{formatted1}\033[0m{divider}\033[33m{formatted2}\033[0m")
-                        
-            elif align_type == 'only1':
-                # Red - only in file1
-                print(f"\033[31m{formatted1}\033[0m{divider}{' ' * self.width}")
+            elif align_type == 'yellow':
+                # Yellow - matches only after preprocessing
+                print(f"\033[33m{formatted1}\033[0m{divider}\033[33m{formatted2}\033[0m")
+                stats['yellow'] += 1
                 
-            elif align_type == 'only2':
-                # Green - only in file2
-                print(f"{' ' * self.width}{divider}\033[32m{formatted2}\033[0m")
+            elif align_type == 'hunk':
+                # Part of a diff hunk - red/green/blank
+                if idx1 is not None and idx2 is not None:
+                    # Both sides have content
+                    print(f"\033[31m{formatted1}\033[0m{divider}\033[32m{formatted2}\033[0m")
+                    stats['red'] += 1
+                    stats['green'] += 1
+                    stats['both'] += 1
+                elif idx1 is not None:
+                    # Only left side (red)
+                    print(f"\033[31m{formatted1}\033[0m{divider}{' ' * self.width}")
+                    stats['red'] += 1
+                else:
+                    # Only right side (green)
+                    print(f"{' ' * self.width}{divider}\033[32m{formatted2}\033[0m")
+                    stats['green'] += 1
         
         # Summary
         print("\n" + "=" * (self.width * 2 + len(divider)))
         print(f"\nSummary:")
         print(f"  Total lines: {len(alignment)}")
-        print(f"  White (structural match): {stats['match']}")
-        print(f"  Yellow (both but different): {stats['both']}")
-        print(f"  Red (only in {name1}): {stats['only1']}")
-        print(f"  Green (only in {name2}): {stats['only2']}")
+        print(f"  White (exact match): {stats['match']}")
+        print(f"  Yellow (match after preprocessing): {stats['yellow']}")
+        print(f"  Red (deleted lines): {stats['red']}")
+        print(f"  Green (added lines): {stats['green']}")
+        print(f"  Both red/green on same line: {stats['both']}")
     
     def compare_files(self, file1: Path, file2: Path):
         """Main comparison function"""
@@ -252,7 +295,7 @@ class DiffBasedComparer:
             prep2_lines = [line.rstrip() for line in f]
         
         # Run diff
-        print(f"Running diff --minimal -U 0...")
+        print(f"Running diff -U 0...")
         diff_output = self.run_diff(prep1_path, prep2_path)
         
         # Parse diff output to get alignment
@@ -265,9 +308,10 @@ class DiffBasedComparer:
 
 def main():
     parser = argparse.ArgumentParser(description='Compare PPO logs using diff for alignment')
-    parser.add_argument('file1', help='First log file')
-    parser.add_argument('file2', help='Second log file')
+    parser.add_argument('file1', nargs='?', default='/tmp/dnne_1cycle_final.log', help='First log file (default: /tmp/dnne_1cycle_final.log)')
+    parser.add_argument('file2', nargs='?', default='/tmp/ige_1cycle_final.log', help='Second log file (default: /tmp/ige_1cycle_final.log)')
     parser.add_argument('--width', '-w', type=int, default=80, help='Column width (default: 80)')
+    parser.add_argument('--debug', '-d', action='store_true', help='Enable debug output')
     
     args = parser.parse_args()
     
@@ -282,6 +326,7 @@ def main():
         sys.exit(1)
     
     comparer = DiffBasedComparer(width=args.width)
+    comparer.debug = args.debug  # Enable debug if requested
     comparer.compare_files(file1, file2)
 
 if __name__ == "__main__":
