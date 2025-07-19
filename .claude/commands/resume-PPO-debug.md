@@ -24,6 +24,22 @@ You are resuming work on debugging the DNNE PPO implementation. In DNNE, the wor
 
 **Debugging Methodology**: Use matching debug prints (`PPO_CYCLE_DEBUG=1`) to compare DNNE vs IGE execution step-by-step. Run only one PPO cycle because debug prints are very verbose (`PPO_STOP_AFTER_CYCLE=1`)
 
+**Log Comparison Tools**:
+```bash
+# Run 1-cycle comparison with automatic log comparison
+cd /mnt/e/ALS-Projects/DNNE/DNNE-UI
+python claude_scripts/profiling/ppo_comparison/run_1cycle_comparison.py
+
+# Compare existing logs manually (simple)
+python claude_scripts/profiling/ppo_comparison/compare_ppo_logs.py
+
+# Use diff-based comparison for detailed analysis (PREFERRED)
+python claude_scripts/profiling/ppo_comparison/diff_based_compare.py
+
+# Optional flags for comparison tools:
+# --ignore-shared-differences : Ignore D/I/B differences in shared code
+```
+
 **Next Priority**: Verify that PPO training completes successfully and produces learning behavior identical to IGE.
 
 ## Quick Start Commands
