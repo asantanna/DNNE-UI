@@ -27,41 +27,29 @@ python run_1cycle_comparison.py
 - Uses fixed seed (42) for deterministic results
 
 ### compare_ppo_logs.py
-Compares DNNE and IGE debug logs with intelligent preprocessing to handle expected differences.
+Advanced comparison tool for DNNE and IGE debug logs using diff algorithm for accurate line-by-line alignment.
 
 **Usage:**
 ```bash
 # Compare specific files
-python compare_ppo_logs.py dnne.log ige.log
+python compare_ppo_logs.py ige.log dnne.log
 
 # Compare latest logs in /tmp (default)
 python compare_ppo_logs.py
-```
-
-**Features:**
-- Preprocesses logs to normalize paths, timestamps, and numeric values
-- Ignores expected differences (paths, addresses, etc.)
-- Highlights actual behavioral differences
-- Saves preprocessed logs to `/tmp` for further analysis
-
-### diff_based_compare.py
-Advanced comparison tool using diff algorithm for accurate line-by-line alignment.
-
-**Usage:**
-```bash
-# Compare latest preprocessed logs (default)
-python diff_based_compare.py
 
 # With options
-python diff_based_compare.py --ignore-shared-differences
+python compare_ppo_logs.py --check-shared-attrib
 ```
 
 **Features:**
+- Line numbers on both sides for easy reference
 - Uses `diff --minimal -U 0` for accurate alignment
+- Preprocesses logs to normalize paths, timestamps, and numeric values
 - Color-coded output (white=match, yellow=similar, red/green=different)
 - Handles zero-length hunks correctly
-- Option to ignore D/I/B shared attribute differences
+- Ignores D/I/B shared attribute differences by default (use --check-shared-attrib to include them)
 - Side-by-side comparison with proper alignment
+- Saves preprocessed logs to `/tmp` for further analysis
 
 ### run_ppo_comparison_timed.py
 The main performance comparison script that runs both DNNE and IsaacGymEnvs with identical settings and measures execution time.

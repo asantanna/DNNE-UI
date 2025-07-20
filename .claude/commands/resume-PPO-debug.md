@@ -30,14 +30,11 @@ You are resuming work on debugging the DNNE PPO implementation. In DNNE, the wor
 cd /mnt/e/ALS-Projects/DNNE/DNNE-UI
 python claude_scripts/profiling/ppo_comparison/run_1cycle_comparison.py
 
-# Compare existing logs manually (simple)
+# Compare logs with diff-based alignment and line numbers
 python claude_scripts/profiling/ppo_comparison/compare_ppo_logs.py
 
-# Use diff-based comparison for detailed analysis (PREFERRED)
-python claude_scripts/profiling/ppo_comparison/diff_based_compare.py
-
 # Optional flags for comparison tools:
-# --ignore-shared-differences : Ignore D/I/B differences in shared code
+# --check-shared-attrib : Check D/I/B differences in shared code (by default they are ignored)
 ```
 
 **Next Priority**: Verify that PPO training completes successfully and produces learning behavior identical to IGE.

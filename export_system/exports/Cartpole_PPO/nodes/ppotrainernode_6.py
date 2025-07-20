@@ -322,10 +322,14 @@ class PPOTrainerNode_6(QueueNode):
         
         # Get bootstrap value from the model for the last state
         with torch.no_grad():
-            # Get shared features for last state
-            last_features = model['shared'](last_state)
-            # Get value prediction
-            last_values = model['value'](last_features).squeeze(-1)
+            # For A2CBuilder models, use the model's forward interface
+            input_dict = {
+                'obs': last_state,
+                'is_train': False,
+                'prev_actions': None
+            }
+            result = model(input_dict)
+            last_values = result['values'].squeeze(-1)
         
         # Calculate dimensions for reshape
         num_envs = last_state.shape[0]  # Number of environments
