@@ -190,7 +190,7 @@ class PPOAgentNode_3(QueueNode):
             if self.model is None:
                 if self.ppo_cycle_debug and self.step_count == 0:
                     from isaacgymenvs.utils.debug_utils import DNNE_print
-                    # Log initial observation details like IGE (but not the cycle start - that's in PPO trainer)
+                    # Log initial observation details like IGE
                     first_obs = observations[0]
                     DNNE_print("D", "PPO_INITIAL", f"First observation: {first_obs[:4].tolist() if len(first_obs) >= 4 else first_obs.tolist()}")
                     DNNE_print("D", "PPO_INITIAL", f"Observation shape: {observations.shape}")
@@ -296,20 +296,5 @@ class PPOAgentNode_3(QueueNode):
             import traceback
             self.logger.error(traceback.format_exc())
             
-            # Return safe defaults
-            safe_action = torch.zeros(self.action_dim, device=self.device)
-            safe_value = torch.tensor(0.0, device=self.device)
-            safe_log_prob = torch.tensor(0.0, device=self.device)
-            
-            safe_policy_output = {
-                "action": safe_action,
-                "value": safe_value,
-                "log_prob": safe_log_prob,
-                "action_mean": safe_action,
-                "action_std": torch.ones(self.action_dim, device=self.device)
-            }
-            
-            return {
-                "policy_output": safe_policy_output,
-                "model": self.model if self.model is not None else nn.Module()
-            }
+            # Re-raise the exception to trigger immediate exit
+            raise

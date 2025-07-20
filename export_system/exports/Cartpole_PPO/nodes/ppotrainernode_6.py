@@ -84,9 +84,6 @@ class PPOTrainerNode_6(QueueNode):
         
         # PPO cycle tracking
         self.ppo_cycles_completed = 0
-        
-        # Initial step tracking (to match IGE behavior)
-        self.needs_initial_step = True  # True at startup
         self.stop_after_cycle = None
         ppo_stop_env = os.environ.get('PPO_STOP_AFTER_CYCLE')
         if ppo_stop_env:
@@ -469,50 +466,7 @@ class PPOTrainerNode_6(QueueNode):
             action_mean = policy_output.get("action_mean", torch.zeros_like(action))
             action_std = policy_output.get("action_std", torch.ones_like(action))
             
-            # Check if we need to perform an initial step (to match IGE behavior)
-            # IGE steps once after reset before starting PPO collection
-            # Since Isaac Gym resets environments immediately when done=True,
-            # we skip the step right after any done flags are set
-            if self.needs_initial_step:
-                # Initial startup - we need to consume this step but not add to buffer
-                import os
-                if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
-                    from isaacgymenvs.utils.debug_utils import DNNE_print
-                    DNNE_print("D", "PPO_INITIAL_STEP", "Consuming initial step before PPO collection (matching IGE)")
-                self.needs_initial_step = False
-                
-                # IMPORTANT: We return a normal signal so the environment will step
-                # but we don't add this data to the buffer
-                return {
-                    "loss": torch.tensor(0.0, device=self.device),
-                    "training_complete": {
-                        "signal_type": "collecting", 
-                        "buffer_size": 0,
-                        "horizon_length": self.horizon_length,
-                        "source_node": f"ppo_trainer_{self.node_id}"
-                    }
-                }
-            
-            # Also skip steps where environments were just reset
-            if torch.any(done):
-                reset_envs = torch.sum(done).item()
-                import os
-                if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
-                    from isaacgymenvs.utils.debug_utils import DNNE_print
-                    DNNE_print("D", "PPO_RESET_STEP", f"{reset_envs} environments were reset, skipping this step")
-                
-                # Return collecting signal so environment continues stepping
-                return {
-                    "loss": torch.tensor(0.0, device=self.device),
-                    "training_complete": {
-                        "signal_type": "collecting",
-                        "buffer_size": len(self.buffer_states),
-                        "horizon_length": self.horizon_length,
-                        "source_node": f"ppo_trainer_{self.node_id}"
-                    }
-                }
-            
-            # Log PPO cycle start on first real data collection
+            # Log PPO cycle start on first data collection
             import os
             ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
             if ppo_cycle_debug and len(self.buffer_states) == 0:
@@ -786,18 +740,8 @@ class PPOTrainerNode_6(QueueNode):
             # CRITICAL: Reset buffer even on error to prevent infinite growth
             self.reset_buffer()
             
-            # Return safe defaults
-            safe_loss = torch.tensor(-1.0, device=self.device)
-            safe_signal = {
-                "signal_type": "error",
-                "error": str(e),
-                "source_node": f"ppo_trainer_{self.node_id}"
-            }
-            
-            return {
-                "loss": safe_loss,
-                "training_complete": safe_signal
-            }
+            # Re-raise the exception to trigger immediate exit
+            raise
     
     async def save_checkpoint_on_exit(self, exit_reason: str) -> bool:
         """Save checkpoint on exit if enabled (unchanged from original)"""

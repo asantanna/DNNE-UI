@@ -62,11 +62,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
         except Exception as e:
             self.logger.error(f"Error in CartpoleActionNode {{self.node_id}}: {{e}}")
-            # Return safe default - zeros for all environments
-            import torch
-            # Assume 512 environments if we can't determine from policy
-            num_envs = 512
-            default_action = torch.zeros(num_envs, 1, dtype=torch.float32)
-            return {{
-                "action": default_action
-            }}
+            import traceback
+            self.logger.error(traceback.format_exc())
+            # Re-raise the exception to trigger immediate exit
+            raise

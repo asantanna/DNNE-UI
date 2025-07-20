@@ -78,6 +78,15 @@ class QueueNode(ABC):
         except asyncio.CancelledError:
             self.logger.info(f"Node {self.node_id} cancelled")
             raise
+        except Exception as e:
+            # Catch any other exceptions and exit immediately
+            self.logger.error(f"FATAL ERROR in node {self.node_id}: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            print(f"\n❌ FATAL ERROR in node {self.node_id}: {e}")
+            print("Exiting immediately due to node error.")
+            import sys
+            sys.exit(1)
         finally:
             self.running = False
 
@@ -118,5 +127,14 @@ class SensorNode(QueueNode):
         except asyncio.CancelledError:
             self.logger.info(f"Sensor {self.node_id} cancelled")
             raise
+        except Exception as e:
+            # Catch any other exceptions and exit immediately
+            self.logger.error(f"FATAL ERROR in sensor {self.node_id}: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            print(f"\n❌ FATAL ERROR in sensor {self.node_id}: {e}")
+            print("Exiting immediately due to sensor error.")
+            import sys
+            sys.exit(1)
         finally:
             self.running = False

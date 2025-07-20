@@ -105,15 +105,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
         except Exception as e:
             self.logger.error(f"Error in CartpoleRewardNode {self.node_id}: {e}")
-            
-            # Return safe defaults
-            safe_output = torch.tensor(-1.0 if self.invert_for_loss else 1.0, 
-                                     dtype=torch.float32, device=observations.device)
-            safe_done = torch.tensor([False], dtype=torch.bool, device=observations.device)
-            safe_info = torch.tensor([self.episode_steps], dtype=torch.float32, device=observations.device)
-            
-            return {
-                "reward_or_loss": safe_output,
-                "done": safe_done,
-                "info_dict": safe_info
-            }
+            import traceback
+            self.logger.error(traceback.format_exc())
+            # Re-raise the exception to trigger immediate exit
+            raise

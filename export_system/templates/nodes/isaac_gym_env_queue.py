@@ -121,24 +121,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             )
             
             # Call reset to match IGE initialization behavior
-            initial_obs = self.env.reset()
-            
-            # CRITICAL: Perform one initial step to match IGE behavior
-            # IGE steps once after reset before starting PPO collection
-            # Use random actions for this initial step
-            import torch
-            random_actions = torch.randn((self.num_envs, 1), device=self.device)
-            
-            if self.ppo_cycle_debug:
-                from isaacgymenvs.utils.debug_utils import DNNE_print
-                DNNE_print("B", "PPO_CYCLE", f"VecTask.step() call #1 by {self.env.__class__.__module__}.{self.env.__class__.__name__}.step")
-                DNNE_print("B", "PPO_CYCLE", f"Actions shape: {random_actions.shape}, device: {random_actions.device}")
-            
-            # Perform the initial step
-            obs, _, _, _ = self.env.step_async(random_actions)
-            
-            # Cache the stepped observations (not the reset observations!)
-            self.initial_observations = obs
+            _ = self.env.reset()
             
             self.env_initialized = True
             self.logger.info(f"CartpoleDNNE initialized with {{self.num_envs}} environments")
@@ -166,8 +149,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 from isaacgymenvs.utils.debug_utils import DNNE_print
                 DNNE_print("D", "ENV_COMPUTE", f"IsaacGymEnvNode.compute() call #{{self.compute_count}}")
             
-            # Use the cached observations from the initial step
-            initial_observations = self.initial_observations
+            # Get initial observations
+            initial_observations = self.env.get_initial_observations()
             
             # Create environment handle
             env_handle = {
