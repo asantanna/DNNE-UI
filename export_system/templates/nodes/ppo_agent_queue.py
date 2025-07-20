@@ -194,8 +194,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if self.model is None:
                 if self.ppo_cycle_debug and self.step_count == 0:
                     from isaacgymenvs.utils.debug_utils import DNNE_print
-                    DNNE_print("D", "PPO_CYCLE", "=== PPO TRAINING CYCLE 1 START ===")
-                    # Log initial observation details like IGE
+                    # Log initial observation details like IGE (but not the cycle start - that's in PPO trainer)
                     first_obs = observations[0]
                     DNNE_print("D", "PPO_INITIAL", f"First observation: {first_obs[:4].tolist() if len(first_obs) >= 4 else first_obs.tolist()}")
                     DNNE_print("D", "PPO_INITIAL", f"Observation shape: {observations.shape}")

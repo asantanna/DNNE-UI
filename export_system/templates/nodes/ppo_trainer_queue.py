@@ -485,30 +485,52 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # IGE steps once after reset before starting PPO collection
             # Since Isaac Gym resets environments immediately when done=True,
             # we skip the step right after any done flags are set
-            if self.needs_initial_step or torch.any(done):
-                if self.needs_initial_step:
-                    # Initial startup
-                    import os
-                    if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
-                        from isaacgymenvs.utils.debug_utils import DNNE_print
-                        DNNE_print("D", "PPO_INITIAL_STEP", "Performing initial step before PPO collection (matching IGE)")
-                    self.needs_initial_step = False
-                else:
-                    # Environments were just reset (done=True means reset happened)
-                    reset_envs = torch.sum(done).item()
-                    import os
-                    if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
-                        from isaacgymenvs.utils.debug_utils import DNNE_print
-                        DNNE_print("D", "PPO_RESET_STEP", f"{reset_envs} environments were reset, skipping this step")
+            if self.needs_initial_step:
+                # Initial startup - we need to consume this step but not add to buffer
+                import os
+                if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
+                    from isaacgymenvs.utils.debug_utils import DNNE_print
+                    DNNE_print("D", "PPO_INITIAL_STEP", "Consuming initial step before PPO collection (matching IGE)")
+                self.needs_initial_step = False
                 
-                # Return dummy outputs without adding to buffer
+                # IMPORTANT: We return a normal signal so the environment will step
+                # but we don't add this data to the buffer
                 return {
                     "loss": torch.tensor(0.0, device=self.device),
                     "training_complete": {
-                        "signal_type": "initial_step", 
+                        "signal_type": "collecting", 
+                        "buffer_size": 0,
+                        "horizon_length": self.horizon_length,
                         "source_node": f"ppo_trainer_{self.node_id}"
                     }
                 }
+            
+            # Also skip steps where environments were just reset
+            if torch.any(done):
+                reset_envs = torch.sum(done).item()
+                import os
+                if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
+                    from isaacgymenvs.utils.debug_utils import DNNE_print
+                    DNNE_print("D", "PPO_RESET_STEP", f"{reset_envs} environments were reset, skipping this step")
+                
+                # Return collecting signal so environment continues stepping
+                return {
+                    "loss": torch.tensor(0.0, device=self.device),
+                    "training_complete": {
+                        "signal_type": "collecting",
+                        "buffer_size": len(self.buffer_states),
+                        "horizon_length": self.horizon_length,
+                        "source_node": f"ppo_trainer_{self.node_id}"
+                    }
+                }
+            
+            # Log PPO cycle start on first real data collection
+            import os
+            ppo_cycle_debug = os.environ.get('PPO_CYCLE_DEBUG', '0') == '1'
+            if ppo_cycle_debug and len(self.buffer_states) == 0:
+                # This is the first real data being added to buffer for this cycle
+                from isaacgymenvs.utils.debug_utils import DNNE_print
+                DNNE_print("D", "PPO_CYCLE", f"=== PPO TRAINING CYCLE {self.ppo_cycles_completed + 1} START ===")
             
             # Add to buffer (detach to avoid gradient conflicts)
             # Use normalized observations if available (critical for correct training)
@@ -560,11 +582,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # CRITICAL FIX: Each buffer entry contains data for ALL environments
             # So we need horizon_length entries, not horizon_length * num_envs
             if len(self.buffer_states) >= self.horizon_length:
-                # Print PPO training cycle start message to match IGE
-                if ppo_cycle_debug:
-                    from isaacgymenvs.utils.debug_utils import DNNE_print
-                    DNNE_print("D", "PPO_CYCLE", f"=== PPO TRAINING CYCLE {self.ppo_cycles_completed + 1} START ===")
-                    
                 if self.verbose:
                     from isaacgymenvs.utils.debug_utils import DNNE_print
                     DNNE_print("D", "PPO_BUFFER", f"Buffer full! Length: {len(self.buffer_states)}")
