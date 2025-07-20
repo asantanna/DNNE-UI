@@ -11,7 +11,7 @@ from pathlib import Path
 
 # Add parent directory to Python path to import dnne_config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-from dnne_config import config
+from dnne_config import config, get_conda_activate
 
 def run_command_with_output(cmd, cwd, env, output_file, description):
     """Run command and save output to file"""
@@ -68,7 +68,7 @@ def main():
     # base_env['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
     
     # Run DNNE
-    dnne_cmd = f'{config.get_conda_activate()} && python runner.py --fixed-seed 42 --epochs 999 --headless'
+    dnne_cmd = f'{get_conda_activate()} && python runner.py --fixed-seed 42 --epochs 999 --headless'
     dnne_cwd = str(config.get_export_path('Cartpole_PPO'))
     dnne_output = str(config.get_temp_dir() / 'dnne_1cycle_final.log')
     
@@ -80,7 +80,7 @@ def main():
     ige_env = base_env.copy()
     # No need to set USE_RL_GAMES_DNNE - it's the default now
     
-    ige_cmd = f'{config.get_conda_activate()} && python train.py task=Cartpole seed=42 headless=True'
+    ige_cmd = f'{get_conda_activate()} && python train.py task=Cartpole seed=42 headless=True'
     ige_cwd = str(Path(config.get_path('isaac_gym_envs')) / 'isaacgymenvs')
     ige_output = str(config.get_temp_dir() / 'ige_1cycle_final.log')
     

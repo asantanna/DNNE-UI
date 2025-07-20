@@ -60,6 +60,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             # Import CartpoleDNNE from gym_envs subdirectory
             import os
+            import sys
             nodes_dir = os.path.join(os.path.dirname(__file__))
             gym_envs_dir = os.path.join(nodes_dir, 'gym_envs')
             if gym_envs_dir not in sys.path:
