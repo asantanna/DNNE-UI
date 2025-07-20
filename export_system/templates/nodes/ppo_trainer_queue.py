@@ -96,6 +96,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         # PPO cycle tracking
         self.ppo_cycles_completed = 0
+        
+        # Initial step tracking (to match IGE behavior)
+        self.needs_initial_step = True  # True at startup
         self.stop_after_cycle = None
         ppo_stop_env = os.environ.get('PPO_STOP_AFTER_CYCLE')
         if ppo_stop_env:
@@ -477,6 +480,35 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Extract action parameters for rl_games (if available)
             action_mean = policy_output.get("action_mean", torch.zeros_like(action))
             action_std = policy_output.get("action_std", torch.ones_like(action))
+            
+            # Check if we need to perform an initial step (to match IGE behavior)
+            # IGE steps once after reset before starting PPO collection
+            # Since Isaac Gym resets environments immediately when done=True,
+            # we skip the step right after any done flags are set
+            if self.needs_initial_step or torch.any(done):
+                if self.needs_initial_step:
+                    # Initial startup
+                    import os
+                    if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
+                        from isaacgymenvs.utils.debug_utils import DNNE_print
+                        DNNE_print("D", "PPO_INITIAL_STEP", "Performing initial step before PPO collection (matching IGE)")
+                    self.needs_initial_step = False
+                else:
+                    # Environments were just reset (done=True means reset happened)
+                    reset_envs = torch.sum(done).item()
+                    import os
+                    if os.environ.get('PPO_CYCLE_DEBUG', '0') == '1':
+                        from isaacgymenvs.utils.debug_utils import DNNE_print
+                        DNNE_print("D", "PPO_RESET_STEP", f"{reset_envs} environments were reset, skipping this step")
+                
+                # Return dummy outputs without adding to buffer
+                return {
+                    "loss": torch.tensor(0.0, device=self.device),
+                    "training_complete": {
+                        "signal_type": "initial_step", 
+                        "source_node": f"ppo_trainer_{self.node_id}"
+                    }
+                }
             
             # Add to buffer (detach to avoid gradient conflicts)
             # Use normalized observations if available (critical for correct training)
