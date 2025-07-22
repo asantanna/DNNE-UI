@@ -83,7 +83,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 headless=self.headless,
                 virtual_screen_capture=False,
                 force_render=False,
-                dnne_cfg={}  # Empty dict for now, to be populated with options later
+                dnne_cfg=None  # DNNE uses builtins for profiling, not dnne_cfg
             )
             
             # Call reset to match IGE initialization behavior
