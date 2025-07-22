@@ -11,7 +11,8 @@ from .base_node import *
 # Import specific node implementations as you create them
 # from .sensor_nodes import *
 # from .controller_nodes import *
-from .isaac_gym_nodes import *
+from .isaac_gym_base_nodes import *
+from .cartpole_action_node import CartpoleActionNode
 
 # Define robotics node data as tuples (key, class, display_name)
 # Future nodes: just add to this list and they'll be automatically sorted alphabetically
@@ -19,8 +20,8 @@ _ROBOTICS_NODES = [
     ("IsaacGymEnvNode", IsaacGymEnvNode, "Isaac Gym Environment"),
     ("IsaacGymStepNode", IsaacGymStepNode, "Isaac Gym Step"),
     ("CartpoleActionNode", CartpoleActionNode, "Cartpole Action Converter"),
-    ("CartpoleRewardNode", CartpoleRewardNode, "Cartpole Reward Calculator"),
-    # Add new nodes here - they'll be automatically sorted by display name
+    # Future nodes to be implemented:
+    # ("CartpoleRewardNode", CartpoleRewardNode, "Cartpole Reward Calculator"),
     # ("RoboticsCameraNode", CameraNode, "Camera Sensor"),
 ]
 

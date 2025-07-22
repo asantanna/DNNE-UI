@@ -68,41 +68,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             from cartpole_dnne import CartpoleDNNE
             
-            # Create config for environment (matching IsaacGymEnvs format)
-            cfg = {
-                "name": "Cartpole",
-                "physics_engine": "physx",
-                "env": {
-                    "numEnvs": self.num_envs,
-                    "envSpacing": 4.0,
-                    "resetDist": 3.0,
-                    "maxEffort": 10.0,
-                    "numObservations": 4,
-                    "numActions": 1,
-                },
-                "sim": {
-                    "dt": 1.0/60.0,
-                    "substeps": 2,
-                    "up_axis": "z",
-                    "use_gpu_pipeline": self.device == "cuda",
-                    "gravity": [0.0, 0.0, -9.81],
-                    "physx": {
-                        "num_threads": 4,
-                        "solver_type": 1,
-                        "use_gpu": self.device == "cuda",
-                        "num_position_iterations": 4,
-                        "num_velocity_iterations": 1,
-                        "contact_offset": 0.02,
-                        "rest_offset": 0.001,
-                        "bounce_threshold_velocity": 0.2,
-                        "max_depenetration_velocity": 100.0,
-                        "default_buffer_size_multiplier": 5.0,
-                        "max_gpu_contact_pairs": 8388608,
-                        "num_subscenes": 4,
-                        "contact_collection": 0,
-                    },
-                },
-            }
             
             # Set up devices
             rl_device = self.device + ":0" if self.device == "cuda" else self.device
@@ -111,13 +76,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             # Create environment instance
             self.env = CartpoleDNNE(
-                cfg=cfg,
+                cfg=None,
                 rl_device=rl_device,
                 sim_device=sim_device,
                 graphics_device_id=graphics_device_id,
                 headless=self.headless,
                 virtual_screen_capture=False,
-                force_render=False
+                force_render=False,
+                dnne_cfg={}  # Empty dict for now, to be populated with options later
             )
             
             # Call reset to match IGE initialization behavior

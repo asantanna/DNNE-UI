@@ -26,7 +26,7 @@ class CartpoleDNNE(Cartpole):
     Inherits from IsaacGymEnvs Cartpole and adds async/DNNE features
     """
     
-    def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture=False, force_render=False):
+    def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture=False, force_render=False, dnne_cfg=None):
         """Initialize CartpoleDNNE with same interface as IGE"""
         
         # Add any DNNE-specific initialization here
@@ -39,7 +39,7 @@ class CartpoleDNNE(Cartpole):
         self.verbose = getattr(builtins, 'VERBOSE', False)
         
         # Call parent class initialization
-        super().__init__(cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render)
+        super().__init__(cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render, dnne_cfg=dnne_cfg)
         
         from isaacgymenvs.utils.debug_utils import DNNE_print
         DNNE_print("B", "ENV_INIT", f"CartpoleDNNE initialized with {self.num_envs} environments")
