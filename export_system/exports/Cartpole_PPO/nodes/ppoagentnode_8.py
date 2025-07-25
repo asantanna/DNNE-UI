@@ -200,29 +200,34 @@ class PPOAgentNode_8(QueueNode):
         original_dir = os.getcwd()
         
         try:
-            # Change to IsaacGymEnvs directory
-            os.chdir(isaac_gym_envs_path)
+            # Change to IsaacGymEnvs/isaacgymenvs directory where train.py lives
+            os.chdir(isaac_gym_envs_path / "isaacgymenvs")
+            
+            # Debug: Print current directory to verify we're in the right place
+            print(f"Current directory: {os.getcwd()}")
+            print(f"Files in directory: {os.listdir('.')[:10]}")
             
             # Set up Hydra configuration path
             os.environ['HYDRA_FULL_ERROR'] = '1'
             
-            # Import and run train.py directly
-            # This approach allows async yielding to work properly
-            sys.path.insert(0, str(isaac_gym_envs_path))
-            
-            # Import IsaacGymEnvs train module
-            from isaacgymenvs.train import launch_rlg_hydra
-            
             # Convert args to sys.argv format for hydra
             sys.argv = ["train.py"] + train_config
+            
+            # Use runpy to execute train.py as __main__
+            # This should make Hydra resolve paths correctly
+            import runpy
+            
+            # Wrap runpy in a function we can call from thread
+            def run_train_as_main():
+                return runpy.run_path("train.py", run_name="__main__")
             
             # Run training with periodic yielding
             print(f"Starting PPO training with IsaacGymEnvs...")
             print(f"Configuration: {' '.join(train_config)}")
             
-            # Note: launch_rlg_hydra will run the training loop
+            # Note: runpy will execute the entire train.py module
             # We need to wrap it to allow yielding
-            result = await self._run_with_yielding(launch_rlg_hydra)
+            result = await self._run_with_yielding(run_train_as_main)
             
             # Extract metrics from result
             metrics = {
