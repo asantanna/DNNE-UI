@@ -7,7 +7,6 @@ This node consolidates PPO and environment configuration to run RL training
 import os
 import sys
 import asyncio
-import threading
 import time
 from pathlib import Path
 from framework import QueueNode
@@ -128,13 +127,30 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         """
         Create configuration arguments for IsaacGymEnvs train.py
         """
+        # Check for visual mode override from command line
+        import builtins
+        visual_mode = getattr(builtins, 'VISUAL_MODE', False)
+        headless_mode = getattr(builtins, 'HEADLESS_MODE', False)
+        
+        # Determine headless setting: visual mode overrides everything
+        if visual_mode:
+            headless = False
+            print("🖼️  Visual mode enabled - launching with GUI")
+        elif headless_mode:
+            headless = True
+            print("🖥️  Headless mode enforced")
+        else:
+            headless = self.env_config['headless']
+        
         # Base configuration
         config_args = [
             f"task={self.env_config['task']}",
             f"num_envs={self.env_config['num_envs']}",
-            f"headless={self.env_config['headless']}",
-            f"device={self.env_config['sim_device']}",
+            f"headless={headless}",
+            f"sim_device={self.env_config['sim_device']}",
+            f"rl_device={self.env_config['sim_device']}",  # Use same device for RL
             f"physics_engine={self.env_config['physics_engine']}",
+            f"pipeline=gpu",  # GPU pipeline for Isaac Gym
         ]
         
         # PPO algorithm configuration
@@ -142,8 +158,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             f"train.params.config.minibatch_size={self.ppo_config['minibatch_size']}",
             f"train.params.config.horizon_length={self.ppo_config['horizon_length']}",
             f"train.params.config.learning_rate={self.ppo_config['learning_rate']}",
-            f"train.params.config.schedule_type={self.ppo_config['schedule_type']}",
-            f"train.params.config.num_actors={self.env_config['num_envs']}",
+            f"train.params.config.lr_schedule={self.ppo_config['schedule_type']}",  # lr_schedule not schedule_type
             f"train.params.config.gamma={self.ppo_config['gamma']}",
             f"train.params.config.tau={self.ppo_config['tau']}",
             f"train.params.config.e_clip={self.ppo_config['e_clip']}",
@@ -152,30 +167,30 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             f"train.params.config.critic_coef={self.ppo_config['critic_coef']}",
             f"train.params.config.entropy_coef={self.ppo_config['entropy_coef']}",
             f"train.params.config.bounds_loss_coef={self.ppo_config['bounds_loss_coef']}",
-            f"train.params.config.max_agent_steps={self.ppo_config['max_agent_steps']}",
+            # Note: max_agent_steps doesn't exist, use max_epochs instead
+            f"train.params.config.max_epochs=1000",  # Default to 1000 epochs
         ]
         
         # Network configuration
+        # Format list as [256,128,64] for Hydra
+        mlp_units_str = "[" + ",".join(map(str, self.network_mlp_layers)) + "]"
         network_args = [
-            f"train.params.network.mlp.units={self.network_mlp_layers}",
+            f"train.params.network.mlp.units={mlp_units_str}",
             f"train.params.network.mlp.activation={self.network_activation}",
-            f"train.params.network.separate_value={self.separate_value_network}",
+            f"train.params.network.separate={self.separate_value_network}",
         ]
         
         # Training configuration
         training_args = [
-            f"checkpoint_interval={self.checkpoint_interval}",
-            f"keep_checkpoints={self.keep_checkpoints}",
-            f"log_interval={self.log_interval}",
-            f"save_interval={self.save_interval}",
-            f"experiment_name={self.experiment_name}",
-            f"mixed_precision={self.mixed_precision}",
+            f"train.params.config.save_frequency={self.checkpoint_interval}",
+            f"experiment={self.experiment_name}",
+            f"train.params.config.mixed_precision={self.mixed_precision}",
             f"multi_gpu={self.multi_gpu}",
         ]
         
         # Load checkpoint if specified
         if self.load_checkpoint:
-            training_args.append(f"checkpoint={self.load_checkpoint}")
+            config_args.append(f"checkpoint={self.load_checkpoint}")
         
         # Combine all arguments
         all_args = config_args + ppo_args + network_args + training_args
@@ -206,6 +221,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Set up Hydra configuration path
             os.environ['HYDRA_FULL_ERROR'] = '1'
             
+            # Enable DNNE adaptive yielding for cooperative execution
+            os.environ['DNNE_ADAPTIVE_YIELD'] = '1'
+            
             # Convert args to sys.argv format for hydra
             sys.argv = ["train.py"] + train_config
             
@@ -213,17 +231,20 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # This should make Hydra resolve paths correctly
             import runpy
             
-            # Wrap runpy in a function we can call from thread
-            def run_train_as_main():
-                return runpy.run_path("train.py", run_name="__main__")
-            
             # Run training with periodic yielding
             print(f"Starting PPO training with IsaacGymEnvs...")
             print(f"Configuration: {' '.join(train_config)}")
             
-            # Note: runpy will execute the entire train.py module
-            # We need to wrap it to allow yielding
-            result = await self._run_with_yielding(run_train_as_main)
+            # Check if event loop is accessible before running
+            try:
+                import asyncio
+                loop = asyncio.get_running_loop()
+                print(f"[DNNE_DEBUG] Event loop accessible before runpy: {loop}")
+            except RuntimeError as e:
+                print(f"[DNNE_DEBUG] No event loop before runpy: {e}")
+            
+            # Run training directly - it will yield cooperatively
+            result = runpy.run_path("train.py", run_name="__main__")
             
             # Extract metrics from result
             metrics = {
@@ -242,38 +263,3 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if str(isaac_gym_envs_path) in sys.path:
                 sys.path.remove(str(isaac_gym_envs_path))
     
-    async def _run_with_yielding(self, train_func):
-        """
-        Run the training function with periodic yielding
-        This allows other async tasks to run during long training sessions
-        """
-        import asyncio
-        import threading
-        import time
-        
-        result = {}
-        exception = None
-        
-        def run_training():
-            nonlocal result, exception
-            try:
-                # Run the training function
-                # Note: This is a blocking call, but we're in a thread
-                result = train_func()
-            except Exception as e:
-                exception = e
-        
-        # Start training in a separate thread
-        training_thread = threading.Thread(target=run_training)
-        training_thread.start()
-        
-        # Periodically yield while training runs
-        while training_thread.is_alive():
-            await Global.async_adaptive_yield()
-            await asyncio.sleep(1.0)  # Check every second
-        
-        # Training complete, check for exceptions
-        if exception:
-            raise exception
-        
-        return result

@@ -8,7 +8,8 @@ import os
 import re
 import time
 import json
-import torch
+# Delay torch import to avoid IsaacGym import order issues
+# import torch
 from pathlib import Path
 from typing import Dict, Any, Optional, Union, List
 from datetime import datetime, timedelta
@@ -183,6 +184,7 @@ class CheckpointManager:
         metadata_path = self.node_checkpoint_path / "metadata.json"
         
         # Save model weights
+        import torch  # Lazy import
         torch.save(model_state_dict, model_path)
         
         # Prepare metadata
@@ -231,6 +233,7 @@ class CheckpointManager:
             
         try:
             # Load model weights
+            import torch  # Lazy import
             model_state_dict = torch.load(model_path, map_location='cpu', weights_only=False)
             
             # Load metadata

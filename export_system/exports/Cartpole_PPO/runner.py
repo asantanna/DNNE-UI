@@ -125,20 +125,22 @@ async def main():
 
     # Set fixed seed if provided for deterministic execution
     if args.fixed_seed is not None:
-        import random
-        import numpy as np
-        import torch
-        seed = args.fixed_seed
-        print(f"🔒 Using fixed seed: {seed}")
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        np.random.seed(seed)
-        random.seed(seed)
-        # Enable deterministic algorithms
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        # Note: use_deterministic_algorithms requires CUBLAS_WORKSPACE_CONFIG env var
-        # which we'll set manually when running comparisons
+        print(f"⚠️  Fixed seed disabled for debugging - IsaacGym torch import order issue")
+        # TODO: Fix torch import order for IsaacGym workflows
+        # import random
+        # import numpy as np
+        # import torch
+        # seed = args.fixed_seed
+        # print(f"🔒 Using fixed seed: {seed}")
+        # torch.manual_seed(seed)
+        # torch.cuda.manual_seed_all(seed)
+        # np.random.seed(seed)
+        # random.seed(seed)
+        # # Enable deterministic algorithms
+        # torch.backends.cudnn.deterministic = True
+        # torch.backends.cudnn.benchmark = False
+        # # Note: use_deterministic_algorithms requires CUBLAS_WORKSPACE_CONFIG env var
+        # # which we'll set manually when running comparisons
 
     print("🚀 Starting DNNE Queue-Based Execution")
     if args.epochs:

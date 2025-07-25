@@ -117,9 +117,17 @@ class Global:
         if kwargs.get('load_checkpoint_dir'):
             cls.load_checkpoint_dir = Path(kwargs['load_checkpoint_dir'])
         
-        # Device
-        import torch
-        cls.device = kwargs.get('device', 'cuda' if torch.cuda.is_available() else 'cpu')
+        # Device - lazy import torch
+        device = kwargs.get('device', 'auto')
+        if device == 'auto':
+            try:
+                import torch
+                cls.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            except ImportError:
+                # If torch not available yet (IsaacGym workflows), default to cuda
+                cls.device = 'cuda'
+        else:
+            cls.device = device
         
         # Logger
         cls._logger = logging.getLogger('Global')
