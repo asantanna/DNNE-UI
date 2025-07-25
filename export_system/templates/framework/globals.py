@@ -65,6 +65,9 @@ class Global:
     debug: bool = False
     fixed_seed: Optional[int] = None
     
+    # === Training Settings ===
+    epochs_override: Optional[int] = None
+    
     # === Performance Settings ===
     device: str = "cuda"  # Will be set properly at runtime
     no_yield: bool = False  # Disable all yielding for performance comparison
@@ -108,6 +111,9 @@ class Global:
         cls.profiling = kwargs.get('profiling', False)
         cls.debug = kwargs.get('debug', False)
         cls.fixed_seed = kwargs.get('fixed_seed', None)
+        
+        # Training settings
+        cls.epochs_override = kwargs.get('epochs_override', None)
         
         # Performance settings
         cls.no_yield = kwargs.get('no_yield', False)
@@ -354,22 +360,6 @@ class Global:
         return max_starvation < cls.WARNING_STARVATION_THRESHOLD
 
 
-# Backward compatibility helpers
-def _sync_with_builtins():
-    """
-    Maintain backward compatibility by syncing with builtins.
-    This will be removed in future versions.
-    """
-    import builtins
-    
-    # Sync key attributes
-    builtins.INFERENCE_MODE = Global.inference_mode
-    builtins.VERBOSE = Global.verbose
-    builtins.FIXED_SEED = Global.fixed_seed
-    builtins.SAVE_CHECKPOINT_DIR = str(Global.save_checkpoint_dir) if Global.save_checkpoint_dir else None
-    builtins.LOAD_CHECKPOINT_DIR = str(Global.load_checkpoint_dir) if Global.load_checkpoint_dir else None
-    builtins.DNNE_PROFILING = Global.profiling
-
-
-# Auto-sync on import (temporary for migration)
-_sync_with_builtins()
+# All configuration should now be accessed through Global class
+# Example: from framework.globals import Global as g
+#          if g.verbose: ...

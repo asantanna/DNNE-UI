@@ -903,6 +903,10 @@ class PlaceholderNode_{node_id}(QueueNode):
         # Export globals.py
         globals_content = self._load_template("framework/globals.py")
         (framework_dir / "globals.py").write_text(globals_content, encoding='utf-8')
+        
+        # Export dnne_exceptions.py
+        dnne_exceptions_content = self._load_template("framework/dnne_exceptions.py")
+        (framework_dir / "dnne_exceptions.py").write_text(dnne_exceptions_content, encoding='utf-8')
     
     def _export_node_to_file(self, nodes_dir: Path, node_id: str, node_type: str, 
                             node_code: str, node_imports: List[str]) -> str:
@@ -1161,17 +1165,19 @@ class PlaceholderNode_{node_id}(QueueNode):
             "            import sys",
             "            sys.exit(1)",
             "",
-            "    # Set global flags for nodes to access",
-            "    import builtins",
-            "    builtins.VERBOSE = args.verbose",
-            "    builtins.SAVE_CHECKPOINT_DIR = args.save_checkpoint_dir",
-            "    builtins.LOAD_CHECKPOINT_DIR = args.load_checkpoint_dir",
-            "    builtins.VISUAL_MODE = args.visual",
-            "    builtins.HEADLESS_MODE = args.headless",
-            "    builtins.INFERENCE_MODE = args.inference",
-            "    builtins.DNNE_PROFILING = args.dnne_profiling",
-            "    builtins.EPOCHS_OVERRIDE = args.epochs",
-            "    builtins.FIXED_SEED = args.fixed_seed",
+            "    # Initialize Global configuration",
+            "    from framework.globals import Global as g",
+            "    g.initialize(",
+            "        verbose=args.verbose,",
+            "        save_checkpoint_dir=args.save_checkpoint_dir,",
+            "        load_checkpoint_dir=args.load_checkpoint_dir,",
+            "        visual_mode=args.visual,",
+            "        headless_mode=args.headless,",
+            "        inference_mode=args.inference,",
+            "        profiling=args.dnne_profiling,",
+            "        epochs_override=args.epochs,",
+            "        fixed_seed=args.fixed_seed",
+            "    )",
             "    configure_logging(args.verbose)",
             "",
             "    # Set fixed seed if provided for deterministic execution",

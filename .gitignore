@@ -34,8 +34,8 @@ uv.lock
 *.backup*
 
 export_system/exports/*
-!export_system/exports/Cartpole_PPO/
-!export_system/exports/MNIST_Test/
+# !export_system/exports/Cartpole_PPO/
+# !export_system/exports/MNIST_Test/
 
 # Ignore downloaded data in exports
 export_system/exports/*/data/
@@ -51,3 +51,4 @@ runs/
 .dnne/
 dnne_config.local.json
 *.config.local.json
+

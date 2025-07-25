@@ -1,5 +1,6 @@
 # Template variables - replaced during export
 from framework.globals import Global as g
+from framework.exceptions import TrainingCompleteException
 
 class EpochTrackerNode_{NODE_ID}(QueueNode):
     """Tracks training progress across epochs and displays statistics"""
@@ -14,7 +15,13 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
         self.epoch_losses = []
         self.epoch_accuracies = []
         self.batch_count = 0
-        self.total_epochs = {MAX_EPOCHS}
+        
+        # Check for epochs override from command line
+        if g.epochs_override is not None:
+            self.total_epochs = g.epochs_override
+            self.logger.info(f"Using epochs override: {self.total_epochs}")
+        else:
+            self.total_epochs = {MAX_EPOCHS}
         
     async def compute(self, epoch_stats, loss, accuracy) -> Dict[str, Any]:
         # Track batch-level metrics
@@ -54,6 +61,9 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             if self.current_epoch >= self.total_epochs:
                 DNNE_print("D", "TRAINING", f"🎯 TRAINING COMPLETE! Reached {self.total_epochs} epochs")
                 summary["training_complete"] = True
+                
+                # Raise exception to stop the graph runner
+                raise TrainingCompleteException(f"Training completed after {self.total_epochs} epochs")
             
             return {"training_summary": summary}
         else:
