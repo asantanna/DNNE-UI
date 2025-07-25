@@ -6,6 +6,7 @@ from typing import Dict, Any, List, Optional
 
 from .base_nodes import QueueNode
 from .exceptions import TrainingCompleteException
+from .globals import Global as g
 
 
 class GraphRunner:
@@ -64,8 +65,7 @@ class GraphRunner:
             self.has_completion_conditions = True  # Timeout is a completion condition
         
         # Check if we're in inference mode
-        import builtins
-        inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        inference_mode = getattr(g, 'inference_mode', False)
         
         try:
             if inference_mode:
@@ -145,8 +145,7 @@ class GraphRunner:
         """Handle checkpoint saves on exit based on exit reason and completion conditions"""
         
         # Skip if in inference mode
-        import builtins
-        inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        inference_mode = getattr(g, 'inference_mode', False)
         if inference_mode:
             self.logger.info("💾 Skipping exit checkpoints - inference mode")
             return

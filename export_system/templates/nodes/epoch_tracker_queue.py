@@ -1,4 +1,5 @@
 # Template variables - replaced during export
+from framework.globals import Global as g
 
 class EpochTrackerNode_{NODE_ID}(QueueNode):
     """Tracks training progress across epochs and displays statistics"""
@@ -57,8 +58,7 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             return {"training_summary": summary}
         else:
             # Show batch progress only in verbose mode
-            import builtins
-            if hasattr(builtins, 'VERBOSE') and builtins.VERBOSE:
+            if hasattr(g, 'verbose') and g.verbose:
                 progress = epoch_stats.get("progress", 0)
                 if self.batch_count % 10 == 0:  # Show progress every 10 batches
                     self.logger.info(f"Epoch {epoch_stats['epoch']} - Batch {epoch_stats['batch']}/{epoch_stats['total_batches']} ({progress:.1%}) - Loss: {self.epoch_losses[-1]:.4f}, Acc: {self.epoch_accuracies[-1]:.2%}")

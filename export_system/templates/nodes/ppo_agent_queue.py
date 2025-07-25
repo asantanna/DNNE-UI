@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 from framework import QueueNode
 from framework.globals import Global
+from isaacgymenvs.utils.debug_utils import DNNE_print
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """
@@ -128,17 +129,16 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         Create configuration arguments for IsaacGymEnvs train.py
         """
         # Check for visual mode override from command line
-        import builtins
-        visual_mode = getattr(builtins, 'VISUAL_MODE', False)
-        headless_mode = getattr(builtins, 'HEADLESS_MODE', False)
+        visual_mode = getattr(Global, 'visual_mode', False)
+        headless_mode = getattr(Global, 'headless_mode', False)
         
         # Determine headless setting: visual mode overrides everything
         if visual_mode:
             headless = False
-            print("🖼️  Visual mode enabled - launching with GUI")
+            DNNE_print("D", "PPO_AGENT", "🖼️  Visual mode enabled - launching with GUI")
         elif headless_mode:
             headless = True
-            print("🖥️  Headless mode enforced")
+            DNNE_print("D", "PPO_AGENT", "🖥️  Headless mode enforced")
         else:
             headless = self.env_config['headless']
         
@@ -215,8 +215,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             os.chdir(isaac_gym_envs_path / "isaacgymenvs")
             
             # Debug: Print current directory to verify we're in the right place
-            print(f"Current directory: {os.getcwd()}")
-            print(f"Files in directory: {os.listdir('.')[:10]}")
+            DNNE_print("D", "PPO_AGENT", f"Current directory: {os.getcwd()}")
+            DNNE_print("D", "PPO_AGENT", f"Files in directory: {os.listdir('.')[:10]}")
             
             # Set up Hydra configuration path
             os.environ['HYDRA_FULL_ERROR'] = '1'
@@ -232,16 +232,18 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             import runpy
             
             # Run training with periodic yielding
-            print(f"Starting PPO training with IsaacGymEnvs...")
-            print(f"Configuration: {' '.join(train_config)}")
+            DNNE_print("D", "PPO_AGENT", f"Starting PPO training with IsaacGymEnvs...")
+            DNNE_print("D", "PPO_AGENT", f"Configuration: {' '.join(train_config)}")
             
             # Check if event loop is accessible before running
             try:
                 import asyncio
                 loop = asyncio.get_running_loop()
-                print(f"[DNNE_DEBUG] Event loop accessible before runpy: {loop}")
+                from isaacgymenvs.utils.debug_utils import DNNE_print
+                DNNE_print("D", "PPO_AGENT", f"Event loop accessible before runpy: {loop}")
             except RuntimeError as e:
-                print(f"[DNNE_DEBUG] No event loop before runpy: {e}")
+                from isaacgymenvs.utils.debug_utils import DNNE_print
+                DNNE_print("D", "PPO_AGENT", f"No event loop before runpy: {e}")
             
             # Run training directly - it will yield cooperatively
             result = runpy.run_path("train.py", run_name="__main__")

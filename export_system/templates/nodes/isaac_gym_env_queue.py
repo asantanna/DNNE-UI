@@ -10,6 +10,7 @@ template_vars = {
 
 # Import DNNE_print from centralized location
 from isaacgymenvs.utils.debug_utils import DNNE_print
+from framework.globals import Global as g
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """Isaac Gym environment node using new CartpoleDNNE approach"""
@@ -26,20 +27,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.device = "{DEVICE}"
         
         # Check for command line override of headless setting
-        try:
-            import builtins
-            if hasattr(builtins, 'VISUAL_MODE') and builtins.VISUAL_MODE:
-                self.headless = False
-                self.logger.info("Visual mode enabled via command line")
-            elif hasattr(builtins, 'HEADLESS_MODE') and builtins.HEADLESS_MODE:
-                self.headless = True
-                self.logger.info("Headless mode forced via command line")
-        except AttributeError:
-            # Expected if builtins attributes not set - use default from template
-            pass
-        except Exception as e:
-            # Any other exception is unexpected and should fail
-            raise RuntimeError(f"Failed to check command line mode settings: {type(e).__name__}: {e}")
+        if hasattr(g, 'visual_mode') and g.visual_mode:
+            self.headless = False
+            self.logger.info("Visual mode enabled via command line")
+        elif hasattr(g, 'headless_mode') and g.headless_mode:
+            self.headless = True
+            self.logger.info("Headless mode forced via command line")
         
         # Environment instance
         self.env = None

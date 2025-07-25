@@ -1,4 +1,5 @@
 # Template variables - replaced during export
+from framework.globals import Global as g
 
 class LossNode_{NODE_ID}(QueueNode):
     """Cross-entropy loss computation node"""
@@ -25,8 +26,7 @@ class LossNode_{NODE_ID}(QueueNode):
         accuracy = correct / total if total > 0 else 0.0
         
         # Only log in verbose mode - EpochTracker will show summaries
-        import builtins
-        if hasattr(builtins, 'VERBOSE') and builtins.VERBOSE:
+        if hasattr(g, 'verbose') and g.verbose:
             self.logger.info(f"Loss: {loss.item():.4f}, Accuracy: {accuracy:.2%}")
         
         return {
