@@ -57,6 +57,7 @@ class Global:
     inference_mode: bool = False
     training_mode: bool = True
     visual_mode: bool = False
+    headless_mode: bool = False
     
     # === Debug Settings ===
     verbose: bool = False

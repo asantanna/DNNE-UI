@@ -27,10 +27,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.device = "{DEVICE}"
         
         # Check for command line override of headless setting
-        if hasattr(g, 'visual_mode') and g.visual_mode:
+        if g.visual_mode:
             self.headless = False
             self.logger.info("Visual mode enabled via command line")
-        elif hasattr(g, 'headless_mode') and g.headless_mode:
+        elif g.headless_mode:
             self.headless = True
             self.logger.info("Headless mode forced via command line")
         

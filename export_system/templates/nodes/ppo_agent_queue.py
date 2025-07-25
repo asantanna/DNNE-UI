@@ -129,8 +129,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         Create configuration arguments for IsaacGymEnvs train.py
         """
         # Check for visual mode override from command line
-        visual_mode = getattr(Global, 'visual_mode', False)
-        headless_mode = getattr(Global, 'headless_mode', False)
+        visual_mode = Global.visual_mode
+        headless_mode = Global.headless_mode
         
         # Determine headless setting: visual mode overrides everything
         if visual_mode:
