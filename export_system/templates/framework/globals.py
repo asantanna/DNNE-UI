@@ -123,9 +123,12 @@ class Global:
             try:
                 import torch
                 cls.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            except ImportError:
-                # If torch not available yet (IsaacGym workflows), default to cuda
-                cls.device = 'cuda'
+            except ImportError as e:
+                raise RuntimeError(
+                    f"PyTorch is required but not installed: {e}\n"
+                    f"Please install PyTorch before running DNNE workflows.\n"
+                    f"Visit https://pytorch.org/get-started/locally/ for installation instructions."
+                )
         else:
             cls.device = device
         

@@ -66,8 +66,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             return {"ready": None, "step_complete": False}
             
         if self.optimizer is None:
-            self.logger.error("No optimizer available for training step")
-            return {"ready": None, "step_complete": False}
+            raise RuntimeError(
+                f"TrainingStepNode {self.node_id}: No optimizer received. "
+                f"Check that SGDOptimizer node is connected and working properly."
+            )
             
         # Perform backpropagation
         self.optimizer.zero_grad()

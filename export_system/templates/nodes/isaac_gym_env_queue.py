@@ -34,8 +34,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             elif hasattr(builtins, 'HEADLESS_MODE') and builtins.HEADLESS_MODE:
                 self.headless = True
                 self.logger.info("Headless mode forced via command line")
-        except:
-            pass  # Use default from template
+        except AttributeError:
+            # Expected if builtins attributes not set - use default from template
+            pass
+        except Exception as e:
+            # Any other exception is unexpected and should fail
+            raise RuntimeError(f"Failed to check command line mode settings: {type(e).__name__}: {e}")
         
         # Environment instance
         self.env = None

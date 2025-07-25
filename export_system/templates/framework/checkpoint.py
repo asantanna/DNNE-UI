@@ -251,9 +251,17 @@ class CheckpointManager:
                 'metadata': metadata
             }
             
-        except Exception as e:
-            print(f"⚠️ Error loading checkpoint {load_path}: {e}")
+        except FileNotFoundError:
+            # This is expected - no checkpoint exists yet
             return None
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Checkpoint metadata is corrupted at {metadata_path}: {e}")
+        except Exception as e:
+            # Any other error means the checkpoint exists but failed to load
+            raise RuntimeError(
+                f"Checkpoint exists but failed to load from {load_path}: "
+                f"{type(e).__name__}: {e}"
+            )
     
     def checkpoint_exists(self, load_checkpoint_dir: str = None) -> bool:
         """

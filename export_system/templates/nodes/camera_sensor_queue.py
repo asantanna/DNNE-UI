@@ -38,8 +38,11 @@ class {CLASS_NAME}_{NODE_ID}(SensorNode):
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 image = torch.from_numpy(frame).permute(2, 0, 1).float() / 255.0
             else:
-                # Fallback to random if camera fails
-                image = torch.rand(self.channels, self.height, self.width)
+                # Camera read failed - this is a critical error
+                raise RuntimeError(
+                    f"Camera sensor {self.node_id} failed to read frame from device {self.device_id}. "
+                    f"Check that the camera is connected and accessible."
+                )
         else:
             # Simulated camera data for testing
             image = torch.rand(self.channels, self.height, self.width)

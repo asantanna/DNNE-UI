@@ -103,7 +103,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 self.stop_after_cycle = int(ppo_stop_env)
                 self.logger.info(f"PPO_STOP_AFTER_CYCLE set to {self.stop_after_cycle}")
             except ValueError:
-                self.logger.warning(f"Invalid PPO_STOP_AFTER_CYCLE value: {ppo_stop_env}")
+                raise RuntimeError(
+                    f"Invalid PPO_STOP_AFTER_CYCLE environment variable: '{ppo_stop_env}'\n"
+                    f"Expected an integer value, e.g., PPO_STOP_AFTER_CYCLE=10"
+                )
         
         # Value function normalization (matching IsaacGymEnvs)
         self.value_rms = None  # Will be initialized on first use
@@ -150,8 +153,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 )
                 self.logger.info(f"Checkpoint manager initialized: {self.checkpoint_trigger_type} trigger")
             except ValueError as e:
-                self.logger.error(f"Checkpoint configuration error: {e}")
-                self.checkpoint_enabled = False
+                # Configuration errors should fail immediately
+                raise RuntimeError(
+                    f"Invalid checkpoint configuration for PPOTrainerNode {node_id}: {e}\n"
+                    f"Please check trigger_type and trigger_value settings."
+                )
         
         self.logger.info(f"PPOTrainerNode {node_id} initialized with rl_games components - max_epochs={self.max_epochs}, horizon={self.horizon_length}, mini_epochs={self.mini_epochs_num}")
         
