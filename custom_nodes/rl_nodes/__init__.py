@@ -7,16 +7,16 @@ This package contains RL algorithm implementations for DNNE
 # Import RL types and base classes
 from .rl_types import *
 
-# Import node implementations
-from .ppo_agent import PPOAgentNode
-from .ppo_trainer import PPOTrainerNode
+# Import old node implementations for compatibility
+# from .ppo_agent_OLD import PPOAgentNode  # Commented out - new version in ml_nodes
+# from .ppo_trainer_OLD import PPOTrainerNode  # Commented out - new version in ml_nodes
 
 # Define RL node data as tuples (key, class, display_name)
 # Future nodes: just add to this list and they'll be automatically sorted alphabetically
 _RL_NODES = [
-    ("PPOAgentNode", PPOAgentNode, "PPO Agent (Actor-Critic)"),
-    ("PPOTrainerNode", PPOTrainerNode, "PPO Trainer"),
-    # Add new RL nodes here - they'll be automatically sorted by display name
+    # Old nodes commented out - new PPO nodes are in ml_nodes package
+    # ("PPOAgentNode_OLD", PPOAgentNode, "PPO Agent (Actor-Critic) OLD"),
+    # ("PPOTrainerNode_OLD", PPOTrainerNode, "PPO Trainer OLD"),
 ]
 
 # Generate sorted dictionaries automatically by display name

@@ -380,6 +380,37 @@ class CartpoleRewardNodeExporter(ExportableNode):
         return ["reward_or_loss", "done", "info_dict"]
 
 
+class IsaacGymEnvsExporter(ExportableNode):
+    """Exporter for IsaacGymEnvs virtual node"""
+    
+    @classmethod
+    def is_virtual(cls):
+        """IsaacGymEnvs is a virtual node - only provides configuration"""
+        return True
+    
+    @classmethod
+    def get_template_name(cls):
+        # Virtual nodes don't need templates
+        return None
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
+        # Virtual nodes don't generate code
+        return {}
+    
+    @classmethod
+    def get_imports(cls):
+        return []
+    
+    @classmethod
+    def get_output_names(cls):
+        return ["env"]
+    
+    @classmethod
+    def get_input_names(cls):
+        return []
+
+
 # Registration function
 def register_robotics_exporters(exporter):
     """Register all robotics node exporters"""
@@ -401,7 +432,7 @@ def register_robotics_exporters(exporter):
     exporter.register_node("IsaacGymEnvNode", IsaacGymEnvExporter)
     exporter.register_node("IsaacGymStep", IsaacGymStepExporter)
     exporter.register_node("IsaacGymStepNode", IsaacGymStepExporter)
-    
+    exporter.register_node("IsaacGymEnvs", IsaacGymEnvsExporter)  # New virtual node
     
     # Cartpole RL nodes
     exporter.register_node("CartpoleActionNode", CartpoleActionNodeExporter)

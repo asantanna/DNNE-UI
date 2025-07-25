@@ -1,5 +1,7 @@
 # Template variables - replaced during export
 
+from framework.globals import Global as g
+
 class GetBatchNode_{NODE_ID}(QueueNode):
     """Get batch from dataloader as fast as possible"""
     
@@ -20,8 +22,7 @@ class GetBatchNode_{NODE_ID}(QueueNode):
         self.logger.info(f"Starting node {self.node_id}")
         
         # Check if we're in inference mode
-        import builtins
-        inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
+        inference_mode = g.inference_mode
         
         try:
             # Wait for dataloader and schema
@@ -104,6 +105,9 @@ class GetBatchNode_{NODE_ID}(QueueNode):
                 "progress": self.batch_in_epoch / self.total_batches_per_epoch,
                 "completed": False
             }
+        
+        # Yield after batch generation to allow other workflows to run
+        await g.async_adaptive_yield()
         
         return {
             "images": images,

@@ -23,8 +23,8 @@ from .robotics_nodes import (
 )
 
 from .rl_nodes import (
+    PPOConfigExporter,
     PPOAgentExporter,
-    PPOTrainerExporter,
     register_rl_exporters
 )
 
@@ -63,8 +63,8 @@ __all__ = [
     'RobotControllerExporter',
     'IsaacGymEnvExporter',
     # RL nodes
+    'PPOConfigExporter',
     'PPOAgentExporter',
-    'PPOTrainerExporter',
     # Utility nodes
     'ORNodeExporter',
     # Registration functions

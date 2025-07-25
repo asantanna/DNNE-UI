@@ -1,6 +1,5 @@
-"""Node implementation for EpochTracker (ID: 55)"""
 from typing import Dict, Any
-from framework.base import QueueNode, SensorNode
+from framework import QueueNode, SensorNode
 
 # Template variables - replaced during export
 
@@ -33,11 +32,12 @@ class EpochTrackerNode_55(QueueNode):
             
             # Display epoch summary (always show, regardless of verbose mode)
             epoch_num = epoch_stats["epoch"]
-            print(f"📊 EPOCH {epoch_num}/{self.total_epochs} COMPLETE")
-            print(f"   Batches: {len(self.epoch_losses)}")
-            print(f"   Avg Loss: {avg_loss:.4f}")
-            print(f"   Avg Accuracy: {avg_accuracy:.2%}")
-            print("=" * 60)
+            from isaacgymenvs.utils.debug_utils import DNNE_print
+            DNNE_print("D", "TRAINING", f"📊 EPOCH {epoch_num}/{self.total_epochs} COMPLETE")
+            DNNE_print("D", "TRAINING", f"   Batches: {len(self.epoch_losses)}")
+            DNNE_print("D", "TRAINING", f"   Avg Loss: {avg_loss:.4f}")
+            DNNE_print("D", "TRAINING", f"   Avg Accuracy: {avg_accuracy:.2%}")
+            DNNE_print("D", "TRAINING", "=" * 60)
             
             # Reset for next epoch
             summary = {
@@ -54,7 +54,7 @@ class EpochTrackerNode_55(QueueNode):
             
             # Check if training should stop
             if self.current_epoch >= self.total_epochs:
-                print(f"🎯 TRAINING COMPLETE! Reached {self.total_epochs} epochs")
+                DNNE_print("D", "TRAINING", f"🎯 TRAINING COMPLETE! Reached {self.total_epochs} epochs")
                 summary["training_complete"] = True
             
             return {"training_summary": summary}

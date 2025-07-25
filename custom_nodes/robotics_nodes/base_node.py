@@ -15,6 +15,10 @@ class RoboticsNodeBase:
     # Default category for organization in UI
     CATEGORY = "robotics"
     
+    # Virtual node flag - set to True for configuration-only nodes
+    # Virtual nodes are skipped during export and only provide configuration to non-virtual nodes
+    IS_VIRTUAL = False
+    
     # Common color coding for different node types (optional)
     NODE_COLORS = {
         "sensor": "#4A90E2",      # Blue for sensors

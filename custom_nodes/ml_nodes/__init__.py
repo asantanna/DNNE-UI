@@ -1,5 +1,6 @@
 """
 ML Nodes for DNNE
+Machine Learning nodes including supervised learning and reinforcement learning
 """
 
 # Import all node classes
@@ -13,13 +14,17 @@ from .training_nodes import (
     SGDOptimizerNode, TrainingStepNode, EpochTrackerNode
 )
 from .visualization_nodes import TensorVisualizerNode
+from .ppo_config import PPOConfig
+from .ppo_agent import PPOAgent
 
 # Define node data as tuples (key, class, display_name)
-# Future nodes: just add to this list and they'll be automatically sorted alphabetically
 _ML_NODES = [
+    # Data nodes
     ("MNISTDataset", MNISTDatasetNode, "MNIST Dataset"),
     ("BatchSampler", BatchSamplerNode, "Batch Sampler"),
     ("GetBatch", GetBatchNode, "Get Batch"),
+    
+    # Layer nodes
     ("Network", NetworkNode, "Neural Network"),
     ("LinearLayer", LinearLayerNode, "Linear Layer"),
     ("Conv2DLayer", Conv2DLayerNode, "Conv2D Layer"),
@@ -27,12 +32,20 @@ _ML_NODES = [
     ("Dropout", DropoutNode, "Dropout"),
     ("BatchNorm", BatchNormNode, "Batch Normalization"),
     ("Flatten", FlattenNode, "Flatten"),
+    
+    # Training nodes
     ("CrossEntropyLoss", CrossEntropyLossNode, "Cross Entropy Loss"),
     ("Accuracy", AccuracyNode, "Accuracy"),
     ("SGDOptimizer", SGDOptimizerNode, "SGD Optimizer"),
     ("TrainingStep", TrainingStepNode, "Training Step"),
     ("EpochTracker", EpochTrackerNode, "Epoch Tracker"),
+    
+    # Visualization
     ("TensorVisualizer", TensorVisualizerNode, "Tensor Visualizer"),
+    
+    # RL nodes
+    ("PPOConfig", PPOConfig, "PPO Config"),
+    ("PPOAgent", PPOAgent, "PPO Agent"),
 ]
 
 # Generate sorted dictionaries automatically by display name

@@ -1,8 +1,7 @@
-"""Node implementation for BatchSampler (ID: 38)"""
 from typing import Dict, Any
 import torch
 from torch.utils.data import DataLoader
-from framework.base import QueueNode, SensorNode
+from framework import QueueNode, SensorNode
 
 # Template variables - replaced during export
 
@@ -17,7 +16,7 @@ class BatchSamplerNode_38(QueueNode):
         # Sampler parameters
         self.batch_size = 64
         self.shuffle = True
-        self.seed = 1083
+        self.seed = 1958
         
     async def compute(self, dataset, schema) -> Dict[str, Any]:
         # Create dataloader from dataset

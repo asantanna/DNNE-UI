@@ -1,10 +1,9 @@
-"""Node implementation for MNISTDataset (ID: 37)"""
 import asyncio
 from typing import Dict, Any
 import torch
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-from framework.base import QueueNode, SensorNode
+from framework import QueueNode, SensorNode
 
 # Template variables - replaced during export
 

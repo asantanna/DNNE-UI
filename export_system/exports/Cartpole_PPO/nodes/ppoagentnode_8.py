@@ -1,3 +1,7 @@
+import asyncio
+import time
+from framework import QueueNode, SensorNode
+
 #!/usr/bin/env python3
 """
 PPO Agent Node - Calls IsaacGymEnvs train.py
@@ -13,7 +17,7 @@ from pathlib import Path
 from framework import QueueNode
 from framework.globals import Global
 
-class {CLASS_NAME}_{NODE_ID}(QueueNode):
+class PPOAgentNode_8(QueueNode):
     """
     PPO Agent Node that runs IsaacGymEnvs training
     Consolidates environment and PPO configuration from virtual nodes
@@ -25,59 +29,59 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.setup_outputs(["metrics"])
         
         # Node configuration
-        self.network_mlp_layers = {NETWORK_MLP_LAYERS}
-        self.network_activation = "{NETWORK_ACTIVATION}"
-        self.separate_value_network = {SEPARATE_VALUE_NETWORK}
-        self.checkpoint_interval = {CHECKPOINT_INTERVAL}
-        self.keep_checkpoints = {KEEP_CHECKPOINTS}
-        self.load_checkpoint = "{LOAD_CHECKPOINT}"
-        self.log_interval = {LOG_INTERVAL}
-        self.save_interval = {SAVE_INTERVAL}
-        self.experiment_name = "{EXPERIMENT_NAME}"
-        self.mixed_precision = {MIXED_PRECISION}
-        self.multi_gpu = {MULTI_GPU}
+        self.network_mlp_layers = [256, 128, 64]
+        self.network_activation = "elu"
+        self.separate_value_network = False
+        self.checkpoint_interval = 100
+        self.keep_checkpoints = 5
+        self.load_checkpoint = ""
+        self.log_interval = 10
+        self.save_interval = 1000
+        self.experiment_name = "PPO_DNNE"
+        self.mixed_precision = False
+        self.multi_gpu = False
         
         # Environment configuration from virtual node
-        self.env_config = {{
-            'task': '{ENV_TASK}',
-            'num_envs': {ENV_NUM_ENVS},
-            'seed': {ENV_SEED},
-            'headless': {ENV_HEADLESS},
-            'graphics_device_id': {ENV_GRAPHICS_DEVICE},
-            'sim_device': '{ENV_SIM_DEVICE}',
-            'physics_engine': '{ENV_PHYSICS_ENGINE}',
-            'multi_gpu': {ENV_MULTI_GPU},
-            'enable_cameras': {ENV_ENABLE_CAMERAS},
-            'force_render': {ENV_FORCE_RENDER},
-            'use_gpu_pipeline': {ENV_USE_GPU_PIPELINE},
-            'num_threads': {ENV_NUM_THREADS},
-            'solver_type': {ENV_SOLVER_TYPE},
-            'num_subscenes': {ENV_NUM_SUBSCENES},
-        }}
+        self.env_config = {
+            'task': 'Cartpole',
+            'num_envs': 64,
+            'seed': 42,
+            'headless': True,
+            'graphics_device_id': 0,
+            'sim_device': 'cuda:0',
+            'physics_engine': 'physx',
+            'multi_gpu': False,
+            'enable_cameras': False,
+            'force_render': False,
+            'use_gpu_pipeline': True,
+            'num_threads': 0,
+            'solver_type': 1,
+            'num_subscenes': 0,
+        }
         
         # PPO configuration from virtual node
-        self.ppo_config = {{
-            'minibatch_size': {PPO_MINIBATCH_SIZE},
-            'horizon_length': {PPO_HORIZON_LENGTH},
-            'learning_rate': {PPO_LEARNING_RATE},
-            'schedule_type': '{PPO_SCHEDULE_TYPE}',
-            'gamma': {PPO_GAMMA},
-            'tau': {PPO_TAU},
-            'e_clip': {PPO_E_CLIP},
-            'clip_value': {PPO_CLIP_VALUE},
-            'mini_epochs': {PPO_MINI_EPOCHS},
-            'critic_coef': {PPO_CRITIC_COEF},
-            'entropy_coef': {PPO_ENTROPY_COEF},
-            'bounds_loss_coef': {PPO_BOUNDS_LOSS_COEF},
-            'max_agent_steps': {PPO_MAX_AGENT_STEPS},
-            'normalize_advantage': {PPO_NORMALIZE_ADVANTAGE},
-            'normalize_input': {PPO_NORMALIZE_INPUT},
-            'value_bootstrap': {PPO_VALUE_BOOTSTRAP},
-            'clip_actions': {PPO_CLIP_ACTIONS},
-        }}
+        self.ppo_config = {
+            'minibatch_size': 8,
+            'horizon_length': 16,
+            'learning_rate': 0.0003,
+            'schedule_type': 'constant',
+            'gamma': 0.99,
+            'tau': 0.95,
+            'e_clip': 0.2,
+            'clip_value': True,
+            'mini_epochs': 4,
+            'critic_coef': 0.5,
+            'entropy_coef': 0.01,
+            'bounds_loss_coef': 0.0,
+            'max_agent_steps': 10000000000,
+            'normalize_advantage': True,
+            'normalize_input': True,
+            'value_bootstrap': True,
+            'clip_actions': False,
+        }
         
         # IsaacGymEnvs path
-        self.isaac_gym_envs_path = "{ISAAC_GYM_ENVS_PATH}"
+        self.isaac_gym_envs_path = "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs"
         
         # Track if training has been completed
         self.training_completed = False

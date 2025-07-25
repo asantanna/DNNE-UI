@@ -303,6 +303,19 @@ class GraphExporter:
         
         return filename_base
     
+    def _is_virtual_node(self, node_type: str) -> bool:
+        """Check if a node type is virtual (configuration-only)"""
+        if node_type not in self.node_registry:
+            return False
+        
+        node_exporter_class = self.node_registry[node_type]
+        
+        # Check if the exporter has is_virtual method
+        if hasattr(node_exporter_class, 'is_virtual'):
+            return node_exporter_class.is_virtual()
+        
+        return False
+    
     def export_workflow(self, workflow: Dict, output_path: Optional[Path] = None) -> str:
         """Convert workflow JSON to modular Python package"""
         nodes = workflow.get("nodes", [])
@@ -349,31 +362,26 @@ class GraphExporter:
         # Export framework
         self._export_framework(framework_dir)
         
-        # First pass: identify nodes that are part of networks to skip individual layer processing
-        network_consumed_nodes = set()
-        for node in nodes:
-            # Handle both ComfyUI formats: "type" and "class_type"
-            node_type = node.get("class_type") or node.get("type")
-            if node_type == "Network":
-                network_id = str(node["id"])
-                # Find which layer nodes this network consumes
-                network_class = self.node_registry.get("Network")
-                if network_class:
-                    consumed_layers = network_class._detect_network_layers(network_id, nodes, links)
-                    for layer_info in consumed_layers:
-                        network_consumed_nodes.add(layer_info["node_id"])
-        
         # Track node information for __init__.py generation
         node_classes = []
         node_instances = []
+        virtual_nodes = {}  # Track virtual nodes for connection handling
+        
+        # First pass: identify virtual nodes
+        for node in nodes:
+            node_id = str(node["id"])
+            node_type = node.get("class_type") or node.get("type")
+            
+            if self._is_virtual_node(node_type):
+                virtual_nodes[node_id] = node
         
         for node in nodes:
             node_id = str(node["id"])
             node_type = node.get("class_type") or node.get("type")
             
-            # Skip individual layer nodes that are consumed by Network nodes
-            if node_id in network_consumed_nodes and node_type == "LinearLayer":
-                self.logger.info(f"Skipping LinearLayer node {node_id} - consumed by Network node")
+            # Skip virtual nodes (configuration-only nodes)
+            if self._is_virtual_node(node_type):
+                self.logger.info(f"Skipping virtual node {node_id} ({node_type}) - configuration only")
                 continue
             
             if node_type in self.node_registry:
@@ -662,6 +670,14 @@ class GraphExporter:
                     for layer_info in consumed_layers:
                         network_consumed_nodes.add(layer_info["node_id"])
         
+        # Also identify virtual nodes that will be skipped
+        virtual_nodes = set()
+        for node in nodes:
+            node_id = str(node["id"])
+            node_type = node.get("class_type") or node.get("type")
+            if self._is_virtual_node(node_type):
+                virtual_nodes.add(node_id)
+        
         # Build a map of node_id to node_type and exporter class
         node_info = {}
         for node in nodes:
@@ -685,6 +701,11 @@ class GraphExporter:
                 # Skip connections to/from consumed nodes
                 if from_node in network_consumed_nodes or to_node in network_consumed_nodes:
                     self.logger.info(f"Skipping connection from {from_node} to {to_node} - involves consumed node")
+                    continue
+                
+                # Skip connections to/from virtual nodes
+                if from_node in virtual_nodes or to_node in virtual_nodes:
+                    self.logger.info(f"Skipping connection from {from_node} to {to_node} - involves virtual node")
                     continue
                 
                 # Get actual output name
@@ -878,6 +899,10 @@ class PlaceholderNode_{node_id}(QueueNode):
         # Export checkpoint.py (formerly run_utils.py)
         checkpoint_content = self._load_template("framework/checkpoint.py")
         (framework_dir / "checkpoint.py").write_text(checkpoint_content, encoding='utf-8')
+        
+        # Export globals.py
+        globals_content = self._load_template("framework/globals.py")
+        (framework_dir / "globals.py").write_text(globals_content, encoding='utf-8')
     
     def _export_node_to_file(self, nodes_dir: Path, node_id: str, node_type: str, 
                             node_code: str, node_imports: List[str]) -> str:

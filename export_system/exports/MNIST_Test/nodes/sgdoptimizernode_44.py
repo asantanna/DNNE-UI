@@ -1,8 +1,7 @@
-"""Node implementation for SGDOptimizer (ID: 44)"""
 import asyncio
 from typing import Dict, Any
 import torch.optim as optim
-from framework.base import QueueNode, SensorNode
+from framework import QueueNode, SensorNode
 
 # Template variables - replaced during export
 

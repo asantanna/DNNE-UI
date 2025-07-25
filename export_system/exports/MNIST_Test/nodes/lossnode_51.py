@@ -1,8 +1,7 @@
-"""Node implementation for CrossEntropyLoss (ID: 51)"""
 from typing import Dict, Any
 import torch
 import torch.nn as nn
-from framework.base import QueueNode, SensorNode
+from framework import QueueNode, SensorNode
 
 # Template variables - replaced during export
 

@@ -11,11 +11,10 @@ from inspect import cleandoc
 from .base_node import LearningNodeBase
 
 
-class IsaacGymEnvNode(LearningNodeBase):
+class IsaacGymEnvNode_OLD(LearningNodeBase):
     """
-    Isaac Gym Environment Node (UI Only)
-    Sets up Isaac Gym environment parameters for export.
-    This node does NOT execute - it only defines the UI interface.
+    Isaac Gym Environment Node (UI Only) - OLD VERSION
+    Being replaced by new IsaacGymEnvs virtual node
     """
     
     CATEGORY = "robotics"
@@ -48,34 +47,43 @@ class IsaacGymEnvNode(LearningNodeBase):
             "optional": {}
         }
     
-    RETURN_TYPES = ("ENV_HANDLE", "TENSOR")
-    RETURN_NAMES = ("env_handle", "observations")
-    FUNCTION = "setup_environment"
+    RETURN_TYPES = ("ENV_HANDLE", "TENSOR", "CONTEXT")
+    RETURN_NAMES = ("env_handle", "observations", "context")
+    FUNCTION = "create_env"
+    CATEGORY = "robotics"
     DESCRIPTION = cleandoc(__doc__)
     
-    def setup_environment(self, env_name: str, num_envs: int, headless: bool, device: str):
-        """
-        UI-only function that returns dummy data.
-        Actual implementation is in export templates.
-        """
-        # Return dummy data for UI connections
-        # The actual Isaac Gym environment is created in the exported code
-        dummy_handle = {"type": "ENV_HANDLE", "env_name": env_name, "num_envs": num_envs}
-        dummy_observations = torch.zeros(num_envs, 4)  # Dummy observation shape
+    def create_env(self, env_name: str, num_envs: int, headless: bool, device: str):
+        """UI placeholder - returns dummy data for connections"""
+        # Create dummy environment handle
+        env_handle = {
+            "env_name": env_name,
+            "num_envs": num_envs,
+            "headless": headless,
+            "device": device,
+            "initialized": False  # Flag for export system
+        }
         
-        return (dummy_handle, dummy_observations)
+        # Create dummy observations (UI placeholder)
+        dummy_observations = torch.zeros(num_envs, 4)  # Simplified observation space
+        
+        # Create dummy context
+        from .robotics_types import Context
+        context = Context()
+        
+        return (env_handle, dummy_observations, context)
     
     @classmethod
     def IS_CHANGED(cls, **kwargs):
-        """Always re-execute to ensure fresh simulation state"""
+        """Environment setup can change between runs"""
         return float("inf")
 
 
 class IsaacGymStepNode(LearningNodeBase):
     """
     Isaac Gym Step Node (UI Only)
-    Steps the Isaac Gym simulation with actions.
-    This node does NOT execute - it only defines the UI interface.
+    Steps the Isaac Gym simulation forward by one timestep.
+    This node is for UI connections only - actual execution happens in export.
     """
     
     CATEGORY = "robotics"
@@ -84,23 +92,30 @@ class IsaacGymStepNode(LearningNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "env_handle": ("ENV_HANDLE",),
-                "actions": ("TENSOR",),
+                "env_handle": ("ENV_HANDLE", {
+                    "tooltip": "Environment handle from IsaacGymEnvNode"
+                }),
+                "actions": ("TENSOR", {
+                    "tooltip": "Action tensor to apply to environments"
+                }),
             },
             "optional": {
-                "trigger": ("SYNC",),
+                "trigger": ("SYNC", {
+                    "tooltip": "Optional trigger for synchronized execution"
+                })
             }
         }
     
     RETURN_TYPES = ("TENSOR", "TENSOR", "TENSOR", "DICT", "TENSOR")
     RETURN_NAMES = ("observations", "rewards", "done", "info", "next_observations")
-    FUNCTION = "step_simulation"
+    FUNCTION = "step"
+    CATEGORY = "robotics"
     DESCRIPTION = cleandoc(__doc__)
     
-    def step_simulation(self, env_handle: Dict, actions: torch.Tensor, trigger: Optional[Dict] = None):
+    def step(self, env_handle: Dict, actions: torch.Tensor, trigger=None):
         """
-        UI-only function that returns dummy data.
-        Actual implementation is in export templates.
+        UI placeholder - returns dummy data for connections.
+        The real implementation is in the export template.
         """
         # Extract num_envs from env_handle if available
         num_envs = env_handle.get("num_envs", 1) if isinstance(env_handle, dict) else 1
@@ -120,5 +135,6 @@ class IsaacGymStepNode(LearningNodeBase):
         return float("inf")
 
 
-# Export the node classes
-__all__ = ['IsaacGymEnvNode', 'IsaacGymStepNode']
+# Export the node classes - create alias for compatibility
+IsaacGymEnvNode = IsaacGymEnvNode_OLD
+__all__ = ['IsaacGymEnvNode', 'IsaacGymEnvNode_OLD', 'IsaacGymStepNode']

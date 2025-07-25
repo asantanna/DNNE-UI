@@ -5,11 +5,50 @@ Metadata: None
 """
 
 import sys
+import os
 import argparse
 from pathlib import Path
 
 # Add current directory to Python path for imports
 sys.path.insert(0, str(Path(__file__).parent))
+
+# Configure paths using DNNE configuration system
+try:
+    # Try to import configuration module
+    from dnne_config import DNNEConfig
+    config = DNNEConfig()
+    
+    # Add paths from configuration
+    isaac_gym_path = config.get('paths.isaac_gym')
+    isaac_gym_envs_path = config.get('paths.isaac_gym_envs')
+    linux_support_path = config.get('paths.linux_support')
+    rl_games_path = config.get('paths.rl_games_dnne')
+    
+    if isaac_gym_path:
+        sys.path.append(os.path.join(isaac_gym_path, "python"))
+    if linux_support_path:
+        sys.path.append(linux_support_path)
+    if isaac_gym_envs_path:
+        sys.path.append(isaac_gym_envs_path)
+    if rl_games_path:
+        sys.path.append(rl_games_path)
+    
+    print(f"Using paths from configuration: isaac_gym={isaac_gym_path}")
+    
+except ImportError:
+    # Fallback to environment variables or defaults if config not available
+    isaac_gym_path = os.environ.get('DNNE_ISAAC_GYM', "/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym")
+    isaac_gym_envs_path = os.environ.get('DNNE_ISAAC_GYM_ENVS', "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs")
+    linux_support_path = os.environ.get('DNNE_LINUX_SUPPORT', "/home/asantanna/DNNE-LINUX-SUPPORT")
+    rl_games_path = os.environ.get('DNNE_RL_GAMES', "/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne")
+    
+    sys.path.append(os.path.join(isaac_gym_path, "python"))
+    sys.path.append(linux_support_path)
+    sys.path.append(isaac_gym_envs_path)
+    if rl_games_path and os.path.exists(rl_games_path):
+        sys.path.append(rl_games_path)
+    
+    print(f"Using paths from environment/defaults: isaac_gym={isaac_gym_path}")
 
 import asyncio
 import logging
@@ -20,11 +59,12 @@ from nodes.mnistdatasetnode_37 import MNISTDatasetNode_37
 from nodes.batchsamplernode_38 import BatchSamplerNode_38
 from nodes.getbatchnode_50 import GetBatchNode_50
 from nodes.epochtrackernode_55 import EpochTrackerNode_55
-from nodes.lossnode_51 import LossNode_51
 from nodes.sgdoptimizernode_44 import SGDOptimizerNode_44
+from nodes.lossnode_51 import LossNode_51
 from nodes.trainingstepnode_45 import TrainingStepNode_45
 
-from framework.base import GraphRunner
+from framework import GraphRunner
+from framework.globals import Global as g
 # NOTE: Removed 'from nodes import *' - caused double Isaac Gym initialization
 # All required nodes are imported explicitly above
 
@@ -60,13 +100,17 @@ async def main():
                        help='Enable profiling for C++ operations (Isaac Gym)')
     parser.add_argument('--epochs', type=int, default=None,
                        help='Override max epochs for training (overrides workflow setting)')
+    parser.add_argument('--fixed-seed', type=int, default=None,
+                       help='Use fixed random seed for deterministic execution')
+    parser.add_argument('--no-yield', action='store_true',
+                       help='Disable adaptive yielding for performance comparison')
     args = parser.parse_args()
 
     # Parse timeout if provided
     duration_seconds = None
     if args.timeout:
         try:
-            from run_utils import CheckpointManager
+            from framework import CheckpointManager
             manager = CheckpointManager("temp")
             duration_seconds = manager.parse_time_format(args.timeout)
             print(f"⏱️  Running for {args.timeout} ({duration_seconds:.0f} seconds)")
@@ -76,17 +120,37 @@ async def main():
             import sys
             sys.exit(1)
 
-    # Set global flags for nodes to access
-    import builtins
-    builtins.VERBOSE = args.verbose
-    builtins.SAVE_CHECKPOINT_DIR = args.save_checkpoint_dir
-    builtins.LOAD_CHECKPOINT_DIR = args.load_checkpoint_dir
-    builtins.VISUAL_MODE = args.visual
-    builtins.HEADLESS_MODE = args.headless
-    builtins.INFERENCE_MODE = args.inference
-    builtins.DNNE_PROFILING = args.dnne_profiling
-    builtins.EPOCHS_OVERRIDE = args.epochs
+    # Initialize global settings
+    g.initialize(
+        verbose=args.verbose,
+        inference_mode=args.inference,
+        visual_mode=args.visual,
+        profiling=args.dnne_profiling,
+        fixed_seed=args.fixed_seed,
+        save_checkpoint_dir=args.save_checkpoint_dir,
+        load_checkpoint_dir=args.load_checkpoint_dir,
+        no_yield=args.no_yield
+    )
+    
+    # Configure logging
     configure_logging(args.verbose)
+
+    # Set fixed seed if provided for deterministic execution
+    if args.fixed_seed is not None:
+        import random
+        import numpy as np
+        import torch
+        seed = args.fixed_seed
+        print(f"🔒 Using fixed seed: {seed}")
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        # Enable deterministic algorithms
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        # Note: use_deterministic_algorithms requires CUBLAS_WORKSPACE_CONFIG env var
+        # which we'll set manually when running comparisons
 
     print("🚀 Starting DNNE Queue-Based Execution")
     if args.epochs:
@@ -103,6 +167,8 @@ async def main():
         print(f"💾 Checkpoint saving to: {args.save_checkpoint_dir}")
     if args.load_checkpoint_dir:
         print(f"📁 Loading checkpoints from: {args.load_checkpoint_dir}")
+    if args.no_yield:
+        print("⚡ Adaptive yielding DISABLED - running at full speed")
     print("=" * 60)
 
     # Create nodes
@@ -111,8 +177,8 @@ async def main():
     node_38 = BatchSamplerNode_38("38")
     node_50 = GetBatchNode_50("50")
     node_55 = EpochTrackerNode_55("55")
-    node_51 = LossNode_51("51")
     node_44 = SGDOptimizerNode_44("44")
+    node_51 = LossNode_51("51")
     node_45 = TrainingStepNode_45("45")
 
     # Create runner
@@ -124,8 +190,8 @@ async def main():
     runner.add_node(node_38)
     runner.add_node(node_50)
     runner.add_node(node_55)
-    runner.add_node(node_51)
     runner.add_node(node_44)
+    runner.add_node(node_51)
     runner.add_node(node_45)
 
     # Wire connections

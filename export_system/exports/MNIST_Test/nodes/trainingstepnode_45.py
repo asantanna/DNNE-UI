@@ -1,12 +1,13 @@
-"""Node implementation for TrainingStep (ID: 45)"""
 import asyncio
 import time
 from typing import Dict, Any
 import torch
 import asyncio
-from framework.base import QueueNode, SensorNode
+from framework import QueueNode, SensorNode
 
 # Template variables - replaced during export
+
+from framework.globals import Global as g
 
 class TrainingStepNode_45(QueueNode):
     """Training step node that performs backpropagation"""
@@ -18,17 +19,13 @@ class TrainingStepNode_45(QueueNode):
         self.setup_outputs(["ready", "step_complete"])
         self.optimizer = None
         
-        # Check if we're in inference mode
-        import builtins
-        self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
-        
     async def run(self):
         """Override run to get optimizer once, then process loss inputs"""
         self.running = True
         self.logger.info(f"Starting node {self.node_id}")
         
         # In inference mode, this node does nothing
-        if self.inference_mode:
+        if g.inference_mode:
             self.logger.info("TrainingStep disabled in inference mode")
             # Keep the node running but do nothing
             try:
@@ -68,7 +65,7 @@ class TrainingStepNode_45(QueueNode):
         
     async def compute(self, loss) -> Dict[str, Any]:
         # Skip in inference mode
-        if self.inference_mode:
+        if g.inference_mode:
             return {"ready": None, "step_complete": False}
             
         if self.optimizer is None:
@@ -79,6 +76,9 @@ class TrainingStepNode_45(QueueNode):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        
+        # Yield after training step to allow other workflows to run
+        await g.async_adaptive_yield()
         
         # Send ready signal for next batch after training step completes
         import time
@@ -93,8 +93,7 @@ class TrainingStepNode_45(QueueNode):
         }
         
         # Only log in verbose mode - EpochTracker will show summaries
-        import builtins
-        if hasattr(builtins, 'VERBOSE') and builtins.VERBOSE:
+        if g.verbose:
             self.logger.info(f"Training step completed. Loss: {loss.item():.4f}")
         
         return {

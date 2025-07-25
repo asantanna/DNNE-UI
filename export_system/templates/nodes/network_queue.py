@@ -12,6 +12,8 @@ template_vars = {
     "CHECKPOINT_LOAD_ON_START": False
 }
 
+from framework.globals import Global as g
+
 class NetworkNode_{NODE_ID}(QueueNode):
     """Neural network with multiple layers"""
     
@@ -27,15 +29,11 @@ class NetworkNode_{NODE_ID}(QueueNode):
         self.network = nn.Sequential(*layers)
         
         # Move to GPU if available
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(g.device)
         self.network = self.network.to(self.device)
         
-        # Check if we're in inference mode
-        import builtins
-        self.inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
-        
         # Set network to eval mode if in inference
-        if self.inference_mode:
+        if g.inference_mode:
             self.network.eval()
             self.logger.info("Network set to evaluation mode for inference")
         
@@ -60,26 +58,18 @@ class NetworkNode_{NODE_ID}(QueueNode):
             
             try:
                 validate_checkpoint_config(checkpoint_config)
-                # Get checkpoint directory from command line args (set by runner.py)
-                try:
-                    import builtins
-                    save_checkpoint_dir = getattr(builtins, 'SAVE_CHECKPOINT_DIR', None)
-                    load_checkpoint_dir = getattr(builtins, 'LOAD_CHECKPOINT_DIR', None)
-                except:
-                    save_checkpoint_dir = None
-                    load_checkpoint_dir = None
-                    
+                # Get checkpoint directory from global settings
                 self.checkpoint_manager = CheckpointManager(
                     node_id=node_id,
-                    checkpoint_dir=save_checkpoint_dir
+                    checkpoint_dir=str(g.save_checkpoint_dir) if g.save_checkpoint_dir else None
                 )
                 self.logger.info(f"Checkpoint manager initialized: {self.checkpoint_trigger_type} trigger")
                 
                 # Load checkpoint on start if requested, or always in inference mode
-                if (self.checkpoint_load_on_start and load_checkpoint_dir) or (self.inference_mode and load_checkpoint_dir):
-                    if self.inference_mode:
+                if (self.checkpoint_load_on_start and g.load_checkpoint_dir) or (g.inference_mode and g.load_checkpoint_dir):
+                    if g.inference_mode:
                         self.logger.info("🔍 Inference mode: Loading checkpoint automatically")
-                    self.load_checkpoint(load_checkpoint_dir)
+                    self.load_checkpoint(str(g.load_checkpoint_dir))
                     
             except ValueError as e:
                 self.logger.error(f"Checkpoint configuration error: {e}")
@@ -275,6 +265,9 @@ class NetworkNode_{NODE_ID}(QueueNode):
         # Forward pass through the entire network
         # Note: In inference mode, torch.no_grad() is already applied by GraphRunner
         output = self.network(x)
+        
+        # Yield after computation to allow other workflows to run
+        await g.async_adaptive_yield()
         
         return {
             "layers": None,  # This output is just for UI connectivity
