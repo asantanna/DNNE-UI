@@ -6,6 +6,32 @@ Configuration-only node for Isaac Gym environment settings
 from typing import Dict, Tuple, Optional
 from .base_node import RoboticsNodeBase
 
+# Try to import the config loader
+try:
+    from custom_nodes.utils import IsaacGymEnvConfigLoader
+    # Get available tasks from config loader
+    loader = IsaacGymEnvConfigLoader.get_instance()
+    tasks = loader.get_available_tasks()
+    
+    # Debug logging
+    print(f"[DNNE] IsaacGymEnvs: Found {len(tasks)} tasks from config loader")
+    
+    if not tasks:
+        # If no tasks found, check paths
+        print(f"[DNNE] IsaacGymEnvs: Base path: {loader.base_path}")
+        print(f"[DNNE] IsaacGymEnvs: Task path exists: {loader.task_cfg_path.exists()}")
+        # Fail fast - no tasks found
+        raise RuntimeError("No IsaacGymEnvs tasks found. Check IGE installation path.")
+    
+    # Add "none" as first option to force user selection
+    AVAILABLE_TASKS = ["none"] + tasks
+except ImportError as e:
+    # If import fails, raise error immediately (fail-fast)
+    raise ImportError(f"Failed to import IsaacGymEnvConfigLoader: {e}")
+except Exception as e:
+    # Any other error should also fail fast
+    raise RuntimeError(f"Failed to load IsaacGymEnvs tasks: {e}")
+
 
 class IsaacGymEnvs(RoboticsNodeBase):
     """
@@ -24,10 +50,9 @@ class IsaacGymEnvs(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "task": ("STRING", {
-                    "default": "Cartpole",
-                    "multiline": False,
-                    "tooltip": "IsaacGymEnvs task name (e.g., Cartpole, Ant, Humanoid, Anymal)"
+                "task": (AVAILABLE_TASKS, {
+                    "default": "none",
+                    "tooltip": "Select an IsaacGymEnvs task - REQUIRED for export"
                 }),
                 "num_envs": ("INT", {
                     "default": 64,
@@ -134,13 +159,17 @@ class IsaacGymEnvs(RoboticsNodeBase):
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs):
         """Validate input values"""
+        # Check that task is selected
+        task = kwargs.get("task", "none")
+        if task == "none":
+            return "Please select a task from the dropdown. 'none' is not a valid environment."
+        
         # Check sim_device format
         sim_device = kwargs.get("sim_device", "cuda:0")
         if not (sim_device == "cpu" or sim_device.startswith("cuda:")):
             return f"Invalid sim_device: {sim_device}. Use 'cpu' or 'cuda:X'"
         
         # Check that task name is valid (basic check)
-        task = kwargs.get("task", "")
         if not task or not task[0].isupper():
             return f"Task name should start with uppercase: {task}"
         
