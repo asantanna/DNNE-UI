@@ -1,54 +1,92 @@
-# Resume PPO Debug Session
+# PPO Debug Status
 
-You are resuming work on debugging the DNNE PPO implementation. In DNNE, the workflow is "Cartpole_PPO". In IsaacGymEnvs, the environment is "cartpole". Read these critical context files to understand the current state:
+## Current Status: ✅ WORKING
 
-## Required Reading
+PPO training with IsaacGymEnvs is now fully functional. The training runs smoothly without freezes or hangs.
 
-```
-@docs-dnne/for_claude/dnne_debugging_guide.md
-@docs-dnne/for_claude/performance_analysis_overview.md
-@docs-dnne/code-quality-checklist.md
-```
+## Key Fixes Applied
 
-## Useful Tools
+### 1. Widget Persistence (✅ Fixed)
+- Environment dropdown changes now save correctly
+- Added `app.graph.change()` call in `useDNNEComboWidget.ts`
 
-1. **DNNE vs IsaacGymEnvs Performance Profiler**: @claude_scripts/profiling/performance_profiler.py [debug flags]
-2. **DNNE workflow exporter**: @claude_scripts/programmatic_export.py
-3. **NOTE**: Due to a bug in CLAUDE CODE, files sometimes disappear mysteriously. You can check that it happened by doing git status and verifying it now appears as deleted. You can restore from git but often this loses your current work. One thing you can do is make one change at a time to that file and backup the file to /tmp so that you don't lose all your work again.
+### 2. PPO Configuration (✅ Fixed)
+- Changed from `num_minibatches` to `minibatch_size` to match YAML
+- Added missing parameters: `horizon_length`, `mini_epochs`, `bounds_loss_coef`
+- Configuration now loads from both global and task-specific YAML files
+- All YAML parameters pass through "unscathed" without modification
 
-## Current Status & Achievements
+### 3. Code Organization (✅ Fixed)
+- Moved PPO nodes from `ml_nodes` to `rl_nodes` directory
+- Deleted all OLD files and references
+- Fixed all import paths
 
-**Major Progress**: DNNE has been successfully refactored to use IsaacGymEnvs' cartpole infrastructure and multiple critical debugging issues have been resolved.
+### 4. Training Freeze Issue (✅ Fixed)
+- Disabled adaptive yielding debug code (returns immediately)
+- Fixed `sync_adaptive_yield` fail-fast behavior with proper RuntimeError
+- Fixed missing `headless_mode` initialization in Global class
 
-**Current Phase**: Correctness verification - ensuring DNNE matches IGE behavior exactly before performance optimization.
+### 5. Import Updates (✅ Fixed)
+- Updated all imports in `rl_games_dnne` to self-reference (use `rl_games_dnne` instead of `rl_games`)
+- Updated all imports in `IsaacGymEnvs` to use `rl_games_dnne`
+- This ensures the modified rl_games_dnne package is used consistently
 
-**Debugging Methodology**: Use matching debug prints (`PPO_CYCLE_DEBUG=1`) to compare DNNE vs IGE execution step-by-step. Run only one PPO cycle because debug prints are very verbose (`PPO_STOP_AFTER_CYCLE=1`)
-
-**Log Comparison Tools**:
-```bash
-# Run 1-cycle comparison with automatic log comparison
-cd /mnt/e/ALS-Projects/DNNE/DNNE-UI
-python claude_scripts/profiling/ppo_comparison/run_1cycle_comparison.py
-
-# Compare logs with diff-based alignment and line numbers
-python claude_scripts/profiling/ppo_comparison/compare_ppo_logs.py
-
-# Optional flags for comparison tools:
-# --check-shared-attrib : Check D/I/B differences in shared code (by default they are ignored)
-```
-
-**Next Priority**: Verify that PPO training completes successfully and produces learning behavior identical to IGE.
-
-## Quick Start Commands
+## Environment Setup
 
 ```bash
-# Export and run DNNE with debug
+# Activate conda environment
+source /home/asantanna/miniconda/bin/activate DNNE_PY38
+
+# Test PPO export and run
 cd /mnt/e/ALS-Projects/DNNE/DNNE-UI
 python claude_scripts/programmatic_export.py
-cd export_system/exports/Cartpole_PPO
-PPO_CYCLE_DEBUG=1 PPO_STOP_AFTER_CYCLE=1 python runner.p
 
-# Run IGE for comparison (separate terminal)
-cd /home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs
-PPO_CYCLE_DEBUG=1 PPO_STOP_AFTER_CYCLE=1 python isaacgymenvs/train.py task=Cartpole --timeout 30s
+# Run in visual mode
+cd export_system/exports/Cartpole_PPO
+python runner.py --visual
+
+# Run in headless mode
+python runner.py --headless
 ```
+
+## Key Files
+
+### Export System
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/templates/nodes/ppo_agent_queue.py` - PPO agent template
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/node_exporters/rl_nodes.py` - PPO node exporters
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/templates/framework/globals.py` - Global settings with headless_mode
+
+### Custom Nodes
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/custom_nodes/rl_nodes/ppo_agent.py` - PPO agent node
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/custom_nodes/rl_nodes/ppo_config.py` - PPO config node
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/custom_nodes/utils/isaac_gym_config_loader.py` - YAML config loader
+
+### Modified Packages
+- `/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne/` - Modified rl_games with DNNE_print debugging
+- `/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/` - Updated to use rl_games_dnne
+
+## Pending Tasks
+
+1. **Fix widget order mapping in PPO exporter comments** (medium priority)
+   - The comment in PPO exporter lists parameters in wrong order vs actual implementation
+
+## Debug Features
+
+### DNNE_print Function
+Located in `rl_games_dnne/common/a2c_common.py`, provides categorized debug output:
+```python
+[DNNE_DEBUG] I/PPO_CYCLE: === PPO TRAINING CYCLE 1 STARTED ===
+[DNNE_DEBUG] I/CATEGORY: message
+```
+
+### Command Line Flags
+- `--visual`: Enable Isaac Gym viewer
+- `--headless`: Disable all rendering (overrides force_render from YAML)
+- `--inference`: Run in inference mode (skip training)
+
+## Important Notes
+
+1. **YAML Configuration**: Always trust YAML values - pass them through without modification
+2. **Force Render**: In headless mode, force_render is overridden to False
+3. **Import Order**: Isaac Gym must be imported before PyTorch
+4. **Fail Fast**: Use exceptions rather than fallbacks for missing functionality
