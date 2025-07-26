@@ -6,163 +6,6 @@ Export handlers for RL (Reinforcement Learning) nodes
 from typing import Dict, List
 from ..graph_exporter import ExportableNode
 
-# Old PPO exporters - replaced with new virtual node system
-class PPOAgentExporter_OLD(ExportableNode):
-    """Exporter for PPOAgentNode"""
-    
-    @classmethod
-    def get_template_name(cls) -> str:
-        return "nodes/ppo_agent_queue.py"
-    
-    @classmethod
-    def prepare_template_vars(cls, node_id: str, node_data: Dict, connections: Dict, node_registry=None, all_nodes=None, all_links=None) -> Dict:
-        """Prepare template variables for PPOAgentNode"""
-        
-        # Use universal parameter reader for consistent data access
-        param_specs = [
-            {'name': 'hidden_sizes', 'widget_index': 0, 'default': '32,32'},  # Updated to match IsaacGymEnvs
-            {'name': 'activation', 'widget_index': 1, 'default': 'elu'},
-            {'name': 'action_space', 'widget_index': 2, 'default': 'continuous'},
-            {'name': 'action_dim', 'widget_index': 3, 'default': 1},
-            {'name': 'learning_rate', 'widget_index': 4, 'default': 3e-4},
-            {'name': 'deterministic', 'widget_index': 5, 'default': False},
-            {'name': 'init_log_std', 'widget_index': 6, 'default': 0.0}
-        ]
-        
-        params = cls.get_node_parameters_batch(node_data, param_specs)
-        
-        # Get parameter values
-        hidden_sizes = params['hidden_sizes']
-        activation = params['activation']
-        action_space = params['action_space']
-        action_dim = params['action_dim']
-        learning_rate = params['learning_rate']
-        deterministic = params['deterministic']
-        init_log_std = params['init_log_std']
-        
-        return {
-            "NODE_ID": node_id,
-            "CLASS_NAME": "PPOAgentNode",
-            "HIDDEN_SIZES": hidden_sizes,
-            "ACTIVATION": activation,
-            "ACTION_SPACE": action_space,
-            "ACTION_DIM": action_dim,
-            "LEARNING_RATE": learning_rate,
-            "DETERMINISTIC": deterministic,
-            "INIT_LOG_STD": init_log_std
-        }
-    
-    @classmethod
-    def get_imports(cls) -> List[str]:
-        return [
-            "import torch",
-            "import torch.nn as nn",
-            "import torch.distributions as dist",
-            "import numpy as np"
-        ]
-    
-    @classmethod
-    def get_input_names(cls) -> List[str]:
-        return ["observations"]
-    
-    @classmethod
-    def get_output_names(cls) -> List[str]:
-        return ["policy_output", "model"]
-
-class PPOTrainerExporter_OLD(ExportableNode):
-    """Exporter for PPOTrainerNode"""
-    
-    @classmethod
-    def get_template_name(cls) -> str:
-        return "nodes/ppo_trainer_queue.py"
-    
-    @classmethod
-    def prepare_template_vars(cls, node_id: str, node_data: Dict, connections: Dict, node_registry=None, all_nodes=None, all_links=None) -> Dict:
-        """Prepare template variables for PPOTrainerNode"""
-        
-        # Use universal parameter reader for consistent data access
-        # New widget order: max_epochs first, then horizon_length, ppo_epochs, etc.
-        param_specs = [
-            {'name': 'max_epochs', 'widget_index': 0, 'default': 100},  # Max training epochs
-            {'name': 'horizon_length', 'widget_index': 1, 'default': 16},
-            {'name': 'ppo_epochs', 'widget_index': 2, 'default': 8},  # PPO mini-epochs per trajectory
-            {'name': 'minibatch_size', 'widget_index': 3, 'default': 8192},  # Updated for batch efficiency
-            {'name': 'gamma', 'widget_index': 4, 'default': 0.99},
-            {'name': 'gae_lambda', 'widget_index': 5, 'default': 0.95},
-            {'name': 'clip_param', 'widget_index': 6, 'default': 0.2},
-            {'name': 'value_coef', 'widget_index': 7, 'default': 4.0},  # Updated to match IsaacGymEnvs
-            {'name': 'entropy_coef', 'widget_index': 8, 'default': 0.0},  # Updated to match IsaacGymEnvs
-            {'name': 'learning_rate', 'widget_index': 9, 'default': 0.0003},
-            {'name': 'max_grad_norm', 'widget_index': 10, 'default': 1.0},  # Updated to match IsaacGymEnvs
-            {'name': 'checkpoint_enabled', 'widget_index': 11, 'default': True},
-            {'name': 'checkpoint_trigger_type', 'widget_index': 12, 'default': 'time'},
-            {'name': 'checkpoint_trigger_value', 'widget_index': 13, 'default': '5m'}
-        ]
-        
-        params = cls.get_node_parameters_batch(node_data, param_specs)
-        
-        # Extract parameter values
-        max_epochs = params['max_epochs']
-        horizon_length = params['horizon_length']
-        ppo_epochs = params['ppo_epochs']
-        minibatch_size = params['minibatch_size']
-        gamma = params['gamma']
-        gae_lambda = params['gae_lambda']
-        clip_param = params['clip_param']
-        value_coef = params['value_coef']
-        entropy_coef = params['entropy_coef']
-        learning_rate = params['learning_rate']
-        max_grad_norm = params['max_grad_norm']
-        checkpoint_enabled = params['checkpoint_enabled']
-        checkpoint_trigger_type = params['checkpoint_trigger_type']
-        checkpoint_trigger_value = params['checkpoint_trigger_value']
-        
-        return {
-            "NODE_ID": node_id,
-            "CLASS_NAME": "PPOTrainerNode",
-            "MAX_EPOCHS": max_epochs,
-            "HORIZON_LENGTH": horizon_length,
-            # rl_games compatible parameter names
-            "MINI_EPOCHS_NUM": ppo_epochs,  # rl_games naming
-            "MINIBATCH_SIZE": minibatch_size,
-            "GAMMA": gamma,
-            "TAU": gae_lambda,  # rl_games naming: tau instead of gae_lambda
-            "E_CLIP": clip_param,  # rl_games naming: e_clip instead of clip_param
-            "CRITIC_COEF": value_coef,  # rl_games naming: critic_coef instead of value_coef
-            "ENTROPY_COEF": entropy_coef,
-            "LEARNING_RATE": learning_rate,
-            "GRAD_NORM": max_grad_norm,  # rl_games naming: grad_norm instead of max_grad_norm
-            "CLIP_VALUE": True,  # rl_games parameter
-            "BOUNDS_LOSS_COEF": 0.0001,  # rl_games parameter
-            "BOUND_LOSS_TYPE": "bound",  # rl_games parameter
-            "CHECKPOINT_ENABLED": checkpoint_enabled,
-            "CHECKPOINT_TRIGGER_TYPE": checkpoint_trigger_type,
-            "CHECKPOINT_TRIGGER_VALUE": checkpoint_trigger_value
-        }
-    
-    @classmethod
-    def get_imports(cls) -> List[str]:
-        return [
-            "import torch",
-            "import torch.nn as nn",
-            "import torch.optim as optim",
-            "import torch.distributions as dist",
-            "import numpy as np"
-        ]
-    
-    @classmethod
-    def get_input_names(cls) -> List[str]:
-        return ["state", "policy_output", "reward", "done", "model"]
-    
-    @classmethod
-    def get_output_names(cls) -> List[str]:
-        return ["loss", "training_complete"]
-    
-    @classmethod
-    def get_dependencies(cls) -> List[str]:
-        """Return list of dependency files that need to be copied to export"""
-        return ["rlgames_ppo_components.py"]
-
 # New PPO exporters with virtual node support
 
 class PPOConfigExporter(ExportableNode):
@@ -283,12 +126,17 @@ class PPOAgentExporter(ExportableNode):
                 "PPO_CRITIC_COEF": ppo_config.get('critic_coef', 4),
                 "PPO_ENTROPY_COEF": ppo_config.get('entropy_coef', 0.0),
                 "PPO_BOUNDS_LOSS_COEF": ppo_config.get('bounds_loss_coef', 0.0),
-                "PPO_MAX_AGENT_STEPS": ppo_config.get('max_agent_steps', 1e8),
+                "PPO_MAX_EPOCHS": ppo_config.get('max_epochs', 100),
                 "PPO_NORMALIZE_ADVANTAGE": ppo_config.get('normalize_advantage', True),
                 "PPO_NORMALIZE_INPUT": ppo_config.get('normalize_input', True),
-                "PPO_VALUE_BOOTSTRAP": ppo_config.get('value_bootstrap', True),
-                "PPO_CLIP_ACTIONS": ppo_config.get('clip_actions', False),
+                "PPO_NORMALIZE_VALUE": ppo_config.get('normalize_value', True),
             })
+        
+        # Only add these if they exist in the PPO config (from YAML)
+        if 'value_bootstrap' in ppo_config:
+            template_vars["PPO_VALUE_BOOTSTRAP"] = ppo_config['value_bootstrap']
+        if 'clip_actions' in ppo_config:
+            template_vars["PPO_CLIP_ACTIONS"] = ppo_config['clip_actions']
         
         return template_vars
     
@@ -341,6 +189,10 @@ class PPOAgentExporter(ExportableNode):
             
         # Extract widget values
         widget_values = env_node_data.get("widgets_values", [])
+        
+        # Debug logging
+        import logging
+        logging.info(f"[DNNE Export] IsaacGymEnvs widget_values: {widget_values}")
         
         # Map widget values to config (based on IsaacGymEnvs node definition)
         # Widget values from workflow: ["Cartpole",64,42,"randomize",true,0,"cuda:0","physx",false,false,false,true,0,1,0]
@@ -402,54 +254,47 @@ class PPOAgentExporter(ExportableNode):
         
         # Map widget values to config (based on PPOConfig node definition)
         # Widget order from PPOConfig INPUT_TYPES:
-        # 0: learning_rate, 1: num_epochs, 2: num_minibatches, 3: clip_param,
+        # 0: learning_rate, 1: num_epochs, 2: minibatch_size, 3: clip_param,
         # 4: value_loss_coef, 5: entropy_coef, 6: gamma, 7: gae_lambda,
         # 8: max_grad_norm, 9: horizon_length, 10: max_iterations, 11: lr_schedule,
         # 12: lr_schedule_kl_threshold, 13: use_clipped_value_loss, 14: normalize_advantage,
         # 15: normalize_input, 16: normalize_value, 17: reward_shaper_scale,
-        # 18: e_clip, 19: truncate_grads
+        # 18: e_clip, 19: truncate_grads, 20: bounds_loss_coef
+        
+        # Direct mapping from widget values - minibatch_size is now provided directly
+        horizon_length = widget_values[9] if len(widget_values) > 9 else 16
         
         return {
             'learning_rate': widget_values[0] if len(widget_values) > 0 else 0.0003,
             'mini_epochs': widget_values[1] if len(widget_values) > 1 else 4,
-            'minibatch_size': widget_values[2] if len(widget_values) > 2 else 8,
+            'minibatch_size': widget_values[2] if len(widget_values) > 2 else 8192,  # Direct from widget
             'e_clip': widget_values[3] if len(widget_values) > 3 else 0.2,
             'critic_coef': widget_values[4] if len(widget_values) > 4 else 0.5,
             'entropy_coef': widget_values[5] if len(widget_values) > 5 else 0.01,
             'gamma': widget_values[6] if len(widget_values) > 6 else 0.99,
             'tau': widget_values[7] if len(widget_values) > 7 else 0.95,
             'grad_norm': widget_values[8] if len(widget_values) > 8 else 0.5,
-            'horizon_length': widget_values[9] if len(widget_values) > 9 else 16,
-            'max_agent_steps': widget_values[10] * 1000000 if len(widget_values) > 10 else 10000000000,  # Convert to steps
+            'horizon_length': horizon_length,
+            'max_epochs': widget_values[10] if len(widget_values) > 10 else 100,  # Direct from max_iterations widget
             'schedule_type': widget_values[11] if len(widget_values) > 11 else 'constant',
             'lr_schedule_kl_threshold': widget_values[12] if len(widget_values) > 12 else 0.008,
             'clip_value': widget_values[13] if len(widget_values) > 13 else True,
             'normalize_advantage': widget_values[14] if len(widget_values) > 14 else True,
             'normalize_input': widget_values[15] if len(widget_values) > 15 else True,
-            'value_bootstrap': widget_values[16] if len(widget_values) > 16 else True,
-            'bounds_loss_coef': 0.0,  # Not directly in widgets, set to 0
-            'clip_actions': False,  # Not in PPOConfig widgets
+            'normalize_value': widget_values[16] if len(widget_values) > 16 else True,
+            'bounds_loss_coef': widget_values[20] if len(widget_values) > 20 else 0.0001,
         }
 
 
 # Registration function
 def register_rl_exporters(exporter):
     """Register all RL node exporters"""
-    # Old exporters - commented out
-    # exporter.register_node("PPOAgentNode", PPOAgentExporter_OLD)
-    # exporter.register_node("PPOTrainerNode", PPOTrainerExporter_OLD)
-    
-    # New exporters with virtual node support
+    # Register PPO exporters
     exporter.register_node("PPOConfig", PPOConfigExporter)
     exporter.register_node("PPOAgent", PPOAgentExporter)
 
 # Node type mapping for export system  
 RL_NODE_EXPORTERS = {
-    # Old exporters - commented out
-    # "PPOAgentNode": PPOAgentExporter_OLD,
-    # "PPOTrainerNode": PPOTrainerExporter_OLD,
-    
-    # New exporters
     "PPOConfig": PPOConfigExporter,
     "PPOAgent": PPOAgentExporter,
 }

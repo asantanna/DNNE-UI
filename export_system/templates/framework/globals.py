@@ -70,6 +70,7 @@ class Global:
     
     # === Performance Settings ===
     device: str = "cuda"  # Will be set properly at runtime
+    _device_raw: str = "auto"  # Raw device setting before resolution
     no_yield: bool = False  # Disable all yielding for performance comparison
     
     # === Paths ===
@@ -105,6 +106,7 @@ class Global:
         cls.inference_mode = kwargs.get('inference_mode', False)
         cls.training_mode = not cls.inference_mode
         cls.visual_mode = kwargs.get('visual_mode', False)
+        cls.headless_mode = kwargs.get('headless_mode', False)
         
         # Debug settings
         cls.verbose = kwargs.get('verbose', False)
@@ -124,20 +126,10 @@ class Global:
         if kwargs.get('load_checkpoint_dir'):
             cls.load_checkpoint_dir = Path(kwargs['load_checkpoint_dir'])
         
-        # Device - lazy import torch
+        # Device - store raw value, resolve later
         device = kwargs.get('device', 'auto')
-        if device == 'auto':
-            try:
-                import torch
-                cls.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            except ImportError as e:
-                raise RuntimeError(
-                    f"PyTorch is required but not installed: {e}\n"
-                    f"Please install PyTorch before running DNNE workflows.\n"
-                    f"Visit https://pytorch.org/get-started/locally/ for installation instructions."
-                )
-        else:
-            cls.device = device
+        cls._device_raw = device
+        cls.device = device  # Will be resolved when needed
         
         # Logger
         cls._logger = logging.getLogger('Global')
@@ -158,6 +150,9 @@ class Global:
         Async adaptive yield - use in async functions.
         Automatically adjusts yield duration based on system metrics.
         """
+        # DEBUG: Disable all yielding for now
+        return
+        
         # Fast path - no yield if disabled by context or command line
         if cls._yield_disabled > 0 or cls.no_yield:
             return
@@ -188,6 +183,9 @@ class Global:
         Warning: This uses private asyncio APIs (_run_once) and may break
         in future Python versions. Use only when async is not possible.
         """
+        # DEBUG: Disable all yielding for now
+        return
+        
         # Fast path - no yield if disabled by context or command line
         if cls._yield_disabled > 0 or cls.no_yield:
             return
@@ -340,6 +338,26 @@ class Global:
         cls._yield_stats = YieldStats()
         cls._node_metrics.clear()
         cls._total_queued = 0
+    
+    @classmethod
+    def get_device(cls) -> str:
+        """
+        Get the device, resolving 'auto' if needed.
+        This is called lazily to avoid importing torch too early.
+        """
+        if cls._device_raw == 'auto' and cls.device == 'auto':
+            # Resolve auto device now
+            try:
+                import torch
+                cls.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                if cls.verbose:
+                    cls._logger.info(f"Resolved device: {cls.device}")
+            except ImportError:
+                # If torch not available, default to cpu
+                cls.device = 'cpu'
+                if cls.verbose:
+                    cls._logger.warning("PyTorch not available, defaulting to cpu")
+        return cls.device
     
     @classmethod
     def system_healthy(cls) -> bool:

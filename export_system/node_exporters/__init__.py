@@ -18,7 +18,9 @@ from .robotics_nodes import (
     SoundNetworkExporter,
     DecisionNetworkExporter,
     RobotControllerExporter,
-    IsaacGymEnvExporter,
+    IsaacGymEnvsExporter,
+    CartpoleActionNodeExporter,
+    CartpoleRewardNodeExporter,
     register_robotics_exporters
 )
 
@@ -61,7 +63,9 @@ __all__ = [
     'SoundNetworkExporter',
     'DecisionNetworkExporter',
     'RobotControllerExporter',
-    'IsaacGymEnvExporter',
+    'IsaacGymEnvsExporter',
+    'CartpoleActionNodeExporter',
+    'CartpoleRewardNodeExporter',
     # RL nodes
     'PPOConfigExporter',
     'PPOAgentExporter',

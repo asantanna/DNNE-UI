@@ -201,115 +201,7 @@ class RobotControllerExporter(ExportableNode):
         ]
 
 
-class IsaacGymEnvExporter(ExportableNode):
-    @classmethod
-    def get_template_name(cls):
-        return "nodes/isaac_gym_env_queue.py"
-    
-    @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Use universal parameter reader for consistent data access
-        param_specs = [
-            {'name': 'env_name', 'default': 'Cartpole'},
-            {'name': 'num_envs', 'default': 512},
-            {'name': 'isaac_gym_path', 'default': '/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym'},
-            {'name': 'isaac_gym_envs_path', 'default': '/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs'},
-            {'name': 'headless', 'default': True},
-            {'name': 'device', 'default': 'cuda'},
-            {'name': 'physics_engine', 'default': 'physx'},
-            # Camera configuration
-            {'name': 'use_default_camera', 'default': True},
-            {'name': 'camera_position_x', 'default': 20.0},
-            {'name': 'camera_position_y', 'default': 25.0},
-            {'name': 'camera_position_z', 'default': 3.0},
-            {'name': 'camera_target_x', 'default': 10.0},
-            {'name': 'camera_target_y', 'default': 15.0},
-            {'name': 'camera_target_z', 'default': 0.0}
-        ]
-        
-        params = cls.get_node_parameters_batch(node_data, param_specs)
-        
-        # Extract parameters
-        env_name = params['env_name']
-        num_envs = params['num_envs']
-        isaac_gym_path = params['isaac_gym_path']
-        isaac_gym_envs_path = params['isaac_gym_envs_path']
-        headless = params['headless']
-        device = params['device']
-        physics_engine = params['physics_engine']
-        
-        return {
-            "NODE_ID": node_id,
-            "CLASS_NAME": "IsaacGymEnvNode",
-            "ENV_NAME": env_name,
-            "NUM_ENVS": num_envs,
-            "ISAAC_GYM_PATH": isaac_gym_path,
-            "ISAAC_GYM_ENVS_PATH": isaac_gym_envs_path,
-            "HEADLESS": headless,
-            "DEVICE": device,
-            "PHYSICS_ENGINE": physics_engine,
-            # Camera configuration
-            "USE_DEFAULT_CAMERA": params['use_default_camera'],
-            "CAMERA_POSITION_X": params['camera_position_x'],
-            "CAMERA_POSITION_Y": params['camera_position_y'],
-            "CAMERA_POSITION_Z": params['camera_position_z'],
-            "CAMERA_TARGET_X": params['camera_target_x'],
-            "CAMERA_TARGET_Y": params['camera_target_y'],
-            "CAMERA_TARGET_Z": params['camera_target_z']
-        }
-    
-    @classmethod
-    def get_imports(cls):
-        return [
-            "import isaacgym",  # MUST BE FIRST - before torch
-            "import torch",
-            "import numpy as np",
-            "import os"
-        ]
-    
-    @classmethod
-    def get_input_names(cls):
-        return []  # No inputs - runs at startup
-    
-    @classmethod
-    def get_output_names(cls):
-        return ["env_handle", "observations"]
-    
-    @classmethod
-    def get_dependencies(cls):
-        return ["gym_envs/cartpole_dnne.py"]
-
-
-class IsaacGymStepExporter(ExportableNode):
-    @classmethod
-    def get_template_name(cls):
-        return "nodes/isaac_gym_step_queue.py"
-    
-    @classmethod
-    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # ComfyUI workflow format uses widgets_values list
-        widget_values = node_data.get("widgets_values", [])
-        
-        return {
-            "NODE_ID": node_id,
-            "CLASS_NAME": "IsaacGymStepNode"
-        }
-    
-    @classmethod
-    def get_imports(cls):
-        return [
-            "import torch",
-            "import numpy as np",
-            "# Isaac Gym imports are handled at runtime in the template",
-        ]
-    
-    @classmethod
-    def get_input_names(cls):
-        return ["env_handle", "actions", "trigger"]
-    
-    @classmethod
-    def get_output_names(cls):
-        return ["observations", "rewards", "done", "info", "next_observations"]
+# IsaacGymStepExporter removed - no corresponding node or template exists
 
 
 
@@ -428,11 +320,8 @@ def register_robotics_exporters(exporter):
     exporter.register_node("RobotController", RobotControllerExporter)
     
     # Isaac Gym
-    exporter.register_node("IsaacGymEnv", IsaacGymEnvExporter)
-    exporter.register_node("IsaacGymEnvNode", IsaacGymEnvExporter)
-    exporter.register_node("IsaacGymStep", IsaacGymStepExporter)
-    exporter.register_node("IsaacGymStepNode", IsaacGymStepExporter)
-    exporter.register_node("IsaacGymEnvs", IsaacGymEnvsExporter)  # New virtual node
+    # IsaacGymStep and IsaacGymStepNode removed - no corresponding node or template exists
+    exporter.register_node("IsaacGymEnvs", IsaacGymEnvsExporter)  # Virtual node
     
     # Cartpole RL nodes
     exporter.register_node("CartpoleActionNode", CartpoleActionNodeExporter)
