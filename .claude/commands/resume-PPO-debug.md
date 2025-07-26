@@ -67,6 +67,17 @@ python runner.py --headless
 
 ## Pending Tasks
 
+### Current Todo List (for session continuity)
+
+| ID | Task | Priority | Status |
+|----|------|----------|--------|
+| 15 | Fix widget order mapping in PPO exporter comments | medium | pending |
+| 33 | Investigate adaptive yield function to see if it works (no adaptation) | high | pending |
+| 34 | Update yield test suite to run Cartpole and MNIST simultaneously | high | pending |
+| 35 | Research the adaptive part of adaptive_yield and implement | high | pending |
+| 36 | Try a different IGE environment to verify it also works | medium | pending |
+| 37 | Think about how to use IGE environment with non-PPO workflow | medium | pending |
+
 ### Immediate Tasks
 
 1. **Fix widget order mapping in PPO exporter comments** (medium priority)
@@ -74,22 +85,17 @@ python runner.py --headless
 
 ### Adaptive Yield Investigation
 
-2. **Ensure runner.py sets DNNE_ADAPTIVE_YIELD** (high priority)
-   - Currently PPO agent sets it but runner.py should set it globally
-   - Move `os.environ['DNNE_ADAPTIVE_YIELD'] = '1'` to runner.py
-   - This enables adaptive yielding for all DNNE workflows, not just PPO
-
-3. **Investigate adaptive yield function** (high priority)
+2. **Investigate adaptive yield function** (high priority)
    - Currently returns immediately (disabled for debugging)
    - Verify if the adaptive yield mechanism actually works
    - Check if it provides any adaptation based on system load
 
-4. **Update yield test suite** (high priority)
+3. **Update yield test suite** (high priority)
    - Create test with Cartpole PPO and MNIST running simultaneously
    - Ensure both workflows run concurrently without interference
    - Validate queue-based execution with multiple active workflows
 
-5. **Research and implement adaptive yielding** (high priority)
+4. **Research and implement adaptive yielding** (high priority)
    - Research what "adaptive" means in this context
    - Implement proper adaptation based on:
      - Queue sizes
@@ -99,12 +105,12 @@ python runner.py --headless
 
 ### Environment Testing
 
-6. **Test different Isaac Gym environments** (medium priority)
+5. **Test different Isaac Gym environments** (medium priority)
    - Try environments beyond Cartpole (e.g., Ant, Humanoid, AllegroHand)
    - Verify PPO configuration loading works for all environments
    - Ensure training runs successfully for complex environments
 
-7. **Non-PPO Isaac Gym workflows** (medium priority)
+6. **Non-PPO Isaac Gym workflows** (medium priority)
    - Explore using Isaac Gym environments without PPO
    - Consider direct policy networks or other RL algorithms
    - Design node architecture for non-PPO RL workflows
