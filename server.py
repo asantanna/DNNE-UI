@@ -792,6 +792,50 @@ class PromptServer():
 
             return web.Response(status=200)
 
+        @routes.get("/dnne/env_config/{task_name}")
+        async def get_env_config(request):
+            """Get environment-specific configuration for all 3 nodes"""
+            task_name = request.match_info.get("task_name", None)
+            logging.info(f"[DNNE] get_env_config called with task_name: {task_name}")
+            
+            if not task_name or task_name == "none":
+                logging.warning(f"[DNNE] Invalid task name: {task_name}")
+                return web.json_response({"error": "Invalid task name"}, status=400)
+            
+            try:
+                # Import the config loader
+                from custom_nodes.utils.isaac_gym_config_loader import IsaacGymEnvConfigLoader
+                
+                # Get singleton instance
+                loader = IsaacGymEnvConfigLoader.get_instance()
+                logging.info(f"[DNNE] Got config loader instance")
+                
+                # Get configuration for the task
+                config = loader.get_task_config(task_name)
+                logging.info(f"[DNNE] Retrieved config for {task_name}: {config is not None}")
+                
+                if not config:
+                    logging.warning(f"[DNNE] No configuration found for task: {task_name}")
+                    return web.json_response({"error": f"No configuration found for task: {task_name}"}, status=404)
+                
+                # Return configuration for all 3 nodes
+                response_data = {
+                    "task_name": task_name,
+                    "isaac_gym_env": config.get("isaac_gym_env_node", {}),
+                    "ppo_config": config.get("ppo_config_node", {}),
+                    "ppo_agent": config.get("ppo_agent_node", {})
+                }
+                logging.info(f"[DNNE] Returning config with {len(response_data['isaac_gym_env'])} env params, "
+                           f"{len(response_data['ppo_config'])} ppo_config params, "
+                           f"{len(response_data['ppo_agent'])} ppo_agent params")
+                return web.json_response(response_data)
+                
+            except Exception as e:
+                logging.error(f"[DNNE] Error loading config for task {task_name}: {e}")
+                import traceback
+                logging.error(traceback.format_exc())
+                return web.json_response({"error": str(e)}, status=500)
+
     async def setup(self):
         timeout = aiohttp.ClientTimeout(total=None) # no timeout
         self.client_session = aiohttp.ClientSession(timeout=timeout)
