@@ -67,8 +67,47 @@ python runner.py --headless
 
 ## Pending Tasks
 
+### Immediate Tasks
+
 1. **Fix widget order mapping in PPO exporter comments** (medium priority)
    - The comment in PPO exporter lists parameters in wrong order vs actual implementation
+
+### Adaptive Yield Investigation
+
+2. **Ensure runner.py sets DNNE_ADAPTIVE_YIELD** (high priority)
+   - Currently PPO agent sets it but runner.py should set it globally
+   - Move `os.environ['DNNE_ADAPTIVE_YIELD'] = '1'` to runner.py
+   - This enables adaptive yielding for all DNNE workflows, not just PPO
+
+3. **Investigate adaptive yield function** (high priority)
+   - Currently returns immediately (disabled for debugging)
+   - Verify if the adaptive yield mechanism actually works
+   - Check if it provides any adaptation based on system load
+
+4. **Update yield test suite** (high priority)
+   - Create test with Cartpole PPO and MNIST running simultaneously
+   - Ensure both workflows run concurrently without interference
+   - Validate queue-based execution with multiple active workflows
+
+5. **Research and implement adaptive yielding** (high priority)
+   - Research what "adaptive" means in this context
+   - Implement proper adaptation based on:
+     - Queue sizes
+     - Node starvation metrics
+     - System load
+   - Test performance impact of proper adaptive yielding
+
+### Environment Testing
+
+6. **Test different Isaac Gym environments** (medium priority)
+   - Try environments beyond Cartpole (e.g., Ant, Humanoid, AllegroHand)
+   - Verify PPO configuration loading works for all environments
+   - Ensure training runs successfully for complex environments
+
+7. **Non-PPO Isaac Gym workflows** (medium priority)
+   - Explore using Isaac Gym environments without PPO
+   - Consider direct policy networks or other RL algorithms
+   - Design node architecture for non-PPO RL workflows
 
 ## Debug Features
 
