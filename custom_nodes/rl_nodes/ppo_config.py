@@ -4,7 +4,7 @@ Configuration-only node for PPO training hyperparameters
 """
 
 from typing import Dict, Tuple, Optional
-from .base import RoboticsNodeBase
+from custom_nodes.robotics_nodes import RoboticsNodeBase
 
 
 class PPOConfig(RoboticsNodeBase):
@@ -38,11 +38,11 @@ class PPOConfig(RoboticsNodeBase):
                     "max": 16,
                     "tooltip": "Number of PPO epochs per update"
                 }),
-                "num_minibatches": ("INT", {
-                    "default": 8,
-                    "min": 1,
-                    "max": 64,
-                    "tooltip": "Number of minibatches per PPO epoch"
+                "minibatch_size": ("INT", {
+                    "default": 8192,
+                    "min": 32,
+                    "max": 32768,
+                    "tooltip": "Size of each minibatch for gradient updates"
                 }),
                 "clip_param": ("FLOAT", {
                     "default": 0.2,
@@ -151,6 +151,13 @@ class PPOConfig(RoboticsNodeBase):
                     "default": True,
                     "tooltip": "Truncate gradients"
                 }),
+                "bounds_loss_coef": ("FLOAT", {
+                    "default": 0.0001,
+                    "min": 0.0,
+                    "max": 0.01,
+                    "step": 0.0001,
+                    "tooltip": "Coefficient for bounds loss term"
+                }),
             }
         }
     
@@ -168,7 +175,7 @@ class PPOConfig(RoboticsNodeBase):
             # Core PPO settings
             "learning_rate": kwargs.get("learning_rate", 3e-4),
             "epochs": kwargs.get("num_epochs", 4),
-            "minibatch_size": kwargs.get("num_minibatches", 8),
+            "minibatch_size": kwargs.get("minibatch_size", 8192),
             "e_clip": kwargs.get("clip_param", 0.2),
             "critic_coef": kwargs.get("value_loss_coef", 0.5),
             "entropy_coef": kwargs.get("entropy_coef", 0.01),
@@ -186,7 +193,7 @@ class PPOConfig(RoboticsNodeBase):
             "normalize_input": kwargs.get("normalize_input", True),
             "normalize_value": kwargs.get("normalize_value", True),
             "reward_shaper": {"scale_value": kwargs.get("reward_shaper_scale", 1.0)},
-            "bounds_loss_coef": kwargs.get("e_clip", 0.2) if kwargs.get("e_clip", 0.2) > 0 else 0.0,
+            "bounds_loss_coef": kwargs.get("bounds_loss_coef", 0.0001),
             "truncate_grads": kwargs.get("truncate_grads", True),
         }
         
@@ -202,7 +209,7 @@ class PPOConfig(RoboticsNodeBase):
         if kwargs.get("learning_rate", 0) <= 0:
             return "Learning rate must be positive"
         
-        if kwargs.get("num_minibatches", 1) > kwargs.get("num_envs", 64):
-            return "Number of minibatches cannot exceed number of environments"
+        # Minibatch size validation could be added here if needed
+        # For now, the min/max constraints in INPUT_TYPES are sufficient
         
         return True

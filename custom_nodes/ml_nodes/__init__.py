@@ -14,8 +14,6 @@ from .training_nodes import (
     SGDOptimizerNode, TrainingStepNode, EpochTrackerNode
 )
 from .visualization_nodes import TensorVisualizerNode
-from .ppo_config import PPOConfig
-from .ppo_agent import PPOAgent
 
 # Define node data as tuples (key, class, display_name)
 _ML_NODES = [
@@ -43,9 +41,6 @@ _ML_NODES = [
     # Visualization
     ("TensorVisualizer", TensorVisualizerNode, "Tensor Visualizer"),
     
-    # RL nodes
-    ("PPOConfig", PPOConfig, "PPO Config"),
-    ("PPOAgent", PPOAgent, "PPO Agent"),
 ]
 
 # Generate sorted dictionaries automatically by display name

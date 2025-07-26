@@ -4,7 +4,7 @@ Central node that consolidates PPO training configuration and executes training
 """
 
 from typing import Dict, Tuple, Optional
-from .base import RoboticsNodeBase
+from custom_nodes.robotics_nodes import RoboticsNodeBase
 
 
 class PPOAgent(RoboticsNodeBase):
