@@ -1,0 +1,332 @@
+{
+  "tasks": [
+    {
+      "name": "AllegroHand",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/AllegroHand.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/AllegroHandPPO.yaml"
+    },
+    {
+      "name": "AllegroHandDextremeADR",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/AllegroHandDextremeADR.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/AllegroHandDextremeADRPPO.yaml"
+    },
+    {
+      "name": "AllegroHandDextremeManualDR",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/AllegroHandDextremeManualDR.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/AllegroHandDextremeManualDRPPO.yaml"
+    },
+    {
+      "name": "AllegroHandFF",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/AllegroHandFF.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "AllegroHandLSTM",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/AllegroHandLSTM.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/AllegroHandLSTMPPO.yaml"
+    },
+    {
+      "name": "AllegroHandLSTM_Big",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/AllegroHandLSTM_Big.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/AllegroHandLSTM_BigPPO.yaml"
+    },
+    {
+      "name": "AllegroKuka",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/AllegroKuka.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/AllegroKukaPPO.yaml"
+    },
+    {
+      "name": "AllegroKukaLSTM",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/AllegroKukaLSTM.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/AllegroKukaLSTMPPO.yaml"
+    },
+    {
+      "name": "AllegroKukaTwoArmsLSTM",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/AllegroKukaTwoArmsLSTM.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/AllegroKukaTwoArmsLSTMPPO.yaml"
+    },
+    {
+      "name": "Ant",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/Ant.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/AntPPO.yaml"
+    },
+    {
+      "name": "AntSAC",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/AntSAC.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "Anymal",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/Anymal.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/AnymalPPO.yaml"
+    },
+    {
+      "name": "AnymalTerrain",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/AnymalTerrain.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/AnymalTerrainPPO.yaml"
+    },
+    {
+      "name": "BallBalance",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/BallBalance.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/BallBalancePPO.yaml"
+    },
+    {
+      "name": "Cartpole",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/Cartpole.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/CartpolePPO.yaml"
+    },
+    {
+      "name": "FactoryBase",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FactoryBase.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "FactoryEnvGears",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FactoryEnvGears.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "FactoryEnvInsertion",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FactoryEnvInsertion.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "FactoryEnvNutBolt",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FactoryEnvNutBolt.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "FactoryTaskGears",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FactoryTaskGears.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/FactoryTaskGearsPPO.yaml"
+    },
+    {
+      "name": "FactoryTaskInsertion",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FactoryTaskInsertion.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/FactoryTaskInsertionPPO.yaml"
+    },
+    {
+      "name": "FactoryTaskNutBoltPick",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FactoryTaskNutBoltPick.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/FactoryTaskNutBoltPickPPO.yaml"
+    },
+    {
+      "name": "FactoryTaskNutBoltPlace",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FactoryTaskNutBoltPlace.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/FactoryTaskNutBoltPlacePPO.yaml"
+    },
+    {
+      "name": "FactoryTaskNutBoltScrew",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FactoryTaskNutBoltScrew.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/FactoryTaskNutBoltScrewPPO.yaml"
+    },
+    {
+      "name": "FrankaCabinet",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FrankaCabinet.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/FrankaCabinetPPO.yaml"
+    },
+    {
+      "name": "FrankaCubeStack",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FrankaCubeStack.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/FrankaCubeStackPPO.yaml"
+    },
+    {
+      "name": "Humanoid",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/Humanoid.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/HumanoidPPO.yaml"
+    },
+    {
+      "name": "HumanoidAMP",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/HumanoidAMP.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/HumanoidAMPPPO.yaml"
+    },
+    {
+      "name": "HumanoidAMPHands",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/HumanoidAMPHands.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "HumanoidSAC",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/HumanoidSAC.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "IndustRealBase",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/IndustRealBase.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "IndustRealEnvGears",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/IndustRealEnvGears.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "IndustRealEnvPegs",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/IndustRealEnvPegs.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "IndustRealTaskGearsInsert",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/IndustRealTaskGearsInsert.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/IndustRealTaskGearsInsertPPO.yaml"
+    },
+    {
+      "name": "IndustRealTaskPegsInsert",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/IndustRealTaskPegsInsert.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/IndustRealTaskPegsInsertPPO.yaml"
+    },
+    {
+      "name": "Ingenuity",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/Ingenuity.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/IngenuityPPO.yaml"
+    },
+    {
+      "name": "Quadcopter",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/Quadcopter.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/QuadcopterPPO.yaml"
+    },
+    {
+      "name": "ShadowHand",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/ShadowHand.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/ShadowHandPPO.yaml"
+    },
+    {
+      "name": "ShadowHandOpenAI_FF",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/ShadowHandOpenAI_FF.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/ShadowHandOpenAI_FFPPO.yaml"
+    },
+    {
+      "name": "ShadowHandOpenAI_LSTM",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/ShadowHandOpenAI_LSTM.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/ShadowHandOpenAI_LSTMPPO.yaml"
+    },
+    {
+      "name": "ShadowHandTest",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/ShadowHandTest.yaml",
+      "has_ppo_config": false,
+      "ppo_config_file": null
+    },
+    {
+      "name": "Trifinger",
+      "file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/Trifinger.yaml",
+      "has_ppo_config": true,
+      "ppo_config_file": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/train/TrifingerPPO.yaml"
+    }
+  ],
+  "task_names": [
+    "AllegroHand",
+    "AllegroHandDextremeADR",
+    "AllegroHandDextremeManualDR",
+    "AllegroHandFF",
+    "AllegroHandLSTM",
+    "AllegroHandLSTM_Big",
+    "AllegroKuka",
+    "AllegroKukaLSTM",
+    "AllegroKukaTwoArmsLSTM",
+    "Ant",
+    "AntSAC",
+    "Anymal",
+    "AnymalTerrain",
+    "BallBalance",
+    "Cartpole",
+    "FactoryBase",
+    "FactoryEnvGears",
+    "FactoryEnvInsertion",
+    "FactoryEnvNutBolt",
+    "FactoryTaskGears",
+    "FactoryTaskInsertion",
+    "FactoryTaskNutBoltPick",
+    "FactoryTaskNutBoltPlace",
+    "FactoryTaskNutBoltScrew",
+    "FrankaCabinet",
+    "FrankaCubeStack",
+    "Humanoid",
+    "HumanoidAMP",
+    "HumanoidAMPHands",
+    "HumanoidSAC",
+    "IndustRealBase",
+    "IndustRealEnvGears",
+    "IndustRealEnvPegs",
+    "IndustRealTaskGearsInsert",
+    "IndustRealTaskPegsInsert",
+    "Ingenuity",
+    "Quadcopter",
+    "ShadowHand",
+    "ShadowHandOpenAI_FF",
+    "ShadowHandOpenAI_LSTM",
+    "ShadowHandTest",
+    "Trifinger"
+  ],
+  "ppo_compatible_tasks": [
+    "AllegroHand",
+    "AllegroHandDextremeADR",
+    "AllegroHandDextremeManualDR",
+    "AllegroHandLSTM",
+    "AllegroHandLSTM_Big",
+    "AllegroKuka",
+    "AllegroKukaLSTM",
+    "AllegroKukaTwoArmsLSTM",
+    "Ant",
+    "Anymal",
+    "AnymalTerrain",
+    "BallBalance",
+    "Cartpole",
+    "FactoryTaskGears",
+    "FactoryTaskInsertion",
+    "FactoryTaskNutBoltPick",
+    "FactoryTaskNutBoltPlace",
+    "FactoryTaskNutBoltScrew",
+    "FrankaCabinet",
+    "FrankaCubeStack",
+    "Humanoid",
+    "HumanoidAMP",
+    "IndustRealTaskGearsInsert",
+    "IndustRealTaskPegsInsert",
+    "Ingenuity",
+    "Quadcopter",
+    "ShadowHand",
+    "ShadowHandOpenAI_FF",
+    "ShadowHandOpenAI_LSTM",
+    "Trifinger"
+  ]
+}
