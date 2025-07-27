@@ -205,8 +205,9 @@ class Global:
         delay = cls._compute_adaptive_delay()
         
         if delay == 0:
-            # Quick yield - just run one iteration of event loop
-            loop._run_once()
+            # Quick yield - schedule immediate callback so we don't block
+            loop.call_soon(lambda: None)  # Schedule empty callback
+            loop._run_once()              # Now this will return immediately
         else:
             # Timed delay using event loop timer
             done = False

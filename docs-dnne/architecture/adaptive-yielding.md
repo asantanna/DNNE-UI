@@ -37,6 +37,28 @@ Only one node executes at a time in a given workflow, but multiple independent w
 
 ## The Solution: Dual Adaptive Yield Methods
 
+### Event Loop Architecture
+
+**Important**: All DNNE nodes run as async tasks within an event loop. This is a fundamental guarantee of the DNNE architecture:
+
+1. **Every node is an async task**: Even nodes that call synchronous code (like PPO training) are wrapped in `async def compute()` methods.
+2. **Event loop is always available**: Because all nodes run as async tasks, there is always a running event loop accessible via `asyncio.get_running_loop()`.
+3. **PPO Agent design**: The PPO Agent uses `runpy.run_path()` instead of subprocess specifically to maintain the event loop context. This allows the synchronous PPO training code to access the event loop for adaptive yielding.
+
+```python
+# PPO Agent runs as an async task
+class PPOAgentNode(QueueNode):
+    async def compute(self, sim_handle):
+        # We're in an async context with an event loop
+        loop = asyncio.get_running_loop()  # Always available
+        
+        # Use runpy to execute train.py in the same process
+        # This preserves the event loop context!
+        result = runpy.run_path("train.py", run_name="__main__")
+        
+        # train.py can now use sync_adaptive_yield()
+```
+
 ### The Sync/Async Challenge
 
 DNNE operates in two contexts:
@@ -106,8 +128,9 @@ class Global:
         delay = cls._compute_adaptive_delay()
         
         if delay == 0:
-            # Quick yield - just run one iteration
-            loop._run_once()
+            # Quick yield - schedule immediate callback so we don't block
+            loop.call_soon(lambda: None)  # Guarantee something is ready
+            loop._run_once()              # This will return immediately
         else:
             # Timed delay using event loop internals
             done = False
@@ -121,6 +144,27 @@ class Global:
         
         cls._yield_stats.update(delay)
 ```
+
+### Critical Implementation Detail: The call_soon() Trick
+
+When `delay == 0` (quick yield), we must ensure `loop._run_once()` returns quickly. Without any ready callbacks, `_run_once()` will block waiting for the next scheduled event, which could be far in the future (e.g., 33.6 seconds).
+
+The solution is to always schedule an immediate callback before calling `_run_once()`:
+
+```python
+if delay == 0:
+    # Schedule a dummy callback that does nothing
+    loop.call_soon(lambda: None)
+    # Now _run_once() is guaranteed to return quickly
+    loop._run_once()
+```
+
+This ensures:
+1. There's always at least one ready callback in the event loop
+2. `_run_once()` will process it and return immediately
+3. Other tasks get a chance to run without long blocking
+
+Without this trick, synchronous code calling `sync_adaptive_yield()` could hang for seconds or minutes, defeating the purpose of cooperative yielding.
 
 ## Implementation Details
 
