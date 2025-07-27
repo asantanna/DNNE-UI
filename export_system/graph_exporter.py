@@ -970,21 +970,7 @@ class PlaceholderNode_{node_id}(QueueNode):
         """Generate nodes/__init__.py with all node imports"""
         init_content = ['"""DNNE Generated Nodes"""', ""]
         
-        # CRITICAL: Sort nodes to ensure Isaac Gym nodes are imported first
-        # This prevents "PyTorch was imported before isaacgym" error
-        isaac_gym_nodes = []
-        other_nodes = []
-        
         for node_id, node_type, class_name in node_classes:
-            if "IsaacGym" in node_type or "isaac" in node_type.lower():
-                isaac_gym_nodes.append((node_id, node_type, class_name))
-            else:
-                other_nodes.append((node_id, node_type, class_name))
-        
-        # Import Isaac Gym nodes first, then others
-        sorted_nodes = isaac_gym_nodes + other_nodes
-        
-        for node_id, node_type, class_name in sorted_nodes:
             # Use centralized utility for consistent filename generation
             filename = self.classname_to_exported_filename(class_name)
             init_content.append(f"from .{filename} import {class_name}")
@@ -994,429 +980,96 @@ class PlaceholderNode_{node_id}(QueueNode):
             "__all__ = [",
         ])
         
-        for _, _, class_name in sorted_nodes:
+        for _, _, class_name in node_classes:
             init_content.append(f'    "{class_name}",')
         
         init_content.append("]")
         
         (nodes_dir / "__init__.py").write_text("\n".join(init_content) + "\n", encoding='utf-8')
     
+    def _generate_node_imports_section(self, node_imports: List[str]) -> str:
+        """Generate the node imports section for the template"""
+        lines = []
+        
+        if node_imports:
+            lines.append("# Import required nodes")
+            for node_class in node_imports:
+                # Convert class name to module name using centralized utility
+                module_name = self.classname_to_exported_filename(node_class)
+                lines.append(f"from nodes.{module_name} import {node_class}")
+        
+        return "\n".join(lines)
+    
+    def _generate_node_instances_section(self, node_instances: List[str]) -> str:
+        """Generate the node instances section for the template"""
+        lines = []
+        for instance in node_instances:
+            lines.append(f"    {instance}")
+        return "\n".join(lines)
+    
+    def _generate_node_dictionary_section(self, node_instances: List[str]) -> str:
+        """Generate the node dictionary section for the template"""
+        lines = []
+        for instance in node_instances:
+            node_var = instance.split(" = ")[0].strip()
+            node_id = instance.split('("')[1].split('")')[0]  # Extract node ID from instantiation
+            lines.append(f'        "{node_id}": {node_var},')
+        return "\n".join(lines)
+    
+    def _generate_add_nodes_to_runner_section(self, node_instances: List[str]) -> str:
+        """Generate the add nodes to runner section for the template"""
+        lines = []
+        for instance in node_instances:
+            node_var = instance.split(" = ")[0].strip()
+            lines.append(f"    runner.add_node({node_var})")
+        return "\n".join(lines)
+    
+    def _generate_connections_section(self, connections: List[str]) -> str:
+        """Generate the connections section for the template"""
+        lines = []
+        for conn in connections:
+            lines.append(f"        {conn},")
+        return "\n".join(lines)
+    
     def _generate_minimal_runner(self, output_path: Path, node_instances: List[str], 
                                connections: List[str], metadata: Dict):
         """Generate a minimal runner.py that imports and wires nodes"""
         
-        # Extract all node classes from node_instances, separating Isaac Gym nodes
-        isaac_gym_imports = []
-        other_node_imports = []
+        # Read the runner template
+        template_path = Path(__file__).parent / "templates" / "framework" / "runner.py"
+        if not template_path.exists():
+            raise FileNotFoundError(f"Runner template not found at {template_path}")
+        
+        template_content = template_path.read_text(encoding='utf-8')
+        
+        # Extract all node classes from node_instances
+        node_imports = []
         for instance in node_instances:
             # Parse "node_1 = IsaacGymEnvNode_1("1")" to get class name
             parts = instance.split(' = ')
             if len(parts) == 2:
                 class_instantiation = parts[1].split('(')[0]
-                if 'IsaacGym' in class_instantiation:
-                    isaac_gym_imports.append(class_instantiation)
-                else:
-                    other_node_imports.append(class_instantiation)
+                node_imports.append(class_instantiation)
         
-        runner_content = [
-            "#!/usr/bin/env python3",
-            '"""',
-            "Generated by DNNE - Main Entry Point",
-            f"Metadata: {json.dumps(metadata, indent=2) if metadata else 'None'}",
-            '"""',
-            "",
-        ]
+        # Generate all the dynamic sections
+        node_imports_section = self._generate_node_imports_section(node_imports)
+        node_instances_section = self._generate_node_instances_section(node_instances)
+        node_dictionary_section = self._generate_node_dictionary_section(node_instances)
+        add_nodes_to_runner_section = self._generate_add_nodes_to_runner_section(node_instances)
+        connections_section = self._generate_connections_section(connections)
         
-        # CRITICAL: Import isaacgym FIRST if any Isaac Gym nodes exist
-        if isaac_gym_imports:
-            runner_content.extend([
-                "# CRITICAL: Import isaacgym before ANY other imports to prevent torch import order issues",
-                "# This MUST be the first import after the header comments",
-                "import isaacgym",
-                ""
-            ])
+        # Prepare template variables for substitution
+        template_vars = {
+            "METADATA": json.dumps(metadata, indent=2) if metadata else 'None',
+            "NODE_IMPORTS_SECTION": node_imports_section,
+            "NODE_INSTANCES_SECTION": node_instances_section,
+            "NODE_DICTIONARY_SECTION": node_dictionary_section,
+            "ADD_NODES_TO_RUNNER_SECTION": add_nodes_to_runner_section,
+            "CONNECTIONS_SECTION": connections_section
+        }
         
-        runner_content.extend([
-            "import sys",
-            "import os",
-            "import argparse",
-            "from pathlib import Path",
-            "import warnings",
-            "",
-            "# Suppress common warnings that clutter the output",
-            "warnings.filterwarnings('ignore', category=DeprecationWarning)",
-            "warnings.filterwarnings('ignore', message='.*FBX library failed to load.*')",
-            "warnings.filterwarnings('ignore', message='.*invalid escape sequence.*')",
-            "",
-            "# Add current directory to Python path for imports",
-            "sys.path.insert(0, str(Path(__file__).parent))",
-            "",
-            "# Configure paths using DNNE configuration system",
-            "try:",
-            "    # Try to import configuration module",
-            "    from dnne_config import DNNEConfig",
-            "    config = DNNEConfig()",
-            "    ",
-            "    # Add paths from configuration",
-            "    isaac_gym_path = config.get('paths.isaac_gym')",
-            "    isaac_gym_envs_path = config.get('paths.isaac_gym_envs')",
-            "    linux_support_path = config.get('paths.linux_support')",
-            "    rl_games_path = config.get('paths.rl_games_dnne')",
-            "    ",
-            "    if isaac_gym_path:",
-            "        sys.path.append(os.path.join(isaac_gym_path, \"python\"))",
-            "    if linux_support_path:",
-            "        sys.path.append(linux_support_path)",
-            "    if isaac_gym_envs_path:",
-            "        sys.path.append(isaac_gym_envs_path)",
-            "    if rl_games_path:",
-            "        sys.path.append(rl_games_path)",
-            "    ",
-            "    print(f\"Using paths from configuration: isaac_gym={isaac_gym_path}\")",
-            "    ",
-            "except ImportError:",
-            "    # Fallback to environment variables or defaults if config not available",
-            "    isaac_gym_path = os.environ.get('DNNE_ISAAC_GYM', \"/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym\")",
-            "    isaac_gym_envs_path = os.environ.get('DNNE_ISAAC_GYM_ENVS', \"/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs\")",
-            "    linux_support_path = os.environ.get('DNNE_LINUX_SUPPORT', \"/home/asantanna/DNNE-LINUX-SUPPORT\")",
-            "    rl_games_path = os.environ.get('DNNE_RL_GAMES', \"/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne\")",
-            "    ",
-            "    sys.path.append(os.path.join(isaac_gym_path, \"python\"))",
-            "    sys.path.append(linux_support_path)",
-            "    sys.path.append(isaac_gym_envs_path)",
-            "    if rl_games_path and os.path.exists(rl_games_path):",
-            "        sys.path.append(rl_games_path)",
-            "    ",
-            "    print(f\"Using paths from environment/defaults: isaac_gym={isaac_gym_path}\")",
-            "",
-            "import asyncio",
-            "import logging",
-            "",
-        ])
+        # Substitute placeholders in template
+        runner_content = template_content.format(**template_vars)
         
-        # Add Isaac Gym node imports if any exist
-        if isaac_gym_imports:
-            runner_content.extend([
-                "# CRITICAL: Import Isaac Gym nodes directly (not via __init__.py) to prevent torch import order issues",
-                "# This prevents 'PyTorch was imported before isaacgym' error"
-            ])
-            for isaac_class in isaac_gym_imports:
-                # Convert class name to module name
-                # IsaacGymEnvNode_1 -> isaacgymenvnode_1
-                module_name = isaac_class.replace('Node_', 'node_').lower()
-                runner_content.append(f"from nodes.{module_name} import {isaac_class}")
-            runner_content.append("")
-        
-        # Add other node imports
-        if other_node_imports:
-            runner_content.append("# Import other required nodes")
-            for node_class in other_node_imports:
-                # Convert class name to module name using centralized utility
-                module_name = self.classname_to_exported_filename(node_class)
-                runner_content.append(f"from nodes.{module_name} import {node_class}")
-            runner_content.append("")
-        
-        runner_content.extend([
-            "from framework import GraphRunner",
-            "# NOTE: Removed 'from nodes import *' - caused double Isaac Gym initialization",
-            "# All required nodes are imported explicitly above",
-            "",
-            "def configure_logging(verbose=False):",
-            '    """Configure logging based on verbose flag"""',
-            "    if verbose:",
-            "        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(message)s')",
-            "    else:",
-            "        # Only show WARNING and above for quiet mode",
-            "        logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(name)s - %(message)s')",
-            "",
-            "async def main():",
-            '    """Main execution function"""',
-            "    # Parse command line arguments",
-            "    parser = argparse.ArgumentParser(description='DNNE Generated Training')",
-            "    parser.add_argument('--verbose', '-v', action='store_true',",
-            "                       help='Enable verbose batch-level logging')",
-            "    parser.add_argument('--test-mode', action='store_true',",
-            "                       help='Run in test mode with limited duration and performance tracking')",
-            "    parser.add_argument('--save-checkpoint', action='store_true',",
-            "                       help='Enable checkpoint saving')",
-            "    parser.add_argument('--out-dir', type=str, default='runs/singles',",
-            "                       help='Output directory for checkpoints and other outputs (default: runs/singles)')",
-            "    parser.add_argument('--load-checkpoint', type=str,",
-            "                       help='Directory to load checkpoints from (expects node_<id> subdirectories)')",
-            "    parser.add_argument('--timeout', type=str,",
-            "                       help='Training duration (e.g., 5, 30s, 5m, 1h30m)')",
-            "    parser.add_argument('--visual', action='store_true',",
-            "                       help='Enable visual mode (overrides headless setting)')",
-            "    parser.add_argument('--headless', action='store_true',",
-            "                       help='Force headless mode (default)')",
-            "    parser.add_argument('--inference', action='store_true',",
-            "                       help='Run in inference mode (no training, no gradients)')",
-            "    parser.add_argument('--dnne-profiling', action='store_true',",
-            "                       help='Enable profiling for C++ operations (Isaac Gym)')",
-            "    parser.add_argument('--epochs', type=str, default=None,",
-            "                       help='Override max epochs for EpochTracker nodes (e.g., --epochs 10 or --epochs 55:10 56:20)')",
-            "    parser.add_argument('--max-iterations', type=str, default=None,",
-            "                       help='Override max iterations for PPOAgent nodes (e.g., --max-iterations 1000)')",
-            "    parser.add_argument('--learning-rate', type=str, default=None,",
-            "                       help='Override learning rate for SGDOptimizer nodes (e.g., --learning-rate 0.01)')",
-            "    parser.add_argument('--batch-size', type=str, default=None,",
-            "                       help='Override batch size for BatchSampler nodes (e.g., --batch-size 32)')",
-            "    parser.add_argument('--fixed-seed', type=int, default=None,",
-            "                       help='Use fixed random seed for deterministic execution')",
-            "    args = parser.parse_args()",
-            "    ",
-            "    # Convert node-specific arguments that should be integers when no ':' present",
-            "    for arg_name in ['epochs', 'max_iterations', 'batch_size']:",
-            "        value = getattr(args, arg_name.replace('-', '_'), None)",
-            "        if value and ':' not in value:",
-            "            try:",
-            "                setattr(args, arg_name.replace('-', '_'), int(value))",
-            "            except ValueError:",
-            "                pass  # Keep as string if conversion fails",
-            "    ",
-            "    # Convert learning_rate if no ':' present",
-            "    if args.learning_rate and ':' not in args.learning_rate:",
-            "        try:",
-            "            args.learning_rate = float(args.learning_rate)",
-            "        except ValueError:",
-            "            pass  # Keep as string if conversion fails",
-            "",
-            "    # Parse timeout if provided",
-            "    duration_seconds = None",
-            "    if args.timeout:",
-            "        # First try to parse as a plain number (seconds)",
-            "        try:",
-            "            duration_seconds = float(args.timeout)",
-            "            # Format the display string",
-            "            if duration_seconds >= 60:",
-            "                display_time = f\"{duration_seconds/60:.1f}m\"",
-            "            else:",
-            "                display_time = f\"{duration_seconds:.0f}s\"",
-            "            print(f\"⏱️  Running for {display_time} ({duration_seconds:.0f} seconds)\")",
-            "        except ValueError:",
-            "            # Not a plain number, try parsing as time format",
-            "            try:",
-            "                from framework import CheckpointManager",
-            "                manager = CheckpointManager(\"temp\")",
-            "                duration_seconds = manager.parse_time_format(args.timeout)",
-            "                print(f\"⏱️  Running for {args.timeout} ({duration_seconds:.0f} seconds)\")",
-            "            except Exception as e:",
-            "                print(f\"⚠️  Invalid timeout format: {e}\")",
-            "                print(\"   Use formats like: 5, 30s, 5m, 1h30m\")",
-            "                import sys",
-            "                sys.exit(1)",
-            "",
-            "    # Initialize Global configuration",
-            "    from framework.globals import Global as g",
-            "    # Determine checkpoint directories",
-            "    save_checkpoint_dir = args.out_dir if args.save_checkpoint else None",
-            "    load_checkpoint_dir = args.load_checkpoint",
-            "    ",
-            "    g.initialize(",
-            "        verbose=args.verbose,",
-            "        save_checkpoint_dir=save_checkpoint_dir,",
-            "        load_checkpoint_dir=load_checkpoint_dir,",
-            "        visual_mode=args.visual,",
-            "        headless_mode=args.headless,",
-            "        inference_mode=args.inference,",
-            "        profiling=args.dnne_profiling,",
-            "        # epochs_override is deprecated - use node-specific config instead",
-            "        fixed_seed=args.fixed_seed",
-            "    )",
-            "    configure_logging(args.verbose)",
-            "",
-            "    # Set fixed seed if provided for deterministic execution",
-            "    if args.fixed_seed is not None:",
-            "        print(f\"⚠️  Fixed seed disabled for debugging - IsaacGym torch import order issue\")",
-            "        # TODO: Fix torch import order for IsaacGym workflows",
-            "        # import random",
-            "        # import numpy as np",
-            "        # import torch",
-            "        # seed = args.fixed_seed",
-            "        # print(f\"🔒 Using fixed seed: {seed}\")",
-            "        # torch.manual_seed(seed)",
-            "        # torch.cuda.manual_seed_all(seed)",
-            "        # np.random.seed(seed)",
-            "        # random.seed(seed)",
-            "        # # Enable deterministic algorithms",
-            "        # torch.backends.cudnn.deterministic = True",
-            "        # torch.backends.cudnn.benchmark = False",
-            "        # # Note: use_deterministic_algorithms requires CUBLAS_WORKSPACE_CONFIG env var",
-            "        # # which we'll set manually when running comparisons",
-            "",
-            '    print("🚀 Starting DNNE Queue-Based Execution")',
-            "    if args.inference:",
-            '        print("🔍 Inference mode enabled - no training or gradients")',
-            "    if args.dnne_profiling:",
-            '        print("⏱️  DNNE profiling enabled - timing C++ operations")',
-            "    if args.verbose:",
-            '        print("📝 Verbose mode enabled - showing all batch details")',
-            "    else:",
-            '        print("📊 Quiet mode - showing epoch summaries only")',
-            "    if save_checkpoint_dir:",
-            '        print(f"💾 Checkpoint saving enabled, output directory: {save_checkpoint_dir}")',
-            "    if load_checkpoint_dir:",
-            '        print(f"📁 Loading checkpoints from: {load_checkpoint_dir}")',
-            '    print("=" * 60)',
-            "",
-            "    # Create nodes",
-        ])
-        
-        # Add node instances
-        for instance in node_instances:
-            runner_content.append(f"    {instance}")
-        
-        runner_content.extend([
-            "",
-            "    # Node type mapping for command-line switches",
-            "    SWITCH_TO_NODE_TYPE = {",
-            "        'epochs': 'EpochTrackerNode',",
-            "        'max_iterations': 'PPOAgentNode',",  
-            "        'learning_rate': 'SGDOptimizerNode',",
-            "        'batch_size': 'BatchSamplerNode',",
-            "    }",
-            "",
-            "    # Process node-specific arguments",
-            "    def process_node_args(args, nodes):",
-            "        '''Process command-line args and assign to specific nodes'''",
-            "        node_configs = {}",
-            "        errors = []",
-            "        ",
-            "        # Map of node types to their instances",
-            "        node_type_map = {}",
-            "        for node_id, node in nodes.items():",
-            "            node_type = node.__class__.__name__.split('_')[0]  # Remove _nodeID suffix",
-            "            if node_type not in node_type_map:",
-            "                node_type_map[node_type] = []",
-            "            node_type_map[node_type].append((node_id, node))",
-            "        ",
-            "        # Process each switch",
-            "        for switch_name, node_type in SWITCH_TO_NODE_TYPE.items():",
-            "            arg_value = getattr(args, switch_name, None)",
-            "            if arg_value is None:",
-            "                continue",
-            "            ",
-            "            # Find target nodes",
-            "            target_nodes = node_type_map.get(node_type, [])",
-            "            ",
-            "            if isinstance(arg_value, str) and ':' in str(arg_value):",
-            "                # Parse node-specific values like '30:10 56:5'",
-            "                for pair in str(arg_value).split():",
-            "                    try:",
-            "                        node_id, value = pair.split(':')",
-            "                        # Convert value to appropriate type",
-            "                        if switch_name in ['epochs', 'max_iterations', 'batch_size']:",
-            "                            value = int(value)",
-            "                        elif switch_name in ['learning_rate']:",
-            "                            value = float(value)",
-            "                        node_configs.setdefault(node_id, {})[switch_name] = value",
-            "                    except ValueError:",
-            "                        errors.append(f\"Invalid format for --{switch_name}: '{pair}' (expected format: node_id:value)\")",
-            "            else:",
-            "                # Single value - check for ambiguity",
-            "                if len(target_nodes) > 1:",
-            "                    node_ids = [node_id for node_id, _ in target_nodes]",
-            "                    errors.append(f\"Ambiguous switch --{switch_name}: multiple {node_type} nodes found: {node_ids}\")",
-            "                elif len(target_nodes) == 1:",
-            "                    node_id, _ = target_nodes[0]",
-            "                    node_configs.setdefault(node_id, {})[switch_name] = arg_value",
-            "                # If no target nodes, silently ignore (backward compatibility)",
-            "        ",
-            "        if errors:",
-            "            print('\\n❌ Command-line argument errors:')",
-            "            for error in errors:",
-            "                print(f'   - {error}')",
-            "            print('\\nUse node_id:value syntax to disambiguate, e.g., --epochs 55:10 56:20')",
-            "            sys.exit(1)",
-            "        ",
-            "        return node_configs",
-            "    ",
-            "    # Create nodes dictionary",
-            "    nodes = {",
-        ])
-        
-        # Add nodes to dictionary
-        for instance in node_instances:
-            node_var = instance.split(" = ")[0].strip()
-            node_id = instance.split('("')[1].split('")')[0]  # Extract node ID from instantiation
-            runner_content.append(f'        "{node_id}": {node_var},')
-        
-        runner_content.extend([
-            "    }",
-            "    ",
-            "    # Process node-specific configuration",
-            "    node_configs = process_node_args(args, nodes)",
-            "    ",
-            "    # Apply node-specific configuration",
-            "    for node_id, config in node_configs.items():",
-            "        for key, value in config.items():",
-            "            g.set_node_config(node_id, key, value)",
-            "    ",
-            "    # Create runner",
-            "    runner = GraphRunner()",
-            "",
-            "    # Add nodes to runner",
-        ])
-        
-        # Add nodes to runner
-        for instance in node_instances:
-            node_var = instance.split(" = ")[0].strip()
-            runner_content.append(f"    runner.add_node({node_var})")
-        
-        runner_content.extend([
-            "",
-            "    # Wire connections",
-            "    connections = [",
-        ])
-        
-        # Add connections
-        for conn in connections:
-            runner_content.append(f"        {conn},")
-        
-        runner_content.extend([
-            "    ]",
-            "    runner.wire_nodes(connections)",
-            "",
-            "    # Run the graph",
-            "    try:",
-            "        if args.test_mode:",
-            "            print('🧪 Test mode: Running for 30 seconds with performance tracking')",
-            "            import time",
-            "            start_time = time.time()",
-            "            await runner.run(duration=30.0)  # Run for 30 seconds in test mode",
-            "            end_time = time.time()",
-            "            print(f'✅ Test mode completed in {end_time - start_time:.1f} seconds')",
-            "        elif duration_seconds is not None:",
-            "            # Run for specified timeout duration",
-            "            import time",
-            "            start_time = time.time()",
-            "            await runner.run(duration=duration_seconds)",
-            "            end_time = time.time()",
-            "            print(f'✅ Completed {args.timeout} run in {end_time - start_time:.1f} seconds')",
-            "        else:",
-            "            # Run indefinitely (Ctrl+C to stop)",
-            "            await runner.run()",
-            "    except KeyboardInterrupt:",
-            "        print('\\n🛑 Stopped by user')",
-            "",
-            "    # Show final statistics",
-            "    print('\\n📊 Final Statistics:')",
-            "    stats = runner.get_stats()",
-            "    for node_id, node_stats in stats.items():",
-            "        print(f'  {node_id}: {node_stats[\"compute_count\"]} computations, '",
-            "              f'avg time: {node_stats[\"last_compute_time\"]:.3f}s')",
-            "",
-            "    # Save timing data if profiling was enabled",
-            "    if args.dnne_profiling:",
-            "        print('\\n⏱️  Saving DNNE profiling data...')",
-            "        # Call cleanup on all nodes (environment nodes will save timing data)",
-            "        for node in runner.nodes.values():",
-            "            if hasattr(node, 'cleanup'):",
-            "                node.cleanup()",
-            "",
-            "",
-            "if __name__ == '__main__':",
-            "    asyncio.run(main())",
-        ])
-        
-        (output_path / "runner.py").write_text("\n".join(runner_content), encoding='utf-8')
+        # Write the generated runner.py
+        (output_path / "runner.py").write_text(runner_content, encoding='utf-8')

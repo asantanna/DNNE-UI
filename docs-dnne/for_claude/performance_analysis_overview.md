@@ -11,7 +11,7 @@
 2. 🔄 **Correctness**: In progress - debugging to match IGE behavior exactly  
 3. ⏳ **Performance**: Next phase - optimize after correctness is verified
 
-**Reference**: See `dnne_debugging_guide.md` for comprehensive debugging methodology and lessons learned.
+**Note**: PPO training with IsaacGymEnvs is fully functional. Training runs smoothly without freezes or hangs.
 
 ## Architecture Overview
 
@@ -57,7 +57,7 @@ diff /tmp/ige_debug.txt /tmp/dnne_debug.txt
 - PPO training cycles
 - Loss computation values
 
-**Reference**: See `dnne_debugging_guide.md` for comprehensive debugging techniques and common fixes.
+**Success Criteria**: Debug outputs should match exactly for all key metrics listed above.
 
 ## Running Tests
 
@@ -121,4 +121,4 @@ python claude_scripts/performance_comparison_table.py | grep "Avg FPS"
 
 ## Known Issues
 
-For debugging techniques and common issues, see the comprehensive `dnne_debugging_guide.md` in this directory.
+For debugging techniques and common issues, check the archived debug documents for historical reference.
