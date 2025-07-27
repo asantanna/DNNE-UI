@@ -13,9 +13,9 @@ from framework import QueueNode
 from framework.globals import Global
 
 # Define local DNNE_print to avoid import order issues
-def DNNE_print_local(level, component, message):
-    """Local debug print function"""
-    print(f"[DNNE_DEBUG] {level}/{component}: {message}", flush=True)
+#DBG_TAG# def DNNE_print_local(level, component, message):
+#DBG_TAG#      """Local debug print function"""
+#DBG_TAG#      print(f"[DNNE_DEBUG] {level}/{component}: {message}", flush=True)
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """
@@ -102,54 +102,54 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         """Override run to execute training only once"""
         self.running = True
         self.logger.info(f"Starting PPO training node {self.node_id}")
-        DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 1: run() method started")
+        #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 1: run() method started")
         
         try:
             # Run training once
-            DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 2: About to call compute()")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 2: About to call compute()")
             outputs = await self.compute()
-            DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 3: compute() returned")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 3: compute() returned")
             self.compute_count += 1
             self.last_compute_time = time.time()
             
             # Send outputs to any connected nodes
-            DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 4: Sending {len(outputs)} outputs")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 4: Sending {len(outputs)} outputs")
             for output_name, output_data in outputs.items():
                 await self.send_output(output_name, output_data)
             
             self.logger.info(f"PPO training completed for node {self.node_id}")
-            DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 5: Training marked as completed")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 5: Training marked as completed")
             self.training_completed = True
             
             # Keep the node alive but idle
-            DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 6: Entering idle loop")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 6: Entering idle loop")
             while self.running:
                 await asyncio.sleep(1.0)
                 
         except asyncio.CancelledError:
             self.logger.info(f"Node {self.node_id} cancelled")
-            DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT ERROR: AsyncIO cancelled")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT ERROR: AsyncIO cancelled")
             raise
         except Exception as e:
             self.logger.error(f"Error in node {self.node_id}: {e}")
-            DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT ERROR: Exception {type(e).__name__}: {e}")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT ERROR: Exception {type(e).__name__}: {e}")
             raise
     
     async def compute(self):
         """
         Run IsaacGymEnvs train.py with consolidated configuration
         """
-        DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 7: compute() method started")
+        #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 7: compute() method started")
         
         # Create configuration for train.py
-        DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 8: Creating train config")
+        #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 8: Creating train config")
         train_config = self._create_train_config()
-        DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 9: Train config created with {len(train_config)} args")
+        #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 9: Train config created with {len(train_config)} args")
         
         # Run IsaacGymEnvs train.py
-        DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 10: About to call _run_training()")
+        #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 10: About to call _run_training()")
         metrics = await self._run_training(train_config)
-        DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 11: _run_training() returned")
+        #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 11: _run_training() returned")
         
         return {"metrics": metrics}
     
@@ -167,12 +167,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if visual_mode:
             # Visual mode: enable GUI
             headless = False
-            DNNE_print_local("D", "PPO_AGENT", "🖼️  Visual mode enabled - launching with GUI")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🖼️  Visual mode enabled - launching with GUI")
         elif headless_mode:
             # Headless mode: disable GUI and force_render
             headless = True
             force_render = False  # Override force_render in headless mode
-            DNNE_print_local("D", "PPO_AGENT", "🖥️  Headless mode enforced - disabling force_render")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🖥️  Headless mode enforced - disabling force_render")
         else:
             # Use settings from config
             headless = self.env_config['headless']
@@ -233,18 +233,18 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Combine all arguments
         all_args = config_args + ppo_args + network_args + training_args
         
-        DNNE_print_local("D", "PPO_AGENT", f"🚀 Full train config ({len(all_args)} args):")
-        for i, arg in enumerate(all_args):
-            DNNE_print_local("D", "PPO_AGENT", f"  [{i}] {arg}")
+        #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"🚀 Full train config ({len(all_args)} args):")
+        #DBG_TAG# for i, arg in enumerate(all_args):
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"  [{i}] {arg}")
         
         return all_args
     
     async def _run_training(self, train_config):
         """
         Run IsaacGymEnvs train.py with configuration
-        This uses subprocess to maintain isolation and proper environment setup
+        This uses runpy to execute train.py in the same process, preserving the event loop context
         """
-        DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 12: _run_training() started")
+        #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 12: _run_training() started")
         
         # Change to IsaacGymEnvs directory
         isaac_gym_envs_path = Path(self.isaac_gym_envs_path)
@@ -253,55 +253,47 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         # Save current directory
         original_dir = os.getcwd()
-        DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 13: Original dir: {original_dir}")
+        #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 13: Original dir: {original_dir}")
         
         try:
             # Add original directory to Python path so rl_games_dnne can find framework module
             if str(original_dir) not in sys.path:
                 sys.path.insert(0, str(original_dir))
-                DNNE_print_local("D", "PPO_AGENT", f"Added {original_dir} to sys.path for framework imports")
+                #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"Added {original_dir} to sys.path for framework imports")
             
             # Change to IsaacGymEnvs/isaacgymenvs directory where train.py lives
-            DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 14: Changing to {isaac_gym_envs_path / 'isaacgymenvs'}")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 14: Changing to {isaac_gym_envs_path / 'isaacgymenvs'}")
             os.chdir(isaac_gym_envs_path / "isaacgymenvs")
             
             # Debug: Print current directory to verify we're in the right place
-            DNNE_print_local("D", "PPO_AGENT", f"Current directory: {os.getcwd()}")
-            DNNE_print_local("D", "PPO_AGENT", f"Files in directory: {os.listdir('.')[:10]}")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"Current directory: {os.getcwd()}")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"Files in directory: {os.listdir('.')[:10]}")
             
             # Set up Hydra configuration path
             os.environ['HYDRA_FULL_ERROR'] = '1'
             
             # Enable DNNE adaptive yielding for cooperative execution
             os.environ['DNNE_ADAPTIVE_YIELD'] = '1'
-            DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 14.5: DNNE_ADAPTIVE_YIELD={os.environ.get('DNNE_ADAPTIVE_YIELD', 'NOT SET')}")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 14.5: DNNE_ADAPTIVE_YIELD={os.environ.get('DNNE_ADAPTIVE_YIELD', 'NOT SET')}")
             
             # Convert args to sys.argv format for hydra
             sys.argv = ["train.py"] + train_config
-            DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 15: sys.argv set to {len(sys.argv)} args")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 15: sys.argv set to {len(sys.argv)} args")
             
             # Use runpy to execute train.py as __main__
             # This should make Hydra resolve paths correctly
             import runpy
             
             # Run training with periodic yielding
-            DNNE_print_local("D", "PPO_AGENT", f"Starting PPO training with IsaacGymEnvs...")
-            DNNE_print_local("D", "PPO_AGENT", f"Configuration: {' '.join(train_config)}")
-            
-            # Check if event loop is accessible before running
-            try:
-                import asyncio
-                loop = asyncio.get_running_loop()
-                DNNE_print_local("D", "PPO_AGENT", f"Event loop accessible before runpy: {loop}")
-            except RuntimeError as e:
-                DNNE_print_local("D", "PPO_AGENT", f"No event loop before runpy: {e}")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"Starting PPO training with IsaacGymEnvs...")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"Configuration: {' '.join(train_config)}")
             
             # Run training directly - it will yield cooperatively
-            DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 16: About to call runpy.run_path()")
-            DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 16.1: train.py exists: {os.path.exists('train.py')}")
-            DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 16.2: runpy.run_path('train.py', run_name='__main__') starting NOW...")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 16: About to call runpy.run_path()")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 16.1: train.py exists: {os.path.exists('train.py')}")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 16.2: runpy.run_path('train.py', run_name='__main__') starting NOW...")
             result = runpy.run_path("train.py", run_name="__main__")
-            DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 17: runpy.run_path() RETURNED!!! (This probably won't print)")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 17: runpy.run_path() RETURNED!!! (This probably won't print)")
             
             # Extract metrics from result
             metrics = {
@@ -311,14 +303,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "training_time": result.get("training_time", 0.0),
             }
             
-            DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 18: Metrics extracted: {metrics}")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 18: Metrics extracted: {metrics}")
             return metrics
             
         finally:
-            DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 19: In finally block")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", "🚀 CHECKPOINT 19: In finally block")
             # Restore original directory
             os.chdir(original_dir)
-            DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 20: Restored directory to {original_dir}")
+            #DBG_TAG# DNNE_print_local("D", "PPO_AGENT", f"🚀 CHECKPOINT 20: Restored directory to {original_dir}")
             # Remove added paths from sys.path
             if str(original_dir) in sys.path:
                 sys.path.remove(str(original_dir))
