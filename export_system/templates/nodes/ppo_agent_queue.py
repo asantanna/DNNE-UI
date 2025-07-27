@@ -86,6 +86,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             'normalize_value': {PPO_NORMALIZE_VALUE},
         }}
         
+        # Check for node-specific overrides
+        max_iterations_override = Global.get_node_config(self.node_id, 'max_iterations', None)
+        if max_iterations_override is not None:
+            self.ppo_config['max_epochs'] = max_iterations_override
+            self.logger.info(f"Using max_iterations override from node config: {max_iterations_override}")
+        
         # IsaacGymEnvs path
         self.isaac_gym_envs_path = "{ISAAC_GYM_ENVS_PATH}"
         

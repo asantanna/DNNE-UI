@@ -94,6 +94,9 @@ class Global:
     _initialized: bool = False
     _logger: Optional[logging.Logger] = None
     
+    # === Node-specific Configuration ===
+    node_configs: Dict[str, Dict[str, Any]] = {}  # node_id -> {config_key: value}
+    
     @classmethod
     def initialize(cls, **kwargs):
         """
@@ -150,8 +153,6 @@ class Global:
         Async adaptive yield - use in async functions.
         Automatically adjusts yield duration based on system metrics.
         """
-        # DEBUG: Disable all yielding for now
-        return
         
         # Fast path - no yield if disabled by context or command line
         if cls._yield_disabled > 0 or cls.no_yield:
@@ -183,8 +184,6 @@ class Global:
         Warning: This uses private asyncio APIs (_run_once) and may break
         in future Python versions. Use only when async is not possible.
         """
-        # DEBUG: Disable all yielding for now
-        return
         
         # Fast path - no yield if disabled by context or command line
         if cls._yield_disabled > 0 or cls.no_yield:
@@ -376,6 +375,38 @@ class Global:
         )
         
         return max_starvation < cls.WARNING_STARVATION_THRESHOLD
+    
+    @classmethod
+    def get_node_config(cls, node_id: str, key: str, default: Any = None) -> Any:
+        """
+        Get configuration value for a specific node.
+        
+        Args:
+            node_id: Unique identifier of the node
+            key: Configuration key to retrieve
+            default: Default value if key not found
+            
+        Returns:
+            Configuration value or default
+        """
+        return cls.node_configs.get(node_id, {}).get(key, default)
+    
+    @classmethod
+    def set_node_config(cls, node_id: str, key: str, value: Any):
+        """
+        Set configuration value for a specific node.
+        
+        Args:
+            node_id: Unique identifier of the node
+            key: Configuration key to set
+            value: Configuration value
+        """
+        if node_id not in cls.node_configs:
+            cls.node_configs[node_id] = {}
+        cls.node_configs[node_id][key] = value
+        
+        if cls.verbose:
+            cls._logger.info(f"Set node config: {node_id}.{key} = {value}")
 
 
 # All configuration should now be accessed through Global class

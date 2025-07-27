@@ -17,9 +17,14 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
         self.batch_count = 0
         
         # Check for epochs override from command line
-        if g.epochs_override is not None:
+        epochs_override = g.get_node_config(self.node_id, 'epochs', None)
+        if epochs_override is not None:
+            self.total_epochs = epochs_override
+            self.logger.info(f"Using epochs override from node config: {self.total_epochs}")
+        elif g.epochs_override is not None:
+            # Fallback to global override for backward compatibility
             self.total_epochs = g.epochs_override
-            self.logger.info(f"Using epochs override: {self.total_epochs}")
+            self.logger.info(f"Using global epochs override: {self.total_epochs}")
         else:
             self.total_epochs = {MAX_EPOCHS}
         

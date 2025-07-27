@@ -81,7 +81,6 @@ Multiple violations of fail-fast principle using hasattr/getattr with fallback v
    - `templates/framework/graph_runner.py:68,148`: `getattr(g, 'inference_mode', False)`
 
 3. **Custom nodes using getattr with defaults:**
-   - `custom_nodes/rl_nodes/ppo_trainer_OLD.py:129`: `getattr(builtins, 'SAVE_CHECKPOINT_DIR', None)`
    - `custom_nodes/ml_nodes/layer_nodes.py:77-78`: `getattr(builtins, 'SAVE_CHECKPOINT_DIR', None)`
 
 #### **Builtins Usage:**

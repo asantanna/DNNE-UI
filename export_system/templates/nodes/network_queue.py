@@ -29,7 +29,7 @@ class NetworkNode_{NODE_ID}(QueueNode):
         self.network = nn.Sequential(*layers)
         
         # Move to GPU if available
-        self.device = torch.device(g.device)
+        self.device = torch.device(g.get_device())
         self.network = self.network.to(self.device)
         
         # Set network to eval mode if in inference
@@ -213,7 +213,9 @@ class NetworkNode_{NODE_ID}(QueueNode):
                 self.logger.info(f"💾 Exit checkpoint saved for Network node {self.node_id}")
                 return True
             else:
-                self.logger.warning(f"⚠️ Failed to save exit checkpoint for Network node {self.node_id}")
+                # Only warn if we were actually trying to save (had a save directory)
+                if g.save_checkpoint_dir:
+                    self.logger.warning(f"⚠️ Failed to save exit checkpoint for Network node {self.node_id}")
                 return False
                 
         except Exception as e:

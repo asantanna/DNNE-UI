@@ -87,7 +87,8 @@ class MNISTInferenceTest:
         cmd = [
             sys.executable, "runner.py",
             "--timeout", timeout,
-            "--save-checkpoint-dir", str(self.checkpoint_dir),
+            "--save-checkpoint",
+            "--out-dir", str(self.checkpoint_dir),
             "--verbose"
         ]
         
@@ -161,7 +162,7 @@ class MNISTInferenceTest:
         cmd = [
             sys.executable, "runner.py",
             "--inference",
-            "--load-checkpoint-dir", str(self.checkpoint_dir),
+            "--load-checkpoint", str(self.checkpoint_dir),
             "--timeout", timeout,
             "--verbose"
         ]
@@ -393,8 +394,8 @@ def main():
         if success:
             print("\n✅ All tests passed! MNIST inference mode is working correctly.")
             print("\n📝 Usage summary:")
-            print("   Training: python runner.py --timeout 5m --save-checkpoint-dir ./checkpoints")
-            print("   Inference: python runner.py --inference --load-checkpoint-dir ./checkpoints")
+            print("   Training: python runner.py --timeout 5m --save-checkpoint --out-dir ./checkpoints")
+            print("   Inference: python runner.py --inference --load-checkpoint ./checkpoints")
         else:
             print("\n❌ Some tests failed. Check the logs for details.")
         

@@ -131,12 +131,12 @@ class PPOAgentExporter(ExportableNode):
                 "PPO_NORMALIZE_INPUT": ppo_config.get('normalize_input', True),
                 "PPO_NORMALIZE_VALUE": ppo_config.get('normalize_value', True),
             })
-        
-        # Only add these if they exist in the PPO config (from YAML)
-        if 'value_bootstrap' in ppo_config:
-            template_vars["PPO_VALUE_BOOTSTRAP"] = ppo_config['value_bootstrap']
-        if 'clip_actions' in ppo_config:
-            template_vars["PPO_CLIP_ACTIONS"] = ppo_config['clip_actions']
+            
+            # Only add these if they exist in the PPO config (from YAML)
+            if 'value_bootstrap' in ppo_config:
+                template_vars["PPO_VALUE_BOOTSTRAP"] = ppo_config['value_bootstrap']
+            if 'clip_actions' in ppo_config:
+                template_vars["PPO_CLIP_ACTIONS"] = ppo_config['clip_actions']
         
         return template_vars
     

@@ -23,17 +23,26 @@ Sets the maximum training duration using flexible time formats.
 python runner.py --timeout 5m --verbose
 ```
 
-#### `--save-checkpoint-dir <directory>`
-**Global enable** for checkpoint saving functionality.
+#### `--save-checkpoint`
+Enables checkpoint saving functionality (flag only).
 
 **Behavior:**
-- When provided: Nodes with `checkpoint_enabled=True` will save checkpoints to `{directory}/node_{id}/`
+- When provided: Nodes with `checkpoint_enabled=True` will save checkpoints
 - When omitted: No checkpoints saved regardless of individual node settings
+- Use with `--out-dir` to specify where checkpoints are saved
+
+#### `--out-dir <directory>`
+Specifies the output directory for checkpoints and other outputs.
+
+**Default:** `runs/singles`
+
+**Behavior:**
 - Creates subdirectories automatically: `node_1/`, `node_6/`, etc.
+- Used in conjunction with `--save-checkpoint`
 
 **Example:**
 ```bash
-python runner.py --save-checkpoint-dir training_checkpoints --timeout 10m
+python runner.py --save-checkpoint --out-dir training_checkpoints --timeout 10m
 ```
 
 ### Inference Control
@@ -45,7 +54,7 @@ Runs the workflow in inference mode with the following behavior:
 - Automatically loads checkpoints if `--load-checkpoint-dir` is provided
 - Skips training-specific operations
 
-#### `--load-checkpoint-dir <directory>`
+#### `--load-checkpoint <directory>`
 **Global checkpoint loading** from the specified directory.
 
 **Behavior:**
@@ -56,7 +65,7 @@ Runs the workflow in inference mode with the following behavior:
 
 **Example:**
 ```bash
-python runner.py --inference --load-checkpoint-dir training_checkpoints --visual
+python runner.py --inference --load-checkpoint training_checkpoints --visual
 ```
 
 ### Visualization (Isaac Gym)
@@ -99,12 +108,12 @@ DNNE uses a sophisticated two-level checkpoint control system that separates glo
 The command-line switches provide workflow-level control:
 
 **Checkpoint Saving:**
-- `--save-checkpoint-dir`: **Global enable** for all checkpoint saving
-- Provides the base directory where all node checkpoints will be stored
-- Without this flag, no checkpoints are saved regardless of node settings
+- `--save-checkpoint`: **Global enable** for all checkpoint saving
+- `--out-dir`: Specifies where checkpoints are stored (default: `runs/singles`)
+- Without `--save-checkpoint`, no checkpoints are saved regardless of node settings
 
 **Checkpoint Loading:**
-- `--load-checkpoint-dir`: **Global checkpoint loading** 
+- `--load-checkpoint <directory>`: **Global checkpoint loading** 
 - Loads all available checkpoint data from the specified directory
 - **Ignores per-node `checkpoint_enabled` settings during loading**
 - All found checkpoint data gets loaded into respective nodes
@@ -114,7 +123,7 @@ Each trainable node (Network, PPO Trainer) has individual checkpoint settings:
 
 **Checkpoint Control:**
 - `checkpoint_enabled`: Boolean flag controlling whether this specific node participates in checkpointing
-- Only effective when `--save-checkpoint-dir` is provided globally
+- Only effective when `--save-checkpoint` is provided globally
 - Controls whether THIS node saves its state to checkpoints
 
 **Checkpoint Triggers:**
@@ -125,10 +134,10 @@ Each trainable node (Network, PPO Trainer) has individual checkpoint settings:
 
 | Global Switch | Node Setting | Saving Behavior | Loading Behavior |
 |---------------|--------------|-----------------|------------------|
-| `--save-checkpoint-dir` provided | `checkpoint_enabled=True` | ✅ Saves checkpoints | ✅ Loads if data exists |
-| `--save-checkpoint-dir` provided | `checkpoint_enabled=False` | ❌ No saving | ✅ Loads if data exists |
-| No `--save-checkpoint-dir` | `checkpoint_enabled=True` | ❌ No saving | ❌ No loading |
-| No `--save-checkpoint-dir` | `checkpoint_enabled=False` | ❌ No saving | ❌ No loading |
+| `--save-checkpoint` provided | `checkpoint_enabled=True` | ✅ Saves checkpoints | ✅ Loads if data exists |
+| `--save-checkpoint` provided | `checkpoint_enabled=False` | ❌ No saving | ✅ Loads if data exists |
+| No `--save-checkpoint` | `checkpoint_enabled=True` | ❌ No saving | ❌ No loading |
+| No `--save-checkpoint` | `checkpoint_enabled=False` | ❌ No saving | ❌ No loading |
 
 **Key Points:**
 - **Saving**: Requires BOTH global switch AND per-node enable
@@ -159,20 +168,20 @@ source /home/asantanna/miniconda/bin/activate DNNE_PY38
 
 # Run training for 5 minutes with checkpoints
 cd export_system/exports/Cartpole_PPO
-python runner.py --timeout 5m --save-checkpoint-dir training_checkpoints --verbose
+python runner.py --timeout 5m --save-checkpoint --out-dir training_checkpoints --verbose
 ```
 
 ### Inference with Visualization
 ```bash
 # Run trained model with Isaac Gym viewer
 cd export_system/exports/Cartpole_PPO
-python runner.py --inference --visual --load-checkpoint-dir training_checkpoints --verbose
+python runner.py --inference --visual --load-checkpoint training_checkpoints --verbose
 ```
 
 ### Cloud/Server Training
 ```bash
 # Headless training on server
-python runner.py --timeout 30m --save-checkpoint-dir checkpoints --headless --verbose
+python runner.py --timeout 30m --save-checkpoint --out-dir checkpoints --headless --verbose
 ```
 
 ### Development Testing
@@ -191,8 +200,8 @@ The runner.py coordinates with generated node code through a global flags system
 import builtins
 builtins.VISUAL_MODE = args.visual
 builtins.INFERENCE_MODE = args.inference
-builtins.SAVE_CHECKPOINT_DIR = args.save_checkpoint_dir
-builtins.LOAD_CHECKPOINT_DIR = args.load_checkpoint_dir
+builtins.SAVE_CHECKPOINT_DIR = args.out_dir if args.save_checkpoint else None
+builtins.LOAD_CHECKPOINT_DIR = args.load_checkpoint
 ```
 
 ### Node Template Integration
@@ -293,9 +302,9 @@ ls -la training_checkpoints/*/
 python -c "import torch, isaacgym; print('Environment OK')"
 
 # Test without visualization first
-python runner.py --inference --load-checkpoint-dir training_checkpoints --headless --verbose
+python runner.py --inference --load-checkpoint training_checkpoints --headless --verbose
 ```
 
 ## Legacy Parameters
 
-**Note**: The `checkpoint_load_on_start` parameter exists in some node UI configurations but is deprecated. The current architecture uses command-line switches (`--load-checkpoint-dir`) for explicit checkpoint loading control, making the per-node setting redundant.
+**Note**: The `checkpoint_load_on_start` parameter exists in some node UI configurations but is deprecated. The current architecture uses command-line switches (`--load-checkpoint`) for explicit checkpoint loading control, making the per-node setting redundant.
