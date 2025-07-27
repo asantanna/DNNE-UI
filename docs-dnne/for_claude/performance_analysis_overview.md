@@ -4,14 +4,14 @@
 
 **Refactoring Complete**: DNNE has been completely refactored to use IsaacGymEnvs' (IGE) cartpole code and infrastructure as much as possible. This represents a major architectural shift from custom implementations to proven IGE components.
 
-**Current Focus - Correctness First**: We are debugging and comparing DNNE vs IGE to ensure the new DNNE code performs identically to IGE's proven implementation. Correctness verification comes before performance optimization.
+**Current Focus - Performance Optimization**: DNNE learning has been fixed and now performs effectively. The focus has shifted to performance optimization to approach IsaacGymEnvs speeds.
 
 **Development Phase**: 
 1. ✅ **Refactoring**: Complete - DNNE now inherits from IGE cartpole
-2. 🔄 **Correctness**: In progress - debugging to match IGE behavior exactly  
-3. ⏳ **Performance**: Next phase - optimize after correctness is verified
+2. ✅ **Correctness**: Complete - DNNE learning matches IGE behavior  
+3. 🔄 **Performance**: Current phase - optimize to reach target FPS
 
-**Note**: PPO training with IsaacGymEnvs is fully functional. Training runs smoothly without freezes or hangs.
+**Note**: PPO training with both DNNE and IsaacGymEnvs is fully functional. Learning performance issues have been resolved.
 
 ## Architecture Overview
 
@@ -96,7 +96,7 @@ python runner.py --headless --timeout 15s --profile
 
 ## Performance Targets
 
-**Prerequisites**: These targets apply after correctness is verified and DNNE matches IGE's learning behavior exactly.
+**Current Status**: With learning issues resolved, these performance targets are now the primary focus.
 
 - **Short-term**: 100+ FPS
 - **Medium-term**: 1,000+ FPS  
