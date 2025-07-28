@@ -71,14 +71,10 @@ class NetworkNode(RoboticsNodeBase):
                 checkpoint_enabled = False
             
             if checkpoint_enabled:
-                # Get checkpoint directory from command line args (set by runner.py)
-                try:
-                    import builtins
-                    save_checkpoint_dir = getattr(builtins, 'SAVE_CHECKPOINT_DIR', None)
-                    load_checkpoint_dir = getattr(builtins, 'LOAD_CHECKPOINT_DIR', None)
-                except:
-                    save_checkpoint_dir = None
-                    load_checkpoint_dir = None
+                # Get checkpoint directory from Global configuration
+                from framework.globals import Global as g
+                save_checkpoint_dir = g.save_checkpoint_dir
+                load_checkpoint_dir = g.load_checkpoint_dir
                     
                 self.checkpoint_manager = CheckpointManager(
                     node_id=actual_node_id,
@@ -113,8 +109,7 @@ class NetworkNode(RoboticsNodeBase):
             str: Path to saved checkpoint file, or None if not saved
         """
         if not self.checkpoint_manager:
-            print("⚠️ No checkpoint manager initialized")
-            return None
+            raise RuntimeError("Checkpoint manager not initialized - cannot save checkpoint")
         
         # Check if we should checkpoint
         should_checkpoint = self.checkpoint_manager.should_checkpoint(
@@ -145,7 +140,7 @@ class NetworkNode(RoboticsNodeBase):
             )
             return success
         
-        return None
+        return None  # No checkpoint needed at this time
     
     def load_checkpoint(self, model, load_checkpoint_dir=None):
         """

@@ -35,9 +35,9 @@ async def main():
                        help='Run in test mode with limited duration and performance tracking')
     args = parser.parse_args()
 
-    # Set global verbose flag for nodes to access
-    import builtins
-    builtins.VERBOSE = args.verbose
+    # Initialize Global configuration
+    from framework.globals import Global as g
+    g.initialize(verbose=args.verbose)
     configure_logging(args.verbose)
 
     print("🚀 Starting DNNE Queue-Based Execution")

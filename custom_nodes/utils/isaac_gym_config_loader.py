@@ -12,6 +12,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class ConfigurationError(Exception):
+    """Raised when configuration loading fails"""
+    pass
+
+
 class IsaacGymEnvConfigLoader:
     """
     Load and parse IsaacGymEnvs configurations for DNNE nodes.
@@ -143,7 +148,7 @@ class IsaacGymEnvConfigLoader:
             
         except Exception as e:
             logger.error(f"Error loading config for {task_name}: {e}")
-            return None
+            raise ConfigurationError(f"Failed to load config for {task_name}") from e
     
     def _resolve_value(self, value, default=None):
         """Resolve OmegaConf interpolations to concrete values."""
