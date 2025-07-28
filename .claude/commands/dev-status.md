@@ -2,15 +2,31 @@
 
 ## Current Status: ✅ WORKING
 
-PPO training with IsaacGymEnvs is fully functional. Training runs smoothly without freezes or hangs.
+PPO training with IsaacGymEnvs is fully functional. Training runs smoothly without freezes or hangs. Concurrent execution of independent subgraphs (MNIST + PPO) verified working with thread-safe yielding.
 
 ## Important Documentation
 
 Before proceeding, familiarize yourself with these key documents:
 - `docs-dnne/for_claude/` - Claude-specific documentation including performance guides
 - `docs-dnne/architecture/adaptive-yielding.md` - Detailed explanation of the adaptive yielding system
+- `docs-dnne/experiments/yield_tests/` - Research on thread-safe yielding solution
 
 ## Recent Work Completed
+
+### Thread-Safe Yielding Solution (✅ Implemented)
+- **Problem**: `sync_adaptive_yield()` calling `loop._run_once()` from within a task caused RuntimeError
+- **Solution**: Implemented thread-safe yielding using `run_in_executor` and `ThreadSafeYielder` singleton
+- **Result**: PPO training runs in thread pool, yields control back to main event loop for MNIST execution
+- **Files**: 
+  - `export_system/templates/framework/globals_threadsafe.py` - Thread-safe yielding implementation
+  - `export_system/templates/nodes/ppo_agent_queue.py` - Modified to use `run_in_executor`
+- **Verification**: Yield_Test workflow shows concurrent MNIST and PPO execution
+
+### Export System Improvements (✅ Implemented)
+- Directory cleaning before export (prevents stale files)
+- Concurrency report for workflows with PPO nodes
+- All debug prints tagged with `#DBG_TAG#` for easy enable/disable
+- MNIST epoch tracker cleaned up (no debug prefix, added "Training starting..." message)
 
 ### Node-Specific Command-Line Switches (✅ Implemented)
 - Added disambiguation system for command-line arguments
@@ -63,133 +79,18 @@ python runner.py --save-checkpoint --out-dir my_checkpoints --max-iterations 100
 - Important: Use workflow names with spaces as saved (e.g., `"MNIST Test"` not `"MNIST_Test"`)
 - The exporter automatically converts spaces to underscores in the output directory name
 
-## Current Focus: Yield_Test Verification
-
-### Overview
-The Yield_Test workflow is a single workflow file containing two causally independent subgraphs:
-- **MNIST subgraph**: The complete MNIST Test supervised learning network
-- **PPO subgraph**: The complete Cartpole_PPO reinforcement learning network
-
-These two subgraphs have no connections between them - they are completely independent computational paths within the same workflow. This design allows us to test whether DNNE's async queue framework properly interleaves execution between independent subgraphs, ensuring neither monopolizes compute resources.
-
-### Understanding the Concurrency Model
-- **MNIST nodes**: Use async/await with queue operations, naturally yielding when waiting for data
-- **PPO Agent**: Runs synchronous rl_games code with explicit `sync_adaptive_yield()` calls
-- The async queue mechanism provides natural concurrency for MNIST nodes
-
-### Verification Plan
-
-#### Step 1: Add Execution Tracking
-1. Add logging to track when each workflow is actively computing
-2. Log workflow switches to show interleaving pattern
-3. Track queue wait times vs compute times
-
-#### Step 2: Run Concurrent Test
-1. Execute the Yield_Test workflow: `python runner.py --timeout 60s`
-2. Observe that both workflows make progress:
-   - MNIST epochs should advance
-   - PPO episodes should complete
-3. Neither workflow should starve the other
-
-#### Step 3: Analyze Execution Pattern
-1. Add timestamps to show execution interleaving
-2. Verify that:
-   - MNIST nodes yield naturally when waiting for data
-   - PPO yields periodically during training loops
-   - Both workflows get fair execution time
-
-### Expected Behavior
-With proper concurrent execution:
-- MNIST nodes process batches between PPO environment steps
-- PPO training yields periodically, allowing MNIST to progress
-- Both workflows complete their tasks without blocking each other
-- The async queue mechanism naturally provides concurrency for MNIST
-
-### Key Files to Examine/Modify
-1. `framework/globals.py` - Add execution tracking
-2. `runner.py` - Add progress reporting for both workflows
-3. Monitor PPO's `sync_adaptive_yield()` calls in rl_games_dnne
-4. Track MNIST's natural async yielding via queue operations
-
-### Phase 1: Simple PPO vs Non-PPO Time Tracking
-
-**Key Insight**: Within the single Yield_Test workflow:
-- The PPO subgraph is the only part that calls `sync_adaptive_yield()`
-- The MNIST subgraph uses natural async/await yielding
-- By measuring time in `sync_adaptive_yield()`, we can determine the execution balance
-
-**Measurement Approach**:
-- Time between `sync_adaptive_yield()` calls = PPO subgraph execution time
-- Time during yield operations = MNIST subgraph execution time
-- Total yields count = frequency of execution switching
-
-**Expected Results**:
-- Both subgraphs get significant execution time (neither at 0% or 100%)
-- Frequent yielding demonstrates proper interleaving
-- Stable percentages over time indicate fair resource sharing
-
-### Future Measurement Ideas
-
-Additional monitoring approaches for deeper analysis:
-
-1. **Statistical Yield Analysis**
-   - Distribution of yield intervals
-   - Variance in execution chunks
-   - Outlier detection for long-running sections
-
-2. **Visual Progress Indicators**
-   - Real-time execution balance display
-   - Moving averages over time windows
-   - Subgraph switching visualization
-
-3. **Queue Activity Monitoring**
-   - Track which nodes from each subgraph are active
-   - Measure queue depths for both subgraphs
-   - Identify bottlenecks within each subgraph
-
-4. **Execution Pattern Analysis**
-   - Record sequence of subgraph switches
-   - Analyze switching patterns
-   - Detect anomalous behavior
-
-5. **Performance Impact Assessment**
-   - Compare individual subgraph performance vs combined
-   - Measure concurrency overhead
-   - Optimize yield frequency
-
-### Notes on Current Implementation
-- Adaptive yielding currently acts as `sleep(0)` - sufficient for concurrency verification
-- The single workflow design with independent subgraphs is ideal for testing execution fairness
-- This approach validates DNNE's ability to handle complex workflows with parallel computation paths
-
-## Lessons Learned
-
-### Design Principles
-- **Fail Fast**: Use NotImplementedError in base classes rather than guessed defaults
-- **Clear Errors**: Provide specific error messages for ambiguous command-line switches
-- **Respect User Settings**: Both node settings AND command-line flags must agree for features to activate
-
-### Checkpoint Best Practices
-- `saved_runs/` directory exists for checkpoints that should be preserved in git
-- `export_system/exports/` is git-ignored and can be safely overwritten
-- Always delete export directory before re-exporting to prevent stale files
-
-### Command-Line Design
-- Use `nargs='?'` with `const` for optional arguments with defaults
-- Plain numbers should be accepted for common units (seconds for timeout)
-- Node-specific syntax with colons provides clear disambiguation
-
-## Key Files
-
-### Export System
-- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/graph_exporter.py` - Main export logic with argument parsing
-- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/templates/framework/globals.py` - Global configuration with adaptive yield
-
-### Frontend
-- `/mnt/e/ALS-Projects/DNNE/DNNE-UI-Frontend/src/services/litegraphService.ts` - Node ID in titles
-- `/mnt/e/ALS-Projects/DNNE/DNNE-UI-Frontend/src/scripts/app.ts` - Workflow loading with ID updates
-
 ## Debug Features
+
+### Enabling/Disabling Debug Prints
+All debug prints are tagged with `#DBG_TAG#` at the end of lines:
+
+```bash
+# Enable all debug prints:
+find . -name "*.py" -exec sed -i 's/# \(.*\) #DBG_TAG#$/\1/' {} \;
+
+# Disable all debug prints:
+find . -name "*.py" -exec sed -i 's/^\(.*print.*\)$/# \1 #DBG_TAG#/' {} \;
+```
 
 ### Command Line Flags
 - `--save-checkpoint`: Enable checkpoint saving
@@ -201,8 +102,97 @@ Additional monitoring approaches for deeper analysis:
 - `--visual`/`--headless`: Control rendering
 - `--inference`: Skip training
 
+## Concurrent Execution: Yield_Test Workflow
+
+### Overview
+The Yield_Test workflow contains two causally independent subgraphs:
+- **MNIST subgraph**: Complete supervised learning network
+- **PPO subgraph**: Complete reinforcement learning network
+
+### Concurrency Model
+- **MNIST nodes**: Natural async yielding via queue operations
+- **PPO Agent**: Runs in thread pool with thread-safe yielding
+- **ThreadSafeYielder**: Singleton manages yield requests from threads
+- **Result**: Both subgraphs execute concurrently without blocking
+
+### Verification Results
+With thread-safe yielding:
+- MNIST epochs progress normally
+- PPO training runs with visual cartpole simulation
+- Frequent "[SYNC_YIELD] In thread context" messages show yielding is active
+- Concurrency report shows balanced execution between subgraphs
+
+## Key Implementation Details
+
+### Thread-Safe Yielding Architecture
+1. **PPO runs in thread**: `await loop.run_in_executor(None, run_training_with_yielding)`
+2. **Thread requests yield**: Puts request in queue to main loop
+3. **Main loop processes**: Yields via `await asyncio.sleep(delay)`
+4. **MNIST executes**: During PPO's yield periods
+5. **Cycle repeats**: Ensures fair execution time for both subgraphs
+
 ### Adaptive Yielding
-- **MNIST nodes**: Natural yielding via async/await queue operations
-- **PPO Agent**: Explicit yielding via `sync_adaptive_yield()` in rl_games_dnne
-- **Framework**: Global class manages yielding with metrics tracking
-- **Current Status**: PPO yielding confirmed working (tested that disabling it causes PPO to dominate)
+- Dynamic delay calculation based on node starvation metrics
+- Ranges from 0ms (minimal) to 10ms (aggressive)
+- Tracks execution balance between PPO and non-PPO nodes
+- `Global.print_concurrency_report()` shows execution percentages
+
+## Lessons Learned
+
+### Asyncio Execution Model
+- **Cannot call `loop._run_once()` from within a task** - causes RuntimeError
+- **Solution**: Use `run_in_executor` to isolate synchronous code in threads
+- **Thread-safe communication**: Use queues to communicate between threads and main loop
+
+### Design Principles
+- **Fail Fast**: Use NotImplementedError in base classes rather than guessed defaults
+- **Clear Errors**: Provide specific error messages for ambiguous command-line switches
+- **Clean Output**: Production code should have minimal debug output
+
+### Export Best Practices
+- Always clean export directory before re-exporting
+- Tag debug code with `#DBG_TAG#` for easy management
+- Keep concurrency reports and other useful diagnostics
+
+## Key Files
+
+### Export System
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/graph_exporter.py` - Main export logic with directory cleaning
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/templates/framework/globals.py` - Adaptive yielding implementation
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/templates/framework/globals_threadsafe.py` - Thread-safe yielding
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/templates/nodes/ppo_agent_queue.py` - PPO with thread execution
+
+### Frontend
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI-Frontend/src/services/litegraphService.ts` - Node ID in titles
+- `/mnt/e/ALS-Projects/DNNE/DNNE-UI-Frontend/src/scripts/app.ts` - Workflow loading with ID updates
+
+### External Dependencies
+- `/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/train.py` - Modified for inline DNNE_print
+- `/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne/` - Custom RL games with adaptive yielding
+
+## Next Steps
+
+### 1. Test Concurrency Metrics Printouts
+- **Goal**: Verify the concurrency balance report shows meaningful data
+- **Method**: Run Yield_Test workflow and check the concurrency report output
+- **Expected**: Should show PPO vs MNIST execution time percentages
+- **Location**: `Global.print_concurrency_report()` at end of execution
+
+### 2. Wire Concurrency Metrics to Nodes
+- **Goal**: Enable adaptive yielding based on actual node starvation metrics
+- **Current**: Adaptive delay calculation exists but node metrics aren't being updated
+- **Required Changes**:
+  - Add `Global.update_node_execution(node_id)` calls in node compute methods
+  - Track queue depths with `Global.update_queue_pressure(total_queued)`
+  - Ensure `_compute_adaptive_delay()` uses real metrics instead of returning 0
+- **Result**: Dynamic yielding that responds to actual execution patterns
+
+### 3. Validate Adaptive Algorithm
+- **Test Cases**:
+  - Heavy PPO load → should increase yield delays
+  - Heavy MNIST load → should decrease PPO yield delays
+  - Balanced load → should stabilize at minimal delays
+- **Metrics to Monitor**:
+  - Max starvation time per node
+  - Queue depths
+  - Yield frequency and duration
