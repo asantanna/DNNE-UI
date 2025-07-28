@@ -855,6 +855,10 @@ class PlaceholderNode_{node_id}(QueueNode):
             "        print(f'  {node_id}: {node_stats[\"compute_count\"]} computations, '",
             "              f'avg time: {node_stats[\"last_compute_time\"]:.3f}s')",
             "",
+            "    # Show concurrency report if PPO nodes detected",
+            "    if any('PPOAgent' in str(type(node).__name__) for node in runner.nodes.values()):",
+            "        g.print_concurrency_report()",
+            "",
             "",
             "if __name__ == '__main__':",
             "    asyncio.run(main())",
@@ -864,6 +868,29 @@ class PlaceholderNode_{node_id}(QueueNode):
     
     def _create_package_structure(self, output_path: Path):
         """Create the package directory structure"""
+        # Clean existing directory if it exists
+        if output_path.exists():
+            import shutil
+            
+            # Safety check - only delete if it looks like an export directory
+            # Check for runner.py or nodes/ directory as indicators
+            is_export_dir = (
+                (output_path / "runner.py").exists() or
+                (output_path / "nodes").exists() or
+                (output_path / "framework").exists()
+            )
+            
+            if is_export_dir:
+                self.logger.info(f"Cleaning existing export directory: {output_path}")
+                shutil.rmtree(output_path)
+            else:
+                # Directory exists but doesn't look like an export - be cautious
+                self.logger.warning(f"Directory {output_path} exists but doesn't appear to be an export directory")
+                raise ValueError(
+                    f"Target directory exists but doesn't appear to be a DNNE export: {output_path}\n"
+                    f"Please choose a different directory or manually remove the existing one."
+                )
+        
         # Create main directories
         output_path.mkdir(parents=True, exist_ok=True)
         framework_dir = output_path / "framework"
@@ -903,6 +930,14 @@ class PlaceholderNode_{node_id}(QueueNode):
         # Export globals.py
         globals_content = self._load_template("framework/globals.py")
         (framework_dir / "globals.py").write_text(globals_content, encoding='utf-8')
+        
+        # Export globals_threadsafe.py if it exists
+        try:
+            globals_threadsafe_content = self._load_template("framework/globals_threadsafe.py")
+            (framework_dir / "globals_threadsafe.py").write_text(globals_threadsafe_content, encoding='utf-8')
+            self.logger.info("Exported globals_threadsafe.py for thread-safe yielding support")
+        except FileNotFoundError:
+            self.logger.info("globals_threadsafe.py not found in templates, skipping")
         
         # Export dnne_exceptions.py
         dnne_exceptions_content = self._load_template("framework/dnne_exceptions.py")

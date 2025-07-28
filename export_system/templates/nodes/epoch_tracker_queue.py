@@ -28,7 +28,15 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
         else:
             self.total_epochs = {MAX_EPOCHS}
         
+        # Flag to track if we've shown the training starting message
+        self.training_started = False
+        
     async def compute(self, epoch_stats, loss, accuracy) -> Dict[str, Any]:
+        # Show training starting message once
+        if not self.training_started:
+            print(f"\n🚀 Training starting... ({self.total_epochs} epochs)\n")
+            self.training_started = True
+        
         # Track batch-level metrics
         self.epoch_losses.append(loss.item() if hasattr(loss, 'item') else float(loss))
         self.epoch_accuracies.append(float(accuracy))
@@ -42,12 +50,11 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             
             # Display epoch summary (always show, regardless of verbose mode)
             epoch_num = epoch_stats["epoch"]
-            from isaacgymenvs.utils.debug_utils import DNNE_print
-            DNNE_print("D", "TRAINING", f"📊 EPOCH {epoch_num}/{self.total_epochs} COMPLETE")
-            DNNE_print("D", "TRAINING", f"   Batches: {len(self.epoch_losses)}")
-            DNNE_print("D", "TRAINING", f"   Avg Loss: {avg_loss:.4f}")
-            DNNE_print("D", "TRAINING", f"   Avg Accuracy: {avg_accuracy:.2%}")
-            DNNE_print("D", "TRAINING", "=" * 60)
+            print(f"📊 EPOCH {epoch_num}/{self.total_epochs} COMPLETE")
+            print(f"   Batches: {len(self.epoch_losses)}")
+            print(f"   Avg Loss: {avg_loss:.4f}")
+            print(f"   Avg Accuracy: {avg_accuracy:.2%}")
+            print("=" * 60)
             
             # Reset for next epoch
             summary = {
@@ -64,7 +71,7 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             
             # Check if training should stop
             if self.current_epoch >= self.total_epochs:
-                DNNE_print("D", "TRAINING", f"🎯 TRAINING COMPLETE! Reached {self.total_epochs} epochs")
+                print(f"\n🎯 TRAINING COMPLETE! Reached {self.total_epochs} epochs\n")
                 summary["training_complete"] = True
                 
                 # Raise exception to stop the graph runner

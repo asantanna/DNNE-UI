@@ -27,6 +27,43 @@ class YieldStats:
         self.last_yield_time = time.time()
 
 
+@dataclass
+class ConcurrencyStats:
+    """Statistics for concurrent execution tracking"""
+    ppo_time: float = 0.0  # Time spent in PPO subgraph
+    non_ppo_time: float = 0.0  # Time spent in non-PPO subgraph
+    last_yield_start: float = 0.0  # When the last yield started
+    last_yield_time: float = 0.0  # When the last yield ended
+    in_ppo_context: bool = False  # Whether we're currently in PPO execution
+    
+    def start_yield(self):
+        """Called when sync_adaptive_yield is entered"""
+        current_time = time.time()
+        
+        # Time between yields is PPO execution time
+        if self.last_yield_time > 0:
+            ppo_duration = current_time - self.last_yield_time
+            if ppo_duration > 0:
+                self.ppo_time += ppo_duration
+        
+        self.last_yield_start = current_time
+        self.in_ppo_context = True
+    
+    def end_yield(self, yield_duration: float):
+        """Called when sync_adaptive_yield completes"""
+        # Time during yield is non-PPO (MNIST) execution time
+        self.non_ppo_time += yield_duration
+        self.last_yield_time = time.time()
+        self.in_ppo_context = False
+    
+    def get_balance_percentage(self):
+        """Get percentage time spent in PPO vs non-PPO"""
+        total = self.ppo_time + self.non_ppo_time
+        if total == 0:
+            return (0.0, 0.0)
+        return (self.ppo_time / total * 100, self.non_ppo_time / total * 100)
+
+
 @dataclass 
 class NodeMetrics:
     """Metrics for individual node execution"""
@@ -89,6 +126,7 @@ class Global:
     # === Private State ===
     _yield_disabled: int = 0  # Counter for nested no_yield contexts
     _yield_stats: YieldStats = YieldStats()
+    _concurrency_stats: ConcurrencyStats = ConcurrencyStats()
     _node_metrics: Dict[str, NodeMetrics] = {}
     _total_queued: int = 0
     _initialized: bool = False
@@ -179,17 +217,35 @@ class Global:
     def sync_adaptive_yield(cls):
         """
         Sync adaptive yield - use in synchronous functions.
-        Uses event loop internals to yield from sync code.
+        Automatically detects execution context and uses appropriate method.
         
-        Warning: This uses private asyncio APIs (_run_once) and may break
-        in future Python versions. Use only when async is not possible.
+        - In async context: Uses event loop internals (_run_once)
+        - In thread context: Uses thread-safe yielding via ThreadSafeYielder
+        
+        This enables synchronous code (like RL training) to yield control
+        regardless of execution context.
         """
         
         # Fast path - no yield if disabled by context or command line
         if cls._yield_disabled > 0 or cls.no_yield:
             return
         
+        # Import thread-safe yielding if available
+        try:
+            from .globals_threadsafe import thread_safe_sync_adaptive_yield
+            # Use thread-safe version that auto-detects context
+            thread_safe_sync_adaptive_yield(delay=cls._compute_adaptive_delay())
+            return
+        except ImportError:
+            # Fall back to original implementation
+            pass
+        
+        # print(f"[YIELD] sync_adaptive_yield called at {time.time():.3f}") #DBG_TAG#
+        
         start_time = time.perf_counter()
+        
+        # Track that we're entering a yield (PPO context)
+        cls._concurrency_stats.start_yield()
         
         # Get event loop - fail if none
         try:
@@ -198,7 +254,8 @@ class Global:
             raise RuntimeError(
                 "sync_adaptive_yield() called but no event loop is running! "
                 "All DNNE workflows must run within an async context. "
-                "If you're in an async function, use async_adaptive_yield() instead."
+                "If you're in an async function, use async_adaptive_yield() instead. "
+                "For thread contexts, ensure globals_threadsafe.py is available."
             )
         
         # Compute adaptive delay
@@ -227,6 +284,7 @@ class Global:
         end_time = time.perf_counter()
         yield_duration = end_time - start_time
         cls._yield_stats.update(yield_duration)
+        cls._concurrency_stats.end_yield(yield_duration)
         
         # Log if excessive yield time
         if cls.debug and yield_duration > 0.01:  # 10ms
@@ -333,9 +391,55 @@ class Global:
         }
     
     @classmethod
+    def get_concurrency_stats(cls) -> Dict[str, Any]:
+        """
+        Get statistics about concurrent execution balance.
+        
+        Returns:
+            Dictionary with concurrency statistics
+        """
+        ppo_pct, non_ppo_pct = cls._concurrency_stats.get_balance_percentage()
+        return {
+            'ppo_time_s': cls._concurrency_stats.ppo_time,
+            'non_ppo_time_s': cls._concurrency_stats.non_ppo_time,
+            'ppo_percentage': ppo_pct,
+            'non_ppo_percentage': non_ppo_pct,
+            'total_execution_time_s': cls._concurrency_stats.ppo_time + cls._concurrency_stats.non_ppo_time
+        }
+    
+    @classmethod
+    def print_concurrency_report(cls):
+        """Print a formatted report of concurrent execution balance"""
+        stats = cls.get_concurrency_stats()
+        
+        print("\n" + "="*60)
+        print("🔄 CONCURRENT EXECUTION BALANCE REPORT")
+        print("="*60)
+        print(f"Total execution time: {stats['total_execution_time_s']:.2f}s")
+        print(f"PPO subgraph time:    {stats['ppo_time_s']:.2f}s ({stats['ppo_percentage']:.1f}%)")
+        print(f"MNIST subgraph time:  {stats['non_ppo_time_s']:.2f}s ({stats['non_ppo_percentage']:.1f}%)")
+        print(f"Total yields:         {cls._yield_stats.total_yields}")
+        
+        if stats['ppo_percentage'] > 0 and stats['non_ppo_percentage'] > 0:
+            print("\n✅ Both subgraphs are receiving execution time!")
+            if abs(stats['ppo_percentage'] - stats['non_ppo_percentage']) < 20:
+                print("   Execution is well-balanced between subgraphs.")
+            elif stats['ppo_percentage'] > stats['non_ppo_percentage']:
+                print("   PPO subgraph is dominating execution time.")
+            else:
+                print("   MNIST subgraph is dominating execution time.")
+        elif stats['ppo_percentage'] == 0:
+            print("\n⚠️  No PPO execution detected - sync_adaptive_yield may not be called")
+        elif stats['non_ppo_percentage'] == 0:
+            print("\n⚠️  No MNIST execution detected - async yields may be blocked")
+        
+        print("="*60)
+    
+    @classmethod
     def reset_metrics(cls):
         """Reset all performance metrics (useful for benchmarking)"""
         cls._yield_stats = YieldStats()
+        cls._concurrency_stats = ConcurrencyStats()
         cls._node_metrics.clear()
         cls._total_queued = 0
     

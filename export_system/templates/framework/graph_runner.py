@@ -102,8 +102,8 @@ class GraphRunner:
                     self.exit_reason = "timeout"
                     self.logger.info(f"Stopping after {duration}s")
                 except TrainingCompleteException as e:
-                    print(f"[DEBUG] GraphRunner caught TrainingCompleteException (with timeout)")
-                    print(f"[DEBUG] Exception: {e}")
+                    # print(f"[DEBUG] GraphRunner caught TrainingCompleteException (with timeout)") #DBG_TAG#
+                    # print(f"[DEBUG] Exception: {e}") #DBG_TAG#
                     self.exit_reason = "training_complete"
                     self.logger.info(f"Training completed: {e.message}")
             else:
@@ -112,8 +112,8 @@ class GraphRunner:
                     await asyncio.gather(*self.tasks, return_exceptions=False)
                     self.exit_reason = "tasks_complete"
                 except TrainingCompleteException as e:
-                    print(f"[DEBUG] GraphRunner caught TrainingCompleteException (no timeout)")
-                    print(f"[DEBUG] Exception: {e}")
+                    # print(f"[DEBUG] GraphRunner caught TrainingCompleteException (no timeout)") #DBG_TAG#
+                    # print(f"[DEBUG] Exception: {e}") #DBG_TAG#
                     self.exit_reason = "training_complete"
                     self.logger.info(f"Training completed: {e.message}")
         except KeyboardInterrupt:
