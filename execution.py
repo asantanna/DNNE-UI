@@ -117,6 +117,14 @@ class PromptQueue:
         # For minimal implementation, just return success
         return True
     
+    def get_flags(self):
+        """Get execution flags (for memory management)"""
+        # Return default flags for minimal implementation
+        return {
+            "free_memory": False,
+            "unload_models": False
+        }
+    
     def clear_queue(self):
         """Clear the queue"""
         with self.mutex:

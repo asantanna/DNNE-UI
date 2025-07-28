@@ -19,6 +19,7 @@ ROBOTICS_TYPES = {
     "SIM_HANDLE": "SIM_HANDLE",  # For Isaac Gym integration (legacy)
     "ENV_HANDLE": "ENV_HANDLE",  # For new Isaac Gym environment handle
     "SYNC": "SYNC",  # For node synchronization and training coordination
+    "BALANCING_CONFIG": "BALANCING_CONFIG",  # For system balancing configuration
 }
 
 # ML-specific types

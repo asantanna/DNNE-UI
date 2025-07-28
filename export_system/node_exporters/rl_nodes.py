@@ -73,6 +73,7 @@ class PPOAgentExporter(ExportableNode):
         # Extract configuration from connected virtual nodes
         env_config = cls._extract_env_config(node_id, all_nodes, all_links)
         ppo_config = cls._extract_ppo_config(node_id, all_nodes, all_links)
+        balancing_config = cls._extract_balancing_config(node_id, all_nodes, all_links)
         
         # Merge all configuration
         template_vars = {
@@ -137,6 +138,21 @@ class PPOAgentExporter(ExportableNode):
                 template_vars["PPO_VALUE_BOOTSTRAP"] = ppo_config['value_bootstrap']
             if 'clip_actions' in ppo_config:
                 template_vars["PPO_CLIP_ACTIONS"] = ppo_config['clip_actions']
+        
+        # Add balancing configuration if present
+        if balancing_config:
+            template_vars.update({
+                "HAS_BALANCING_CONFIG": True,
+                "BALANCING_MIN_HZ": balancing_config.get('frequency', {}).get('min_hz', 0),
+                "BALANCING_MAX_HZ": balancing_config.get('frequency', {}).get('max_hz', 0),
+                "BALANCING_TARGET_HZ": balancing_config.get('frequency', {}).get('target_hz', 0),
+                "BALANCING_TARGET_PERCENTAGE": balancing_config.get('throughput', {}).get('target_percentage', 0),
+                "BALANCING_PRIORITY": balancing_config.get('scheduling', {}).get('priority', 0),
+                "BALANCING_GUARANTEED": balancing_config.get('scheduling', {}).get('guaranteed', False),
+                "BALANCING_MAX_LATENCY_MS": balancing_config.get('latency', {}).get('max_latency_ms', 0),
+            })
+        else:
+            template_vars["HAS_BALANCING_CONFIG"] = False
         
         return template_vars
     
@@ -284,6 +300,82 @@ class PPOAgentExporter(ExportableNode):
             'normalize_value': widget_values[16] if len(widget_values) > 16 else True,
             'bounds_loss_coef': widget_values[20] if len(widget_values) > 20 else 0.0001,
         }
+    
+    @classmethod
+    def _extract_balancing_config(cls, ppo_node_id, all_nodes, all_links):
+        """Extract balancing configuration from connected BalancingConfig virtual node"""
+        if not all_links or not all_nodes:
+            return None
+            
+        # Find balancing_config input connection (in optional inputs)
+        # PPO Agent has env (slot 0), config (slot 1), and balancing_config (slot 2)
+        balancing_node_id = None
+        for link in all_links:
+            if len(link) >= 5:
+                to_node, to_slot = str(link[3]), link[4]
+                if to_node == ppo_node_id and to_slot == 2:  # balancing_config input
+                    balancing_node_id = str(link[1])
+                    break
+        
+        if not balancing_node_id:
+            return None
+            
+        # Find the node data
+        balancing_node_data = None
+        for node in all_nodes:
+            if str(node["id"]) == balancing_node_id:
+                balancing_node_data = node
+                break
+                
+        if not balancing_node_data:
+            return None
+            
+        # Check if it's a BalancingConfig node
+        node_type = balancing_node_data.get("class_type") or balancing_node_data.get("type")
+        if node_type != "BalancingConfig":
+            return None
+            
+        # Extract widget values
+        widget_values = balancing_node_data.get("widgets_values", [])
+        
+        # Map widget values to config (based on BalancingConfig node definition)
+        # Widget order: enabled, min_hz, max_hz, target_hz, target_percentage, priority, 
+        #               guaranteed, max_latency_ms
+        
+        # Check if config is enabled (first widget)
+        enabled = widget_values[0] if len(widget_values) > 0 else True
+        if not enabled:
+            return {"enabled": False, "type": "balancing_config"}
+            
+        # Build configuration structure matching what BalancingConfig.create_config() returns
+        config = {
+            'enabled': True,
+            'frequency': {},
+            'throughput': {},
+            'scheduling': {
+                'priority': widget_values[5] if len(widget_values) > 5 else 0,
+                'guaranteed': widget_values[6] if len(widget_values) > 6 else False,
+            },
+            'latency': {},
+        }
+        
+        # Add frequency settings if specified (>= 0 means care, -1 means don't care)
+        if len(widget_values) > 1 and widget_values[1] >= 0:
+            config['frequency']['min_hz'] = widget_values[1]
+        if len(widget_values) > 2 and widget_values[2] >= 0:
+            config['frequency']['max_hz'] = widget_values[2]
+        if len(widget_values) > 3 and widget_values[3] >= 0:
+            config['frequency']['target_hz'] = widget_values[3]
+            
+        # Add throughput settings if specified
+        if len(widget_values) > 4 and widget_values[4] >= 0:
+            config['throughput']['target_percentage'] = widget_values[4]
+            
+        # Add latency settings if specified
+        if len(widget_values) > 7 and widget_values[7] >= 0:
+            config['latency']['max_latency_ms'] = widget_values[7]
+        
+        return config
 
 
 # Registration function

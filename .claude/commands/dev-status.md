@@ -8,10 +8,25 @@ PPO training with IsaacGymEnvs is fully functional. Training runs smoothly witho
 
 Before proceeding, familiarize yourself with these key documents:
 - `docs-dnne/for_claude/` - Claude-specific documentation including performance guides
-- `docs-dnne/architecture/adaptive-yielding.md` - Detailed explanation of the adaptive yielding system
+- `docs-dnne/architecture/adaptive-yielding.md` - ⚠️ **NEEDS UPDATE** - Currently "hopelessly wrong" per user
 - `docs-dnne/experiments/yield_tests/` - Research on thread-safe yielding solution
 
 ## Recent Work Completed
+
+### Adaptive Yielding Debug & Fix (✅ Completed - July 28, 2025)
+- **Problem**: PPO subgraph showing "0 computations" despite yielding being called
+- **Investigation**: Enabled all debug prints with #DBG_TAG# to trace execution flow
+- **Findings**: 
+  - Both subgraphs ARE executing: PPO ~47%, MNIST ~53% (perfectly balanced!)
+  - sync_adaptive_yield() is being called successfully
+  - Issue was the 0.05 second delay hack making yields too long
+- **Fixes Applied**:
+  - Removed broken sync_adaptive_yield fallback using `loop._run_once()` - now fail-fast
+  - Removed 0.05 delay hack from `_compute_adaptive_delay()`
+  - Added yield statistics printing to rl_games (every 10 seconds)
+  - Fixed unwanted checkpoint saving in PPO (save_frequency=0)
+  - Created `toggle_DBG_TAG.py` script for easy debug print management
+- **Outstanding Issue**: Total yields shows 0 despite both subgraphs executing - needs investigation
 
 ### Thread-Safe Yielding Solution (✅ Implemented)
 - **Problem**: `sync_adaptive_yield()` calling `loop._run_once()` from within a task caused RuntimeError
@@ -82,8 +97,20 @@ python runner.py --save-checkpoint --out-dir my_checkpoints --max-iterations 100
 ## Debug Features
 
 ### Enabling/Disabling Debug Prints
-All debug prints are tagged with `#DBG_TAG#` at the end of lines:
+All debug prints are tagged with `#DBG_TAG#` at the end of lines.
 
+**New Toggle Script** (✅ Implemented):
+```bash
+# Toggle debug prints on/off:
+python /mnt/e/ALS-Projects/DNNE/DNNE-UI/claude_scripts/toggle_DBG_TAG.py <filename>
+
+# Example:
+python claude_scripts/toggle_DBG_TAG.py /home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne/common/a2c_common.py
+```
+
+The script automatically detects whether debug prints are currently commented or uncommented and toggles them.
+
+**Manual Method** (still works):
 ```bash
 # Enable all debug prints:
 find . -name "*.py" -exec sed -i 's/# \(.*\) #DBG_TAG#$/\1/' {} \;
@@ -119,8 +146,21 @@ The Yield_Test workflow contains two causally independent subgraphs:
 With thread-safe yielding:
 - MNIST epochs progress normally
 - PPO training runs with visual cartpole simulation
-- Frequent "[SYNC_YIELD] In thread context" messages show yielding is active
-- Concurrency report shows balanced execution between subgraphs
+- Concurrency report shows balanced execution between subgraphs:
+  ```
+  ============================================================
+  🔄 CONCURRENT EXECUTION BALANCE REPORT
+  ============================================================
+  Total execution time: 19.04s
+  PPO subgraph time:    8.83s (46.4%)
+  MNIST subgraph time:  10.21s (53.6%)
+  Total yields:         0
+  
+  ✅ Both subgraphs are receiving execution time!
+     Execution is well-balanced between subgraphs.
+  ============================================================
+  ```
+- **Note**: "Total yields: 0" needs investigation - yields are happening but not being counted
 
 ## Key Implementation Details
 
@@ -172,11 +212,13 @@ With thread-safe yielding:
 
 ## Next Steps
 
-### 1. Test Concurrency Metrics Printouts
-- **Goal**: Verify the concurrency balance report shows meaningful data
-- **Method**: Run Yield_Test workflow and check the concurrency report output
-- **Expected**: Should show PPO vs MNIST execution time percentages
-- **Location**: `Global.print_concurrency_report()` at end of execution
+### 1. Fix Total Yields Counter (🔴 High Priority)
+- **Problem**: Concurrency report shows "Total yields: 0" despite both subgraphs executing
+- **Investigation Needed**:
+  - Where is `total_yields` incremented in the code?
+  - Is there a minimum threshold for a yield to be counted?
+  - Is the counter not being updated in thread-safe yielding path?
+- **Expected**: Should show non-zero yield count when adaptive yielding is active
 
 ### 2. Wire Concurrency Metrics to Nodes
 - **Goal**: Enable adaptive yielding based on actual node starvation metrics

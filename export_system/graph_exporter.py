@@ -942,6 +942,11 @@ class PlaceholderNode_{node_id}(QueueNode):
         # Export dnne_exceptions.py
         dnne_exceptions_content = self._load_template("framework/dnne_exceptions.py")
         (framework_dir / "dnne_exceptions.py").write_text(dnne_exceptions_content, encoding='utf-8')
+        
+        # Export metrics_logger.py (required by BalancingNode)
+        metrics_logger_content = self._load_template("framework/metrics_logger.py")
+        (framework_dir / "metrics_logger.py").write_text(metrics_logger_content, encoding='utf-8')
+        self.logger.info("Exported metrics_logger.py for balancing node support")
     
     def _export_node_to_file(self, nodes_dir: Path, node_id: str, node_type: str, 
                             node_code: str, node_imports: List[str]) -> str:

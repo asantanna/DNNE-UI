@@ -32,6 +32,8 @@ from .rl_nodes import (
 
 from .utility_nodes import (
     ORNodeExporter,
+    BalancingNodeExporter,
+    BalancingConfigExporter,
     register_utility_exporters
 )
 
@@ -71,6 +73,8 @@ __all__ = [
     'PPOAgentExporter',
     # Utility nodes
     'ORNodeExporter',
+    'BalancingNodeExporter',
+    'BalancingConfigExporter',
     # Registration functions
     'register_all_exporters',
     'register_ml_exporters',

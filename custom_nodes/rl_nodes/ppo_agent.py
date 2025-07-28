@@ -32,6 +32,11 @@ class PPOAgent(RoboticsNodeBase):
                 }),
             },
             "optional": {
+                # Balancing configuration
+                "balancing_config": ("BALANCING_CONFIG", {
+                    "tooltip": "Optional balancing configuration for performance targets"
+                }),
+                
                 # Network architecture
                 "network_mlp_layers": ("STRING", {
                     "default": "[256, 128, 64]",
@@ -104,12 +109,22 @@ class PPOAgent(RoboticsNodeBase):
         This method is never actually called during normal operation.
         During export, this node generates a complete training script.
         """
+        # Check for balancing configuration
+        balancing_config = kwargs.get("balancing_config", None)
+        if balancing_config and isinstance(balancing_config, dict):
+            print(f"PPO Agent: Received balancing configuration - {balancing_config.get('node_name', 'Unnamed')}")
+            if balancing_config.get("throughput", {}).get("target_percentage"):
+                print(f"  - Target throughput: {balancing_config['throughput']['target_percentage']}%")
+            if balancing_config.get("scheduling", {}).get("priority"):
+                print(f"  - Priority: {balancing_config['scheduling']['priority']}")
+        
         # In UI mode, just return dummy metrics
         metrics = {
             "status": "configured",
             "env_task": env.get("task", "Unknown"),
             "num_envs": env.get("num_envs", 0),
             "learning_rate": config.get("learning_rate", 0),
+            "has_balancing": balancing_config is not None,
             "message": "PPO Agent configured. Export to generate training script."
         }
         

@@ -4,6 +4,7 @@ from .base_nodes import QueueNode, SensorNode
 from .graph_runner import GraphRunner
 from .exceptions import TrainingCompleteException
 from .checkpoint import CheckpointManager, validate_checkpoint_config
+from .globals import Global
 from .dnne_exceptions import (
     DNNEError,
     NodeError, NodeConfigurationError, NodeConnectionError, NodeExecutionError,
@@ -20,6 +21,7 @@ __all__ = [
     'TrainingCompleteException',
     'CheckpointManager',
     'validate_checkpoint_config',
+    'Global',
     # DNNE Exception hierarchy
     'DNNEError',
     'NodeError', 'NodeConfigurationError', 'NodeConnectionError', 'NodeExecutionError',

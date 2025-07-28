@@ -2,503 +2,295 @@
 
 ## Overview
 
-DNNE's queue-based architecture supports multiple concurrent workflows, but compute-intensive nodes can starve other workflows of execution time. The Adaptive Yielding System provides a cooperative multitasking solution that ensures fair execution across all active workflows while maintaining high performance.
+The adaptive yielding system is DNNE's solution for achieving concurrent execution of independent computational subgraphs within a single Python process. It enables multiple neural network training workflows (e.g., supervised learning and reinforcement learning) to run simultaneously without blocking each other, maximizing hardware utilization.
 
-## The Concurrency Challenge
+## Problem Statement
 
-### Problem Statement
+When running complex workflows with multiple independent subgraphs:
+- **Traditional approach**: Sequential execution wastes resources
+- **Multi-process approach**: High overhead, complex data sharing
+- **DNNE's approach**: Cooperative multitasking via adaptive yielding
 
-DNNE workflows often contain tight computational loops:
-- PPO training loops that run for thousands of steps
-- Large batch processing in neural networks  
-- Physics simulations with many environments
-- Data preprocessing over large datasets
+### Example: Yield_Test Workflow
+The Yield_Test workflow demonstrates two causally independent subgraphs:
+1. **MNIST Subgraph**: Supervised learning classification network
+2. **PPO Subgraph**: Reinforcement learning with IsaacGym environment
 
-Without yielding, these loops monopolize execution:
+Without yielding, one subgraph would block the other. With adaptive yielding, both execute concurrently with ~50/50 time distribution.
+
+## Architecture
+
+### Core Components
+
+#### 1. Global State Manager (`export_system/templates/framework/globals.py`)
+Centralized management of:
+- Execution metrics and timing
+- Yield statistics and counters
+- Concurrency tracking (PPO vs non-PPO execution time)
+- Node-specific metrics (starvation time, queue pressure)
+
+#### 2. Thread-Safe Yielding (`export_system/templates/framework/globals_threadsafe.py`)
+Enables synchronous code (like PPO training) to yield from within threads:
 ```python
-# This blocks all other workflows!
-for epoch in range(1000):
-    for step in range(10000):
-        actions = ppo.get_actions(observations)
-        observations, rewards = env.step(actions)
-    ppo.update()
-```
-
-### Sequential Nature of Workflows
-
-Most DNNE workflows are sequential due to data dependencies:
-```
-Node A → Node B → Node C → Node D
-   ↑                          ↓
-   └──────── trigger ─────────┘
-```
-
-Only one node executes at a time in a given workflow, but multiple independent workflows should be able to interleave execution.
-
-## The Solution: Dual Adaptive Yield Methods
-
-### Event Loop Architecture
-
-**Important**: All DNNE nodes run as async tasks within an event loop. This is a fundamental guarantee of the DNNE architecture:
-
-1. **Every node is an async task**: Even nodes that call synchronous code (like PPO training) are wrapped in `async def compute()` methods.
-2. **Event loop is always available**: Because all nodes run as async tasks, there is always a running event loop accessible via `asyncio.get_running_loop()`.
-3. **PPO Agent design**: The PPO Agent uses `runpy.run_path()` instead of subprocess specifically to maintain the event loop context. This allows the synchronous PPO training code to access the event loop for adaptive yielding.
-
-```python
-# PPO Agent runs as an async task
-class PPOAgentNode(QueueNode):
-    async def compute(self, sim_handle):
-        # We're in an async context with an event loop
-        loop = asyncio.get_running_loop()  # Always available
-        
-        # Use runpy to execute train.py in the same process
-        # This preserves the event loop context!
-        result = runpy.run_path("train.py", run_name="__main__")
-        
-        # train.py can now use sync_adaptive_yield()
-```
-
-### The Sync/Async Challenge
-
-DNNE operates in two contexts:
-1. **Async contexts**: Queue-based nodes with `async def compute()`
-2. **Sync contexts**: PPO training loops, Isaac Gym physics steps, NumPy/PyTorch operations
-
-To support both, we provide two yield methods:
-
-### async_adaptive_yield() - For Async Contexts
-
-Clean and straightforward for async functions:
-
-```python
-async def compute(self, inputs):
-    for item in large_dataset:
-        result = process(item)
-        await g.async_adaptive_yield()  # Clean async yield
-    return result
-```
-
-### sync_adaptive_yield() - For Sync Contexts
-
-For synchronous code that needs to yield:
-
-```python
-def ppo_training_loop(self):
-    for episode in range(1000):
-        for step in range(100):
-            actions = self.policy(observations)
-            g.sync_adaptive_yield()  # Sync yield (uses event loop voodoo)
-            observations, rewards = self.env.step(actions)
-```
-
-**⚠️ Warning**: `sync_adaptive_yield()` uses private asyncio APIs (`loop._run_once()`) to achieve yielding from synchronous code. This is hacky but necessary for integrating with synchronous libraries.
-
-### Adaptive Algorithm
-
-Both methods use the same adaptive delay calculation:
-
-```python
-class Global:
-    @classmethod
-    async def async_adaptive_yield(cls):
-        """Async version - use in async functions"""
-        if cls._yield_disabled > 0:
-            return
-            
-        delay = cls._compute_adaptive_delay()
-        await asyncio.sleep(delay)
-        cls._yield_stats.update(delay)
+class ThreadSafeYielder:
+    """Singleton that manages yield requests from threads"""
+    _instance = None
+    _loop = None
+    _yield_queue = None
     
-    @classmethod
-    def sync_adaptive_yield(cls):
-        """Sync version - use in synchronous functions"""
-        if cls._yield_disabled > 0:
-            return
-        
-        # Must have event loop running
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            raise RuntimeError(
-                "sync_adaptive_yield() called but no event loop is running! "
-                "All DNNE workflows must run within an async context."
-            )
-        
-        delay = cls._compute_adaptive_delay()
-        
-        if delay == 0:
-            # Quick yield - schedule immediate callback so we don't block
-            loop.call_soon(lambda: None)  # Guarantee something is ready
-            loop._run_once()              # This will return immediately
-        else:
-            # Timed delay using event loop internals
-            done = False
-            def set_done(): 
-                nonlocal done
-                done = True
-            
-            loop.call_later(delay, set_done)
-            while not done:
-                loop._run_once()
-        
-        cls._yield_stats.update(delay)
+    async def process_yield_requests(self):
+        """Main loop processes yield requests from threads"""
+        while True:
+            delay = await self._yield_queue.get()
+            await asyncio.sleep(delay)
+            self._yield_queue.task_done()
 ```
 
-### Critical Implementation Detail: The call_soon() Trick
+#### 3. Async Queue Framework (`export_system/templates/base/queue_framework.py`)
+All DNNE nodes use async queues for communication:
+- Natural yield points during `queue.get()` and `queue.put()`
+- Non-blocking execution model
+- Automatic concurrency for async nodes
 
-When `delay == 0` (quick yield), we must ensure `loop._run_once()` returns quickly. Without any ready callbacks, `_run_once()` will block waiting for the next scheduled event, which could be far in the future (e.g., 33.6 seconds).
+### Yielding Mechanisms
 
-The solution is to always schedule an immediate callback before calling `_run_once()`:
-
+#### Async Yielding (MNIST and most nodes)
 ```python
-if delay == 0:
-    # Schedule a dummy callback that does nothing
-    loop.call_soon(lambda: None)
-    # Now _run_once() is guaranteed to return quickly
-    loop._run_once()
+async def compute(self, input_data):
+    # Natural yield point when waiting for input
+    data = await self.input_queues["input"].get()
+    
+    # Process data
+    result = self.process(data)
+    
+    # Natural yield point when sending output
+    await self.output_queues["output"].put(result)
 ```
 
-This ensures:
-1. There's always at least one ready callback in the event loop
-2. `_run_once()` will process it and return immediately
-3. Other tasks get a chance to run without long blocking
-
-Without this trick, synchronous code calling `sync_adaptive_yield()` could hang for seconds or minutes, defeating the purpose of cooperative yielding.
+#### Sync Yielding (PPO and thread-based nodes)
+```python
+def sync_adaptive_yield(cls):
+    """Synchronous yield for thread context"""
+    if cls._yield_disabled > 0 or cls.no_yield:
+        return
+    
+    # Use thread-safe yielding mechanism
+    thread_safe_sync_adaptive_yield(delay=cls._compute_adaptive_delay())
+```
 
 ## Implementation Details
 
-### Metrics Tracking
+### PPO Agent Execution Model
 
-The system tracks multiple metrics to determine appropriate yield behavior:
-
-#### 1. Queue Pressure
-```python
-# High pressure indicates workflows are waiting
-total_queued = sum(q.qsize() for q in all_queues)
-queue_pressure = total_queued / total_queue_capacity
-```
-
-#### 2. Node Starvation
-```python
-# Track how long each node waits for execution
-node_starvation = {
-    node_id: time_since_last_execution
-    for node_id in active_nodes
-}
-max_starvation = max(node_starvation.values())
-```
-
-#### 3. Execution Fairness
-```python
-# Ensure balanced execution across workflows
-execution_counts = defaultdict(int)  # node_id -> count in window
-fairness_variance = statistics.variance(execution_counts.values())
-```
-
-### Adaptive Delay Calculation
+The PPO agent runs synchronous IsaacGym training in a thread pool:
 
 ```python
-def _compute_adaptive_delay():
-    metrics = Global._gather_metrics()
+async def _run_training_async(self, train_config):
+    """Run PPO training in thread pool with yielding"""
     
-    # Critical starvation - aggressive yielding
-    if metrics.max_starvation > CRITICAL_THRESHOLD:
-        return 0.01  # 10ms
-    
-    # Moderate starvation - balanced yielding
-    elif metrics.max_starvation > WARNING_THRESHOLD:
-        return 0.001  # 1ms
-    
-    # High queue pressure - minor yielding
-    elif metrics.queue_pressure > 0.8:
-        return 0.0001  # 0.1ms
-    
-    # Normal operation - minimal yielding
-    else:
-        return 0  # Just check event loop
-```
-
-## The no_yield() Context Manager
-
-### Purpose
-
-For critical sections that should not be interrupted by cooperative yields:
-
-```python
-with Global.no_yield():
-    # Critical GPU kernel execution
-    cuda_kernel.launch()
-    cuda.synchronize()
-    # Don't yield during atomic GPU operations
-```
-
-### Implementation
-
-Uses a counter to handle nested contexts correctly:
-
-```python
-class Global:
-    _yield_disabled = 0  # Counter for nested contexts
-    
-    @staticmethod
-    @contextmanager
-    def no_yield():
-        """
-        Disable Global.AdaptiveYield() within this context.
+    def run_training_with_yielding():
+        # Enable adaptive yielding for this thread
+        os.environ['DNNE_ADAPTIVE_YIELD'] = '1'
         
-        NOTE: This does NOT affect:
-        - Direct asyncio.sleep() calls
-        - Async I/O operations
-        - Queue blocking operations
-        - Third-party library yields
-        """
-        Global._yield_disabled += 1
-        try:
-            yield
-        finally:
-            Global._yield_disabled -= 1
-```
-
-### Nested Context Handling
-
-The counter ensures correct behavior with nested contexts:
-
-```python
-async def outer_function():
-    with Global.no_yield():  # Counter: 0 → 1
-        await inner_function()
-        # Still no yields here!
-    # Counter: 1 → 0, yields re-enabled
-
-async def inner_function():
-    with Global.no_yield():  # Counter: 1 → 2
-        # Critical work
-    # Counter: 2 → 1, still disabled for outer context
-```
-
-## Integration Patterns
-
-### Async Contexts - Use async_adaptive_yield()
-
-For async functions like queue node compute methods:
-
-```python
-async def compute(self, batch):
-    results = []
-    for i, item in enumerate(batch):
-        result = self.model(item)
-        results.append(result)
+        # Import rl_games (which imports our yielding Global)
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         
-        # Yield periodically in async context
-        if i % 10 == 0:
-            await g.async_adaptive_yield()
+        # Run synchronous training
+        result = runpy.run_path("train.py", run_name="__main__")
+        
+        # Training loop will call Global.sync_adaptive_yield()
+        return result
     
-    return results
+    # Execute in thread pool
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, run_training_with_yielding)
 ```
 
-### Sync Contexts - Use sync_adaptive_yield()
+### Yield Timing Calculation
 
-For synchronous code like PPO training loops:
+The system dynamically adjusts yield delays based on execution metrics:
 
 ```python
-class PPOTrainer:
-    def collect_rollouts(self):
-        for step in range(self.rollout_steps):
-            # Get actions from policy (sync)
-            actions = self.policy(self.observations)
-            g.sync_adaptive_yield()
-            
-            # Step environments (sync)
-            self.observations, rewards, dones = self.env.step(actions)
-            g.sync_adaptive_yield()
-            
-            # Store in buffer
-            self.buffer.add(self.observations, actions, rewards)
-            
-            # Handle episode resets
-            if any(dones):
-                self.handle_resets(dones)
-                g.sync_adaptive_yield()
+def _compute_adaptive_delay(cls) -> float:
+    """Compute yield delay based on node starvation"""
+    if not cls._node_metrics:
+        return 0.0  # Minimal yield
     
-    def update_policy(self):
-        for epoch in range(self.ppo_epochs):
-            for batch in self.buffer.get_batches():
-                loss = self.compute_loss(batch)
-                loss.backward()
-                self.optimizer.step()
-                g.sync_adaptive_yield()
+    # Find maximum starvation time
+    max_starvation = max(
+        metrics.starvation_time for metrics in cls._node_metrics.values()
+    )
+    
+    # Scale delay: 0ms (low starvation) to 10ms (high starvation)
+    if max_starvation < 0.01:  # Less than 10ms
+        return 0.0
+    elif max_starvation < 0.1:  # 10-100ms
+        return 0.001 * (max_starvation / 0.1)
+    else:  # Over 100ms
+        return 0.01  # Max 10ms yield
 ```
 
-### Mixed Async/Sync Example
+### Concurrency Metrics
+
+The system tracks execution balance between subgraphs:
 
 ```python
-# Async node that calls sync PPO code
-class PPONode(QueueNode):
-    async def compute(self, observations):
-        # Async context
-        await g.async_adaptive_yield()
-        
-        # Call sync PPO implementation
-        self.ppo.train_step(observations)  # Uses sync_adaptive_yield internally
-        
-        # Back to async
-        await g.async_adaptive_yield()
-        return self.ppo.get_actions()
+class ConcurrencyStats:
+    def __init__(self):
+        self.ppo_time = 0.0      # Time in PPO subgraph
+        self.non_ppo_time = 0.0  # Time in other subgraphs
+        self.start_time = time.perf_counter()
+        self.current_context = None
+        self.context_start = None
 ```
 
-### Template Integration
+## Integration with rl_games
 
-Node templates should include yields automatically:
+The rl_games library was modified to support adaptive yielding:
 
 ```python
-# In template generation
-class {CLASS_NAME}_{NODE_ID}(QueueNode):
-    async def compute(self, **inputs):
-        results = []
+# In rl_games_dnne/common/a2c_common.py
+if DNNE_ADAPTIVE_YIELD:
+    from framework.globals import Global
+    
+    # In training loop
+    for n in range(self.horizon_length):
+        # ... environment step ...
         
-        for i, item in enumerate(inputs['data']):
-            # Process item
-            result = self.process_item(item)
-            results.append(result)
-            
-            # Auto-generated yield
-            if i % {YIELD_FREQUENCY} == 0:
-                await Global.AdaptiveYield()
-        
-        return results
+        # Yield to allow other subgraphs to execute
+        if DNNE_ADAPTIVE_YIELD:
+            Global.sync_adaptive_yield()
 ```
 
-## Performance Considerations
+## Debugging and Monitoring
 
-### Yield Frequency Guidelines
+### Concurrency Report
+Shows execution balance between subgraphs:
+```
+============================================================
+🔄 CONCURRENT EXECUTION BALANCE REPORT
+============================================================
+Total execution time: 19.04s
+PPO subgraph time:    8.83s (46.4%)
+MNIST subgraph time:  10.21s (53.6%)
+Total yields:         0
 
-1. **Inside loops**: Yield every N iterations, not every iteration
-2. **After expensive operations**: Always yield after operations > 10ms
-3. **Between phases**: Yield between major algorithm phases
-4. **Avoid in tight numerical loops**: Don't yield in BLAS/LAPACK operations
+✅ Both subgraphs are receiving execution time!
+   Execution is well-balanced between subgraphs.
+============================================================
+```
 
-### Performance Comparison with --no-yield
+### Debug Prints
+All debug prints are tagged with `#DBG_TAG#`:
+```python
+print(f"[FREEZE_DEBUG 13] About to call Global.sync_adaptive_yield()", flush=True) #DBG_TAG#
+```
 
-To measure the overhead of adaptive yielding, use the `--no-yield` flag:
-
+Toggle script for easy management:
 ```bash
-# Normal execution with adaptive yielding
-python runner.py
-
-# Full speed execution without yielding
-python runner.py --no-yield
-
-# Compare training times
-time python runner.py --epochs 10
-time python runner.py --epochs 10 --no-yield
+python claude_scripts/toggle_DBG_TAG.py /path/to/file.py
 ```
 
-When `--no-yield` is enabled:
-- Both `async_adaptive_yield()` and `sync_adaptive_yield()` return immediately
-- No cooperative multitasking occurs
-- Useful for benchmarking the yielding overhead
-- Should show faster execution but at the cost of blocking other workflows
+## Known Issues and Limitations
 
-### Overhead Analysis
+### 1. Total Yields Counter
+Currently shows 0 despite yielding occurring. Investigation needed to determine:
+- Whether yields below a threshold aren't counted
+- If the thread-safe path bypasses the counter
+- If the metric calculation needs adjustment
 
-**async_adaptive_yield()** overhead:
-- `await asyncio.sleep(0)`: ~1μs when nothing else ready
-- Clean and predictable
+### 2. Output Buffering
+Console output may buffer until program completion. Flush calls are included but may not always work in all environments.
 
-**sync_adaptive_yield()** overhead:
-- `loop._run_once()`: ~2-5μs depending on queue state
-- Slightly higher due to event loop manipulation
-- Worth it for enabling sync code integration
+### 3. Fixed Queue Sizes
+Current implementation uses `maxsize=2` for all queues. This may need tuning for workflows with bursty data patterns.
 
-For a loop with 1M iterations:
-- Yielding every iteration: ~1-5s overhead (bad)
-- Yielding every 1000 iterations: ~1-5ms overhead (good)
+## Design Decisions
 
-### Performance Monitoring
+### Why Not Use Python's Native Async/Await Everywhere?
+- **IsaacGym requires synchronous execution**: The physics simulation runs in a tight synchronous loop
+- **Legacy code compatibility**: Many ML libraries aren't async-native
+- **Thread pool solution**: Allows sync code to cooperate with async framework
 
-The Global class tracks yield statistics:
+### Why Track PPO vs Non-PPO?
+- **Different execution patterns**: PPO runs long synchronous loops, MNIST is naturally async
+- **Balance monitoring**: Ensures neither subgraph dominates execution time
+- **Future optimization**: Can adjust yielding strategy based on workload type
 
-```python
-class Global:
-    yield_count = 0
-    yield_time = 0.0
-    yield_overhead_ns = 0
-    
-    @staticmethod
-    def get_yield_stats():
-        return {
-            'total_yields': Global.yield_count,
-            'total_yield_time': Global.yield_time,
-            'avg_yield_time_us': (Global.yield_time / Global.yield_count) * 1e6,
-            'overhead_percentage': (Global.yield_time / total_runtime) * 100
-        }
-```
-
-## Best Practices
-
-### DO:
-- ✅ Use `async_adaptive_yield()` in async functions
-- ✅ Use `sync_adaptive_yield()` in synchronous functions
-- ✅ Yield in loops over environments/batches
-- ✅ Yield after file I/O or network operations
-- ✅ Yield between training epochs
-- ✅ Use no_yield() for atomic GPU operations
-- ✅ Monitor yield overhead in performance-critical code
-
-### DON'T:
-- ❌ Mix up async/sync yield methods
-- ❌ Yield inside matrix multiplication kernels
-- ❌ Yield in time-critical control loops
-- ❌ Yield more than once per millisecond
-- ❌ Forget to yield in long-running operations
-- ❌ Assume no_yield() affects all async operations
-
-### Choosing the Right Method
-
-```python
-# If your function signature is:
-async def something():
-    await g.async_adaptive_yield()  # Use async version
-
-# If your function signature is:
-def something():
-    g.sync_adaptive_yield()  # Use sync version
-```
+### Why Adaptive Delays?
+- **Performance optimization**: Minimal yields when not needed
+- **Starvation prevention**: Increased yields when nodes are waiting
+- **System responsiveness**: Balances throughput with latency
 
 ## Future Enhancements
 
-### Planned Features
-
-1. **Automatic Yield Injection**: Compiler-style pass to inject yields
-2. **Priority-Based Scheduling**: Higher priority workflows get more time
-3. **Deadline Support**: Ensure time-critical nodes meet deadlines
-4. **Profiler Integration**: Identify nodes that need yield optimization
-5. **Dynamic Frequency**: Adjust yield frequency based on workload
-
-### Integration with Virtual Nodes
-
-The adaptive yielding system is crucial for the planned PPO virtual node implementation:
-
+### 1. Per-Node Yield Strategies
+Allow nodes to specify their yielding preferences:
 ```python
-# Visual representation: Two nodes
-IsaacGymEnvs → PPO_Agent
-
-# Exported reality: Single training loop with yields
-class PPOTrainer:
-    async def train(self):
-        for epoch in range(epochs):
-            # Collect experience
-            await self.collect_rollouts()
-            await Global.AdaptiveYield()
-            
-            # Update policy
-            await self.update_policy()
-            await Global.AdaptiveYield()
+class NetworkNode(QueueNode):
+    yield_strategy = "aggressive"  # vs "conservative", "adaptive"
 ```
 
-This ensures the monolithic PPO implementation plays nicely with other concurrent DNNE workflows.
+### 2. Multi-Level Yielding
+Implement yielding at multiple granularities:
+- **Micro-yields**: Within tight computation loops
+- **Macro-yields**: Between major computation phases
+- **Scheduled yields**: Time-based yielding for long operations
+
+### 3. Yield Prediction
+Use ML to predict optimal yield points:
+- Learn from execution patterns
+- Predict starvation before it occurs
+- Dynamically adjust yield frequency
+
+## Best Practices
+
+### 1. When to Yield
+- **After I/O operations**: File reads, network requests
+- **Between computation batches**: Every N iterations
+- **At natural boundaries**: Between training epochs
+
+### 2. When NOT to Yield
+- **Critical sections**: During model updates
+- **Tiny operations**: Overhead exceeds benefit
+- **Time-critical paths**: Real-time control loops
+
+### 3. Testing Concurrency
+- **Use Yield_Test workflow**: Contains example concurrent subgraphs
+- **Monitor execution balance**: Check concurrency reports
+- **Verify both subgraphs progress**: Watch for starvation
+
+## Code Examples
+
+### Adding Yielding to a Custom Node
+
+```python
+class CustomProcessingNode(QueueNode):
+    async def compute(self, input_data):
+        # For async nodes, yielding is automatic via queues
+        
+        # For long synchronous operations:
+        for i in range(1000):
+            self.process_item(input_data[i])
+            
+            # Yield every 100 items
+            if i % 100 == 0 and hasattr(Global, 'sync_adaptive_yield'):
+                Global.sync_adaptive_yield()
+        
+        return {"output": processed_data}
+```
+
+### Disabling Yields for Critical Sections
+
+```python
+with Global.no_yield():
+    # Critical section - no yields allowed
+    self.model.update_weights()
+    self.save_checkpoint()
+```
 
 ## Conclusion
 
-The Adaptive Yielding System enables DNNE to support multiple concurrent workflows while maintaining high performance. By requiring cooperative yielding in all nodes and providing adaptive behavior based on system metrics, we achieve fair scheduling without the complexity of preemptive multitasking.
+The adaptive yielding system enables DNNE to achieve true concurrent execution of independent neural network workflows within a single process. By combining async queue-based communication with thread-safe synchronous yielding, the system maximizes hardware utilization while maintaining code compatibility with existing ML frameworks.
+
+The key insight is that different types of computational workloads (async-native vs synchronous) can cooperate effectively through a unified yielding mechanism, with adaptive timing that responds to actual execution patterns rather than fixed schedules.

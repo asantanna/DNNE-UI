@@ -11,6 +11,9 @@ from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# Thread-safe yielding for sync code
+from .globals_threadsafe import thread_safe_sync_adaptive_yield
+
 
 @dataclass
 class YieldStats:
@@ -216,79 +219,23 @@ class Global:
     @classmethod
     def sync_adaptive_yield(cls):
         """
-        Sync adaptive yield - use in synchronous functions.
-        Automatically detects execution context and uses appropriate method.
-        
-        - In async context: Uses event loop internals (_run_once)
-        - In thread context: Uses thread-safe yielding via ThreadSafeYielder
-        
-        This enables synchronous code (like RL training) to yield control
-        regardless of execution context.
+        Sync adaptive yield using thread-safe implementation.
+        The old loop._run_once() approach never worked and has been removed.
         """
-        
-        # Fast path - no yield if disabled by context or command line
         if cls._yield_disabled > 0 or cls.no_yield:
             return
         
-        # Import thread-safe yielding if available
-        try:
-            from .globals_threadsafe import thread_safe_sync_adaptive_yield
-            # Use thread-safe version that auto-detects context
-            thread_safe_sync_adaptive_yield(delay=cls._compute_adaptive_delay())
-            return
-        except ImportError:
-            # Fall back to original implementation
-            pass
-        
-        # print(f"[YIELD] sync_adaptive_yield called at {time.time():.3f}") #DBG_TAG#
-        
         start_time = time.perf_counter()
-        
-        # Track that we're entering a yield (PPO context)
         cls._concurrency_stats.start_yield()
         
-        # Get event loop - fail if none
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            raise RuntimeError(
-                "sync_adaptive_yield() called but no event loop is running! "
-                "All DNNE workflows must run within an async context. "
-                "If you're in an async function, use async_adaptive_yield() instead. "
-                "For thread contexts, ensure globals_threadsafe.py is available."
-            )
-        
-        # Compute adaptive delay
-        delay = cls._compute_adaptive_delay()
-        
-        if delay == 0:
-            # Quick yield - schedule immediate callback so we don't block
-            loop.call_soon(lambda: None)  # Schedule empty callback
-            loop._run_once()              # Now this will return immediately
-        else:
-            # Timed delay using event loop timer
-            done = False
-            
-            def set_done():
-                nonlocal done
-                done = True
-            
-            # Schedule callback after delay
-            loop.call_later(delay, set_done)
-            
-            # Run event loop until timer fires
-            while not done:
-                loop._run_once()
+        # Use thread-safe yielding
+        thread_safe_sync_adaptive_yield(delay=cls._compute_adaptive_delay())
         
         # Update statistics
         end_time = time.perf_counter()
         yield_duration = end_time - start_time
         cls._yield_stats.update(yield_duration)
         cls._concurrency_stats.end_yield(yield_duration)
-        
-        # Log if excessive yield time
-        if cls.debug and yield_duration > 0.01:  # 10ms
-            cls._logger.warning(f"Long sync yield detected: {yield_duration*1000:.2f}ms")
     
     @classmethod
     def _compute_adaptive_delay(cls) -> float:
@@ -434,6 +381,10 @@ class Global:
             print("\n⚠️  No MNIST execution detected - async yields may be blocked")
         
         print("="*60)
+        
+        # Force flush to ensure output is visible
+        import sys
+        sys.stdout.flush()
     
     @classmethod
     def reset_metrics(cls):

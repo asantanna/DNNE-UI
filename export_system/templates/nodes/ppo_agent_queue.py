@@ -90,6 +90,28 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # IsaacGymEnvs path
         self.isaac_gym_envs_path = "{ISAAC_GYM_ENVS_PATH}"
         
+        # Balancing configuration
+        self.has_balancing_config = {HAS_BALANCING_CONFIG}
+        if self.has_balancing_config:
+            self.balancing_config = {{
+                'frequency': {{
+                    'min_hz': {BALANCING_MIN_HZ} if {BALANCING_MIN_HZ} >= 0 else None,
+                    'max_hz': {BALANCING_MAX_HZ} if {BALANCING_MAX_HZ} >= 0 else None,
+                    'target_hz': {BALANCING_TARGET_HZ} if {BALANCING_TARGET_HZ} >= 0 else None,
+                }},
+                'throughput': {{
+                    'target_percentage': {BALANCING_TARGET_PERCENTAGE} if {BALANCING_TARGET_PERCENTAGE} >= 0 else None,
+                }},
+                'scheduling': {{
+                    'priority': {BALANCING_PRIORITY},
+                    'guaranteed': {BALANCING_GUARANTEED},
+                }},
+                'latency': {{
+                    'max_latency_ms': {BALANCING_MAX_LATENCY_MS} if {BALANCING_MAX_LATENCY_MS} >= 0 else None,
+                }}
+            }}
+            self._register_balancing_config()
+        
         # Track if training has been completed
         self.training_completed = False
     
@@ -212,7 +234,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         # Training configuration
         training_args = [
-            f"train.params.config.save_frequency={{self.checkpoint_interval}}",
+            f"train.params.config.save_frequency=0",  # Disable periodic saving
+            f"train.params.config.save_best_after=999999",  # Disable best model saving
             f"experiment={{self.experiment_name}}",
             f"train.params.config.mixed_precision={{self.mixed_precision}}",
             f"multi_gpu={{self.multi_gpu}}",
@@ -297,3 +320,42 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         except Exception as e:
             self.logger.error(f"Error during training: {{e}}")
             raise
+    
+    def _register_balancing_config(self):
+        """Register balancing configuration with Global adaptive yielding system"""
+        if not self.has_balancing_config:
+            return
+            
+        # Log the balancing configuration
+        self.logger.info(f"Registering balancing configuration for PPO Agent {self.node_id}")
+        
+        # Log specific targets
+        freq = self.balancing_config.get('frequency', {})
+        if freq.get('target_hz'):
+            self.logger.info(f"  - Target frequency: {freq['target_hz']} Hz")
+        if freq.get('min_hz') or freq.get('max_hz'):
+            min_hz = freq.get('min_hz', 'any')
+            max_hz = freq.get('max_hz', 'any')
+            self.logger.info(f"  - Frequency range: {min_hz} - {max_hz} Hz")
+            
+        throughput = self.balancing_config.get('throughput', {})
+        if throughput.get('target_percentage'):
+            self.logger.info(f"  - Target throughput: {throughput['target_percentage']}%")
+            
+        scheduling = self.balancing_config.get('scheduling', {})
+        if scheduling.get('priority', 0) > 0:
+            self.logger.info(f"  - Priority: {scheduling['priority']}")
+        if scheduling.get('guaranteed'):
+            self.logger.info(f"  - Guaranteed execution")
+            
+        latency = self.balancing_config.get('latency', {})
+        if latency.get('max_latency_ms'):
+            self.logger.info(f"  - Max latency: {latency['max_latency_ms']} ms")
+        
+        # TODO: Register with Global.register_virtual_monitor(self.node_id, self.balancing_config)
+        # This would integrate with the adaptive yielding system
+        
+        # For now, we'll track iterations manually and report periodically
+        self.iteration_count = 0
+        self.last_report_time = time.time()
+        self.report_interval = 10.0  # Report every 10 seconds
