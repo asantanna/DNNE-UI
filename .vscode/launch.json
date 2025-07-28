@@ -28,6 +28,29 @@
             "python":"/home/asantanna/miniconda/envs/DNNE_PY38/bin/python"
         },
         {
+            "name": "Debug Yield_Test (Headless)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/export_system/exports/Yield_Test/runner.py",
+            "console": "integratedTerminal",
+            "cwd":"${workspaceFolder}/export_system/exports/Yield_Test",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:${env:PYTHONPATH}",
+                "DNNE_ISAAC_GYM": "/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym",
+                "DNNE_ISAAC_GYM_ENVS": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs",
+                "DNNE_LINUX_SUPPORT": "/home/asantanna/DNNE-LINUX-SUPPORT",
+                "DNNE_RL_GAMES": "/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne",
+                "HYDRA_FULL_ERROR": "1"
+            },
+            "args": [
+                "--headless",
+                "--timeout", "1m"
+            ],
+            "justMyCode": false,
+            "subProcess": true,
+            "python": "/home/asantanna/miniconda/envs/DNNE_PY38/bin/python"
+        },
+        {
             "name": "Debug Cartpole_PPO (Headless)",
             "type": "debugpy",
             "request": "launch",
