@@ -326,6 +326,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def _register_balancing_config(self):
         """Register balancing configuration with Global adaptive yielding system"""
+        # Always register as a sync node for the PPO subgraph
+        Global.register_sync_node(self.node_id, "ppo", "env_steps", self.balancing_config if self.has_balancing_config else None)
+        
         if not self.has_balancing_config:
             return
             

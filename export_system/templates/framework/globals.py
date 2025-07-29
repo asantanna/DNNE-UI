@@ -17,7 +17,7 @@ import asyncio
 import time
 import logging
 from contextlib import contextmanager
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -106,17 +106,38 @@ class ConcurrencyStats:
         return (self.ppo_time / total * 100, self.non_ppo_time / total * 100)
 
 
-@dataclass 
-class NodeMetrics:
-    """Metrics for individual node execution"""
-    last_execution: float = 0.0
-    execution_count: int = 0
-    total_wait_time: float = 0.0
+@dataclass
+class SubgraphMetrics:
+    """Metrics for a computational subgraph"""
+    subgraph_name: str
+    node_type: str = "async"  # "sync" or "async"
+    item_unit: str = "items"  # e.g., "env_steps", "batches(64)"
+    
+    # Common metrics
+    items_processed: int = 0
+    last_item_time: float = 0.0
+    start_time: float = field(default_factory=time.time)
+    
+    # Sync-only metrics
+    cpu_time: float = 0.0  # Total CPU seconds used
+    last_yield_time: float = 0.0  # When we last yielded
     
     @property
-    def starvation_time(self) -> float:
-        """Time since last execution"""
-        return time.time() - self.last_execution if self.last_execution > 0 else 0.0
+    def throughput(self) -> float:
+        """Items per second"""
+        if self.last_item_time == 0:
+            return 0.0
+        elapsed = time.time() - self.start_time
+        return self.items_processed / elapsed if elapsed > 0 else 0.0
+    
+    @property
+    def cpu_percentage(self) -> Optional[float]:
+        """CPU percentage (sync nodes only)"""
+        if self.node_type != "sync":
+            return None
+        elapsed = time.time() - self.start_time
+        return (self.cpu_time / elapsed * 100) if elapsed > 0 else 0.0
+    
 
 
 class Global:
@@ -168,11 +189,13 @@ class Global:
     # === Private State ===
     _yield_disabled: int = 0  # Counter for nested no_yield contexts
     _yield_stats: YieldStats = YieldStats()
-    _concurrency_stats: ConcurrencyStats = ConcurrencyStats()
-    _node_metrics: Dict[str, NodeMetrics] = {}
+    _concurrency_stats: ConcurrencyStats = ConcurrencyStats()  # Keep for backward compatibility
+    _subgraph_metrics: Dict[str, SubgraphMetrics] = {}  # subgraph_name -> metrics
+    _node_to_subgraph: Dict[str, str] = {}  # node_id -> subgraph_name
     _total_queued: int = 0
     _initialized: bool = False
     _logger: Optional[logging.Logger] = None
+    _start_time: float = 0.0  # Workflow start time
     
     # === Node-specific Configuration ===
     node_configs: Dict[str, Dict[str, Any]] = {}  # node_id -> {config_key: value}
@@ -223,6 +246,7 @@ class Global:
         cls._logger = logging.getLogger('Global')
         
         cls._initialized = True
+        cls._start_time = time.time()
         
         # Log initialization
         if cls.verbose:
@@ -233,10 +257,13 @@ class Global:
             cls._logger.info("Adaptive yielding DISABLED - running at full speed for performance comparison")
     
     @classmethod
-    async def async_adaptive_yield(cls):
+    async def async_adaptive_yield(cls, *, subgraph: str, is_item_ref: bool = False):
         """
-        Async adaptive yield - use in async functions.
-        Automatically adjusts yield duration based on system metrics.
+        Asynchronous adaptive yield for async nodes.
+        
+        Args:
+            subgraph: Name of the subgraph (e.g., "mnist")
+            is_item_ref: True if this yield represents one work item completion
         """
         
         # Fast path - no yield if disabled by context or command line
@@ -251,30 +278,51 @@ class Global:
         # Perform yield
         await asyncio.sleep(delay)
         
-        # Update statistics
+        # Update statistics and track items for async nodes
         end_time = time.perf_counter()
         yield_duration = end_time - start_time
         cls._yield_stats.update(yield_duration)
         
+        # Track items for async nodes
+        if is_item_ref and subgraph in cls._subgraph_metrics:
+            metrics = cls._subgraph_metrics[subgraph]
+            metrics.items_processed += 1
+            metrics.last_item_time = time.time()
+        
         # Log if excessive yield time
         if cls.debug and yield_duration > 0.01:  # 10ms
-            yield_logger.warning(f"Long yield detected: {yield_duration*1000:.2f}ms")
+            yield_logger.warning(f"Long yield detected: {yield_duration*1000:.2f}ms from subgraph={subgraph}")
     
     @classmethod
-    def sync_adaptive_yield(cls):
+    def sync_adaptive_yield(cls, *, subgraph: str, is_item_ref: bool = False):
         """
-        Sync adaptive yield using thread-safe implementation.
-        The old loop._run_once() approach never worked and has been removed.
+        Synchronous adaptive yield for thread-based nodes.
+        
+        Args:
+            subgraph: Name of the subgraph (e.g., "ppo")
+            is_item_ref: True if this yield represents one work item completion
         """
         if cls._yield_disabled > 0 or cls.no_yield:
             return
         
         start_time = time.perf_counter()
+        
+        # Track CPU time and items for the subgraph
+        if subgraph in cls._subgraph_metrics:
+            metrics = cls._subgraph_metrics[subgraph]
+            if metrics.last_yield_time > 0:
+                cpu_duration = start_time - metrics.last_yield_time
+                metrics.cpu_time += cpu_duration
+            if is_item_ref:
+                metrics.items_processed += 1
+                metrics.last_item_time = time.time()
+        
+        # Keep backward compatibility with old concurrency stats
         cls._concurrency_stats.start_yield()
         
         # Log yield start in debug mode
         if cls.debug:
-            yield_logger.debug("Starting sync adaptive yield")
+            yield_logger.debug(f"Starting sync adaptive yield from subgraph={subgraph}")
         
         # Use thread-safe yielding
         delay = cls._compute_adaptive_delay()
@@ -286,9 +334,13 @@ class Global:
         cls._yield_stats.update(yield_duration)
         cls._concurrency_stats.end_yield(yield_duration)
         
+        # Update subgraph yield time
+        if subgraph in cls._subgraph_metrics:
+            cls._subgraph_metrics[subgraph].last_yield_time = end_time
+        
         # Log yield completion in debug mode
         if cls.debug:
-            yield_logger.debug(f"Yield completed in {yield_duration*1000:.2f}ms with delay {delay*1000:.2f}ms")
+            yield_logger.debug(f"Yield completed in {yield_duration*1000:.2f}ms with delay {delay*1000:.2f}ms from subgraph={subgraph}")
     
     @classmethod
     def _compute_adaptive_delay(cls) -> float:
@@ -298,25 +350,9 @@ class Global:
         Returns:
             Delay in seconds (0 for minimal yield, up to 0.01 for aggressive yielding)
         """
-        # If not tracking metrics, use minimal yield
-        if not cls._node_metrics:
-            return 0.0
-            
-        # Find maximum starvation time
-        max_starvation = max(
-            (metrics.starvation_time for metrics in cls._node_metrics.values()),
-            default=0.0
-        )
-        
-        # Adaptive delay based on starvation
-        if max_starvation > cls.CRITICAL_STARVATION_THRESHOLD:
-            return 0.01  # 10ms - aggressive yielding
-        elif max_starvation > cls.WARNING_STARVATION_THRESHOLD:
-            return 0.001  # 1ms - moderate yielding  
-        elif cls._total_queued > 10:  # High queue pressure
-            return 0.0001  # 0.1ms - light yielding
-        else:
-            return 0.0  # Minimal yielding
+        # For now, always use minimal yield
+        # TODO: Implement adaptive delay based on subgraph requirements
+        return 0.0
     
     @classmethod
     @contextmanager
@@ -335,29 +371,6 @@ class Global:
             yield
         finally:
             cls._yield_disabled -= 1
-    
-    @classmethod
-    def update_node_execution(cls, node_id: str):
-        """
-        Update execution metrics for a node.
-        Called by nodes when they execute.
-        
-        Args:
-            node_id: Unique identifier of the executing node
-        """
-        if node_id not in cls._node_metrics:
-            cls._node_metrics[node_id] = NodeMetrics()
-            
-        metrics = cls._node_metrics[node_id]
-        current_time = time.time()
-        
-        # Update wait time
-        if metrics.last_execution > 0:
-            wait_time = current_time - metrics.last_execution
-            metrics.total_wait_time += wait_time
-            
-        metrics.last_execution = current_time
-        metrics.execution_count += 1
     
     @classmethod
     def update_queue_pressure(cls, total_queued: int):
@@ -383,12 +396,50 @@ class Global:
             'total_yield_time_s': stats.total_yield_time,
             'avg_yield_time_us': (stats.total_yield_time / stats.total_yields * 1e6) if stats.total_yields > 0 else 0,
             'yield_overhead_ns': stats.yield_overhead_ns,
-            'nodes_tracked': len(cls._node_metrics),
-            'max_starvation_ms': max(
-                (m.starvation_time * 1000 for m in cls._node_metrics.values()),
-                default=0.0
-            )
+            'subgraphs_tracked': len(cls._subgraph_metrics)
         }
+    
+    @classmethod
+    def register_sync_node(cls, node_id: str, subgraph: str, item_unit: str = "items", requirements: Optional[Dict[str, Any]] = None):
+        """
+        Register a synchronous node (like PPO) with the balancer.
+        
+        Args:
+            node_id: Unique identifier for the node
+            subgraph: Name of the subgraph this node belongs to
+            item_unit: Unit name for items processed (e.g., "env_steps")
+            requirements: Optional balancing requirements from config
+        """
+        cls._node_to_subgraph[node_id] = subgraph
+        
+        if subgraph not in cls._subgraph_metrics:
+            cls._subgraph_metrics[subgraph] = SubgraphMetrics(
+                subgraph_name=subgraph,
+                node_type="sync",
+                item_unit=item_unit
+            )
+            balancing_logger.info(f"Registered sync node {node_id} in subgraph '{subgraph}' with unit '{item_unit}'")
+    
+    @classmethod
+    def register_balancing_node(cls, node_id: str, subgraph: str, item_unit: str = "items", requirements: Optional[Dict[str, Any]] = None):
+        """
+        Register a balancing node (async) with the balancer.
+        
+        Args:
+            node_id: Unique identifier for the node
+            subgraph: Name of the subgraph this node belongs to
+            item_unit: Unit name for items processed (e.g., "batches(64)")
+            requirements: Optional balancing requirements from config
+        """
+        cls._node_to_subgraph[node_id] = subgraph
+        
+        if subgraph not in cls._subgraph_metrics:
+            cls._subgraph_metrics[subgraph] = SubgraphMetrics(
+                subgraph_name=subgraph,
+                node_type="async",
+                item_unit=item_unit
+            )
+            balancing_logger.info(f"Registered balancing node {node_id} in subgraph '{subgraph}' with unit '{item_unit}'")
     
     @classmethod
     def get_concurrency_stats(cls) -> Dict[str, Any]:
@@ -414,31 +465,39 @@ class Global:
         Args:
             force_print: If True, always print regardless of logging level (for final report)
         """
-        stats = cls.get_concurrency_stats()
+        # Calculate totals
+        total_time = time.time() - cls._start_time if cls._start_time > 0 else 0
+        total_sync_cpu = sum(m.cpu_time for m in cls._subgraph_metrics.values() if m.node_type == "sync")
+        total_async_time = total_time - total_sync_cpu if total_time > 0 else 0
         
         # Construct the report as a multi-line string
         report_lines = []
         report_lines.append("\n" + "="*60)
-        report_lines.append("🔄 CONCURRENT EXECUTION BALANCE REPORT")
+        report_lines.append("🔄 EXECUTION BALANCE REPORT")
         report_lines.append("="*60)
-        report_lines.append(f"Total execution time: {stats['total_execution_time_s']:.2f}s")
-        report_lines.append(f"PPO subgraph time:    {stats['ppo_time_s']:.2f}s ({stats['ppo_percentage']:.1f}%)")
-        report_lines.append(f"MNIST subgraph time:  {stats['non_ppo_time_s']:.2f}s ({stats['non_ppo_percentage']:.1f}%)")
-        report_lines.append(f"Total yields:         {cls._yield_stats.total_yields}")
+        report_lines.append(f"Total execution time: {total_time:.2f}s")
+        report_lines.append(f"Sync nodes CPU time:  {total_sync_cpu:.2f}s ({total_sync_cpu/total_time*100:.1f}%)" if total_time > 0 else "Sync nodes CPU time:  0.00s (0.0%)")
+        report_lines.append(f"Async nodes time:     {total_async_time:.2f}s ({total_async_time/total_time*100:.1f}%)" if total_time > 0 else "Async nodes time:     0.00s (0.0%)")
         
-        if stats['ppo_percentage'] > 0 and stats['non_ppo_percentage'] > 0:
-            report_lines.append("\n✅ Both subgraphs are receiving execution time!")
-            if abs(stats['ppo_percentage'] - stats['non_ppo_percentage']) < 20:
-                report_lines.append("   Execution is well-balanced between subgraphs.")
-            elif stats['ppo_percentage'] > stats['non_ppo_percentage']:
-                report_lines.append("   PPO subgraph is dominating execution time.")
-            else:
-                report_lines.append("   MNIST subgraph is dominating execution time.")
-        elif stats['ppo_percentage'] == 0:
-            report_lines.append("\n⚠️  No PPO execution detected - sync_adaptive_yield may not be called")
-        elif stats['non_ppo_percentage'] == 0:
-            report_lines.append("\n⚠️  No MNIST execution detected - async yields may be blocked")
+        # Show subgraph performance
+        if cls._subgraph_metrics:
+            report_lines.append("\nSubgraph Performance:")
+            for name, metrics in sorted(cls._subgraph_metrics.items()):
+                if metrics.node_type == "sync":
+                    cpu_pct = metrics.cpu_percentage
+                    report_lines.append(f"  {name:8s}: {metrics.throughput:6.1f} {metrics.item_unit}/sec ({cpu_pct:.1f}% CPU)")
+                else:
+                    report_lines.append(f"  {name:8s}: {metrics.throughput:6.1f} {metrics.item_unit}/sec (async - CPU % N/A)")
         
+        # Also show legacy PPO vs non-PPO stats if available (for backward compatibility)
+        if cls._concurrency_stats.ppo_time > 0 or cls._concurrency_stats.non_ppo_time > 0:
+            ppo_pct, non_ppo_pct = cls._concurrency_stats.get_balance_percentage()
+            report_lines.append("\nLegacy Stats (PPO vs yield time):")
+            report_lines.append(f"  PPO CPU time:  {cls._concurrency_stats.ppo_time:.2f}s ({ppo_pct:.1f}%)")
+            report_lines.append(f"  Yield time:    {cls._concurrency_stats.non_ppo_time:.2f}s ({non_ppo_pct:.1f}%)")
+        
+        report_lines.append("\nNote: Async time includes all async activity (MNIST,")
+        report_lines.append("      system overhead, idle time)")
         report_lines.append("="*60)
         
         # Join the report
@@ -460,8 +519,10 @@ class Global:
         """Reset all performance metrics (useful for benchmarking)"""
         cls._yield_stats = YieldStats()
         cls._concurrency_stats = ConcurrencyStats()
-        cls._node_metrics.clear()
+        cls._subgraph_metrics.clear()
+        cls._node_to_subgraph.clear()
         cls._total_queued = 0
+        cls._start_time = time.time()
     
     @classmethod
     def get_device(cls) -> str:
@@ -489,17 +550,10 @@ class Global:
         Quick check if system is operating normally.
         
         Returns:
-            True if no significant starvation detected
+            True if system is healthy (placeholder for future implementation)
         """
-        if not cls._node_metrics:
-            return True
-            
-        max_starvation = max(
-            (metrics.starvation_time for metrics in cls._node_metrics.values()),
-            default=0.0
-        )
-        
-        return max_starvation < cls.WARNING_STARVATION_THRESHOLD
+        # TODO: Implement health check based on subgraph requirements
+        return True
     
     @classmethod
     def get_node_config(cls, node_id: str, key: str, default: Any = None) -> Any:

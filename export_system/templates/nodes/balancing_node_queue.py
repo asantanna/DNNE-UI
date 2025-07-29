@@ -15,6 +15,7 @@ from framework.globals import Global
 template_vars = {
     "NODE_ID": "balancing_1",
     "CLASS_NAME": "BalancingNode",
+    "ITEM_NAME": "items",
     "ENABLED": True,
     "MIN_HZ": -1.0,
     "MAX_HZ": -1.0,
@@ -39,6 +40,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.setup_outputs(["output"])
         
         # Configuration
+        self.item_name = "{ITEM_NAME}"
         self.enabled = {ENABLED}
         self.min_hz = {MIN_HZ}
         self.max_hz = {MAX_HZ}
@@ -78,34 +80,37 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if not self.enabled:
             return
             
-        if any([self.min_hz >= 0, self.max_hz >= 0, self.target_hz >= 0, 
-                self.target_percentage >= 0, self.max_latency_ms >= 0]):
-            config = {
-                "node_id": self.node_id,
-                "frequency": {
-                    "min_hz": self.min_hz if self.min_hz >= 0 else None,
-                    "max_hz": self.max_hz if self.max_hz >= 0 else None,
-                    "target_hz": self.target_hz if self.target_hz >= 0 else None,
-                },
-                "throughput": {
-                    "target_percentage": self.target_percentage if self.target_percentage >= 0 else None,
-                },
-                "scheduling": {
-                    "priority": self.priority,
-                    "guaranteed": self.guaranteed,
-                },
-                "latency": {
-                    "max_latency_ms": self.max_latency_ms if self.max_latency_ms >= 0 else None,
-                }
+        # Always create config for registration (even with all -1 values)
+        config = {
+            "node_id": self.node_id,
+            "frequency": {
+                "min_hz": self.min_hz if self.min_hz >= 0 else None,
+                "max_hz": self.max_hz if self.max_hz >= 0 else None,
+                "target_hz": self.target_hz if self.target_hz >= 0 else None,
+            },
+            "throughput": {
+                "target_percentage": self.target_percentage if self.target_percentage >= 0 else None,
+            },
+            "scheduling": {
+                "priority": self.priority,
+                "guaranteed": self.guaranteed,
+            },
+            "latency": {
+                "max_latency_ms": self.max_latency_ms if self.max_latency_ms >= 0 else None,
             }
-            
-            # Register with metrics logger (fail-fast if not available)
-            from framework.metrics_logger import get_metrics_logger
-            logger = get_metrics_logger()
-            logger.register_node(self.node_id, f"BalancingNode_{self.node_id}", config)
-            
-            # TODO: Global.register_monitor_node(self.node_id, config)
-            self.node_logger.info(f"Registered balancing targets for node {self.node_id}")
+        }
+        
+        # Register with metrics logger (fail-fast if not available)
+        from framework.metrics_logger import get_metrics_logger
+        logger = get_metrics_logger()
+        logger.register_node(self.node_id, f"BalancingNode_{self.node_id}", config)
+        
+        # Always register with Global balancing system to track throughput
+        # TODO: The subgraph name should be determined from workflow connections
+        # For now, we'll use a simple heuristic based on node_id
+        subgraph_name = "mnist"  # Default to mnist, should be determined from workflow
+        Global.register_balancing_node(self.node_id, subgraph_name, self.item_name, config)
+        self.node_logger.info(f"Registered balancing node {self.node_id} in subgraph '{subgraph_name}' for throughput tracking")
     
     async def compute(self, input) -> Dict[str, Any]:
         """Monitor performance and forward input unchanged (measurement only)"""
@@ -133,8 +138,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if len(self.latency_window) > 0:
             self.average_latency = sum(self.latency_window) / len(self.latency_window)
         
-        # Report metrics to Global
-        Global.update_node_execution(self.node_id)
+        # Report metrics to Global (now handled by unified yield API)
+        
+        # Use unified yield API with item reference
+        # TODO: The subgraph name should be determined from workflow connections
+        subgraph_name = "mnist"  # Default to mnist, should be determined from workflow
+        await Global.async_adaptive_yield(subgraph=subgraph_name, is_item_ref=True)
         
         # Use metrics logger (fail-fast if not available)
         from framework.metrics_logger import get_metrics_logger

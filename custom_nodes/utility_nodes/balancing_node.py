@@ -51,6 +51,12 @@ class BalancingNode(RoboticsNodeBase):
                 }),
             },
             "optional": {
+                # Item name for metrics display
+                "item_name": ("STRING", {
+                    "default": "items",
+                    "tooltip": "Unit name for throughput metrics (e.g., 'batches', 'frames', 'steps')"
+                }),
+                
                 # Enable/disable monitoring
                 "enabled": ("BOOLEAN", {
                     "default": True,
@@ -152,7 +158,7 @@ class BalancingNode(RoboticsNodeBase):
         self.average_frequency = 0.0
         self.average_latency = 0.0
     
-    def passthrough_measure(self, input, enabled=True,
+    def passthrough_measure(self, input, item_name="items", enabled=True,
                            min_hz=-1.0, max_hz=-1.0, target_hz=-1.0,
                            target_percentage=-1.0, priority=0, guaranteed=False,
                            max_latency_ms=-1.0,

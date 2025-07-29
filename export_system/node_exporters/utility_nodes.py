@@ -49,16 +49,17 @@ class BalancingNodeExporter(ExportableNode):
         """Prepare template variables for Balancing Node"""
         # Define parameter specifications matching the node's widget order
         param_specs = [
-            {'name': 'enabled', 'widget_index': 0, 'default': True},
-            {'name': 'min_hz', 'widget_index': 1, 'default': -1.0},
-            {'name': 'max_hz', 'widget_index': 2, 'default': -1.0},
-            {'name': 'target_hz', 'widget_index': 3, 'default': -1.0},
-            {'name': 'target_percentage', 'widget_index': 4, 'default': -1.0},
-            {'name': 'priority', 'widget_index': 5, 'default': 0},
-            {'name': 'guaranteed', 'widget_index': 6, 'default': False},
-            {'name': 'max_latency_ms', 'widget_index': 7, 'default': -1.0},
-            {'name': 'window_size', 'widget_index': 8, 'default': 100},
-            {'name': 'log_violations', 'widget_index': 9, 'default': True},
+            {'name': 'item_name', 'widget_index': 0, 'default': 'items'},
+            {'name': 'enabled', 'widget_index': 1, 'default': True},
+            {'name': 'min_hz', 'widget_index': 2, 'default': -1.0},
+            {'name': 'max_hz', 'widget_index': 3, 'default': -1.0},
+            {'name': 'target_hz', 'widget_index': 4, 'default': -1.0},
+            {'name': 'target_percentage', 'widget_index': 5, 'default': -1.0},
+            {'name': 'priority', 'widget_index': 6, 'default': 0},
+            {'name': 'guaranteed', 'widget_index': 7, 'default': False},
+            {'name': 'max_latency_ms', 'widget_index': 8, 'default': -1.0},
+            {'name': 'window_size', 'widget_index': 9, 'default': 100},
+            {'name': 'log_violations', 'widget_index': 10, 'default': True},
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
@@ -66,6 +67,7 @@ class BalancingNodeExporter(ExportableNode):
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "BalancingNode",
+            "ITEM_NAME": params['item_name'],
             "ENABLED": params['enabled'],
             "MIN_HZ": params['min_hz'],
             "MAX_HZ": params['max_hz'],

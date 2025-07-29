@@ -122,23 +122,24 @@ Monitor nodes would track:
 
 ## Integration with Adaptive Yielding
 
-Monitor nodes feed metrics to the global adaptive yielding system:
+The balancing system integrates with DNNE's adaptive yielding through subgraph metrics:
 
 ```python
-# In Global._compute_adaptive_delay()
+# Current implementation in Global._compute_adaptive_delay()
+@classmethod
 def _compute_adaptive_delay(cls) -> float:
-    # Get monitor node metrics
-    for monitor in cls._monitor_nodes.values():
-        if monitor.below_minimum():
-            # Node is starved, reduce its yield time
-            node_delays[monitor.node_id] *= 0.9
-        elif monitor.above_maximum():
-            # Node is over-provisioned, increase yield
-            node_delays[monitor.node_id] *= 1.1
-            
-    # Compute global delay based on worst-case starvation
-    return compute_balanced_delay(node_delays)
+    """
+    Compute appropriate yield delay based on system metrics.
+    
+    Returns:
+        Delay in seconds (0 for minimal yield)
+    """
+    # For now, always use minimal yield
+    # TODO: Implement adaptive delay based on subgraph requirements
+    return 0.0
 ```
+
+Future implementations will consult balancing node requirements to adjust yield delays.
 
 ## Example Workflows
 
@@ -202,89 +203,7 @@ Requirements might change during execution:
 - Training needs more resources during backward pass
 - **Possible Solution**: Phase-aware monitoring
 
-## Implementation Details
-
-### Throttling Mechanism: yield_slice()
-
-Instead of using uninterruptible `asyncio.sleep()`, balancing nodes use a custom yielding mechanism:
-
-```python
-async def yield_slice(seconds: float):
-    """Yield control for specified duration, but interruptible by balancing system"""
-    start = time.perf_counter()
-    chunk_size = 0.001  # 1ms chunks for interruptibility
-    remaining = seconds
-    
-    while remaining > 0:
-        # Check if balancing system wants to interrupt
-        if Global.should_interrupt_yield(node_id):
-            break
-            
-        # Yield for small chunk
-        await asyncio.sleep(min(chunk_size, remaining))
-        remaining = seconds - (time.perf_counter() - start)
-```
-
-This allows the balancing system to:
-- Interrupt yields if high-priority nodes need to run
-- Extend yields if the system is overloaded
-- Adapt to changing system conditions
-
-### Violation Logging
-
-To avoid log spam while still tracking violations:
-
-```python
-class ViolationLogger:
-    def __init__(self, dump_interval=10.0, max_details=5):
-        self.violations = []
-        self.dump_interval = dump_interval
-        self.max_details = max_details
-    
-    def log_violation(self, node_id, violation_type, details):
-        self.violations.append({
-            'timestamp': time.time(),
-            'node_id': node_id,
-            'type': violation_type,
-            'details': details
-        })
-        
-        # Dump periodically
-        if time.time() - self.last_dump > self.dump_interval:
-            self.dump_violations()
-    
-    def dump_violations(self):
-        count = len(self.violations)
-        logger.warning(f"⚠️ {count} balancing violations in last {self.dump_interval}s")
-        
-        # Show first few violations
-        for v in self.violations[:self.max_details]:
-            logger.warning(f"  - Node {v['node_id']}: {v['type']} violation")
-        
-        if count > self.max_details:
-            logger.warning(f"  ... and {count - self.max_details} more")
-```
-
-### Execution Logging
-
-Each run creates a fresh `execution.log` file:
-
-```python
-# In runner.py
-log_file = Path("execution.log")
-logging.basicConfig(
-    filename=log_file,
-    filemode='w',  # Overwrite each run
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s'
-)
-
-# Log key events
-logger.info(f"Starting {workflow_name} execution")
-logger.info(f"Arguments: {args}")
-logger.warning(f"Node {node_id} below minimum rate: {actual_hz} < {min_hz}")
-logger.info(f"Balance report: PPO={ppo_pct}%, MNIST={mnist_pct}%")
-```
+## Current Implementation Details
 
 ### PPO_Agent Integration
 
@@ -293,19 +212,24 @@ For monolithic nodes like PPO_Agent:
 ```python
 class PPOAgentNode:
     def __init__(self):
-        # Check for connected Balancing Config
-        if self.has_balancing_config():
-            self.perf_targets = self.get_balancing_config()
-            Global.register_virtual_monitor(self.node_id, self.perf_targets)
+        # Register with balancing system
+        Global.register_sync_node(
+            self.node_id, 
+            subgraph="ppo",
+            item_unit="env_steps",
+            requirements=self.balancing_config if self.has_balancing_config else None
+        )
     
     async def training_loop(self):
-        # Manually report metrics
-        for episode in range(max_episodes):
-            Global.report_iteration_complete(self.node_id)
+        # Use unified yield API
+        for step in range(horizon_length):
+            # ... environment step ...
+            Global.sync_adaptive_yield(subgraph="ppo", is_item_ref=True)
             
-            # Check if we should yield more/less based on targets
-            if Global.should_adjust_yielding(self.node_id):
-                self.yield_frequency = Global.get_recommended_yield_frequency(self.node_id)
+        # Training yields for responsiveness
+        for mini_epoch in range(mini_epochs):
+            # ... training ...
+            Global.sync_adaptive_yield(subgraph="ppo", is_item_ref=False)
 ```
 
 ## Implementation Considerations
@@ -317,10 +241,10 @@ class PPOAgentNode:
 - Between independent subgraphs (e.g., MNIST and PPO)
 
 ### Performance Overhead
-- Balancing nodes should be near-zero overhead
+- Balancing nodes have near-zero overhead
 - Just timestamp and forward data
-- Metrics reported asynchronously
-- Use yield_slice() instead of sleep() for throttling
+- Metrics tracked through unified yield API
+- Minimal yielding (0.0 delay) for maximum performance
 
 ### User Interface
 - Visual distinction between Balancing Node and Balancing Config
@@ -328,37 +252,260 @@ class PPOAgentNode:
 - Green/red indicators for meeting/missing targets
 - Configuration through node properties panel
 
-## Implementation Priority
+## Current Implementation Status
 
-1. **Phase 1: Measurement Only**
-   - Implement basic Balancing Node that measures but doesn't enforce
-   - Add execution.log to runner.py
-   - Test with Yield_Test to understand system behavior
+### What's Implemented ✅
 
-2. **Phase 2: Basic Enforcement**
-   - Implement yield_slice() mechanism
-   - Add throttling to Balancing Node for max_hz
-   - Implement violation logging with batching
+1. **Measurement-Only Balancing**
+   - Balancing Node measures throughput and frequency
+   - No enforcement of targets (measurement only)
+   - Metrics collection through unified yield API
 
-3. **Phase 3: Virtual Nodes**
-   - Add Balancing Config node type
-   - Integrate with PPO_Agent
-   - Test percentage-based balancing
+2. **Subgraph-Based Metrics**
+   - Tracks metrics per subgraph (PPO, MNIST, etc.)
+   - Distinguishes sync vs async nodes
+   - Custom item units (env_steps, batches, etc.)
 
-4. **Phase 4: Advanced Features**
-   - Priority-based scheduling
-   - Guaranteed vs best-effort modes
-   - Multi-phase awareness
+3. **Virtual Balancing Config**
+   - Balancing Config node for monolithic nodes like PPO_Agent
+   - PPO_Agent reads config and registers with balancing system
+
+4. **Unified Yield API**
+   - Consistent interface for sync and async nodes
+   - `is_item_ref` parameter for accurate throughput tracking
+   - Minimal yield delays (0.0) for performance
+
+### What's NOT Implemented ❌
+
+1. **Enforcement**: No throttling or rate limiting
+2. **Adaptive Delays**: Always uses minimal yield (0.0)
+3. **Priority Scheduling**: No priority-based decisions
+4. **Violation Handling**: No automated responses to violations
+5. **Multi-Phase Awareness**: No different behavior for different execution phases
 
 ## Future Extensions
 
-1. **Auto-Tuning**: System learns optimal balance over time
-2. **Multi-Resource**: Consider GPU, memory, network separately  
-3. **Distributed**: Balance across multiple machines
-4. **Predictive**: Anticipate load changes and pre-adjust
-5. **SLA Enforcement**: Formal service level agreements
-6. **Idle Task**: Special node that runs when nothing else needs resources
+1. **Adaptive Yielding**: Adjust delays based on requirements
+2. **Rate Enforcement**: Actually throttle nodes that exceed max_hz
+3. **Priority Scheduling**: Higher priority nodes get more resources
+4. **Auto-Tuning**: System learns optimal balance over time
+5. **Multi-Resource**: Consider GPU, memory, network separately
+6. **Distributed**: Balance across multiple machines
+
+### How Subgraph Metrics Work
+
+Yield functions accept subgraph identification:
+
+```python
+# Sync nodes (like PPO)
+Global.sync_adaptive_yield(subgraph="ppo", is_item_ref=True)  # For work items
+Global.sync_adaptive_yield(subgraph="ppo", is_item_ref=False)  # For responsiveness
+
+# Async nodes (via Balancing nodes) 
+await Global.async_adaptive_yield(subgraph="mnist", is_item_ref=True)  # For work items
+await Global.async_adaptive_yield(subgraph="mnist", is_item_ref=False)  # For responsiveness
+```
+
+### Metrics Collection Strategy
+
+Track different metrics based on node type:
+
+**For Synchronous Nodes (PPO)**:
+- **CPU Time**: Exact execution time between yields
+- **Throughput**: Items/second (training iterations)
+- Both metrics are accurate and meaningful
+
+**For Asynchronous Nodes (MNIST)**:
+- **Throughput**: Items/second through Balancing nodes
+- **CPU Time**: Not measurable due to async switching
+- Focus on throughput as primary metric
+
+**System-Wide Metrics**:
+- **Total Execution Time**
+- **Total Sync CPU Time**: Sum of all sync node times
+- **Total Async Time**: execution_time - sum(sync_times)
+  - Represents all async activity combined
+  - Helps identify if async nodes are starved
+
+### Subgraph Registration
+
+Nodes register with the balancer during initialization:
+
+```python
+# In Balancing node init
+Global.register_balancing_node(
+    node_id=self.node_id,
+    subgraph="mnist",  # Identified from configuration
+    item_unit=self.item_name,  # From item_name widget (e.g., "batches")
+    requirements=self.config  # From Balancing Config node
+)
+
+# In PPO_Agent init (reads Balancing Config)
+Global.register_sync_node(
+    node_id=self.node_id,
+    subgraph="ppo",
+    item_unit="env_steps",  # Hardcoded for PPO
+    requirements=balancing_config
+)
+```
+
+### Balance Reports
+
+```
+============================================================
+🔄 EXECUTION BALANCE REPORT
+============================================================
+Total execution time: 60.00s
+Sync nodes CPU time:  51.60s (86.0%)  
+Async nodes time:      8.40s (14.0%)
+
+Subgraph Performance:
+  ppo     :   15.8 env_steps/sec (77.0% CPU)
+  mnist   :   18.0 batches/sec (async - CPU % N/A)
+  
+Note: Async time includes all async activity (MNIST, 
+      system overhead, idle time)
+============================================================
+```
+
+### Data Structures
+
+```python
+@dataclass
+class SubgraphMetrics:
+    """Metrics for a computational subgraph"""
+    subgraph_name: str
+    node_type: str  # "sync" or "async"
+    item_unit: str = "items"  # e.g., "env_steps", "batches", "frames"
+    
+    # Common metrics
+    items_processed: int = 0
+    last_item_time: float = 0.0
+    
+    # Sync-only metrics
+    cpu_time: float = 0.0  # Total CPU seconds used
+    
+    @property
+    def throughput(self) -> float:
+        """Items per second"""
+        if self.last_item_time == 0:
+            return 0.0
+        elapsed = time.time() - self.start_time
+        return self.items_processed / elapsed if elapsed > 0 else 0.0
+    
+    @property
+    def cpu_percentage(self) -> Optional[float]:
+        """CPU percentage (sync nodes only)"""
+        if self.node_type != "sync":
+            return None
+        elapsed = time.time() - self.start_time
+        return (self.cpu_time / elapsed * 100) if elapsed > 0 else 0.0
+```
+
+
+## Unified Yield API Design
+
+### Overview
+
+To provide a consistent interface for both synchronous and asynchronous nodes, we implement a unified yield API where both `sync_adaptive_yield()` and `async_adaptive_yield()` have identical signatures and behavior.
+
+### API Signatures
+
+```python
+@classmethod
+def sync_adaptive_yield(cls, *, subgraph: str, is_item_ref: bool = False) -> None:
+    """
+    Synchronous adaptive yield for thread-based nodes.
+    
+    Args:
+        subgraph: Name of the subgraph (e.g., "ppo")
+        is_item_ref: True if this yield represents one work item completion
+    """
+
+@classmethod
+async def async_adaptive_yield(cls, *, subgraph: str, is_item_ref: bool = False) -> None:
+    """
+    Asynchronous adaptive yield for async nodes.
+    
+    Args:
+        subgraph: Name of the subgraph (e.g., "mnist")
+        is_item_ref: True if this yield represents one work item completion
+    """
+```
+
+### Key Concepts
+
+#### 1. Item Reference (`is_item_ref`)
+
+Complex algorithms need to yield at multiple points for responsiveness, but only specific yields should count as "items" for throughput metrics:
+
+```python
+# PPO example - yields in multiple places
+for n in range(horizon_length):
+    # ... environment step ...
+    Global.sync_adaptive_yield(subgraph="ppo", is_item_ref=True)  # Counts as 1 env_step
+
+for batch in dataset:
+    # ... training ...
+    Global.sync_adaptive_yield(subgraph="ppo", is_item_ref=False)  # Just for responsiveness
+
+# MNIST example
+async def compute(self, input):
+    # ... process batch ...
+    await Global.async_adaptive_yield(subgraph="mnist", is_item_ref=True)  # Counts as 1 batch
+    return output
+```
+
+#### 2. Meaningful Units (`item_unit`)
+
+Different subgraphs measure different work units:
+
+```python
+# Registration includes unit specification
+Global.register_sync_node(
+    node_id="ppo_66",
+    subgraph="ppo",
+    item_unit="env_steps"
+)
+
+Global.register_balancing_node(
+    node_id="balancing_64",
+    subgraph="mnist",
+    item_unit="batches",  # From user-configured item_name widget
+    requirements=config
+)
+```
+
+This produces readable metrics:
+```
+Subgraph Performance:
+  ppo   :   15.8 env_steps/sec (77.0% CPU)
+  mnist :   18.0 batches/sec (async - CPU % N/A)
+```
+
+### Implementation Benefits
+
+1. **Unified Interface**: Both sync and async nodes use the same pattern
+2. **Self-Documenting**: Keyword-only parameters make intent clear
+3. **Accurate Metrics**: Only real work units are counted
+4. **Flexible Yielding**: Can yield frequently without inflating metrics
+5. **Clean Design**: Yielding and metrics tracking in one place
+
+### Future Adaptive Delay
+
+Currently `_compute_adaptive_delay()` returns `0.0` (minimal yield). Future implementations will:
+1. Consult registered balancing requirements
+2. Calculate delays to meet frequency/throughput targets
+3. Handle conflicts based on priority and guaranteed flags
+4. Provide true adaptive balancing based on requirements
 
 ## Conclusion
 
-System balancing in DNNE should move beyond equal time-slicing to requirement-based scheduling. The distinction between Balancing Nodes (active participants) and Balancing Config (virtual configuration) allows both fine-grained control and support for monolithic nodes. The yield_slice() mechanism provides interruptible yielding, while batched violation logging keeps the system observable without overwhelming logs. This approach better serves the diverse needs of ML and robotics workflows where different components have fundamentally different performance characteristics and requirements.
+System balancing in DNNE provides requirement-based measurement and monitoring for diverse workflows. The current implementation offers:
+
+- **Measurement without enforcement**: Balancing nodes track metrics without interfering with execution
+- **Subgraph-level metrics**: Clear visibility into which parts of the workflow are running
+- **Unified yield API**: Consistent interface for both sync and async nodes
+- **Custom item units**: Meaningful metrics like "env_steps/sec" instead of generic "items/sec"
+
+This foundation enables future enhancements like adaptive yielding, rate enforcement, and priority scheduling while already providing valuable insights into workflow execution patterns.
