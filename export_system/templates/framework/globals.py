@@ -50,6 +50,9 @@ dnne_logging = DNNE_Logging()
 # Create yield logger for adaptive yielding subsystem
 yield_logger = dnne_logging.getLogger("yield")
 
+# Create balancing logger for execution balance reports
+balancing_logger = dnne_logging.getLogger("balancing")
+
 
 @dataclass
 class YieldStats:
@@ -400,32 +403,48 @@ class Global:
         }
     
     @classmethod
-    def print_concurrency_report(cls):
-        """Print a formatted report of concurrent execution balance"""
+    def print_concurrency_report(cls, force_print=False):
+        """Print a formatted report of concurrent execution balance
+        
+        Args:
+            force_print: If True, always print regardless of logging level (for final report)
+        """
         stats = cls.get_concurrency_stats()
         
-        print("\n" + "="*60)
-        print("🔄 CONCURRENT EXECUTION BALANCE REPORT")
-        print("="*60)
-        print(f"Total execution time: {stats['total_execution_time_s']:.2f}s")
-        print(f"PPO subgraph time:    {stats['ppo_time_s']:.2f}s ({stats['ppo_percentage']:.1f}%)")
-        print(f"MNIST subgraph time:  {stats['non_ppo_time_s']:.2f}s ({stats['non_ppo_percentage']:.1f}%)")
-        print(f"Total yields:         {cls._yield_stats.total_yields}")
+        # Construct the report as a multi-line string
+        report_lines = []
+        report_lines.append("\n" + "="*60)
+        report_lines.append("🔄 CONCURRENT EXECUTION BALANCE REPORT")
+        report_lines.append("="*60)
+        report_lines.append(f"Total execution time: {stats['total_execution_time_s']:.2f}s")
+        report_lines.append(f"PPO subgraph time:    {stats['ppo_time_s']:.2f}s ({stats['ppo_percentage']:.1f}%)")
+        report_lines.append(f"MNIST subgraph time:  {stats['non_ppo_time_s']:.2f}s ({stats['non_ppo_percentage']:.1f}%)")
+        report_lines.append(f"Total yields:         {cls._yield_stats.total_yields}")
         
         if stats['ppo_percentage'] > 0 and stats['non_ppo_percentage'] > 0:
-            print("\n✅ Both subgraphs are receiving execution time!")
+            report_lines.append("\n✅ Both subgraphs are receiving execution time!")
             if abs(stats['ppo_percentage'] - stats['non_ppo_percentage']) < 20:
-                print("   Execution is well-balanced between subgraphs.")
+                report_lines.append("   Execution is well-balanced between subgraphs.")
             elif stats['ppo_percentage'] > stats['non_ppo_percentage']:
-                print("   PPO subgraph is dominating execution time.")
+                report_lines.append("   PPO subgraph is dominating execution time.")
             else:
-                print("   MNIST subgraph is dominating execution time.")
+                report_lines.append("   MNIST subgraph is dominating execution time.")
         elif stats['ppo_percentage'] == 0:
-            print("\n⚠️  No PPO execution detected - sync_adaptive_yield may not be called")
+            report_lines.append("\n⚠️  No PPO execution detected - sync_adaptive_yield may not be called")
         elif stats['non_ppo_percentage'] == 0:
-            print("\n⚠️  No MNIST execution detected - async yields may be blocked")
+            report_lines.append("\n⚠️  No MNIST execution detected - async yields may be blocked")
         
-        print("="*60)
+        report_lines.append("="*60)
+        
+        # Join the report
+        report = "\n".join(report_lines)
+        
+        # For final report (from runner.py), always print
+        if force_print:
+            print(report)
+        else:
+            # For periodic reports, use the balancing logger
+            balancing_logger.info(report)
         
         # Force flush to ensure output is visible
         import sys

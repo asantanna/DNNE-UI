@@ -39,6 +39,7 @@ When specifying subsystems, use these standard names:
 - `checkpoint` - Checkpoint operations
 - `mnist` - MNIST data handling
 - `node` - All node operations
+- `balancing` - Execution balance reports (periodic balance between subgraphs)
 
 ## Logger Initialization
 
@@ -318,6 +319,17 @@ queue_logger = dnne_logging.getLogger("queue")
 class QueueManager:
     def process(self):
         queue_logger.debug(f"Queue depth: {self.queue.qsize()}")
+```
+
+### Execution Balance Reporting
+```python
+from framework.globals import dnne_logging
+balancing_logger = dnne_logging.getLogger("balancing")
+
+# Periodic balance reports (controlled by --verbose balancing)
+def print_balance_report():
+    stats = calculate_balance_stats()
+    balancing_logger.info(f"Execution balance: PPO {stats['ppo_pct']:.1f}% / MNIST {stats['mnist_pct']:.1f}%")
 ```
 
 ## Testing Your Logging

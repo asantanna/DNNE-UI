@@ -374,9 +374,9 @@ async def main():
         print(f'  {{node_id}}: {{node_stats["compute_count"]}} computations, '
               f'avg time: {{node_stats["last_compute_time"]:.3f}}s')
     
-    # Display yield statistics
+    # Display yield statistics (force print for final report)
     from framework import Global
-    Global.print_concurrency_report()
+    Global.print_concurrency_report(force_print=True)
 
     # Save timing data if profiling was enabled
     if args.dnne_profiling:
