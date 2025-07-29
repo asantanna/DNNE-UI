@@ -81,37 +81,67 @@ from framework import GraphRunner
 
 def configure_logging(verbose=None, debug=None):
     """Configure logging based on verbosity flags with optional subsystem control"""
-    # Set base logging level and format
-    if debug == 'all' or debug:
-        # Debug mode shows everything (DEBUG and above)
-        base_level = logging.DEBUG
+    # Create a shared console handler
+    console_handler = logging.StreamHandler()
+    
+    # Determine format based on verbosity
+    if debug and debug != 'all':
         format_str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    elif verbose == 'all' or verbose:
-        # Verbose mode shows INFO and above
-        base_level = logging.INFO
+    elif verbose and verbose != 'all':
         format_str = '%(asctime)s - %(name)s - %(message)s'
     else:
-        # Quiet mode only shows WARNING and above
-        base_level = logging.WARNING
         format_str = '%(asctime)s - %(name)s - %(message)s'
     
-    # Configure root logger
-    logging.basicConfig(level=base_level, format=format_str)
+    formatter = logging.Formatter(format_str)
+    console_handler.setFormatter(formatter)
     
-    # Handle subsystem-specific logging
+    # Handle 'all' modes using basicConfig
+    if debug == 'all':
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            force=True
+        )
+        return
+    elif verbose == 'all':
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(message)s',
+            force=True
+        )
+        return
+    
+    # For subsystem-specific logging, configure root logger minimally
+    logging.basicConfig(level=logging.WARNING, force=True)
+    
+    # Configure specific subsystem loggers
     if debug and debug != 'all':
         # Set specific subsystems to DEBUG
+        console_handler.setLevel(logging.DEBUG)
         for subsystem in debug.split(','):
             logger_name = f"dnne.{{subsystem.strip()}}"
-            logging.getLogger(logger_name).setLevel(logging.DEBUG)
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(logging.DEBUG)
+            logger.addHandler(console_handler)
+            logger.propagate = False  # Prevent duplicate output
+            # Defensive measure against external configs
+            if hasattr(logger, 'disabled'):
+                logger.disabled = False
     
-    if verbose and verbose != 'all' and debug != 'all':
-        # Set specific subsystems to INFO (unless already set to DEBUG)
+    if verbose and verbose != 'all':
+        # Set specific subsystems to INFO
+        if not debug:  # Only create handler if not already created
+            console_handler.setLevel(logging.INFO)
         for subsystem in verbose.split(','):
             logger_name = f"dnne.{{subsystem.strip()}}"
             logger = logging.getLogger(logger_name)
-            if logger.level > logging.INFO:
+            # Only configure if not already set to DEBUG
+            if not (debug and subsystem.strip() in debug):
                 logger.setLevel(logging.INFO)
+                logger.addHandler(console_handler)
+                logger.propagate = False
+                if hasattr(logger, 'disabled'):
+                    logger.disabled = False
 
 async def main():
     """Main execution function"""
@@ -198,9 +228,12 @@ async def main():
     save_checkpoint_dir = args.out_dir if args.save_checkpoint else None
     load_checkpoint_dir = args.load_checkpoint
     
+    # Configure logging BEFORE initializing Global and creating nodes
+    configure_logging(args.verbose, args.debug)
+    
     g.initialize(
-        verbose=bool(args.verbose),  # Convert to boolean for Global
-        debug=bool(args.debug),      # Convert to boolean for Global
+        verbose=args.verbose,  # Pass full string for subsystem support
+        debug=args.debug,      # Pass full string for subsystem support
         save_checkpoint_dir=save_checkpoint_dir,
         load_checkpoint_dir=load_checkpoint_dir,
         visual_mode=args.visual,
@@ -210,7 +243,6 @@ async def main():
         # epochs_override is deprecated - use node-specific config instead
         fixed_seed=args.fixed_seed
     )
-    configure_logging(args.verbose, args.debug)
 
     # Set fixed seed if provided for deterministic execution
     if args.fixed_seed is not None:

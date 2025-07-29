@@ -192,9 +192,14 @@ class Global:
         cls.headless_mode = kwargs.get('headless_mode', False)
         
         # Debug settings
-        cls.verbose = kwargs.get('verbose', False)
+        # Store raw values for subsystem support
+        verbose_arg = kwargs.get('verbose', False)
+        debug_arg = kwargs.get('debug', False)
+        
+        # Set boolean flags based on whether any verbosity is enabled
+        cls.verbose = bool(verbose_arg)
         cls.profiling = kwargs.get('profiling', False)
-        cls.debug = kwargs.get('debug', False)
+        cls.debug = bool(debug_arg)
         cls.fixed_seed = kwargs.get('fixed_seed', None)
         
         # Training settings
