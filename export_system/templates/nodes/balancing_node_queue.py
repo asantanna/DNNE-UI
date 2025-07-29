@@ -105,7 +105,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             logger.register_node(self.node_id, f"BalancingNode_{self.node_id}", config)
             
             # TODO: Global.register_monitor_node(self.node_id, config)
-            self.logger.info(f"Registered balancing targets for node {self.node_id}")
+            self.node_logger.info(f"Registered balancing targets for node {self.node_id}")
     
     async def compute(self, input) -> Dict[str, Any]:
         """Monitor performance and forward input unchanged (measurement only)"""
@@ -208,7 +208,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if current_time - self.last_violation_log > self.violation_log_interval:
             # Dump accumulated violations
             if self.violations:
-                self.logger.warning(f"⚠️  Balancing Node {self.node_id} - {len(self.violations)} violations in last {self.violation_log_interval}s:")
+                self.node_logger.warning(f"⚠️  Balancing Node {self.node_id} - {len(self.violations)} violations in last {self.violation_log_interval}s:")
                 
                 # Group violations by type
                 by_type = {}
@@ -222,13 +222,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 for v_type, v_list in by_type.items():
                     if v_type == "frequency_below_minimum":
                         avg_actual = sum(v["actual"] for v in v_list) / len(v_list)
-                        self.logger.warning(f"  - Frequency below minimum: {avg_actual:.1f} Hz < {v_list[0]['expected']} Hz")
+                        self.node_logger.warning(f"  - Frequency below minimum: {avg_actual:.1f} Hz < {v_list[0]['expected']} Hz")
                     elif v_type == "frequency_above_maximum":
                         avg_actual = sum(v["actual"] for v in v_list) / len(v_list)
-                        self.logger.warning(f"  - Frequency above maximum: {avg_actual:.1f} Hz > {v_list[0]['expected']} Hz")
+                        self.node_logger.warning(f"  - Frequency above maximum: {avg_actual:.1f} Hz > {v_list[0]['expected']} Hz")
                     elif v_type == "latency_exceeded":
                         avg_actual = sum(v["actual"] for v in v_list) / len(v_list)
-                        self.logger.warning(f"  - Latency exceeded: {avg_actual:.1f} ms > {v_list[0]['expected']} ms")
+                        self.node_logger.warning(f"  - Latency exceeded: {avg_actual:.1f} ms > {v_list[0]['expected']} ms")
                 
                 # Clear violations
                 self.violations = []
@@ -237,9 +237,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     def _report_metrics(self):
         """Report metrics summary"""
         uptime = time.time() - self.start_time
-        self.logger.info(f"📊 Balancing Node {self.node_id} Metrics:")
-        self.logger.info(f"  - Executions: {self.execution_count}")
-        self.logger.info(f"  - Average frequency: {self.average_frequency:.1f} Hz")
-        self.logger.info(f"  - Current frequency: {self.current_frequency:.1f} Hz")
-        self.logger.info(f"  - Average latency: {self.average_latency:.2f} ms")
-        self.logger.info(f"  - Uptime: {uptime:.1f} seconds")
+        self.node_logger.info(f"📊 Balancing Node {self.node_id} Metrics:")
+        self.node_logger.info(f"  - Executions: {self.execution_count}")
+        self.node_logger.info(f"  - Average frequency: {self.average_frequency:.1f} Hz")
+        self.node_logger.info(f"  - Current frequency: {self.current_frequency:.1f} Hz")
+        self.node_logger.info(f"  - Average latency: {self.average_latency:.2f} ms")
+        self.node_logger.info(f"  - Uptime: {uptime:.1f} seconds")

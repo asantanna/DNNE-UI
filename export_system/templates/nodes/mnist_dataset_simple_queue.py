@@ -50,7 +50,7 @@ class MNISTDatasetNode_{NODE_ID}(QueueNode):
     async def run(self):
         """Override run to emit dataset once"""
         self.running = True
-        self.logger.info(f"Starting node {self.node_id}")
+        self.node_logger.info(f"Starting node {self.node_id}")
         
         try:
             # Emit dataset once
@@ -63,7 +63,7 @@ class MNISTDatasetNode_{NODE_ID}(QueueNode):
                 await asyncio.sleep(1.0)
                 
         except asyncio.CancelledError:
-            self.logger.info(f"Node {self.node_id} cancelled")
+            self.node_logger.info(f"Node {self.node_id} cancelled")
             raise
         finally:
             self.running = False

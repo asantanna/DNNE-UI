@@ -12,8 +12,17 @@ import warnings
 
 # Suppress common warnings that clutter the output
 warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', message='.*FBX library failed to load.*')
 warnings.filterwarnings('ignore', message='.*invalid escape sequence.*')
+warnings.filterwarnings('ignore', message='.*Box bound precision lowered.*')
+warnings.filterwarnings('ignore', message='.*pkg_resources is deprecated.*')
+warnings.filterwarnings('ignore', message='.*torch.cuda.amp.GradScaler.*is deprecated.*')
+warnings.filterwarnings('ignore', message='.*torch.cuda.amp.autocast.*is deprecated.*')
+warnings.filterwarnings('ignore', message='.*Using or importing the ABCs from.*')
+warnings.filterwarnings('ignore', message='.*np.int.*is a deprecated alias.*')
+warnings.filterwarnings('ignore', message='.*declare_namespace.*')
+warnings.filterwarnings('ignore', message='.*Future Hydra versions will no longer change working directory.*')
 
 # Add current directory to Python path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -70,26 +79,48 @@ from framework import GraphRunner
 # NOTE: Removed 'from nodes import *' - caused double Isaac Gym initialization
 # All required nodes are imported explicitly above
 
-def configure_logging(verbose=False, debug=False):
-    """Configure logging based on verbosity flags"""
-    if debug:
+def configure_logging(verbose=None, debug=None):
+    """Configure logging based on verbosity flags with optional subsystem control"""
+    # Set base logging level and format
+    if debug == 'all' or debug:
         # Debug mode shows everything (DEBUG and above)
-        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    elif verbose:
+        base_level = logging.DEBUG
+        format_str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    elif verbose == 'all' or verbose:
         # Verbose mode shows INFO and above
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(message)s')
+        base_level = logging.INFO
+        format_str = '%(asctime)s - %(name)s - %(message)s'
     else:
         # Quiet mode only shows WARNING and above
-        logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(name)s - %(message)s')
+        base_level = logging.WARNING
+        format_str = '%(asctime)s - %(name)s - %(message)s'
+    
+    # Configure root logger
+    logging.basicConfig(level=base_level, format=format_str)
+    
+    # Handle subsystem-specific logging
+    if debug and debug != 'all':
+        # Set specific subsystems to DEBUG
+        for subsystem in debug.split(','):
+            logger_name = f"dnne.{{subsystem.strip()}}"
+            logging.getLogger(logger_name).setLevel(logging.DEBUG)
+    
+    if verbose and verbose != 'all' and debug != 'all':
+        # Set specific subsystems to INFO (unless already set to DEBUG)
+        for subsystem in verbose.split(','):
+            logger_name = f"dnne.{{subsystem.strip()}}"
+            logger = logging.getLogger(logger_name)
+            if logger.level > logging.INFO:
+                logger.setLevel(logging.INFO)
 
 async def main():
     """Main execution function"""
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='DNNE Generated Training')
-    parser.add_argument('--verbose', '-v', action='store_true',
-                       help='Enable verbose batch-level logging (INFO level)')
-    parser.add_argument('--debug', '-d', action='store_true',
-                       help='Enable debug logging (DEBUG level, includes verbose)')
+    parser.add_argument('--verbose', '-v', nargs='?', const='all', default=None,
+                       help='Enable verbose logging (INFO level). Optional: comma-separated subsystems (e.g., "mnist,queue")')
+    parser.add_argument('--debug', '-d', nargs='?', const='all', default=None,
+                       help='Enable debug logging (DEBUG level). Optional: comma-separated subsystems (e.g., "yield,ppo")')
     parser.add_argument('--test-mode', action='store_true',
                        help='Run in test mode with limited duration and performance tracking')
     parser.add_argument('--save-checkpoint', action='store_true',
@@ -168,8 +199,8 @@ async def main():
     load_checkpoint_dir = args.load_checkpoint
     
     g.initialize(
-        verbose=args.verbose,
-        debug=args.debug,
+        verbose=bool(args.verbose),  # Convert to boolean for Global
+        debug=bool(args.debug),      # Convert to boolean for Global
         save_checkpoint_dir=save_checkpoint_dir,
         load_checkpoint_dir=load_checkpoint_dir,
         visual_mode=args.visual,
@@ -206,9 +237,15 @@ async def main():
     if args.dnne_profiling:
         print("⏱️  DNNE profiling enabled - timing C++ operations")
     if args.debug:
-        print("🔍 Debug mode enabled - showing detailed diagnostic information")
+        if args.debug == 'all':
+            print("🔍 Debug mode enabled - showing detailed diagnostic information")
+        else:
+            print(f"🔍 Debug mode enabled for subsystems: {{args.debug}}")
     elif args.verbose:
-        print("📝 Verbose mode enabled - showing batch-level progress")
+        if args.verbose == 'all':
+            print("📝 Verbose mode enabled - showing batch-level progress")
+        else:
+            print(f"📝 Verbose mode enabled for subsystems: {{args.verbose}}")
     else:
         print("📊 Quiet mode - showing epoch summaries only")
     if save_checkpoint_dir:

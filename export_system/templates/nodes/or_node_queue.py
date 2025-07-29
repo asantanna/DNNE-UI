@@ -27,7 +27,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import asyncio
         import time
         self.running = True
-        self.logger.info(f"Starting OR node {self.node_id}")
+        self.node_logger.info(f"Starting OR node {self.node_id}")
         
         try:
             while self.running:
@@ -61,7 +61,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                     await self.send_output(output_name, value)
                     
         except asyncio.CancelledError:
-            self.logger.info(f"OR Node {self.node_id} cancelled")
+            self.node_logger.info(f"OR Node {self.node_id} cancelled")
             raise
         finally:
             self.running = False
@@ -81,7 +81,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.output_count += 1
         
         shape_info = input_data.shape if hasattr(input_data, 'shape') else 'unknown'
-        self.logger.info(f"OR Node: Routing {input_name} (shape: {shape_info}) - output #{self.output_count}")
+        self.node_logger.info(f"OR Node: Routing {input_name} (shape: {shape_info}) - output #{self.output_count}")
         
         return {
             "output": input_data

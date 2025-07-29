@@ -24,13 +24,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Only log at intervals
         if self.display_count % self.log_interval == 0:
             if self.display_type == "tensor_stats" and hasattr(input_0, 'shape'):
-                self.logger.info(f"[{{self.display_count}}] Tensor shape: {{input_0.shape}}, "
+                self.node_logger.info(f"[{{self.display_count}}] Tensor shape: {{input_0.shape}}, "
                               f"min: {{input_0.min().item():.4f}}, "
                               f"max: {{input_0.max().item():.4f}}, "
                               f"mean: {{input_0.mean().item():.4f}}")
             elif self.display_type == "value":
-                self.logger.info(f"[{{self.display_count}}] Value: {{input_0}}")
+                self.node_logger.info(f"[{{self.display_count}}] Value: {{input_0}}")
             else:
-                self.logger.info(f"[{{self.display_count}}] {{type(input_0)}}")
+                self.node_logger.info(f"[{{self.display_count}}] {{type(input_0)}}")
         
         return {{}}  # No outputs

@@ -19,7 +19,7 @@ class GetBatchNode_{NODE_ID}(QueueNode):
     async def run(self):
         """Override run to wait for dataloader, schema, and triggers"""
         self.running = True
-        self.logger.info(f"Starting node {self.node_id}")
+        self.node_logger.info(f"Starting node {self.node_id}")
         
         # Check if we're in inference mode
         inference_mode = g.inference_mode
@@ -34,13 +34,13 @@ class GetBatchNode_{NODE_ID}(QueueNode):
             # Log schema info for debugging
             if "outputs" in self.schema and "images" in self.schema["outputs"]:
                 img_info = self.schema["outputs"]["images"]
-                self.logger.info(f"Received dataloader with image shape: {img_info.get('shape')}, flattened_size: {img_info.get('flattened_size')}")
+                self.node_logger.info(f"Received dataloader with image shape: {img_info.get('shape')}, flattened_size: {img_info.get('flattened_size')}")
             
-            self.logger.info(f"Received dataloader with {self.total_batches_per_epoch} batches per epoch, waiting for trigger signals")
+            self.node_logger.info(f"Received dataloader with {self.total_batches_per_epoch} batches per epoch, waiting for trigger signals")
             
             if inference_mode:
                 # In inference mode: Auto-generate batches continuously for evaluation
-                self.logger.info("🔍 Inference mode: Auto-triggering batch generation")
+                self.node_logger.info("🔍 Inference mode: Auto-triggering batch generation")
                 while self.running:
                     # Generate batch automatically in inference mode
                     outputs = await self.compute()
@@ -55,7 +55,7 @@ class GetBatchNode_{NODE_ID}(QueueNode):
                 while self.running:
                     # Wait for trigger signal
                     trigger_signal = await self.input_queues["trigger"].get()
-                    self.logger.info(f"Received trigger signal: {trigger_signal.get('signal_type', 'unknown')}")
+                    self.node_logger.info(f"Received trigger signal: {trigger_signal.get('signal_type', 'unknown')}")
                     
                     # Generate batch when triggered
                     outputs = await self.compute()
@@ -64,7 +64,7 @@ class GetBatchNode_{NODE_ID}(QueueNode):
                             await self.send_output(output_name, value)
             
         except asyncio.CancelledError:
-            self.logger.info(f"Node {self.node_id} cancelled")
+            self.node_logger.info(f"Node {self.node_id} cancelled")
             raise
         finally:
             self.running = False
@@ -93,8 +93,8 @@ class GetBatchNode_{NODE_ID}(QueueNode):
             epoch_complete = True
             self.data_iter = iter(self.dataloader)
             images, labels = next(self.data_iter)
-            self.logger.info(f"📊 Completed epoch {epoch_stats['epoch']} ({epoch_stats['total_batches']} batches)")
-            self.logger.info(f"🚀 Starting epoch {self.epoch}")
+            self.node_logger.info(f"📊 Completed epoch {epoch_stats['epoch']} ({epoch_stats['total_batches']} batches)")
+            self.node_logger.info(f"🚀 Starting epoch {self.epoch}")
         
         # Create batch progress info
         if not epoch_stats:

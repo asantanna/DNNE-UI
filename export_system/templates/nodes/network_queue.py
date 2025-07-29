@@ -35,7 +35,7 @@ class NetworkNode_{NODE_ID}(QueueNode):
         # Set network to eval mode if in inference
         if g.inference_mode:
             self.network.eval()
-            self.logger.info("Network set to evaluation mode for inference")
+            self.node_logger.info("Network set to evaluation mode for inference")
         
         # Checkpoint configuration
         self.checkpoint_enabled = {CHECKPOINT_ENABLED}
@@ -63,19 +63,19 @@ class NetworkNode_{NODE_ID}(QueueNode):
                     node_id=node_id,
                     checkpoint_dir=str(g.save_checkpoint_dir) if g.save_checkpoint_dir else None
                 )
-                self.logger.info(f"Checkpoint manager initialized: {self.checkpoint_trigger_type} trigger")
+                self.node_logger.info(f"Checkpoint manager initialized: {self.checkpoint_trigger_type} trigger")
                 
                 # Load checkpoint on start if requested, or always in inference mode
                 if (self.checkpoint_load_on_start and g.load_checkpoint_dir) or (g.inference_mode and g.load_checkpoint_dir):
                     if g.inference_mode:
-                        self.logger.info("🔍 Inference mode: Loading checkpoint automatically")
+                        self.node_logger.info("🔍 Inference mode: Loading checkpoint automatically")
                     self.load_checkpoint(str(g.load_checkpoint_dir))
                     
             except ValueError as e:
-                self.logger.error(f"Checkpoint configuration error: {e}")
+                self.node_logger.error(f"Checkpoint configuration error: {e}")
                 self.checkpoint_enabled = False
         
-        self.logger.info(f"Created network with {NUM_LAYERS} layers: {INPUT_SIZE} -> {OUTPUT_SIZE}")
+        self.node_logger.info(f"Created network with {NUM_LAYERS} layers: {INPUT_SIZE} -> {OUTPUT_SIZE}")
         
     def get_parameters(self):
         """Return network parameters for optimizer"""
@@ -97,7 +97,7 @@ class NetworkNode_{NODE_ID}(QueueNode):
             str: Path to saved checkpoint file, or None if not saved
         """
         if not self.checkpoint_manager:
-            self.logger.warning("No checkpoint manager initialized")
+            self.node_logger.warning("No checkpoint manager initialized")
             return None
         
         # Check if we should checkpoint
@@ -146,13 +146,13 @@ class NetworkNode_{NODE_ID}(QueueNode):
             bool: True if checkpoint loaded successfully
         """
         if not self.checkpoint_manager:
-            self.logger.warning("No checkpoint manager initialized")
+            self.node_logger.warning("No checkpoint manager initialized")
             return False
         
         # Load checkpoint from command line directory or default
         checkpoint_data = self.checkpoint_manager.load_checkpoint(load_checkpoint_dir)
         if not checkpoint_data:
-            self.logger.warning("No checkpoint found to load")
+            self.node_logger.warning("No checkpoint found to load")
             return False
         
         try:
@@ -164,11 +164,11 @@ class NetworkNode_{NODE_ID}(QueueNode):
             epoch = metadata.get('current_epoch', 'unknown')
             metric = metadata.get('current_metric', 'unknown')
             
-            self.logger.info(f"Model checkpoint loaded - epoch: {epoch}, metric: {metric}")
+            self.node_logger.info(f"Model checkpoint loaded - epoch: {epoch}, metric: {metric}")
             return True
             
         except Exception as e:
-            self.logger.error(f"Error loading model checkpoint: {e}")
+            self.node_logger.error(f"Error loading model checkpoint: {e}")
             return False
     
     async def save_checkpoint_on_exit(self, exit_reason: str) -> bool:
@@ -210,22 +210,22 @@ class NetworkNode_{NODE_ID}(QueueNode):
             )
             
             if success:
-                self.logger.info(f"💾 Exit checkpoint saved for Network node {self.node_id}")
+                self.node_logger.info(f"💾 Exit checkpoint saved for Network node {self.node_id}")
                 return True
             else:
                 # Only warn if we were actually trying to save (had a save directory)
                 if g.save_checkpoint_dir:
-                    self.logger.warning(f"⚠️ Failed to save exit checkpoint for Network node {self.node_id}")
+                    self.node_logger.warning(f"⚠️ Failed to save exit checkpoint for Network node {self.node_id}")
                 return False
                 
         except Exception as e:
-            self.logger.error(f"Error saving exit checkpoint: {e}")
+            self.node_logger.error(f"Error saving exit checkpoint: {e}")
             return False
         
     async def run(self):
         """Override run to emit model reference once at startup"""
         self.running = True
-        self.logger.info(f"Starting node {self.node_id}")
+        self.node_logger.info(f"Starting node {self.node_id}")
         
         try:
             # Emit model reference once for optimizer
@@ -251,7 +251,7 @@ class NetworkNode_{NODE_ID}(QueueNode):
                         await self.send_output(output_name, value)
                         
         except asyncio.CancelledError:
-            self.logger.info(f"Node {self.node_id} cancelled")
+            self.node_logger.info(f"Node {self.node_id} cancelled")
             raise
         finally:
             self.running = False

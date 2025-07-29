@@ -6,7 +6,10 @@ from typing import Dict, Any, List, Optional
 
 from .base_nodes import QueueNode
 from .exceptions import TrainingCompleteException
-from .globals import Global as g
+from .globals import Global as g, dnne_logging
+
+# Queue subsystem logger
+queue_logger = dnne_logging.getLogger("queue")
 
 
 class GraphRunner:
@@ -15,7 +18,8 @@ class GraphRunner:
     def __init__(self):
         self.nodes: Dict[str, QueueNode] = {}
         self.tasks: List[asyncio.Task] = []
-        self.logger = logging.getLogger("GraphRunner")
+        # GraphRunner uses general logger for high-level operations
+        self.logger = logging.getLogger(__name__)
         
         # Exit tracking for smart checkpoint saves
         self.exit_reason = None

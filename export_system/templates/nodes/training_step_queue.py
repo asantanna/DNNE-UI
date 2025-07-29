@@ -19,11 +19,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     async def run(self):
         """Override run to get optimizer once, then process loss inputs"""
         self.running = True
-        self.logger.info(f"Starting node {{self.node_id}}")
+        self.node_logger.info(f"Starting node {{self.node_id}}")
         
         # In inference mode, this node does nothing
         if g.inference_mode:
-            self.logger.info("TrainingStep disabled in inference mode")
+            self.node_logger.info("TrainingStep disabled in inference mode")
             # Keep the node running but do nothing
             try:
                 while self.running:
@@ -35,7 +35,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         try:
             # First, wait for optimizer (configuration)
             self.optimizer = await self.input_queues["optimizer"].get()
-            self.logger.info(f"Received optimizer for training")
+            self.node_logger.info(f"Received optimizer for training")
             
             # Send initial ready signal to start the training loop
             import time
@@ -46,7 +46,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "metadata": {"phase": "startup"}
             }
             await self.send_output("ready", ready_signal)
-            self.logger.info(f"Sent startup ready signal")
+            self.node_logger.info(f"Sent startup ready signal")
             
             # Now change required inputs to only loss (data flow)
             self.required_inputs = ["loss"]
@@ -55,7 +55,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             await super().run()
             
         except asyncio.CancelledError:
-            self.logger.info(f"Node {{self.node_id}} cancelled")
+            self.node_logger.info(f"Node {{self.node_id}} cancelled")
             raise
         finally:
             self.running = False
@@ -93,7 +93,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         # Only log in verbose mode - EpochTracker will show summaries
         if g.verbose:
-            self.logger.info(f"Training step completed. Loss: {{loss.item():.4f}}")
+            self.node_logger.info(f"Training step completed. Loss: {{loss.item():.4f}}")
         
         return {
             "ready": ready_signal,

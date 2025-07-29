@@ -1,4 +1,9 @@
 # Template variables - replaced during export
+from framework.globals import dnne_logging
+
+# MNIST subsystem logger
+mnist_logger = dnne_logging.getLogger("mnist")
+
 template_vars = {
     "NODE_ID": "mnist_1",
     "CLASS_NAME": "MNISTDatasetNode",
@@ -47,7 +52,7 @@ class {CLASS_NAME}_{NODE_ID}(SensorNode):
             self.epoch += 1
             self.data_iter = iter(self.dataloader)
             images, labels = next(self.data_iter)
-            self.logger.info(f"Starting epoch {{self.epoch}}")
+            mnist_logger.info(f"Starting epoch {{self.epoch}}")
         
         return {{
             "batch_data": images,

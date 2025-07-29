@@ -43,7 +43,7 @@ class {CLASS_NAME}_{NODE_ID}(SensorNode):
         self.sample_count += 1
         
         if self.sample_count % 100 == 0:
-            self.logger.info(f"IMU sample {{self.sample_count}}")
+            self.node_logger.info(f"IMU sample {{self.sample_count}}")
         
         return {{
             "acceleration": acceleration,

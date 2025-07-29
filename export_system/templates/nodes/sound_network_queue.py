@@ -17,7 +17,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         self.model_type = "{MODEL_TYPE}"
         self.output_dim = {OUTPUT_DIM}
-        self.logger.info(f"SoundNetwork initialized (placeholder mode)")
+        self.node_logger.info(f"SoundNetwork initialized (placeholder mode)")
         
     async def compute(self, audio_data) -> Dict[str, Any]:
         # Placeholder: generate random features
@@ -26,6 +26,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Simulate feature extraction
         features = [random.random() for _ in range(self.output_dim)]
         
-        self.logger.debug(f"Processed audio data")
+        self.node_logger.debug(f"Processed audio data")
         
         return {{"sound_features": features}}

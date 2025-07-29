@@ -3,6 +3,16 @@ Global state management for DNNE exported workflows.
 Provides centralized configuration and adaptive yielding.
 """
 
+# Set up warning filters before any other imports
+import warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', message='.*invalid escape sequence.*')
+warnings.filterwarnings('ignore', message='.*Using or importing the ABCs from.*')
+warnings.filterwarnings('ignore', message='.*np.int.*is a deprecated alias.*')
+warnings.filterwarnings('ignore', message='.*pkg_resources is deprecated.*')
+warnings.filterwarnings('ignore', message='.*declare_namespace.*')
+
 import asyncio
 import time
 import logging
@@ -13,6 +23,32 @@ from pathlib import Path
 
 # Thread-safe yielding for sync code
 from .globals_threadsafe import thread_safe_sync_adaptive_yield
+
+
+class DNNE_Logging:
+    """Wrapper module that prepends 'dnne.' to logger names"""
+    
+    def getLogger(self, name=""):
+        """Get a DNNE logger with automatic prefix"""
+        if name == "":
+            return logging.getLogger("dnne")
+        elif name.startswith("dnne."):
+            # Already has prefix, don't double it
+            return logging.getLogger(name)
+        else:
+            # Add prefix
+            return logging.getLogger(f"dnne.{name}")
+    
+    def __getattr__(self, name):
+        """Pass through all other logging attributes unchanged"""
+        return getattr(logging, name)
+
+
+# Create module-like instance for easy importing
+dnne_logging = DNNE_Logging()
+
+# Create yield logger for adaptive yielding subsystem
+yield_logger = dnne_logging.getLogger("yield")
 
 
 @dataclass
@@ -214,7 +250,7 @@ class Global:
         
         # Log if excessive yield time
         if cls.debug and yield_duration > 0.01:  # 10ms
-            cls._logger.warning(f"Long yield detected: {yield_duration*1000:.2f}ms")
+            yield_logger.warning(f"Long yield detected: {yield_duration*1000:.2f}ms")
     
     @classmethod
     def sync_adaptive_yield(cls):
@@ -228,14 +264,23 @@ class Global:
         start_time = time.perf_counter()
         cls._concurrency_stats.start_yield()
         
+        # Log yield start in debug mode
+        if cls.debug:
+            yield_logger.debug("Starting sync adaptive yield")
+        
         # Use thread-safe yielding
-        thread_safe_sync_adaptive_yield(delay=cls._compute_adaptive_delay())
+        delay = cls._compute_adaptive_delay()
+        thread_safe_sync_adaptive_yield(delay=delay)
         
         # Update statistics
         end_time = time.perf_counter()
         yield_duration = end_time - start_time
         cls._yield_stats.update(yield_duration)
         cls._concurrency_stats.end_yield(yield_duration)
+        
+        # Log yield completion in debug mode
+        if cls.debug:
+            yield_logger.debug(f"Yield completed in {yield_duration*1000:.2f}ms with delay {delay*1000:.2f}ms")
     
     @classmethod
     def _compute_adaptive_delay(cls) -> float:

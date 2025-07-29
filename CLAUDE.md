@@ -52,3 +52,10 @@ For detailed documentation, see:
 ## Claude Code Tips
 - **Bash pipes don't work**: Redirect output to `/tmp/<workflow_name>_output.txt` then grep the file
 - **Export workflows**: Use `python claude_scripts/programmatic_export.py "workflow name"` (never edit this file)
+- **Template Escaping**: Template use string substition of the form `{KEYWORD}`. However, this means that curly braces in template code must be escaped to prevent errors.
+
+```
+    BAD:   print(f"Verbose mode enabled for subsystems: {args.verbose}")
+    
+    GOOD:  print(f"Verbose mode enabled for subsystems: {{args.verbose}}")
+```

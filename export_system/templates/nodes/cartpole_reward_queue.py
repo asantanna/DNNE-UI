@@ -22,7 +22,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.episode_steps = 0
         self.max_episode_length = 500  # Standard Cartpole episode length
         
-        self.logger.info(f"CartpoleRewardNode {node_id} initialized with reset_dist={self.reset_dist}, invert_for_loss={self.invert_for_loss}")
+        self.node_logger.info(f"CartpoleRewardNode {node_id} initialized with reset_dist={self.reset_dist}, invert_for_loss={self.invert_for_loss}")
         
     async def compute(self, observations) -> Dict[str, Any]:
         """
@@ -64,20 +64,20 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if torch.abs(cart_pos) > self.reset_dist:
                 reward = torch.tensor(-2.0, dtype=torch.float32, device=observations.device)
                 done = True
-                self.logger.debug(f"Episode ended: cart position {cart_pos.item():.3f} > {self.reset_dist}")
+                self.node_logger.debug(f"Episode ended: cart position {cart_pos.item():.3f} > {self.reset_dist}")
                 
             # Pole angle too large (fell over)
             if torch.abs(pole_angle) > (np.pi / 2):
                 reward = torch.tensor(-2.0, dtype=torch.float32, device=observations.device)
                 done = True
-                self.logger.debug(f"Episode ended: pole angle {pole_angle.item():.3f} > {np.pi/2:.3f}")
+                self.node_logger.debug(f"Episode ended: pole angle {pole_angle.item():.3f} > {np.pi/2:.3f}")
                 
             # Episode length exceeded
             self.episode_steps += 1
             if self.episode_steps >= self.max_episode_length:
                 done = True
                 self.episode_steps = 0  # Reset for next episode
-                self.logger.debug(f"Episode ended: max length {self.max_episode_length} reached")
+                self.node_logger.debug(f"Episode ended: max length {self.max_episode_length} reached")
                 
             # Reset episode counter if done
             if done and self.episode_steps < self.max_episode_length:
@@ -95,7 +95,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Create info tensor (episode steps)
             info_tensor = torch.tensor([self.episode_steps], dtype=torch.float32, device=observations.device)
             
-            self.logger.debug(f"Reward: {reward.item():.3f}, Output: {output.item():.3f}, Done: {done}, Steps: {self.episode_steps}")
+            self.node_logger.debug(f"Reward: {reward.item():.3f}, Output: {output.item():.3f}, Done: {done}, Steps: {self.episode_steps}")
             
             return {
                 "reward_or_loss": output,
@@ -104,8 +104,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             }
             
         except Exception as e:
-            self.logger.error(f"Error in CartpoleRewardNode {self.node_id}: {e}")
+            self.node_logger.error(f"Error in CartpoleRewardNode {self.node_id}: {e}")
             import traceback
-            self.logger.error(traceback.format_exc())
+            self.node_logger.error(traceback.format_exc())
             # Re-raise the exception to trigger immediate exit
             raise

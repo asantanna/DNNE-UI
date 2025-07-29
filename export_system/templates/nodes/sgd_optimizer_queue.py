@@ -17,7 +17,7 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
     async def run(self):
         """Override run to wait for model connection first"""
         self.running = True
-        self.logger.info(f"Starting node {self.node_id}")
+        self.node_logger.info(f"Starting node {self.node_id}")
         
         try:
             # Wait for network connection (network node will send itself)
@@ -33,7 +33,7 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
                     momentum=self.momentum,
                     weight_decay=self.weight_decay
                 )
-                self.logger.info(f"Created SGD optimizer with {len(all_params)} parameter groups: lr={self.learning_rate}, momentum={self.momentum}")
+                self.node_logger.info(f"Created SGD optimizer with {len(all_params)} parameter groups: lr={self.learning_rate}, momentum={self.momentum}")
                 
                 # Emit optimizer
                 await self.send_output("optimizer", self.optimizer)
@@ -42,10 +42,10 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
                 while self.running:
                     await asyncio.sleep(1.0)
             else:
-                self.logger.error("No network node received - cannot create optimizer")
+                self.node_logger.error("No network node received - cannot create optimizer")
                 
         except asyncio.CancelledError:
-            self.logger.info(f"Node {self.node_id} cancelled")
+            self.node_logger.info(f"Node {self.node_id} cancelled")
             raise
         finally:
             self.running = False

@@ -1,6 +1,9 @@
 # Template variables - replaced during export
-from framework.globals import Global as g
+from framework.globals import Global as g, dnne_logging
 from framework.exceptions import TrainingCompleteException
+
+# Training subsystem logger
+training_logger = dnne_logging.getLogger("training")
 
 class EpochTrackerNode_{NODE_ID}(QueueNode):
     """Tracks training progress across epochs and displays statistics"""
@@ -20,11 +23,11 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
         epochs_override = g.get_node_config(self.node_id, 'epochs', None)
         if epochs_override is not None:
             self.total_epochs = epochs_override
-            self.logger.info(f"Using epochs override from node config: {self.total_epochs}")
+            self.node_logger.info(f"Using epochs override from node config: {self.total_epochs}")
         elif g.epochs_override is not None:
             # Fallback to global override for backward compatibility
             self.total_epochs = g.epochs_override
-            self.logger.info(f"Using global epochs override: {self.total_epochs}")
+            self.node_logger.info(f"Using global epochs override: {self.total_epochs}")
         else:
             self.total_epochs = {MAX_EPOCHS}
         
@@ -83,6 +86,6 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             if g.verbose:
                 progress = epoch_stats.get("progress", 0)
                 if self.batch_count % 10 == 0:  # Show progress every 10 batches
-                    self.logger.info(f"Epoch {epoch_stats['epoch']} - Batch {epoch_stats['batch']}/{epoch_stats['total_batches']} ({progress:.1%}) - Loss: {self.epoch_losses[-1]:.4f}, Acc: {self.epoch_accuracies[-1]:.2%}")
+                    training_logger.info(f"Epoch {epoch_stats['epoch']} - Batch {epoch_stats['batch']}/{epoch_stats['total_batches']} ({progress:.1%}) - Loss: {self.epoch_losses[-1]:.4f}, Acc: {self.epoch_accuracies[-1]:.2%}")
             
             return {"training_summary": None}

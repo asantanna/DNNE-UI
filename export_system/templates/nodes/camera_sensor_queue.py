@@ -51,7 +51,7 @@ class {CLASS_NAME}_{NODE_ID}(SensorNode):
         self.frame_count += 1
         
         if self.frame_count % 100 == 0:
-            self.logger.info(f"Captured frame {{self.frame_count}}")
+            self.node_logger.info(f"Captured frame {{self.frame_count}}")
         
         return {{
             "image": image,

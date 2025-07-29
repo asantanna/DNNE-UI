@@ -24,6 +24,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.step_count += 1
         
         if self.step_count % 10 == 0:
-            self.logger.info(f"Optimization step {{self.step_count}}")
+            self.node_logger.info(f"Optimization step {{self.step_count}}")
         
         return {{"step_complete": True}}

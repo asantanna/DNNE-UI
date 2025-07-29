@@ -8,11 +8,17 @@ import os
 import re
 import time
 import json
+import logging
 # Delay torch import to avoid IsaacGym import order issues
 # import torch
 from pathlib import Path
 from typing import Dict, Any, Optional, Union, List
 from datetime import datetime, timedelta
+
+from .globals import dnne_logging
+
+# Checkpoint subsystem logger
+checkpoint_logger = dnne_logging.getLogger("checkpoint")
 
 
 class CheckpointManager:
@@ -204,6 +210,7 @@ class CheckpointManager:
         self.last_checkpoint_time = time.time()
         
         print(f"📄 Checkpoint saved: {self.node_checkpoint_path}")
+        checkpoint_logger.debug(f"Checkpoint details: epoch={metadata.get('epoch')}, iteration={metadata.get('iteration')}")
         return True
     
     def load_checkpoint(self, load_checkpoint_dir: str = None) -> Optional[Dict[str, Any]]:
@@ -229,6 +236,7 @@ class CheckpointManager:
         
         # Check if files exist
         if not model_path.exists() or not metadata_path.exists():
+            checkpoint_logger.debug(f"No checkpoint found at {load_path}")
             return None
             
         try:
@@ -245,6 +253,7 @@ class CheckpointManager:
             self.best_metric_type = metadata.get('best_metric_type')
             
             print(f"📄 Checkpoint loaded: {load_path}")
+            checkpoint_logger.debug(f"Loaded checkpoint: epoch={metadata.get('epoch')}, iteration={metadata.get('iteration')}")
             
             return {
                 'model_state_dict': model_state_dict,

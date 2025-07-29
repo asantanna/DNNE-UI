@@ -27,7 +27,7 @@ class LossNode_{NODE_ID}(QueueNode):
         
         # Only log in verbose mode - EpochTracker will show summaries
         if g.verbose:
-            self.logger.info(f"Loss: {loss.item():.4f}, Accuracy: {accuracy:.2%}")
+            self.node_logger.info(f"Loss: {loss.item():.4f}, Accuracy: {accuracy:.2%}")
         
         return {
             "loss": loss,

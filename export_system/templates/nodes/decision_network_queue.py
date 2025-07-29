@@ -58,7 +58,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         action = self.action_layer(x)
         confidence = torch.sigmoid(self.confidence_layer(x))
         
-        self.logger.info(f"Decision made with confidence: {{confidence.mean().item():.2f}}")
+        self.node_logger.info(f"Decision made with confidence: {{confidence.mean().item():.2f}}")
         
         return {{
             "action": action,

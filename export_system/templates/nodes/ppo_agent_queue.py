@@ -10,7 +10,10 @@ import asyncio
 import time
 from pathlib import Path
 from framework import QueueNode
-from framework.globals import Global
+from framework.globals import Global, dnne_logging
+
+# PPO subsystem logger
+ppo_logger = dnne_logging.getLogger("ppo")
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """
@@ -85,7 +88,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         max_iterations_override = Global.get_node_config(self.node_id, 'max_iterations', None)
         if max_iterations_override is not None:
             self.ppo_config['max_epochs'] = max_iterations_override
-            self.logger.info(f"Using max_iterations override from node config: {{max_iterations_override}}")
+            self.node_logger.info(f"Using max_iterations override from node config: {{max_iterations_override}}")
         
         # IsaacGymEnvs path
         self.isaac_gym_envs_path = "{ISAAC_GYM_ENVS_PATH}"
@@ -118,7 +121,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     async def run(self):
         """Override run to execute training only once"""
         self.running = True
-        self.logger.info(f"Starting PPO training node {{self.node_id}}")
+        self.node_logger.info(f"Starting PPO training node {{self.node_id}}")
         
         try:
             # Run training once
@@ -130,7 +133,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             for output_name, output_data in outputs.items():
                 await self.send_output(output_name, output_data)
             
-            self.logger.info(f"PPO training completed for node {{self.node_id}}")
+            self.node_logger.info(f"PPO training completed for node {{self.node_id}}")
             self.training_completed = True
             
             # Keep the node alive but idle
@@ -138,17 +141,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 await asyncio.sleep(1.0)
                 
         except asyncio.CancelledError:
-            self.logger.info(f"Node {{self.node_id}} cancelled")
+            self.node_logger.info(f"Node {{self.node_id}} cancelled")
             raise
         except Exception as e:
-            self.logger.error(f"Error in node {{self.node_id}}: {{e}}")
+            self.node_logger.error(f"Error in node {{self.node_id}}: {{e}}")
             raise
     
     async def compute(self):
         """
         Run IsaacGymEnvs train.py with thread-safe yielding
         """
-        self.logger.info("Starting PPO training with thread-safe yielding")
+        ppo_logger.info("Starting PPO training with thread-safe yielding")
         
         # Check if thread-safe yielding is available
         try:
@@ -157,9 +160,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             loop = asyncio.get_running_loop()
             yielder = ThreadSafeYielder.get_instance()
             await yielder.start(loop)
-            self.logger.info("Thread-safe yielding enabled for PPO training")
+            ppo_logger.info("Thread-safe yielding enabled for PPO training")
         except ImportError:
-            self.logger.info("Thread-safe yielding not available, using standard approach")
+            ppo_logger.info("Thread-safe yielding not available, using standard approach")
         
         # Create configuration for train.py
         train_config = self._create_train_config()
@@ -255,7 +258,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         Run IsaacGymEnvs training with thread-safe yielding.
         This version runs training in a thread pool to avoid blocking the event loop.
         """
-        self.logger.info("Setting up async training wrapper")
+        ppo_logger.info("Setting up async training wrapper")
         
         # Change to IsaacGymEnvs directory
         isaac_gym_envs_path = Path(self.isaac_gym_envs_path)
@@ -288,7 +291,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 
                 # Import and run train.py
                 import runpy
-                self.logger.info("Starting training with runpy")
+                ppo_logger.info("Starting training with runpy")
                 result = runpy.run_path("train.py", run_name="__main__")
                 
                 # Extract metrics
@@ -309,16 +312,16 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         try:
             # Run training in executor to avoid blocking
-            self.logger.info("Running training in executor for proper async/sync isolation")
+            ppo_logger.info("Running training in executor for proper async/sync isolation")
             
             # Use thread pool executor to run sync training code
             metrics = await loop.run_in_executor(None, run_training_with_yielding)
             
-            self.logger.info(f"Training completed with metrics: {{metrics}}")
+            ppo_logger.info(f"Training completed with metrics: {{metrics}}")
             return metrics
             
         except Exception as e:
-            self.logger.error(f"Error during training: {{e}}")
+            ppo_logger.error(f"Error during training: {{e}}")
             raise
     
     def _register_balancing_config(self):
@@ -327,30 +330,30 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             return
             
         # Log the balancing configuration
-        self.logger.info(f"Registering balancing configuration for PPO Agent {self.node_id}")
+        self.node_logger.info(f"Registering balancing configuration for PPO Agent {self.node_id}")
         
         # Log specific targets
         freq = self.balancing_config.get('frequency', {})
         if freq.get('target_hz'):
-            self.logger.info(f"  - Target frequency: {freq['target_hz']} Hz")
+            self.node_logger.info(f"  - Target frequency: {freq['target_hz']} Hz")
         if freq.get('min_hz') or freq.get('max_hz'):
             min_hz = freq.get('min_hz', 'any')
             max_hz = freq.get('max_hz', 'any')
-            self.logger.info(f"  - Frequency range: {min_hz} - {max_hz} Hz")
+            self.node_logger.info(f"  - Frequency range: {min_hz} - {max_hz} Hz")
             
         throughput = self.balancing_config.get('throughput', {})
         if throughput.get('target_percentage'):
-            self.logger.info(f"  - Target throughput: {throughput['target_percentage']}%")
+            self.node_logger.info(f"  - Target throughput: {throughput['target_percentage']}%")
             
         scheduling = self.balancing_config.get('scheduling', {})
         if scheduling.get('priority', 0) > 0:
-            self.logger.info(f"  - Priority: {scheduling['priority']}")
+            self.node_logger.info(f"  - Priority: {scheduling['priority']}")
         if scheduling.get('guaranteed'):
-            self.logger.info(f"  - Guaranteed execution")
+            self.node_logger.info(f"  - Guaranteed execution")
             
         latency = self.balancing_config.get('latency', {})
         if latency.get('max_latency_ms'):
-            self.logger.info(f"  - Max latency: {latency['max_latency_ms']} ms")
+            self.node_logger.info(f"  - Max latency: {latency['max_latency_ms']} ms")
         
         # TODO: Register with Global.register_virtual_monitor(self.node_id, self.balancing_config)
         # This would integrate with the adaptive yielding system

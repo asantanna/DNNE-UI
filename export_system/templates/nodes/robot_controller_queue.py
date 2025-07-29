@@ -27,7 +27,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Ensure action is the right size
         if hasattr(action, '__len__'):
             if len(action) != self.num_joints:
-                self.logger.warning(f"Action size {{len(action)}} != num_joints {{self.num_joints}}")
+                self.node_logger.warning(f"Action size {{len(action)}} != num_joints {{self.num_joints}}")
         
         # Clip to joint limits
         joint_commands = []

@@ -8,6 +8,7 @@ from typing import Dict, Any, List
 from asyncio import Queue
 
 from .exceptions import TrainingCompleteException
+from .globals import dnne_logging
 
 
 class QueueNode(ABC):
@@ -22,7 +23,7 @@ class QueueNode(ABC):
         self.running = False
         self.compute_count = 0
         self.last_compute_time = 0.0
-        self.logger = logging.getLogger(f"Node.{node_id}")
+        self.node_logger = dnne_logging.getLogger(f"node.{node_id}")
     
     def setup_inputs(self, required: List[str], queue_size: int = 100):
         """Setup input queues"""
@@ -50,7 +51,7 @@ class QueueNode(ABC):
     async def run(self):
         """Main execution loop"""
         self.running = True
-        self.logger.info(f"Starting node {self.node_id}")
+        self.node_logger.info(f"Starting node {self.node_id}")
         
         try:
             while self.running:
@@ -73,16 +74,16 @@ class QueueNode(ABC):
         except TrainingCompleteException as e:
             # print(f"[DEBUG] QueueNode.run() caught TrainingCompleteException from node {self.node_id}") #DBG_TAG#
             # print(f"[DEBUG] Exception message: {e}") #DBG_TAG#
-            self.logger.info(f"Node {self.node_id} signaled training complete")
+            self.node_logger.info(f"Node {self.node_id} signaled training complete")
             raise  # Re-raise to propagate to GraphRunner
         except asyncio.CancelledError:
-            self.logger.info(f"Node {self.node_id} cancelled")
+            self.node_logger.info(f"Node {self.node_id} cancelled")
             raise
         except Exception as e:
             # Catch any other exceptions and exit immediately
-            self.logger.error(f"FATAL ERROR in node {self.node_id}: {e}")
+            self.node_logger.error(f"FATAL ERROR in node {self.node_id}: {e}")
             import traceback
-            self.logger.error(traceback.format_exc())
+            self.node_logger.error(traceback.format_exc())
             print(f"\n❌ FATAL ERROR in node {self.node_id}: {e}")
             print("Exiting immediately due to node error.")
             import sys
@@ -102,7 +103,7 @@ class SensorNode(QueueNode):
     async def run(self):
         """Sensor run loop with fixed rate"""
         self.running = True
-        self.logger.info(f"Starting sensor {self.node_id} at {self.update_rate}Hz")
+        self.node_logger.info(f"Starting sensor {self.node_id} at {self.update_rate}Hz")
         
         try:
             while self.running:
@@ -125,13 +126,13 @@ class SensorNode(QueueNode):
                 self.last_compute_time = time.time() - start_time
                 
         except asyncio.CancelledError:
-            self.logger.info(f"Sensor {self.node_id} cancelled")
+            self.node_logger.info(f"Sensor {self.node_id} cancelled")
             raise
         except Exception as e:
             # Catch any other exceptions and exit immediately
-            self.logger.error(f"FATAL ERROR in sensor {self.node_id}: {e}")
+            self.node_logger.error(f"FATAL ERROR in sensor {self.node_id}: {e}")
             import traceback
-            self.logger.error(traceback.format_exc())
+            self.node_logger.error(traceback.format_exc())
             print(f"\n❌ FATAL ERROR in sensor {self.node_id}: {e}")
             print("Exiting immediately due to sensor error.")
             import sys
