@@ -443,8 +443,8 @@ class Global:
         if force_print:
             print(report)
         else:
-            # For periodic reports, use the balancing logger
-            balancing_logger.info(report)
+            # For periodic reports, use the balancing logger at debug level
+            balancing_logger.debug(report)
         
         # Force flush to ensure output is visible
         import sys
