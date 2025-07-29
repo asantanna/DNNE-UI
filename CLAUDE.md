@@ -21,8 +21,8 @@ source /home/asantanna/miniconda/bin/activate DNNE_PY38
 # Start server (Windows only)
 python main.py
 
-# Export workflow
-python claude_scripts/programmatic_export.py [workflow_name]
+# Export workflow (workflow name required)
+python claude_scripts/programmatic_export.py "workflow name"
 
 # Run exported code
 cd export_system/exports/{workflow_name}
@@ -48,3 +48,7 @@ For detailed documentation, see:
 - Always activate conda environment before running
 - Import isaacgym before torch to avoid conflicts
 - Use `dnne-test` script for running tests
+
+## Claude Code Tips
+- **Bash pipes don't work**: Redirect output to `/tmp/<workflow_name>_output.txt` then grep the file
+- **Export workflows**: Use `python claude_scripts/programmatic_export.py "workflow name"` (never edit this file)

@@ -70,12 +70,16 @@ from framework import GraphRunner
 # NOTE: Removed 'from nodes import *' - caused double Isaac Gym initialization
 # All required nodes are imported explicitly above
 
-def configure_logging(verbose=False):
-    """Configure logging based on verbose flag"""
-    if verbose:
+def configure_logging(verbose=False, debug=False):
+    """Configure logging based on verbosity flags"""
+    if debug:
+        # Debug mode shows everything (DEBUG and above)
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    elif verbose:
+        # Verbose mode shows INFO and above
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(message)s')
     else:
-        # Only show WARNING and above for quiet mode
+        # Quiet mode only shows WARNING and above
         logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(name)s - %(message)s')
 
 async def main():
@@ -83,7 +87,9 @@ async def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='DNNE Generated Training')
     parser.add_argument('--verbose', '-v', action='store_true',
-                       help='Enable verbose batch-level logging')
+                       help='Enable verbose batch-level logging (INFO level)')
+    parser.add_argument('--debug', '-d', action='store_true',
+                       help='Enable debug logging (DEBUG level, includes verbose)')
     parser.add_argument('--test-mode', action='store_true',
                        help='Run in test mode with limited duration and performance tracking')
     parser.add_argument('--save-checkpoint', action='store_true',
@@ -163,6 +169,7 @@ async def main():
     
     g.initialize(
         verbose=args.verbose,
+        debug=args.debug,
         save_checkpoint_dir=save_checkpoint_dir,
         load_checkpoint_dir=load_checkpoint_dir,
         visual_mode=args.visual,
@@ -172,7 +179,7 @@ async def main():
         # epochs_override is deprecated - use node-specific config instead
         fixed_seed=args.fixed_seed
     )
-    configure_logging(args.verbose)
+    configure_logging(args.verbose, args.debug)
 
     # Set fixed seed if provided for deterministic execution
     if args.fixed_seed is not None:
@@ -198,8 +205,10 @@ async def main():
         print("🔍 Inference mode enabled - no training or gradients")
     if args.dnne_profiling:
         print("⏱️  DNNE profiling enabled - timing C++ operations")
-    if args.verbose:
-        print("📝 Verbose mode enabled - showing all batch details")
+    if args.debug:
+        print("🔍 Debug mode enabled - showing detailed diagnostic information")
+    elif args.verbose:
+        print("📝 Verbose mode enabled - showing batch-level progress")
     else:
         print("📊 Quiet mode - showing epoch summaries only")
     if save_checkpoint_dir:
