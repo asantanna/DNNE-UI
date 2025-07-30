@@ -107,15 +107,7 @@ class ExportableNode:
     @classmethod
     def get_initial_output_schema(cls, node_data: Dict) -> Dict[str, Any]:
         """Return initial schema with unresolved values as None. Override in subclasses."""
-        return {
-            "outputs": {
-                "output": {
-                    "type": "unknown",
-                    "shape": None
-                }
-            },
-            "num_samples": 1
-        }
+        raise NotImplementedError(f"Subclass {cls.__name__} must implement get_initial_output_schema() method")
     
     @classmethod
     def get_output_schema(cls, node_data: Dict, connections: Dict = None, 
@@ -269,8 +261,8 @@ class ExportableNode:
         Resolve a specific None value in the schema.
         Subclasses should override this to implement custom resolution logic.
         """
-        return None
-    
+        raise NotImplementedError(f"Subclass {cls.__name__} must implement _resolve_schema_value() method")
+
     @classmethod
     def get_output_tensor_size(cls, node_data: Dict, output_name: str, connections: Dict) -> int:
         """Get the tensor size for a specific output, potentially querying connected nodes"""
@@ -564,6 +556,12 @@ class GraphExporter:
     def _load_template(self, template_name: str) -> str:
         """Load template file content"""
         template_path = self.templates_dir / template_name
+        
+        # If file doesn't exist and ends with .py, try .tpl
+        if not template_path.exists() and template_name.endswith('.py'):
+            tpl_name = template_name[:-3] + '.tpl'
+            template_path = self.templates_dir / tpl_name
+            
         if not template_path.exists():
             raise FileNotFoundError(f"Template not found: {template_path}")
         return template_path.read_text(encoding='utf-8')

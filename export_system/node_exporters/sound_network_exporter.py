@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+"""
+Exporter for SoundNetwork node using queue-based template
+"""
+
+from ..graph_exporter import ExportableNode
+
+class SoundNetworkExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/sound_network_queue.tpl"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'model', 'default': 'wav2vec'},
+            {'name': 'output_dim', 'default': 256},
+            {'name': 'device', 'default': 'cuda'}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "SoundNetworkNode",
+            "MODEL_TYPE": params['model'],
+            "OUTPUT_DIM": params['output_dim'],
+            "DEVICE": params['device']
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return [
+            "import torch",
+            "import torch.nn as nn",
+        ]

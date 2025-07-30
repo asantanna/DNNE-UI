@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""
+Exporter for BatchSampler node using queue-based template
+"""
+
+from ..graph_exporter import ExportableNode
+
+class BatchSamplerExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/batch_sampler_queue.tpl"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'batch_size', 'widget_index': 0, 'default': 32},
+            {'name': 'shuffle', 'widget_index': 1, 'default': True},
+            {'name': 'seed', 'widget_index': 2, 'default': 42}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "BatchSamplerNode",
+            "BATCH_SIZE": params['batch_size'],
+            "SHUFFLE": params['shuffle'],
+            "SEED": params['seed']
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return [
+            "import torch",
+            "from torch.utils.data import DataLoader",
+        ]
+    
+    @classmethod
+    def get_output_names(cls):
+        return ["dataloader", "schema"]
+    
+    @classmethod
+    def get_input_names(cls):
+        return ["dataset", "schema"]
+    
+    @classmethod
+    def get_initial_output_schema(cls, node_data):
+        """BatchSampler passes through dataset schema but wraps data in DataLoader"""
+        return {
+            "outputs": {
+                "dataloader": {
+                    "type": "dataloader",
+                    "batch_size": node_data.get("widgets_values", [32])[0] if node_data.get("widgets_values") else 32,
+                    "shuffle": node_data.get("widgets_values", [32, True])[1] if len(node_data.get("widgets_values", [])) > 1 else True,
+                    "contains_schema": True  # Indicates this contains schema information
+                },
+                "schema": {
+                    "type": "schema",
+                    "value": None  # Will be resolved from input
+                }
+            }
+        }
+    
+    @classmethod
+    def _resolve_schema_value(cls, key, parent_schema, node_data, connections, 
+                            node_registry, all_nodes, all_links):
+        """Pass through the schema from input"""
+        if key == "value" and parent_schema.get("type") == "schema":
+            # Get the schema from our "schema" input
+            input_schema = cls.get_input_schema(node_data, connections, 
+                                              node_registry, all_nodes, all_links)
+            
+            if "schema" in input_schema and input_schema["schema"]:
+                return input_schema["schema"]
+                
+        return None
+    
+
+# Registration function
+def register_ml_exporters(exporter):
+    """Register all ML node exporters"""
+    exporter.register_node("MNISTDataset", MNISTDatasetExporter)
+    exporter.register_node("CIFAR10Dataset", CIFAR10DatasetExporter)
+    exporter.register_node("LinearLayer", LinearLayerExporter)
+    exporter.register_node("Loss", LossExporter)
+    exporter.register_node("Optimizer", OptimizerExporter)
+    exporter.register_node("Display", DisplayExporter)
+    exporter.register_node("GetBatch", GetBatchExporter)
+    exporter.register_node("SGDOptimizer", SGDOptimizerExporter)
+    exporter.register_node("TrainingStep", TrainingStepExporter)
+    exporter.register_node("EpochTracker", EpochTrackerExporter)
+    exporter.register_node("BatchSampler", BatchSamplerExporter)
+    exporter.register_node("CrossEntropyLoss", CrossEntropyLossExporter)
+    exporter.register_node("Network", NetworkExporter)
+    # Aliases for compatibility
+    exporter.register_node("Linear", LinearLayerExporter)

@@ -1,44 +1,102 @@
 """
 Node exporter classes that handle code generation using queue-based templates
+Updated to use flat structure with individual exporter files
 """
 
-from .ml_nodes import (
-    MNISTDatasetExporter,
-    CIFAR10DatasetExporter,
-    LinearLayerExporter,
-    LossExporter,
-    OptimizerExporter,
-    DisplayExporter,
-    register_ml_exporters
-)
+# ML Exporters
+from .mnist_dataset_exporter import MNISTDatasetExporter
+from .cifar10_dataset_exporter import CIFAR10DatasetExporter
+from .batch_sampler_exporter import BatchSamplerExporter
+from .get_batch_exporter import GetBatchExporter
+from .linear_layer_exporter import LinearLayerExporter
+from .conv2d_layer_exporter import Conv2DLayerExporter
+from .activation_exporter import ActivationExporter
+from .dropout_exporter import DropoutExporter
+from .batchnorm_exporter import BatchNormExporter
+from .flatten_exporter import FlattenExporter
+from .network_exporter import NetworkExporter
+from .cross_entropy_loss_exporter import CrossEntropyLossExporter
+from .accuracy_exporter import AccuracyExporter
+from .sgd_optimizer_exporter import SGDOptimizerExporter
+from .training_step_exporter import TrainingStepExporter
+from .epoch_tracker_exporter import EpochTrackerExporter
+from .tensor_visualizer_exporter import TensorVisualizerExporter
+from .loss_exporter import LossExporter
+from .optimizer_exporter import OptimizerExporter
+from .display_exporter import DisplayExporter
 
-from .robotics_nodes import (
-    CameraSensorExporter,
-    IMUSensorExporter,
-    VisionNetworkExporter,
-    SoundNetworkExporter,
-    DecisionNetworkExporter,
-    RobotControllerExporter,
-    IsaacGymEnvsExporter,
-    CartpoleActionNodeExporter,
-    CartpoleRewardNodeExporter,
-    register_robotics_exporters
-)
+# Robotics Exporters
+from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
+from .cartpole_action_exporter import CartpoleActionExporter
+from .cartpole_reward_exporter import CartpoleRewardExporter
+from .camera_sensor_exporter import CameraSensorExporter
+from .imu_sensor_exporter import IMUSensorExporter
+from .vision_network_exporter import VisionNetworkExporter
+from .sound_network_exporter import SoundNetworkExporter
+from .decision_network_exporter import DecisionNetworkExporter
+from .robot_controller_exporter import RobotControllerExporter
 
-from .rl_nodes import (
-    PPOConfigExporter,
-    PPOAgentExporter,
-    register_rl_exporters
-)
+# RL Exporters
+from .ppo_config_exporter import PPOConfigExporter
+from .ppo_agent_exporter import PPOAgentExporter
 
-from .utility_nodes import (
-    ORNodeExporter,
-    BalancingNodeExporter,
-    BalancingConfigExporter,
-    register_utility_exporters
-)
+# Utility Exporters
+from .or_node_exporter import ORNodeExporter
+from .balancing_node_exporter import BalancingNodeExporter
+from .balancing_config_exporter import BalancingConfigExporter
 
-# Register all exporters
+
+# Registration functions
+def register_ml_exporters(exporter):
+    """Register all ML node exporters"""
+    exporter.register_node("MNISTDataset", MNISTDatasetExporter)
+    exporter.register_node("CIFAR10Dataset", CIFAR10DatasetExporter)
+    exporter.register_node("BatchSampler", BatchSamplerExporter)
+    exporter.register_node("GetBatch", GetBatchExporter)
+    exporter.register_node("LinearLayer", LinearLayerExporter)
+    exporter.register_node("Conv2DLayer", Conv2DLayerExporter)
+    exporter.register_node("Activation", ActivationExporter)
+    exporter.register_node("Dropout", DropoutExporter)
+    exporter.register_node("BatchNorm", BatchNormExporter)
+    exporter.register_node("Flatten", FlattenExporter)
+    exporter.register_node("Network", NetworkExporter)
+    exporter.register_node("CrossEntropyLoss", CrossEntropyLossExporter)
+    exporter.register_node("Accuracy", AccuracyExporter)
+    exporter.register_node("SGDOptimizer", SGDOptimizerExporter)
+    exporter.register_node("TrainingStep", TrainingStepExporter)
+    exporter.register_node("EpochTracker", EpochTrackerExporter)
+    exporter.register_node("TensorVisualizer", TensorVisualizerExporter)
+    exporter.register_node("Loss", LossExporter)
+    exporter.register_node("Optimizer", OptimizerExporter)
+    exporter.register_node("Display", DisplayExporter)
+    
+    # Aliases for compatibility
+    exporter.register_node("Linear", LinearLayerExporter)
+
+def register_robotics_exporters(exporter):
+    """Register all robotics node exporters"""
+    exporter.register_node("IsaacGymEnvs", IsaacGymEnvsExporter)
+    exporter.register_node("CartpoleAction", CartpoleActionExporter)
+    exporter.register_node("CartpoleReward", CartpoleRewardExporter)
+    exporter.register_node("CameraSensor", CameraSensorExporter)
+    exporter.register_node("IMUSensor", IMUSensorExporter)
+    exporter.register_node("VisionNetwork", VisionNetworkExporter)
+    exporter.register_node("SoundNetwork", SoundNetworkExporter)
+    exporter.register_node("DecisionNetwork", DecisionNetworkExporter)
+    exporter.register_node("RobotController", RobotControllerExporter)
+
+def register_rl_exporters(exporter):
+    """Register all RL node exporters"""
+    exporter.register_node("PPOConfig", PPOConfigExporter)
+    exporter.register_node("PPOAgent", PPOAgentExporter)
+
+def register_utility_exporters(exporter):
+    """Register all utility node exporters"""
+    exporter.register_node("ORNode", ORNodeExporter)
+    exporter.register_node("BalancingNode", BalancingNodeExporter)
+    exporter.register_node("BalancingConfig", BalancingConfigExporter)
+
+# Main registration function
 def register_all_exporters(exporter):
     """Register all node exporters with the graph exporter"""
     register_ml_exporters(exporter)
@@ -55,20 +113,35 @@ def register_all_exporters(exporter):
 __all__ = [
     # ML nodes
     'MNISTDatasetExporter',
-    'LinearLayerExporter', 
+    'CIFAR10DatasetExporter',
+    'BatchSamplerExporter',
+    'GetBatchExporter',
+    'LinearLayerExporter',
+    'Conv2DLayerExporter',
+    'ActivationExporter',
+    'DropoutExporter',
+    'BatchNormExporter',
+    'FlattenExporter',
+    'NetworkExporter',
+    'CrossEntropyLossExporter',
+    'AccuracyExporter',
+    'SGDOptimizerExporter',
+    'TrainingStepExporter',
+    'EpochTrackerExporter',
+    'TensorVisualizerExporter',
     'LossExporter',
     'OptimizerExporter',
     'DisplayExporter',
     # Robotics nodes
+    'IsaacGymEnvsExporter',
+    'CartpoleActionExporter',
+    'CartpoleRewardExporter',
     'CameraSensorExporter',
     'IMUSensorExporter',
     'VisionNetworkExporter',
     'SoundNetworkExporter',
     'DecisionNetworkExporter',
     'RobotControllerExporter',
-    'IsaacGymEnvsExporter',
-    'CartpoleActionNodeExporter',
-    'CartpoleRewardNodeExporter',
     # RL nodes
     'PPOConfigExporter',
     'PPOAgentExporter',

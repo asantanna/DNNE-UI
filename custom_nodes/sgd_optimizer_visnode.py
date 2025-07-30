@@ -1,0 +1,79 @@
+"""
+SGD Optimizer Node
+Stochastic Gradient Descent optimizer for training neural networks.
+"""
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from inspect import cleandoc
+from custom_nodes.base import RoboticsNodeBase, get_context
+from custom_nodes.node_colors import get_node_colors
+
+
+class SGDOptimizerNode(RoboticsNodeBase):
+    """SGD Optimizer Node
+    Stochastic Gradient Descent optimizer for training neural networks."""
+    
+    DESCRIPTION = cleandoc(__doc__)
+    COLOR = get_node_colors("optimizer")["color"]
+    BGCOLOR = get_node_colors("optimizer")["bgcolor"]
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model": ("MODEL", {
+                    "tooltip": "Neural network model to optimize. Must have parameters to train."
+                }),
+                "learning_rate": ("FLOAT", {
+                    "default": 0.01,
+                    "min": 0.0001,
+                    "max": 1.0,
+                    "step": 0.0001,
+                    "tooltip": "Learning rate controls step size. Start with 0.01 or 0.001, adjust based on loss curve."
+                }),
+                "momentum": ("FLOAT", {
+                    "default": 0.9,
+                    "min": 0.0,
+                    "max": 0.999,
+                    "step": 0.001,
+                    "tooltip": "Momentum factor accelerates SGD in relevant direction. 0.9 is a good default."
+                }),
+                "weight_decay": ("FLOAT", {
+                    "default": 0.0,
+                    "min": 0.0,
+                    "max": 0.1,
+                    "step": 0.0001,
+                    "tooltip": "L2 penalty (regularization). Helps prevent overfitting. Try 0.0001 to 0.001."
+                })
+            }
+        }
+
+    RETURN_TYPES = ("OPTIMIZER",)
+    RETURN_NAMES = ("optimizer",)
+    FUNCTION = "create_optimizer"
+    CATEGORY = "ml"
+
+    def create_optimizer(self, model, learning_rate, momentum, weight_decay):
+        if model is None:
+            raise ValueError("Model is required for optimizer")
+        
+        # Create SGD optimizer
+        optimizer = torch.optim.SGD(
+            model.parameters(),
+            lr=learning_rate,
+            momentum=momentum,
+            weight_decay=weight_decay
+        )
+        
+        return (optimizer,)
+
+# Node registration
+NODE_CLASS_MAPPINGS = {
+    "SGDOptimizer": SGDOptimizerNode
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "SGDOptimizer": "SGD Optimizer"
+}

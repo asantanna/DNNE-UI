@@ -22,8 +22,10 @@ VALID_TYPES = {
 }
 
 # Add to ComfyUI's type registry
-from custom_nodes.robotics_nodes.robotics_types import ROBOTICS_TYPES
+from custom_nodes.robotics_types import ROBOTICS_TYPES, ML_TYPES, RL_TYPES
 VALID_TYPES.update(ROBOTICS_TYPES)
+VALID_TYPES.update(ML_TYPES)
+VALID_TYPES.update(RL_TYPES)
 
 # Base node class
 class DNNENode:
@@ -164,8 +166,12 @@ def load_custom_nodes():
         print(f"Custom nodes directory not found: {custom_nodes_dir}")
         return
     
+    print(f"Scanning directory: {custom_nodes_dir}")
+    items = os.listdir(custom_nodes_dir)
+    print(f"Found {len(items)} items in custom_nodes")
+    
     # Look for Python files and packages in custom_nodes
-    for item in os.listdir(custom_nodes_dir):
+    for item in sorted(items):
         if item.startswith('.') or item.startswith('_'):
             continue
             
@@ -180,6 +186,8 @@ def load_custom_nodes():
             elif os.path.isdir(item_path) and os.path.exists(os.path.join(item_path, '__init__.py')):
                 # Load Python package
                 load_custom_node_package(item_path, item)
+            else:
+                pass
                 
         except Exception as e:
             print(f"Failed to load custom node {item}: {e}")
