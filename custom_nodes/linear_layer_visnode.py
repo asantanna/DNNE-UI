@@ -43,6 +43,11 @@ class LinearLayerNode(RoboticsNodeBase):
                 "bias": ("BOOLEAN", {
                     "default": True,
                     "tooltip": "Whether to include a learnable bias term. Set to False for certain normalization schemes."
+                }),
+                "weight_init": (["auto", "kaiming_normal", "kaiming_uniform", "xavier_normal", "xavier_uniform", "normal", "uniform", "none"], {
+                    "default": "auto",
+                    "widget": {"name": "weight_init"},
+                    "tooltip": "Weight initialization method. 'auto' chooses based on activation function: Kaiming for ReLU/LeakyReLU, Xavier for tanh/sigmoid"
                 })
             }
         }
@@ -56,7 +61,7 @@ class LinearLayerNode(RoboticsNodeBase):
         super().__init__()
         self.layer = None
 
-    def apply_layer(self, input, in_features, out_features, activation, bias):
+    def apply_layer(self, input, in_features, out_features, activation, bias, weight_init):
         # Create layer if not exists
         if self.layer is None or self.layer.in_features != in_features or self.layer.out_features != out_features:
             self.layer = nn.Linear(in_features, out_features, bias=bias)

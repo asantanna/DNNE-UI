@@ -13,12 +13,16 @@ class EpochTrackerExporter(ExportableNode):
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
         # Use universal parameter reader for consistent data access
-        max_epochs = cls.get_node_parameter(node_data, 'max_epochs', default_value=None, widget_index=0)
+        # The widgets_values array has [false, 0, 0, 5, 10] so max_epochs is at index 3
+        param_specs = [
+            {'name': 'max_epochs', 'widget_index': 3, 'default': 100},
+            {'name': 'early_stop_patience', 'widget_index': 4, 'default': 10}
+        ]
         
-        if max_epochs is None:
-            raise ValueError(f"EpochTracker node {node_id}: missing max_epochs parameter. "
-                           f"Available in node_data: inputs={node_data.get('inputs', {}).keys()}, "
-                           f"widgets_values={node_data.get('widgets_values', [])}")
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        max_epochs = params['max_epochs']
+        early_stop_patience = params['early_stop_patience']
         
         if not isinstance(max_epochs, (int, float)) or max_epochs <= 0:
             raise ValueError(f"EpochTracker node {node_id}: max_epochs must be a positive number, got: {max_epochs}")
@@ -26,7 +30,8 @@ class EpochTrackerExporter(ExportableNode):
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "EpochTrackerNode",
-            "MAX_EPOCHS": int(max_epochs)
+            "MAX_EPOCHS": int(max_epochs),
+            "EARLY_STOP_PATIENCE": int(early_stop_patience)
         }
     
     @classmethod
@@ -39,7 +44,7 @@ class EpochTrackerExporter(ExportableNode):
     
     @classmethod
     def get_input_names(cls):
-        return ["epoch_stats", "loss", "accuracy", "max_epochs"]
+        return ["epoch_stats", "loss", "accuracy"]
     
     @classmethod
     def get_initial_output_schema(cls, node_data):

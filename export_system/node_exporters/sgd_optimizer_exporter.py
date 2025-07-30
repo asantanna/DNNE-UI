@@ -15,7 +15,8 @@ class SGDOptimizerExporter(ExportableNode):
         # Use universal parameter reader for consistent data access
         param_specs = [
             {'name': 'learning_rate', 'widget_index': 0, 'default': 0.01},
-            {'name': 'momentum', 'widget_index': 1, 'default': 0.9}
+            {'name': 'momentum', 'widget_index': 1, 'default': 0.9},
+            {'name': 'weight_decay', 'widget_index': 2, 'default': 0.0}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
@@ -25,7 +26,7 @@ class SGDOptimizerExporter(ExportableNode):
             "CLASS_NAME": "SGDOptimizerNode",
             "LEARNING_RATE": params['learning_rate'],
             "MOMENTUM": params['momentum'],
-            "WEIGHT_DECAY": 0.0  # Not configurable in this node type
+            "WEIGHT_DECAY": params['weight_decay']
         }
     
     @classmethod
@@ -39,7 +40,7 @@ class SGDOptimizerExporter(ExportableNode):
     
     @classmethod
     def get_input_names(cls):
-        return ["network"]  # Connection from Network node
+        return ["model"]  # Connection from Network node
     
     @classmethod
     def get_initial_output_schema(cls, node_data):

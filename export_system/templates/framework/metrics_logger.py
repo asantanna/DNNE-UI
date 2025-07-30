@@ -70,7 +70,7 @@ class MetricsLogger:
         
         # Setup logger
         self.logger = logging.getLogger("MetricsLogger")
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.WARNING)
         
         # File handler for metrics
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

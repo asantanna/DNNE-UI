@@ -17,7 +17,8 @@ class LinearLayerExporter(ExportableNode):
             {'name': 'output_size', 'widget_index': 0, 'default': 128},
             {'name': 'bias', 'widget_index': 1, 'default': True},
             {'name': 'activation', 'widget_index': 2, 'default': 'relu'},
-            {'name': 'dropout', 'widget_index': 3, 'default': 0.0}
+            {'name': 'dropout', 'widget_index': 3, 'default': 0.0},
+            {'name': 'weight_init', 'widget_index': 4, 'default': 'auto'}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
@@ -38,7 +39,8 @@ class LinearLayerExporter(ExportableNode):
             "OUTPUT_SIZE": params['output_size'],
             "ACTIVATION_VALUE": params['activation'],
             "BIAS_VALUE": params['bias'],
-            "DROPOUT": params['dropout']
+            "DROPOUT": params['dropout'],
+            "WEIGHT_INIT": params['weight_init']
         }
     
     @classmethod

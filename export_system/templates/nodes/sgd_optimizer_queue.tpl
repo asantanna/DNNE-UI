@@ -1,11 +1,17 @@
 # Template variables - replaced during export
+template_vars = {
+    "NODE_ID": "optimizer_1",
+    "LEARNING_RATE": 0.01,
+    "MOMENTUM": 0.9,
+    "WEIGHT_DECAY": 0.0
+}
 
 class SGDOptimizerNode_{NODE_ID}(QueueNode):
     """SGD Optimizer node"""
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=["network"])  # Connection from network node
+        self.setup_inputs(required=["model"])  # Connection from network node
         self.setup_outputs(["optimizer"])
         
         # Optimizer parameters
@@ -20,12 +26,12 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
         self.node_logger.info(f"Starting node {self.node_id}")
         
         try:
-            # Wait for network connection (network node will send itself)
-            network_node = await self.input_queues["network"].get()
+            # Wait for model connection (network node will send itself)
+            model_node = await self.input_queues["model"].get()
             
-            # Create optimizer using the connected network node's parameters
-            if network_node and hasattr(network_node, 'get_parameters'):
-                all_params = list(network_node.get_parameters())
+            # Create optimizer using the connected model node's parameters
+            if model_node and hasattr(model_node, 'get_parameters'):
+                all_params = list(model_node.get_parameters())
                 
                 self.optimizer = optim.SGD(
                     all_params,
@@ -42,7 +48,7 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
                 while self.running:
                     await asyncio.sleep(1.0)
             else:
-                self.node_logger.error("No network node received - cannot create optimizer")
+                self.node_logger.error("No model node received - cannot create optimizer")
                 
         except asyncio.CancelledError:
             self.node_logger.info(f"Node {self.node_id} cancelled")

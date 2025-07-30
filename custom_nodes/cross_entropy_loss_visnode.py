@@ -24,31 +24,29 @@ class CrossEntropyLossNode(RoboticsNodeBase):
         return {
             "required": {
                 "predictions": ("TENSOR", {
-                    "tooltip": "Model predictions (logits). Shape: (batch_size, num_classes). Raw outputs before softmax."
+                    "tooltip": "Model predictions/logits tensor with shape (batch_size, num_classes). Raw output from neural network before softmax."
                 }),
-                "targets": ("TENSOR", {
-                    "tooltip": "Ground truth labels. Shape: (batch_size,) with class indices as integers."
+                "labels": ("TENSOR", {
+                    "tooltip": "Ground truth class labels tensor with shape (batch_size,). Integer values representing correct class indices (0 to num_classes-1)."
                 }),
-                "reduction": (["mean", "sum", "none"], {
-                    "default": "mean",
-                    "tooltip": "How to reduce the loss: 'mean' averages over batch, 'sum' totals, 'none' returns per-sample losses."
-                })
             }
         }
 
     RETURN_TYPES = ("TENSOR", "FLOAT")
-    RETURN_NAMES = ("loss", "loss_value")
+    RETURN_NAMES = ("loss", "accuracy")
     FUNCTION = "compute_loss"
     CATEGORY = "ml"
 
-    def compute_loss(self, predictions, targets, reduction):
-        # Compute cross entropy loss
-        loss = F.cross_entropy(predictions, targets, reduction=reduction)
+    def compute_loss(self, predictions, labels):
+        loss = F.cross_entropy(predictions, labels)
         
-        # Get scalar value for monitoring
-        loss_value = loss.item() if loss.dim() == 0 else loss.mean().item()
+        # Calculate accuracy
+        _, predicted = torch.max(predictions, 1)
+        total = labels.size(0)
+        correct = (predicted == labels).sum().item()
+        accuracy = correct / total if total > 0 else 0.0
         
-        return (loss, loss_value)
+        return (loss, accuracy)
 
 # Node registration
 NODE_CLASS_MAPPINGS = {

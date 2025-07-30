@@ -22,8 +22,11 @@ web/
 !/web/extensions/core/
 /tests-ui/data/object_info.json
 
-/user/
-!/user/default/workflows/
+# Ignore user directory except for default workflows
+user/*
+!user/default/
+user/default/*
+!user/default/workflows/
 
 *.log
 web_custom_versions/
