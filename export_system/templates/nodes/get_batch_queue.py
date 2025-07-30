@@ -106,10 +106,6 @@ class GetBatchNode_{NODE_ID}(QueueNode):
                 "completed": False
             }
         
-        # Yield after batch generation to allow other workflows to run
-        # TODO: Determine subgraph from workflow connections
-        await g.async_adaptive_yield(subgraph="mnist", is_item_ref=False)
-        
         return {
             "images": images,
             "labels": labels,

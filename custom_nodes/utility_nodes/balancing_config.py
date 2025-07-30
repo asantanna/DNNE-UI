@@ -12,6 +12,7 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from robotics_nodes.base_node import RoboticsNodeBase
+from custom_nodes.node_colors import get_node_colors
 
 
 class BalancingConfig(RoboticsNodeBase):
@@ -104,6 +105,8 @@ class BalancingConfig(RoboticsNodeBase):
     RETURN_NAMES = ("config",)
     FUNCTION = "create_config"
     DESCRIPTION = cleandoc(__doc__)
+    COLOR = get_node_colors("balancing")["color"]
+    BGCOLOR = get_node_colors("balancing")["bgcolor"]
     
     def create_config(self, enabled=True, min_hz=-1.0, max_hz=-1.0, target_hz=-1.0,
                      target_percentage=-1.0, priority=0, guaranteed=False,

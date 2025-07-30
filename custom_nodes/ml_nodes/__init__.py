@@ -4,7 +4,7 @@ Machine Learning nodes including supervised learning and reinforcement learning
 """
 
 # Import all node classes
-from .data_nodes import MNISTDatasetNode, BatchSamplerNode, GetBatchNode
+from .data_nodes import MNISTDatasetNode, CIFAR10DatasetNode, BatchSamplerNode, GetBatchNode
 from .layer_nodes import (
     NetworkNode, LinearLayerNode, Conv2DLayerNode, ActivationNode, 
     DropoutNode, BatchNormNode, FlattenNode
@@ -19,6 +19,7 @@ from .visualization_nodes import TensorVisualizerNode
 _ML_NODES = [
     # Data nodes
     ("MNISTDataset", MNISTDatasetNode, "MNIST Dataset"),
+    ("CIFAR10Dataset", CIFAR10DatasetNode, "CIFAR-10 Dataset"),
     ("BatchSampler", BatchSamplerNode, "Batch Sampler"),
     ("GetBatch", GetBatchNode, "Get Batch"),
     

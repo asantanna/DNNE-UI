@@ -105,8 +105,8 @@ class ExportableNode:
         return result
     
     @classmethod
-    def get_output_schema(cls, node_data: Dict) -> Dict[str, Any]:
-        """Return schema describing the outputs of this node type"""
+    def get_initial_output_schema(cls, node_data: Dict) -> Dict[str, Any]:
+        """Return initial schema with unresolved values as None. Override in subclasses."""
         return {
             "outputs": {
                 "output": {
@@ -116,6 +116,160 @@ class ExportableNode:
             },
             "num_samples": 1
         }
+    
+    @classmethod
+    def get_output_schema(cls, node_data: Dict, connections: Dict = None, 
+                         node_registry: Dict = None, all_nodes: List = None, 
+                         all_links: List = None) -> Dict[str, Any]:
+        """
+        Return schema describing the outputs of this node type.
+        Resolves any None values by querying inputs if needed.
+        """
+        # For backward compatibility, if no connections provided, return initial schema
+        if connections is None:
+            return cls.get_initial_output_schema(node_data)
+        
+        # Check if we have cached the output schema
+        cache_key = f"output_schema_{id(node_data)}"
+        if hasattr(cls, '_schema_cache') and cache_key in cls._schema_cache:
+            return cls._schema_cache[cache_key]
+        
+        # Get initial schema and resolve None values
+        schema = cls.get_initial_output_schema(node_data)
+        schema_copy = json.loads(json.dumps(schema))  # Deep copy
+        
+        # Scan for None values and resolve them
+        if cls._resolve_schema_nones(schema_copy, node_data, connections, 
+                                     node_registry, all_nodes, all_links):
+            # Cache the resolved schema
+            if not hasattr(cls, '_schema_cache'):
+                cls._schema_cache = {}
+            cls._schema_cache[cache_key] = schema_copy
+        
+        return schema_copy
+    
+    @classmethod
+    def get_input_schema(cls, node_data: Dict, connections: Dict,
+                        node_registry: Dict, all_nodes: List, 
+                        all_links: List) -> Dict[str, Any]:
+        """
+        Get schema for all inputs by querying connected nodes.
+        """
+        # Check if we have cached the input schema
+        cache_key = f"input_schema_{id(node_data)}"
+        if hasattr(cls, '_schema_cache') and cache_key in cls._schema_cache:
+            return cls._schema_cache[cache_key]
+        
+        # Build input schema by querying each connected input
+        input_schema = {}
+        input_names = cls.get_input_names()
+        
+        for input_name in input_names:
+            if "inputs" in connections and input_name in connections["inputs"]:
+                input_info = connections["inputs"][input_name]
+                source_node_id = input_info["from_node"]
+                source_output_slot = input_info["from_slot"]
+                
+                # Find the source node
+                source_node_data = None
+                source_node_type = None
+                for node in all_nodes:
+                    if str(node["id"]) == source_node_id:
+                        source_node_data = node
+                        source_node_type = node.get("class_type") or node.get("type")
+                        break
+                
+                if source_node_data and source_node_type in node_registry:
+                    source_node_class = node_registry[source_node_type]
+                    
+                    # Create a temporary exporter to get connections for the source node
+                    temp_exporter = GraphExporter()
+                    temp_exporter.node_registry = node_registry
+                    source_connections = temp_exporter._get_node_connections(source_node_id, all_links, all_nodes)
+                    
+                    # Get schema from the source node's specific output
+                    source_output_schema = source_node_class.get_output_schema_by_connector(
+                        source_output_slot, source_node_data, source_connections,
+                        node_registry, all_nodes, all_links
+                    )
+                    
+                    input_schema[input_name] = source_output_schema
+            else:
+                input_schema[input_name] = None
+        
+        # Cache the resolved schema
+        if not hasattr(cls, '_schema_cache'):
+            cls._schema_cache = {}
+        cls._schema_cache[cache_key] = input_schema
+        
+        return input_schema
+    
+    @classmethod
+    def get_output_schema_by_connector(cls, connector_slot: int, node_data: Dict,
+                                     connections: Dict, node_registry: Dict,
+                                     all_nodes: List, all_links: List) -> Dict[str, Any]:
+        """
+        Get schema for a specific output connector.
+        """
+        # Get the full output schema
+        full_schema = cls.get_output_schema(node_data, connections, 
+                                          node_registry, all_nodes, all_links)
+        
+        # Get the output name for this slot
+        output_names = cls.get_output_names()
+        if connector_slot >= len(output_names):
+            raise ValueError(f"Invalid output slot {connector_slot} for node type {cls.__name__}")
+        
+        output_name = output_names[connector_slot]
+        
+        # Return the schema for this specific output
+        if "outputs" in full_schema and output_name in full_schema["outputs"]:
+            output_schema = full_schema["outputs"][output_name]
+            
+            # Special handling for schema outputs - return the value directly
+            if output_schema.get("type") == "schema" and "value" in output_schema:
+                return output_schema["value"]
+            
+            return output_schema
+        else:
+            return {"type": "unknown", "shape": None}
+    
+    @classmethod
+    def _resolve_schema_nones(cls, schema: Dict, node_data: Dict, connections: Dict,
+                            node_registry: Dict, all_nodes: List, all_links: List) -> bool:
+        """
+        Recursively resolve None values in schema by querying inputs.
+        Returns True if any values were resolved.
+        """
+        resolved_any = False
+        
+        if isinstance(schema, dict):
+            for key, value in list(schema.items()):
+                if value is None:
+                    # Try to resolve this None value
+                    # Subclasses should override this method to implement resolution logic
+                    resolved_value = cls._resolve_schema_value(key, schema, node_data, 
+                                                              connections, node_registry, 
+                                                              all_nodes, all_links)
+                    if resolved_value is not None:
+                        schema[key] = resolved_value
+                        resolved_any = True
+                elif isinstance(value, dict):
+                    if cls._resolve_schema_nones(value, node_data, connections,
+                                               node_registry, all_nodes, all_links):
+                        resolved_any = True
+        
+        return resolved_any
+    
+    @classmethod
+    def _resolve_schema_value(cls, key: str, parent_schema: Dict, node_data: Dict,
+                            connections: Dict, node_registry: Dict,
+                            all_nodes: List, all_links: List) -> Any:
+        """
+        Resolve a specific None value in the schema.
+        Subclasses should override this to implement custom resolution logic.
+        """
+        return None
     
     @classmethod
     def get_output_tensor_size(cls, node_data: Dict, output_name: str, connections: Dict) -> int:
@@ -136,124 +290,6 @@ class ExportableNode:
         
         raise ValueError(f"Cannot determine tensor size for output '{output_name}' of node type {cls.__name__}")
     
-    @classmethod
-    def query_input_tensor_size(cls, input_name: str, connections: Dict, node_registry: Dict, all_nodes: List, all_links: List = None) -> int:
-        """Query the tensor size from a connected input source"""
-        if not connections or "inputs" not in connections or input_name not in connections["inputs"]:
-            raise ValueError(f"No input connection found for '{input_name}' in {cls.__name__}")
-            
-        input_info = connections["inputs"][input_name]
-        source_node_id = input_info["from_node"]
-        source_output_slot = input_info["from_slot"]
-        
-        # Find the source node data
-        source_node_data = None
-        source_node_type = None
-        for node in all_nodes:
-            if str(node["id"]) == source_node_id:
-                source_node_data = node
-                source_node_type = node.get("class_type") or node.get("type")
-                break
-                
-        if not source_node_data:
-            raise ValueError(f"Source node {source_node_id} not found for input '{input_name}'")
-            
-        if source_node_type not in node_registry:
-            raise ValueError(f"Unknown source node type '{source_node_type}' for input '{input_name}'")
-            
-        source_node_class = node_registry[source_node_type]
-        
-        # Get the source node's output names
-        source_outputs = source_node_class.get_output_names()
-        if source_output_slot >= len(source_outputs):
-            raise ValueError(f"Invalid output slot {source_output_slot} for node {source_node_id} (has {len(source_outputs)} outputs)")
-            
-        source_output_name = source_outputs[source_output_slot]
-        
-        # Query the source node's schema for this output
-        schema = source_node_class.get_output_schema(source_node_data)
-        
-        # Handle pass-through nodes (like Network)
-        if schema == "pass_through":
-            # For pass-through nodes, query their input connection instead
-            if not all_links:
-                raise ValueError(f"Cannot query pass-through node {source_node_id} without links data")
-                
-            # Create a temporary exporter to use _get_node_connections
-            temp_exporter = GraphExporter()
-            temp_exporter.node_registry = node_registry
-            source_connections = temp_exporter._get_node_connections(source_node_id, all_links, all_nodes)
-            
-            # Try to find a connected input - try common input names
-            possible_input_names = ["input", "input_a", "input_b", "input_c"]
-            input_info = None
-            
-            for input_name in possible_input_names:
-                if "inputs" in source_connections and input_name in source_connections["inputs"]:
-                    input_info = source_connections["inputs"][input_name]
-                    break
-            
-            if input_info is None:
-                raise ValueError(f"Pass-through node {source_node_id} has no connected inputs to query (tried: {possible_input_names})")
-            
-            # Recursively query the node connected to this pass-through node's input
-            upstream_node_id = input_info["from_node"]
-            upstream_output_slot = input_info["from_slot"]
-            
-            # Find the upstream node data
-            upstream_node_data = None
-            for node in all_nodes:
-                if str(node["id"]) == upstream_node_id:
-                    upstream_node_data = node
-                    break
-            
-            if not upstream_node_data:
-                raise ValueError(f"Cannot find upstream node {upstream_node_id} for pass-through query")
-            
-            upstream_node_type = upstream_node_data.get("class_type") or upstream_node_data.get("type")
-            upstream_node_class = node_registry.get(upstream_node_type)
-            
-            if not upstream_node_class:
-                raise ValueError(f"No exporter found for upstream node type {upstream_node_type}")
-            
-            # Query the upstream node's schema
-            upstream_schema = upstream_node_class.get_output_schema(upstream_node_data)
-            upstream_outputs = upstream_node_class.get_output_names()
-            
-            if upstream_output_slot >= len(upstream_outputs):
-                raise ValueError(f"Invalid upstream output slot {upstream_output_slot}")
-            
-            upstream_output_name = upstream_outputs[upstream_output_slot]
-            
-            if "outputs" not in upstream_schema or upstream_output_name not in upstream_schema["outputs"]:
-                raise ValueError(f"No schema found for upstream output '{upstream_output_name}' of node {upstream_node_id}")
-            
-            upstream_output_info = upstream_schema["outputs"][upstream_output_name]
-            
-            if "flattened_size" in upstream_output_info:
-                return upstream_output_info["flattened_size"]
-            elif "contains" in upstream_output_info and "images" in upstream_output_info["contains"]:
-                images_info = upstream_output_info["contains"]["images"]
-                if "flattened_size" in images_info:
-                    return images_info["flattened_size"]
-            
-            raise ValueError(f"Cannot determine tensor size from upstream node {upstream_node_id} output '{upstream_output_name}'")
-        
-        
-        if "outputs" not in schema or source_output_name not in schema["outputs"]:
-            raise ValueError(f"No schema found for output '{source_output_name}' of node {source_node_id}")
-            
-        output_info = schema["outputs"][source_output_name]
-        
-        if "flattened_size" in output_info:
-            return output_info["flattened_size"]
-        elif "contains" in output_info and "images" in output_info["contains"]:
-            # For datasets, look inside the contained data
-            images_info = output_info["contains"]["images"]
-            if "flattened_size" in images_info:
-                return images_info["flattened_size"]
-                
-        raise ValueError(f"Cannot determine tensor size for output '{source_output_name}' of node {source_node_id}")
 
 
 class GraphExporter:

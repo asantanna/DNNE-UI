@@ -5,6 +5,7 @@ Central node that consolidates PPO training configuration and executes training
 
 from typing import Dict, Tuple, Optional
 from custom_nodes.robotics_nodes import RoboticsNodeBase
+from custom_nodes.node_colors import get_node_colors
 
 
 class PPOAgent(RoboticsNodeBase):
@@ -103,6 +104,8 @@ class PPOAgent(RoboticsNodeBase):
     RETURN_NAMES = ("metrics",)
     FUNCTION = "train"
     OUTPUT_NODE = True  # This node produces training output
+    COLOR = get_node_colors("rl")["color"]
+    BGCOLOR = get_node_colors("rl")["bgcolor"]
     
     def train(self, env, config, **kwargs):
         """

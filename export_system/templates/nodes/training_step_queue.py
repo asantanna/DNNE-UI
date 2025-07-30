@@ -76,9 +76,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         loss.backward()
         self.optimizer.step()
         
-        # Yield after training step to allow other workflows to run
-        await g.async_adaptive_yield()
-        
         # Send ready signal for next batch after training step completes
         import time
         ready_signal = {

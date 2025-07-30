@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from inspect import cleandoc
 from .base import RoboticsNodeBase, get_context
+from custom_nodes.node_colors import get_node_colors
 
 
 class CrossEntropyLossNode(RoboticsNodeBase):
@@ -14,6 +15,8 @@ class CrossEntropyLossNode(RoboticsNodeBase):
     Computes cross-entropy loss between predictions and labels with accuracy calculation."""
     
     DESCRIPTION = cleandoc(__doc__)
+    COLOR = get_node_colors("training")["color"]
+    BGCOLOR = get_node_colors("training")["bgcolor"]
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -46,6 +49,8 @@ class AccuracyNode(RoboticsNodeBase):
     Calculates classification accuracy by comparing predictions with ground truth labels."""
     
     DESCRIPTION = cleandoc(__doc__)
+    COLOR = get_node_colors("training")["color"]
+    BGCOLOR = get_node_colors("training")["bgcolor"]
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -75,6 +80,8 @@ class SGDOptimizerNode(RoboticsNodeBase):
     Creates SGD optimizer with configurable learning rate and momentum for training neural networks."""
     
     DESCRIPTION = cleandoc(__doc__)
+    COLOR = get_node_colors("training")["color"]
+    BGCOLOR = get_node_colors("training")["bgcolor"]
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -113,6 +120,8 @@ class TrainingStepNode(RoboticsNodeBase):
     Performs a complete training step: zero gradients, backward pass, and parameter update."""
     
     DESCRIPTION = cleandoc(__doc__)
+    COLOR = get_node_colors("training")["color"]
+    BGCOLOR = get_node_colors("training")["bgcolor"]
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -157,6 +166,8 @@ class EpochTrackerNode(RoboticsNodeBase):
     Tracks training progress across epochs, providing epoch statistics and convergence monitoring."""
     
     DESCRIPTION = cleandoc(__doc__)
+    COLOR = get_node_colors("training")["color"]
+    BGCOLOR = get_node_colors("training")["bgcolor"]
 
     @classmethod
     def INPUT_TYPES(cls):

@@ -53,7 +53,7 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             
             # Display epoch summary (always show, regardless of verbose mode)
             epoch_num = epoch_stats["epoch"]
-            print(f"📊 EPOCH {epoch_num}/{self.total_epochs} COMPLETE")
+            print(f"📊 EPOCH {epoch_num + 1}/{self.total_epochs} COMPLETE")
             print(f"   Batches: {len(self.epoch_losses)}")
             print(f"   Avg Loss: {avg_loss:.4f}")
             print(f"   Avg Accuracy: {avg_accuracy:.2%}")
@@ -86,6 +86,6 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             if g.verbose:
                 progress = epoch_stats.get("progress", 0)
                 if self.batch_count % 10 == 0:  # Show progress every 10 batches
-                    training_logger.info(f"Epoch {epoch_stats['epoch']} - Batch {epoch_stats['batch']}/{epoch_stats['total_batches']} ({progress:.1%}) - Loss: {self.epoch_losses[-1]:.4f}, Acc: {self.epoch_accuracies[-1]:.2%}")
+                    training_logger.info(f"Epoch {epoch_stats['epoch'] + 1} - Batch {epoch_stats['batch']}/{epoch_stats['total_batches']} ({progress:.1%}) - Loss: {self.epoch_losses[-1]:.4f}, Acc: {self.epoch_accuracies[-1]:.2%}")
             
             return {"training_summary": None}

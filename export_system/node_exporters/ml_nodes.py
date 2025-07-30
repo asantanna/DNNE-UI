@@ -48,7 +48,8 @@ class MNISTDatasetExporter(ExportableNode):
         return []  # No inputs
     
     @classmethod
-    def get_output_schema(cls, node_data):
+    def get_initial_output_schema(cls, node_data):
+        # MNIST dataset has fixed schema - no resolution needed
         return {
             "outputs": {
                 "dataset": {
@@ -70,10 +71,125 @@ class MNISTDatasetExporter(ExportableNode):
                 },
                 "schema": {
                     "type": "schema",
-                    "description": "Dataset schema information"
+                    "value": {
+                        "outputs": {
+                            "dataset": {
+                                "type": "dataset",
+                                "contains": {
+                                    "images": {
+                                        "type": "tensor",
+                                        "shape": (28, 28),
+                                        "flattened_size": 784,
+                                        "dtype": "float32"
+                                    },
+                                    "labels": {
+                                        "type": "tensor",
+                                        "shape": (),
+                                        "num_classes": 10,
+                                        "dtype": "int64"
+                                    }
+                                }
+                            }
+                        },
+                        "num_samples": 60000
+                    }
                 }
             },
             "num_samples": 60000
+        }
+
+
+class CIFAR10DatasetExporter(ExportableNode):
+    @classmethod
+    def get_template_name(cls):
+        return "nodes/cifar10_dataset_simple_queue.py"
+    
+    @classmethod
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
+        # Use universal parameter reader for consistent data access
+        param_specs = [
+            {'name': 'data_path', 'widget_index': 0, 'default': './data'},
+            {'name': 'train', 'widget_index': 1, 'default': True},
+            {'name': 'download', 'widget_index': 2, 'default': True}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        return {
+            "NODE_ID": node_id,
+            "CLASS_NAME": "CIFAR10DatasetNode",
+            "DATA_PATH": params['data_path'],
+            "TRAIN": params['train'],
+            "DOWNLOAD": params['download'],
+            "BATCH_SIZE": 32,  # Fixed for CIFAR-10
+            "EMIT_RATE": 10.0  # Batches per second
+        }
+    
+    @classmethod
+    def get_imports(cls):
+        return [
+            "import torch",
+            "from torch.utils.data import DataLoader",
+            "from torchvision import datasets, transforms",
+        ]
+    
+    @classmethod
+    def get_output_names(cls):
+        return ["dataset", "schema"]
+    
+    @classmethod
+    def get_input_names(cls):
+        return []  # No inputs
+    
+    @classmethod
+    def get_initial_output_schema(cls, node_data):
+        # CIFAR-10 dataset has fixed schema - no resolution needed
+        return {
+            "outputs": {
+                "dataset": {
+                    "type": "dataset",
+                    "contains": {
+                        "images": {
+                            "type": "tensor",
+                            "shape": (3, 32, 32),
+                            "flattened_size": 3072,
+                            "dtype": "float32"
+                        },
+                        "labels": {
+                            "type": "tensor", 
+                            "shape": (),
+                            "num_classes": 10,
+                            "dtype": "int64"
+                        }
+                    }
+                },
+                "schema": {
+                    "type": "schema",
+                    "value": {
+                        "outputs": {
+                            "dataset": {
+                                "type": "dataset",
+                                "contains": {
+                                    "images": {
+                                        "type": "tensor",
+                                        "shape": (3, 32, 32),
+                                        "flattened_size": 3072,
+                                        "dtype": "float32"
+                                    },
+                                    "labels": {
+                                        "type": "tensor",
+                                        "shape": (),
+                                        "num_classes": 10,
+                                        "dtype": "int64"
+                                    }
+                                }
+                            }
+                        },
+                        "num_samples": 50000
+                    }
+                }
+            },
+            "num_samples": 50000  # CIFAR-10 training set size
         }
 
 
@@ -95,7 +211,13 @@ class LinearLayerExporter(ExportableNode):
         params = cls.get_node_parameters_batch(node_data, param_specs)
         
         # Query input size from connected source node
-        input_size = cls.query_input_tensor_size("input", connections, node_registry, all_nodes, all_links)
+        input_schema = cls.get_input_schema(node_data, connections, 
+                                          node_registry, all_nodes, all_links)
+        
+        if "input" in input_schema and input_schema["input"] and "flattened_size" in input_schema["input"]:
+            input_size = input_schema["input"]["flattened_size"]
+        else:
+            raise ValueError(f"LinearLayer node {node_id}: Could not determine input tensor size")
         
         return {
             "NODE_ID": node_id,
@@ -124,7 +246,7 @@ class LinearLayerExporter(ExportableNode):
         return ["input"]
     
     @classmethod
-    def get_output_schema(cls, node_data):
+    def get_output_schema(cls, node_data, connections, node_registry, all_nodes, all_links):
         # Get output size from widgets_values (ComfyUI workflow format)
         widget_values = node_data.get("widgets_values", [128, True, "relu", 0.0])
         output_size = widget_values[0] if len(widget_values) > 0 else 128
@@ -260,28 +382,111 @@ class GetBatchExporter(ExportableNode):
         return ["dataloader", "schema", "trigger"]
     
     @classmethod
-    def get_output_schema(cls, node_data):
-        # GetBatch passes through the tensor dimensions from the schema input
-        # The schema input tells us the dataset structure, and GetBatch adds batch dimension
+    def get_initial_output_schema(cls, node_data):
+        # GetBatch initial schema - tensor dimensions will be resolved from schema input
         return {
             "outputs": {
                 "images": {
                     "type": "tensor",
-                    "flattened_size": 784,  # 28*28 for MNIST images
+                    "flattened_size": None,  # To be resolved from schema input
                     "dtype": "float32"
                 },
                 "labels": {
                     "type": "tensor",
-                    "flattened_size": 1,  # Single label per sample
+                    "flattened_size": None,  # To be resolved from schema input
                     "dtype": "int64"
                 },
                 "epoch_complete": {
                     "type": "boolean",
                     "dtype": "bool"
+                },
+                "epoch_stats": {
+                    "type": "dict",
+                    "dtype": "dict"
                 }
-            },
-            "num_samples": 1  # Per batch
+            }
         }
+    
+    @classmethod
+    def _resolve_schema_value(cls, key, parent_schema, node_data, connections, 
+                            node_registry, all_nodes, all_links):
+        """Resolve tensor dimensions from the schema input"""
+        if key == "flattened_size":
+            # Get the schema from our "schema" input
+            input_schema = cls.get_input_schema(node_data, connections, 
+                                              node_registry, all_nodes, all_links)
+            
+            if "schema" in input_schema and input_schema["schema"]:
+                dataset_schema = input_schema["schema"]
+                
+                # Navigate through parent to determine which output we're resolving
+                # parent_schema should be the "images" or "labels" dict
+                parent_keys = list(parent_schema.keys())
+                
+                # Check if we're resolving for images or labels
+                if "outputs" in dataset_schema:
+                    dataset_outputs = dataset_schema["outputs"]
+                    
+                    # For datasets, the schema has a "dataset" output containing images/labels
+                    if "dataset" in dataset_outputs and "contains" in dataset_outputs["dataset"]:
+                        contains = dataset_outputs["dataset"]["contains"]
+                        
+                        # Determine if we're in images or labels by checking parent
+                        if parent_schema.get("dtype") == "float32":  # images
+                            if "images" in contains and "flattened_size" in contains["images"]:
+                                return contains["images"]["flattened_size"]
+                        elif parent_schema.get("dtype") == "int64":  # labels
+                            if "labels" in contains and "flattened_size" in contains["labels"]:
+                                return contains["labels"].get("flattened_size", 1)
+                                
+        return None
+    
+    @classmethod
+    def get_output_schema_by_connector(cls, output_slot, node_data, connections,
+                                     node_registry, all_nodes, all_links):
+        """Return schema for specific output connector"""
+        output_names = cls.get_output_names()
+        
+        if output_slot < len(output_names):
+            output_name = output_names[output_slot]
+            
+            # Get full schema first
+            full_schema = cls.get_output_schema(node_data, connections,
+                                              node_registry, all_nodes, all_links)
+            
+            # For GetBatch, we need to resolve the schema from input
+            if output_name == "images":
+                # Get the schema input to determine tensor dimensions
+                input_schema = cls.get_input_schema(node_data, connections,
+                                                  node_registry, all_nodes, all_links)
+                
+                if "schema" in input_schema and input_schema["schema"]:
+                    dataset_schema = input_schema["schema"]
+                    
+                    # Extract image tensor info from dataset schema
+                    if "outputs" in dataset_schema and "dataset" in dataset_schema["outputs"]:
+                        dataset_info = dataset_schema["outputs"]["dataset"]
+                        if "contains" in dataset_info and "images" in dataset_info["contains"]:
+                            return dataset_info["contains"]["images"]
+            
+            elif output_name == "labels":
+                # Similar logic for labels
+                input_schema = cls.get_input_schema(node_data, connections,
+                                                  node_registry, all_nodes, all_links)
+                
+                if "schema" in input_schema and input_schema["schema"]:
+                    dataset_schema = input_schema["schema"]
+                    
+                    if "outputs" in dataset_schema and "dataset" in dataset_schema["outputs"]:
+                        dataset_info = dataset_schema["outputs"]["dataset"]
+                        if "contains" in dataset_info and "labels" in dataset_info["contains"]:
+                            return dataset_info["contains"]["labels"]
+            
+            # For other outputs, return from initial schema
+            elif "outputs" in full_schema and output_name in full_schema["outputs"]:
+                return full_schema["outputs"][output_name]
+        
+        return None
 
 class SGDOptimizerExporter(ExportableNode):
     @classmethod
@@ -423,6 +628,21 @@ class NetworkExporter(ExportableNode):
         # Detect and analyze the network pattern
         network_layers = cls._detect_network_layers(node_id, all_nodes, all_links)
         
+        # Query input size for the first layer if not set
+        if network_layers and network_layers[0]["input_size"] is None:
+            # Get the input schema to determine tensor size
+            input_schema = cls.get_input_schema(node_data, connections, 
+                                              node_registry, all_nodes, all_links)
+            
+            if "input" in input_schema and input_schema["input"]:
+                input_tensor_schema = input_schema["input"]
+                if "flattened_size" in input_tensor_schema:
+                    network_layers[0]["input_size"] = input_tensor_schema["flattened_size"]
+                else:
+                    raise ValueError(f"Network node {node_id}: Could not determine input tensor size from connected node")
+            else:
+                raise ValueError(f"Network node {node_id}: No input connection found")
+        
         # Generate layer definitions code
         layer_definitions = []
         for i, layer in enumerate(network_layers):
@@ -467,14 +687,21 @@ class NetworkExporter(ExportableNode):
         if not isinstance(checkpoint_load_on_start, bool):
             raise ValueError(f"Network node {node_id}: checkpoint_load_on_start must be boolean, got {type(checkpoint_load_on_start)}: {checkpoint_load_on_start}")
         
+        # Validate that we have determined input/output sizes
+        if not network_layers:
+            raise ValueError(f"Network node {node_id}: No layers detected in network")
+        
+        if network_layers[0]["input_size"] is None:
+            raise ValueError(f"Network node {node_id}: Could not determine input size for first layer")
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "NetworkNode",
             "NETWORK_LAYERS": str(network_layers),
             "LAYER_DEFINITIONS": "\n".join(layer_definitions),
             "NUM_LAYERS": len(network_layers),
-            "INPUT_SIZE": network_layers[0]["input_size"] if network_layers else 784,
-            "OUTPUT_SIZE": network_layers[-1]["output_size"] if network_layers else 10,
+            "INPUT_SIZE": network_layers[0]["input_size"] if network_layers else None,
+            "OUTPUT_SIZE": network_layers[-1]["output_size"] if network_layers else None,
             "CHECKPOINT_ENABLED": checkpoint_enabled,
             "CHECKPOINT_TRIGGER_TYPE": checkpoint_trigger_type,
             "CHECKPOINT_TRIGGER_VALUE": checkpoint_trigger_value,
@@ -498,11 +725,59 @@ class NetworkExporter(ExportableNode):
         return ["input"]
     
     @classmethod
-    def get_output_schema(cls, node_data):
-        # Network node acts as a pass-through for schema queries
-        # The "layers" output should query the "input" connection for its schema
-        # The "network_output" schema will be determined by the final layer
-        return "pass_through"  # Special marker indicating this node passes through queries
+    def get_initial_output_schema(cls, node_data):
+        # Network node initial schema - actual layer info comes from detected layers
+        return {
+            "outputs": {
+                "layers": {
+                    "type": "layers",
+                    "value": None  # Will be resolved from detected layers
+                },
+                "output": {
+                    "type": "tensor",
+                    "flattened_size": None,  # Will be resolved from final layer
+                    "dtype": "float32"
+                },
+                "model": {
+                    "type": "model",
+                    "contains_layers": True
+                }
+            }
+        }
+    
+    @classmethod
+    def get_output_schema_by_connector(cls, output_slot, node_data, connections,
+                                     node_registry, all_nodes, all_links):
+        """Return schema for specific output connector"""
+        output_names = cls.get_output_names()
+        
+        if output_slot < len(output_names):
+            output_name = output_names[output_slot]
+            
+            # For "layers" connector, return the schema from our input
+            # This allows LinearLayers connected to "layers" to know the input size
+            if output_name == "layers":
+                # Get the input schema to pass through
+                input_schema = cls.get_input_schema(node_data, connections,
+                                                  node_registry, all_nodes, all_links)
+                
+                if "input" in input_schema and input_schema["input"]:
+                    return input_schema["input"]
+            
+            # For "output" connector, also return the schema from our input
+            elif output_name == "output":
+                # Get the input schema to pass through
+                input_schema = cls.get_input_schema(node_data, connections,
+                                                  node_registry, all_nodes, all_links)
+                
+                if "input" in input_schema and input_schema["input"]:
+                    return input_schema["input"]
+            
+            # For other outputs, use default behavior
+            return super().get_output_schema_by_connector(output_slot, node_data, connections,
+                                                        node_registry, all_nodes, all_links)
+        
+        return {"type": "unknown", "shape": None}
     
     @classmethod
     def _detect_network_layers(cls, network_node_id, all_nodes, all_links):
@@ -569,10 +844,12 @@ class NetworkExporter(ExportableNode):
             
             current_node = next_node
         
-        # Determine input sizes based on schema or previous layer
+        # Determine input sizes based on actual connections
         for i, layer in enumerate(layers):
             if i == 0:
-                layer["input_size"] = 784  # Default for MNIST, could be determined by schema
+                # First layer input size must be determined from the Network node's input
+                # NetworkExporter will query this properly
+                layer["input_size"] = None  # To be determined by NetworkExporter
             else:
                 layer["input_size"] = layers[i-1]["output_size"]
         
@@ -619,28 +896,43 @@ class BatchSamplerExporter(ExportableNode):
         return ["dataset", "schema"]
     
     @classmethod
-    def get_output_schema(cls, node_data):
+    def get_initial_output_schema(cls, node_data):
         """BatchSampler passes through dataset schema but wraps data in DataLoader"""
         return {
             "outputs": {
                 "dataloader": {
                     "type": "dataloader",
-                    "batch_size": node_data.get("inputs", {}).get("batch_size", 32),
-                    "shuffle": node_data.get("inputs", {}).get("shuffle", True),
+                    "batch_size": node_data.get("widgets_values", [32])[0] if node_data.get("widgets_values") else 32,
+                    "shuffle": node_data.get("widgets_values", [32, True])[1] if len(node_data.get("widgets_values", [])) > 1 else True,
                     "contains_schema": True  # Indicates this contains schema information
                 },
                 "schema": {
                     "type": "schema",
-                    "description": "Dataset schema passed through from input"
+                    "value": None  # Will be resolved from input
                 }
             }
         }
+    
+    @classmethod
+    def _resolve_schema_value(cls, key, parent_schema, node_data, connections, 
+                            node_registry, all_nodes, all_links):
+        """Pass through the schema from input"""
+        if key == "value" and parent_schema.get("type") == "schema":
+            # Get the schema from our "schema" input
+            input_schema = cls.get_input_schema(node_data, connections, 
+                                              node_registry, all_nodes, all_links)
+            
+            if "schema" in input_schema and input_schema["schema"]:
+                return input_schema["schema"]
+                
+        return None
     
 
 # Registration function
 def register_ml_exporters(exporter):
     """Register all ML node exporters"""
     exporter.register_node("MNISTDataset", MNISTDatasetExporter)
+    exporter.register_node("CIFAR10Dataset", CIFAR10DatasetExporter)
     exporter.register_node("LinearLayer", LinearLayerExporter)
     exporter.register_node("Loss", LossExporter)
     exporter.register_node("Optimizer", OptimizerExporter)

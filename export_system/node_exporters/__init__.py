@@ -4,6 +4,7 @@ Node exporter classes that handle code generation using queue-based templates
 
 from .ml_nodes import (
     MNISTDatasetExporter,
+    CIFAR10DatasetExporter,
     LinearLayerExporter,
     LossExporter,
     OptimizerExporter,

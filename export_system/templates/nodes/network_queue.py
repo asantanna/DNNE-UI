@@ -268,9 +268,6 @@ class NetworkNode_{NODE_ID}(QueueNode):
         # Note: In inference mode, torch.no_grad() is already applied by GraphRunner
         output = self.network(x)
         
-        # Yield after computation to allow other workflows to run
-        await g.async_adaptive_yield()
-        
         return {
             "layers": None,  # This output is just for UI connectivity
             "output": output

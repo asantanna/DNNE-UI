@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from inspect import cleandoc
 from .base import RoboticsNodeBase, get_context
+from custom_nodes.node_colors import get_node_colors
 
 
 class NetworkNode(RoboticsNodeBase):
@@ -44,6 +45,8 @@ class NetworkNode(RoboticsNodeBase):
     FUNCTION = "forward"
     CATEGORY = "ml"
     DESCRIPTION = cleandoc(__doc__)
+    COLOR = get_node_colors("network")["color"]
+    BGCOLOR = get_node_colors("network")["bgcolor"]
 
     def forward(self, input, to_output, checkpoint_enabled=False,
                 checkpoint_trigger_type="epoch", checkpoint_trigger_value="50", 
@@ -187,6 +190,8 @@ class LinearLayerNode(RoboticsNodeBase):
     """
     
     DESCRIPTION = cleandoc(__doc__)
+    COLOR = get_node_colors("layer")["color"]
+    BGCOLOR = get_node_colors("layer")["bgcolor"]
 
     @classmethod
     def INPUT_TYPES(cls):

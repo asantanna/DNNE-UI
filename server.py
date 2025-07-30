@@ -586,6 +586,13 @@ class PromptServer():
 
             if hasattr(obj_class, 'API_NODE'):
                 info['api_node'] = obj_class.API_NODE
+            
+            # Include COLOR and BGCOLOR if defined on the node class
+            if hasattr(obj_class, 'COLOR'):
+                info['color'] = obj_class.COLOR
+            if hasattr(obj_class, 'BGCOLOR'):
+                info['bgcolor'] = obj_class.BGCOLOR
+                
             return info
 
         @routes.get("/object_info")

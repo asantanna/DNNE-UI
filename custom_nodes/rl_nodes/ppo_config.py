@@ -5,6 +5,7 @@ Configuration-only node for PPO training hyperparameters
 
 from typing import Dict, Tuple, Optional
 from custom_nodes.robotics_nodes import RoboticsNodeBase
+from custom_nodes.node_colors import get_node_colors
 
 
 class PPOConfig(RoboticsNodeBase):
@@ -164,6 +165,8 @@ class PPOConfig(RoboticsNodeBase):
     RETURN_TYPES = ("PPO_CONFIG",)
     RETURN_NAMES = ("config",)
     FUNCTION = "configure"
+    COLOR = get_node_colors("rl")["color"]
+    BGCOLOR = get_node_colors("rl")["bgcolor"]
     
     def configure(self, **kwargs):
         """
