@@ -1,22 +1,70 @@
 # DNNE Development Status
 
-## Current Work: Execution Balance in Concurrent Subgraphs
-**Status**: 🔄 Understanding metrics (PPO 86% vs yield time 14%)
+## Current Task: Testing CIFAR-10 and Yield_Test_Async
+**Status**: 🚀 Ready to test new features
 
-We're implementing proper subgraph-based metrics for the Yield_Test workflow. Recent work:
+### Immediate Tasks:
+1. **Test CIFAR-10 Workflow** - Verify the CIFAR10_Test workflow runs correctly with new dataset support
+2. **Test Yield_Test_Async** - Verify async-to-async balancing behavior with MNIST and CIFAR-10
+
+### Commands for Testing:
+```bash
+# Export and test CIFAR-10
+cd /mnt/e/ALS-Projects/DNNE/DNNE-UI
+python claude_scripts/programmatic_export.py CIFAR10_Test
+cd export_system/exports/CIFAR10_Test
+python runner.py --timeout 30s
+
+# Export and test Yield_Test_Async
+cd /mnt/e/ALS-Projects/DNNE/DNNE-UI
+python claude_scripts/programmatic_export.py Yield_Test_Async
+cd export_system/exports/Yield_Test_Async
+python runner.py --debug balancing --timeout 60s
+```
+
+## Recent Accomplishments (2025-01-30)
+**Status**: ✅ Major features completed!
+
+### 🎨 Node Color System
+- ✅ Created centralized `node_colors.py` with color constants for all node types
+- ✅ Updated server.py to send COLOR and BGCOLOR in node_info API
+- ✅ Frontend now applies node colors from backend automatically
+- ✅ All nodes have consistent, visually distinct colors by category
+
+### 📊 CIFAR-10 Dataset Support
+- ✅ Implemented CIFAR10Dataset node for loading CIFAR-10 image datasets
+- ✅ Created exporter and queue template for CIFAR-10
+- ✅ Added schema resolution methods to ExportableNode base class
+- ✅ Fixed Yield_Test_Async workflow with CIFAR-10 integration
+
+### 🔢 Universal Node ID Display
+- ✅ All nodes now show their ID in titles (e.g., "Linear Layer (42)")
+- ✅ Solved the mystery of where IDs were being added (change tracker + auto-save)
+- ✅ Implemented consistent ID display for new nodes and loaded workflows
+
+### 🛠️ Export System Improvements
+- ✅ Updated all node exporters to use new schema resolution approach
+- ✅ Created `export_all_workflows.py` script for batch exports
+- ✅ Fixed various export issues and removed deprecated methods
+
+### 🔄 Yield API Updates
+- ✅ Updated PPO training to use new unified yield API
+- ✅ Added subgraph="ppo" and is_item_ref parameters to all yield calls
+
+## Previous Work: Execution Balance in Concurrent Subgraphs
+**Status**: 📋 Implementation plan documented
+
+We documented the plan for proper subgraph-based metrics. Previous work:
 - ✅ Implemented subsystem-specific logging (`--debug balancing`)
 - ✅ Fixed periodic balance reports (every 10s)
 - 🔍 Discovered current metrics measure PPO CPU time vs yield time (not actual MNIST execution)
 - 📋 Documented implementation plan in system-balancing.md
 
-**Current Understanding**: The 86/14 split shows PPO CPU time vs time spent yielding, NOT PPO vs MNIST execution. This is expected given how `ConcurrencyStats` currently works.
-
 **Next Steps** (see `docs-dnne/architecture/system-balancing.md#implementation-plan---metrics-collection`):
 1. Implement subgraph-based metrics collection
-2. Add subgraph parameter to yield calls
-3. Track throughput (items/sec) for all nodes
-4. Track CPU time for sync nodes only
-5. Report total async time to identify starvation
+2. Track throughput (items/sec) for all nodes
+3. Track CPU time for sync nodes only
+4. Report total async time to identify starvation
 
 ## Quick Reference
 
@@ -25,9 +73,12 @@ We're implementing proper subgraph-based metrics for the Yield_Test workflow. Re
 # Activate environment
 source /home/asantanna/miniconda/bin/activate DNNE_PY38
 
-# Export workflow
+# Export single workflow
 cd /mnt/e/ALS-Projects/DNNE/DNNE-UI
 python claude_scripts/programmatic_export.py Yield_Test
+
+# Export ALL workflows
+python claude_scripts/export_all_workflows.py
 
 # Run with balance debugging (shows reports every 10s)
 cd export_system/exports/Yield_Test
