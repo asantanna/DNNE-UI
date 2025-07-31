@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import Mock, patch
 
 # Import node exporters
-from export_system.node_exporters.ml_nodes import (
+from export_system.node_exporters import (
     MNISTDatasetExporter, LinearLayerExporter, NetworkExporter,
     SGDOptimizerExporter, CrossEntropyLossExporter, TrainingStepExporter
 )
@@ -53,7 +53,7 @@ class TestMNISTDatasetExporter:
         
         assert isinstance(template_name, str)
         assert len(template_name) > 0
-        assert template_name.endswith('.py')
+        assert template_name.endswith('.tpl')
         assert 'mnist' in template_name.lower() or 'dataset' in template_name.lower()
     
     @pytest.mark.export
@@ -125,7 +125,7 @@ class TestLinearLayerExporter:
         template_name = LinearLayerExporter.get_template_name()
         
         assert isinstance(template_name, str)
-        assert template_name.endswith('.py')
+        assert template_name.endswith('.tpl')
         assert 'linear' in template_name.lower() or 'layer' in template_name.lower()
     
     @pytest.mark.export
@@ -133,7 +133,7 @@ class TestLinearLayerExporter:
         """Test extraction of layer dimensions."""
         # Use ComfyUI format with widgets_values
         node_data = {
-            "widgets_values": [128, True, "relu", 0.0]  # output_size, bias, activation, dropout
+            "widgets_values": [128, True, "relu", 0.0, "auto"]  # output_size, bias, activation, dropout, weight_init
         }
         
         # Mock connections for input size detection
@@ -156,7 +156,7 @@ class TestLinearLayerExporter:
         ]
         
         # Mock node registry with MNISTDataset 
-        from export_system.node_exporters.ml_nodes import MNISTDatasetExporter
+        from export_system.node_exporters import MNISTDatasetExporter
         mock_node_registry = {
             "MNISTDataset": MNISTDatasetExporter
         }
@@ -203,7 +203,7 @@ class TestNetworkExporter:
         template_name = NetworkExporter.get_template_name()
         
         assert isinstance(template_name, str)
-        assert template_name.endswith('.py')
+        assert template_name.endswith('.tpl')
         assert 'network' in template_name.lower()
     
     @pytest.mark.export
@@ -262,7 +262,7 @@ class TestSGDOptimizerExporter:
         template_name = SGDOptimizerExporter.get_template_name()
         
         assert isinstance(template_name, str)
-        assert template_name.endswith('.py')
+        assert template_name.endswith('.tpl')
         assert 'sgd' in template_name.lower() or 'optimizer' in template_name.lower()
     
     @pytest.mark.export
@@ -312,7 +312,7 @@ class TestCrossEntropyLossExporter:
         template_name = CrossEntropyLossExporter.get_template_name()
         
         assert isinstance(template_name, str)
-        assert template_name.endswith('.py')
+        assert template_name.endswith('.tpl')
         assert 'loss' in template_name.lower() or 'entropy' in template_name.lower()
     
     @pytest.mark.export
@@ -355,7 +355,7 @@ class TestTrainingStepExporter:
         template_name = TrainingStepExporter.get_template_name()
         
         assert isinstance(template_name, str)
-        assert template_name.endswith('.py')
+        assert template_name.endswith('.tpl')
         assert 'training' in template_name.lower() or 'step' in template_name.lower()
     
     @pytest.mark.export
@@ -432,7 +432,7 @@ class TestNodeExporterIntegration:
                 # Test basic functionality
                 template_name = node_exporter.get_template_name()
                 assert isinstance(template_name, str)
-                assert template_name.endswith('.py')
+                assert template_name.endswith('.tpl')
                 
                 imports = node_exporter.get_imports()
                 assert isinstance(imports, list)

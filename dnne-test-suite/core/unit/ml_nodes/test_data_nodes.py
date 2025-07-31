@@ -13,7 +13,7 @@ from unittest.mock import Mock, MagicMock
 from pathlib import Path
 
 # Import nodes to test
-from custom_nodes.ml_nodes.data_nodes import MNISTDatasetNode, BatchSamplerNode, GetBatchNode
+from custom_nodes import MNISTDatasetNode, BatchSamplerNode, GetBatchNode
 from fixtures.node_data import MNIST_DATASET_DATA, create_sample_mnist_batch
 from fixtures.test_utils import assert_tensor_shape, assert_tensor_equal
 
@@ -232,7 +232,7 @@ class TestGetBatchNode:
         node = GetBatchNode()
         
         # Clear context memory for test isolation
-        from custom_nodes.ml_nodes.base import get_context
+        from custom_nodes.base import get_context
         context = get_context()
         if hasattr(context, 'memory'):
             context.memory.clear()
@@ -267,7 +267,7 @@ class TestGetBatchNode:
         node = GetBatchNode()
         
         # Clear context memory for test isolation
-        from custom_nodes.ml_nodes.base import get_context
+        from custom_nodes.base import get_context
         context = get_context()
         if hasattr(context, 'memory'):
             context.memory.clear()
@@ -341,7 +341,7 @@ class TestDataNodeIntegration:
         mock_batch_dataloader.__len__ = Mock(return_value=10)
         
         # Clear context for clean test
-        from custom_nodes.ml_nodes.base import get_context
+        from custom_nodes.base import get_context
         context = get_context()
         if hasattr(context, 'memory'):
             context.memory.clear()
@@ -368,7 +368,7 @@ class TestDataNodeIntegration:
     @pytest.mark.ml
     def test_node_display_names(self):
         """Test that all data nodes have display names."""
-        from custom_nodes.ml_nodes import NODE_DISPLAY_NAME_MAPPINGS
+        from custom_nodes import NODE_DISPLAY_NAME_MAPPINGS
         
         expected_nodes = ["MNISTDataset", "BatchSampler", "GetBatch"]
         

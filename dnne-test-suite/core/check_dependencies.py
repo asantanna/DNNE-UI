@@ -117,8 +117,6 @@ def check_dependencies():
     
     required_dirs = [
         'custom_nodes',
-        'custom_nodes/ml_nodes',
-        'custom_nodes/robotics_nodes',
         'export_system',
         'export_system/node_exporters',
         'export_system/templates',

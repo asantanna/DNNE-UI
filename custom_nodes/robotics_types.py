@@ -92,11 +92,33 @@ class Action:
 
 @dataclass
 class Context:
-    """Context information for decision making"""
-    task_description: Optional[str] = None
-    goal_state: Optional[RobotState] = None
-    constraints: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    """Global context for storing shared state across nodes"""
+    memory: Dict[str, Any] = field(default_factory=dict)
+    models: Dict[str, Any] = field(default_factory=dict)
+    training_mode: bool = True
+    device: str = "cpu"
+    
+    # Tracking
+    episode_count: int = 0
+    step_count: int = 0
+    total_reward: float = 0.0
+    
+    def store(self, key: str, value: Any):
+        """Store a value in context memory"""
+        self.memory[key] = value
+    
+    def retrieve(self, key: str, default=None):
+        """Retrieve a value from context memory"""
+        return self.memory.get(key, default)
+    
+    def clear_episode(self):
+        """Clear episode-specific data"""
+        self.step_count = 0
+        self.total_reward = 0.0
+        # Clear episode-specific memory keys
+        episode_keys = [k for k in self.memory if k.startswith("episode_")]
+        for key in episode_keys:
+            del self.memory[key]
 
 # Type conversion utilities
 def ensure_tensor(data: Union[torch.Tensor, np.ndarray, list]) -> torch.Tensor:

@@ -10,7 +10,7 @@ import numpy as np
 # Import robotics types from the original location temporarily
 # This will be updated when we move robotics_types.py as well
 try:
-    from .robotics_nodes.robotics_types import TensorData, Context
+    from .robotics_types import TensorData, Context
 except ImportError:
     # Fallback for when we're in the middle of refactoring
     TensorData = None

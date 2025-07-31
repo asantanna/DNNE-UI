@@ -183,8 +183,8 @@ def create_temp_export_dir() -> Path:
     test_dir_name = f"test_{uuid.uuid4().hex[:8]}"
     temp_dir = export_base / test_dir_name
     
-    # Create the directory
-    temp_dir.mkdir(parents=True, exist_ok=True)
+    # Don't create the directory - let the exporter create it
+    # This avoids the "directory exists but not a DNNE export" error
     
     return temp_dir
 
