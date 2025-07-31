@@ -166,6 +166,19 @@ def load_custom_nodes():
         print(f"Custom nodes directory not found: {custom_nodes_dir}")
         return
     
+    # Check if custom_nodes itself is a package
+    if os.path.exists(os.path.join(custom_nodes_dir, '__init__.py')):
+        # Load custom_nodes as a package instead of scanning individual files
+        print("Loading custom_nodes as a package...")
+        try:
+            load_custom_node_package(custom_nodes_dir, "custom_nodes")
+            return
+        except Exception as e:
+            print(f"Failed to load custom_nodes package: {e}")
+            traceback.print_exc()
+            print("Falling back to individual file loading...")
+    
+    # Fallback: scan and load individual files/packages
     print(f"Scanning directory: {custom_nodes_dir}")
     items = os.listdir(custom_nodes_dir)
     print(f"Found {len(items)} items in custom_nodes")
