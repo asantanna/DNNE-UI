@@ -137,8 +137,11 @@ def validate_workflow_structure(workflow: Dict[str, Any]) -> bool:
         if len(link) == 4:
             # Test format
             from_node, from_output, to_node, to_input = link
+        elif len(link) == 5:
+            # Standard export format (ComfyUI without type)
+            link_id, from_node, from_slot, to_node, to_slot = link
         elif len(link) == 6:
-            # ComfyUI format
+            # Full ComfyUI format with type
             link_id, from_node, from_slot, to_node, to_slot, link_type = link
         else:
             return False
