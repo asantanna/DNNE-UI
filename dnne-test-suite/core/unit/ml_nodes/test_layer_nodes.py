@@ -71,11 +71,11 @@ class TestLinearLayerNode:
         assert "activation" in required
         
         # Test that exporter exists and works
-        from export_system.node_exporters.ml_nodes import LinearLayerExporter
+        from export_system.node_exporters import LinearLayerExporter
         
         # Test template name
         template_name = LinearLayerExporter.get_template_name()
-        assert template_name == "nodes/linear_layer_queue.py"
+        assert template_name == "nodes/linear_layer_queue.tpl"
         
         # Test imports
         imports = LinearLayerExporter.get_imports()
@@ -85,7 +85,7 @@ class TestLinearLayerNode:
     @pytest.mark.ml
     def test_linear_layer_template_variables(self):
         """Test LinearLayer template variable preparation."""
-        from export_system.node_exporters.ml_nodes import LinearLayerExporter
+        from export_system.node_exporters import LinearLayerExporter
         
         # Mock node data with widget values
         mock_data = {
@@ -184,11 +184,11 @@ class TestNetworkNode:
         assert "to_output" in required  # Loop-back connection
         
         # Test that exporter exists
-        from export_system.node_exporters.ml_nodes import NetworkExporter
+        from export_system.node_exporters import NetworkExporter
         
         # Test template name
         template_name = NetworkExporter.get_template_name()
-        assert template_name == "nodes/network_queue.py"
+        assert template_name == "nodes/network_queue.tpl"
         
         # Test imports
         imports = NetworkExporter.get_imports()
@@ -247,8 +247,8 @@ class TestActivationNode:
         assert hasattr(node, "RETURN_NAMES")
         assert hasattr(node, "FUNCTION")
         
-        # ActivationNode uses 'apply' function
-        assert node.FUNCTION == "apply"
+        # ActivationNode uses 'apply_activation' function (changed during refactoring)
+        assert node.FUNCTION == "apply_activation"
         
         # Should return tensor output
         return_types = node.RETURN_TYPES
@@ -290,8 +290,8 @@ class TestConv2DLayerNode:
         assert hasattr(node, "RETURN_NAMES")
         assert hasattr(node, "FUNCTION")
         
-        # Conv2D should use 'forward' function like other layers
-        assert node.FUNCTION == "forward"
+        # Conv2D uses 'apply_conv' function (changed during refactoring)
+        assert node.FUNCTION == "apply_conv"
         
         # Should return tensor output
         return_types = node.RETURN_TYPES
@@ -329,8 +329,8 @@ class TestDropoutNode:
         assert hasattr(node, "RETURN_NAMES")
         assert hasattr(node, "FUNCTION")
         
-        # Dropout should use 'apply' function
-        assert node.FUNCTION == "apply"
+        # Dropout uses 'apply_dropout' function (changed during refactoring)
+        assert node.FUNCTION == "apply_dropout"
         
         # Should return tensor output
         return_types = node.RETURN_TYPES
@@ -387,8 +387,8 @@ class TestBatchNormNode:
         assert hasattr(node, "RETURN_NAMES")
         assert hasattr(node, "FUNCTION")
         
-        # BatchNorm should use 'apply' function
-        assert node.FUNCTION == "apply"
+        # BatchNorm uses 'apply_batchnorm' function (changed during refactoring)
+        assert node.FUNCTION == "apply_batchnorm"
         
         # Should return tensor output
         return_types = node.RETURN_TYPES
@@ -426,8 +426,8 @@ class TestFlattenNode:
         assert hasattr(node, "RETURN_NAMES")
         assert hasattr(node, "FUNCTION")
         
-        # Flatten should use 'flatten' function
-        assert node.FUNCTION == "flatten"
+        # Flatten uses 'flatten_tensor' function (changed during refactoring)
+        assert node.FUNCTION == "flatten_tensor"
         
         # Should return tensor output
         return_types = node.RETURN_TYPES

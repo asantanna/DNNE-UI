@@ -156,7 +156,8 @@ class TestBatchSamplerNode:
             schema=mock_schema,
             batch_size=32,
             shuffle=True,
-            seed=42
+            seed=42,
+            seed_control="fixed"
         )
         
         assert result is not None
@@ -186,7 +187,8 @@ class TestBatchSamplerNode:
                 schema=mock_schema,
                 batch_size=16,
                 shuffle=False,
-                seed=42
+                seed=42,
+                seed_control="fixed"
             )
             assert result is not None
         except Exception as e:
@@ -326,7 +328,8 @@ class TestDataNodeIntegration:
             schema=schema,
             batch_size=32,
             shuffle=True,
-            seed=42
+            seed=42,
+            seed_control="fixed"
         )
         
         assert sampler_result is not None
@@ -368,7 +371,7 @@ class TestDataNodeIntegration:
     @pytest.mark.ml
     def test_node_display_names(self):
         """Test that all data nodes have display names."""
-        from custom_nodes.ml_nodes import NODE_DISPLAY_NAME_MAPPINGS
+        from custom_nodes import NODE_DISPLAY_NAME_MAPPINGS
         
         expected_nodes = ["MNISTDataset", "BatchSampler", "GetBatch"]
         

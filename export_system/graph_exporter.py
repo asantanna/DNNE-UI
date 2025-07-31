@@ -263,24 +263,6 @@ class ExportableNode:
         """
         raise NotImplementedError(f"Subclass {cls.__name__} must implement _resolve_schema_value() method")
 
-    @classmethod
-    def get_output_tensor_size(cls, node_data: Dict, output_name: str, connections: Dict) -> int:
-        """Get the tensor size for a specific output, potentially querying connected nodes"""
-        schema = cls.get_output_schema(node_data)
-        if output_name in schema.get("outputs", {}):
-            output_info = schema["outputs"][output_name]
-            if "flattened_size" in output_info:
-                return output_info["flattened_size"]
-            elif "shape" in output_info and output_info["shape"]:
-                # Calculate flattened size from shape
-                shape = output_info["shape"]
-                if isinstance(shape, (list, tuple)) and len(shape) > 0:
-                    size = 1
-                    for dim in shape:
-                        size *= dim
-                    return size
-        
-        raise ValueError(f"Cannot determine tensor size for output '{output_name}' of node type {cls.__name__}")
     
 
 

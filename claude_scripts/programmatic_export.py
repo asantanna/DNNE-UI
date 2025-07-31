@@ -42,6 +42,11 @@ def export_workflow(workflow_name="Cartpole_PPO"):
     try:
         # Clean workflow name for directory (replace spaces with underscores)
         clean_name = workflow_name.replace(" ", "_")
+        # Add workflow name to metadata for slot correction
+        if 'metadata' not in workflow:
+            workflow['metadata'] = {}
+        workflow['metadata']['workflow_name'] = workflow_name
+        print(f"📝 Set workflow_name in metadata: {workflow['metadata']['workflow_name']}")
         output_path = exporter.export_workflow(workflow, output_path=Path(f"export_system/exports/{clean_name}"))
         print(f"✅ Export completed successfully!")
         print(f"📂 Output location: {output_path}")
