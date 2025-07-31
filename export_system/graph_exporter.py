@@ -487,67 +487,62 @@ class GraphExporter:
             if workflow_metadata:
                 workflow_name = workflow_metadata.get("workflow_name")
             
-            # List of possible workflow files to try
+            # Require workflow name to be specified
+            if not workflow_name:
+                raise ValueError("Workflow name is required for slot correction")
+            
+            # Only try the specific workflow file - no fallbacks
             workflow_dir = Path("user/default/workflows")
-            possible_files = []
+            workflow_path = workflow_dir / f"{workflow_name}.json"
             
-            if workflow_name:
-                possible_files.append(workflow_dir / f"{workflow_name}.json")
+            if not workflow_path.exists():
+                raise FileNotFoundError(f"Workflow file not found: {workflow_path}")
             
-            # Also try common files
-            possible_files.extend([
-                workflow_dir / "Minimal.json",
-                workflow_dir / "MNIST Test.json"
-            ])
+            self.logger.info(f"Reading original workflow from: {workflow_path}")
+            with open(workflow_path, 'r') as f:
+                original_workflow = json.load(f)
+            original_links = original_workflow.get("links", [])
             
-            # Try each possible file
-            for workflow_path in possible_files:
-                if workflow_path.exists():
-                    self.logger.info(f"Reading original workflow from: {workflow_path}")
-                    with open(workflow_path, 'r') as f:
-                        original_workflow = json.load(f)
-                    original_links = original_workflow.get("links", [])
+            # Create a mapping from connection pattern to correct to_slot value
+            # Use (from_node, from_slot, to_node) as key since link IDs might not match
+            slot_corrections = {}
+            for link in original_links:
+                if len(link) >= 5:
+                    from_node, from_slot, to_node, to_slot = str(link[1]), link[2], str(link[3]), link[4]
+                    connection_key = (from_node, from_slot, to_node)
+                    slot_corrections[connection_key] = to_slot
+            
+            # Apply corrections to the corrupted links
+            fixed_links = []
+            fixes_applied = 0
+            for link in links:
+                if len(link) >= 5:
+                    link_id = link[0]
+                    from_node, from_slot, to_node, corrupted_to_slot = str(link[1]), link[2], str(link[3]), link[4]
+                    connection_key = (from_node, from_slot, to_node)
                     
-                    # Create a mapping from connection pattern to correct to_slot value
-                    # Use (from_node, from_slot, to_node) as key since link IDs might not match
-                    slot_corrections = {}
-                    for link in original_links:
-                        if len(link) >= 5:
-                            from_node, from_slot, to_node, to_slot = str(link[1]), link[2], str(link[3]), link[4]
-                            connection_key = (from_node, from_slot, to_node)
-                            slot_corrections[connection_key] = to_slot
-                    
-                    # Apply corrections to the corrupted links
-                    fixed_links = []
-                    fixes_applied = 0
-                    for link in links:
-                        if len(link) >= 5:
-                            link_id = link[0]
-                            from_node, from_slot, to_node, corrupted_to_slot = str(link[1]), link[2], str(link[3]), link[4]
-                            connection_key = (from_node, from_slot, to_node)
-                            
-                            if connection_key in slot_corrections:
-                                correct_to_slot = slot_corrections[connection_key]
-                                if corrupted_to_slot != correct_to_slot:
-                                    # Fix the to_slot value
-                                    fixed_link = list(link)
-                                    fixed_link[4] = correct_to_slot
-                                    fixed_links.append(fixed_link)
-                                    fixes_applied += 1
-                                    self.logger.info(f"Fixed connection {from_node}.{from_slot}→{to_node}: to_slot {corrupted_to_slot} → {correct_to_slot}")
-                                else:
-                                    fixed_links.append(link)
-                            else:
-                                # Connection not found in original, keep as-is
-                                fixed_links.append(link)
+                    if connection_key in slot_corrections:
+                        correct_to_slot = slot_corrections[connection_key]
+                        if corrupted_to_slot != correct_to_slot:
+                            # Fix the to_slot value
+                            fixed_link = list(link)
+                            fixed_link[4] = correct_to_slot
+                            fixed_links.append(fixed_link)
+                            fixes_applied += 1
+                            self.logger.info(f"Fixed connection {from_node}.{from_slot}→{to_node}: to_slot {corrupted_to_slot} → {correct_to_slot}")
                         else:
                             fixed_links.append(link)
-                    
-                    self.logger.info(f"Applied {fixes_applied} slot corrections from {workflow_path}")
-                    return fixed_links
+                    else:
+                        # Connection not found in original - this is an error
+                        raise ValueError(
+                            f"Connection {from_node}.{from_slot}→{to_node} not found in original workflow. "
+                            f"The workflow may have been modified or corrupted."
+                        )
+                else:
+                    fixed_links.append(link)
             
-            self.logger.warning("Could not find any workflow JSON files for slot correction")
-            return links
+            self.logger.info(f"Applied {fixes_applied} slot corrections from {workflow_path}")
+            return fixed_links
                 
         except Exception as e:
             self.logger.warning(f"Failed to fix corrupted slots: {e}")
