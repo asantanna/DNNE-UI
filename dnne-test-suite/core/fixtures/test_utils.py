@@ -170,8 +170,13 @@ def validate_export_output(export_path: Path) -> bool:
     return True
 
 
-def create_temp_export_dir() -> Path:
-    """Create a temporary directory for export testing within the allowed export path."""
+def create_temp_export_dir(create_dir: bool = True) -> Path:
+    """Create a temporary directory for export testing within the allowed export path.
+    
+    Args:
+        create_dir: If True, create the directory. If False, just return the path.
+                   Set to False when using with GraphExporter which requires non-existent dirs.
+    """
     import uuid
     import os
     
@@ -183,8 +188,10 @@ def create_temp_export_dir() -> Path:
     test_dir_name = f"test_{uuid.uuid4().hex[:8]}"
     temp_dir = export_base / test_dir_name
     
-    # Don't create the directory - let the exporter create it
-    # This avoids the "directory exists but not a DNNE export" error
+    if create_dir:
+        # Create the directory for tests that write files directly
+        # (not using the exporter)
+        temp_dir.mkdir(parents=True, exist_ok=True)
     
     return temp_dir
 

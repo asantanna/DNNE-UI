@@ -22,7 +22,7 @@ MINIMAL_LINEAR_WORKFLOW = {
     "links": []
 }
 
-# Simple 2-node workflow: Dataset -> Network
+# Simple workflow with proper layer connections
 SIMPLE_DATASET_NETWORK = {
     "nodes": [
         {
@@ -36,6 +36,30 @@ SIMPLE_DATASET_NETWORK = {
         },
         {
             "id": "2",
+            "type": "LinearLayer",
+            "inputs": {},
+            "widgets": {
+                "in_features": 784,
+                "out_features": 128,
+                "activation": "relu",
+                "bias": True,
+                "weight_init": "auto"
+            }
+        },
+        {
+            "id": "3",
+            "type": "LinearLayer",
+            "inputs": {},
+            "widgets": {
+                "in_features": 128,
+                "out_features": 10,
+                "activation": "none",
+                "bias": True,
+                "weight_init": "auto"
+            }
+        },
+        {
+            "id": "4",
             "type": "Network", 
             "inputs": {},
             "widgets": {
@@ -44,7 +68,10 @@ SIMPLE_DATASET_NETWORK = {
         }
     ],
     "links": [
-        ["1", "dataset", "2", "input"]
+        ["1", "dataset", "4", "input"],      # Dataset connects to network
+        ["4", "to_layers", "2", "input"],    # Network's to_layers connects to first layer
+        ["2", "output", "3", "input"],       # First layer to second layer
+        ["3", "output", "4", "to_output"]    # Second layer back to network's to_output
     ]
 }
 
@@ -77,6 +104,30 @@ MINIMAL_TRAINING_WORKFLOW = {
         },
         {
             "id": "4",
+            "type": "LinearLayer",
+            "inputs": {},
+            "widgets": {
+                "in_features": 784,
+                "out_features": 128,
+                "activation": "relu",
+                "bias": True,
+                "weight_init": "auto"
+            }
+        },
+        {
+            "id": "8",
+            "type": "LinearLayer",
+            "inputs": {},
+            "widgets": {
+                "in_features": 128,
+                "out_features": 10,
+                "activation": "none",
+                "bias": True,
+                "weight_init": "auto"
+            }
+        },
+        {
+            "id": "9",
             "type": "Network",
             "inputs": {},
             "widgets": {
@@ -110,11 +161,14 @@ MINIMAL_TRAINING_WORKFLOW = {
     "links": [
         ["1", "dataset", "2", "dataset"],
         ["2", "sampler", "3", "sampler"],
-        ["3", "batch", "4", "input"], 
-        ["4", "predictions", "5", "predictions"],
+        ["3", "batch", "9", "input"],
+        ["9", "to_layers", "4", "input"],    # Network's to_layers connects to first layer
+        ["4", "output", "8", "input"],
+        ["8", "output", "9", "to_output"],
+        ["9", "predictions", "5", "predictions"],
         ["3", "targets", "5", "targets"],
         ["5", "loss", "7", "loss"],
-        ["4", "model", "6", "model"],
+        ["9", "model", "6", "model"],
         ["6", "optimizer", "7", "optimizer"],
         ["7", "ready_signal", "3", "trigger"]
     ]
@@ -135,6 +189,30 @@ SIMPLE_ROBOTICS_WORKFLOW = {
         },
         {
             "id": "2",
+            "type": "LinearLayer",
+            "inputs": {},
+            "widgets": {
+                "in_features": 4,
+                "out_features": 64,
+                "activation": "relu",
+                "bias": True,
+                "weight_init": "auto"
+            }
+        },
+        {
+            "id": "4",
+            "type": "LinearLayer",
+            "inputs": {},
+            "widgets": {
+                "in_features": 64,
+                "out_features": 2,
+                "activation": "none",
+                "bias": True,
+                "weight_init": "auto"
+            }
+        },
+        {
+            "id": "5",
             "type": "Network",
             "inputs": {},
             "widgets": {
@@ -149,9 +227,12 @@ SIMPLE_ROBOTICS_WORKFLOW = {
         }
     ],
     "links": [
-        ["1", "observations", "2", "input"],
-        ["2", "actions", "3", "actions"],
-        ["1", "env", "3", "env"]
+        ["1", "observations", "5", "input"],  # Observations to network
+        ["5", "to_layers", "2", "input"],     # Network's to_layers to first layer
+        ["2", "output", "4", "input"],        # First layer to second layer
+        ["4", "output", "5", "to_output"],    # Second layer back to network
+        ["5", "actions", "3", "actions"],     # Network actions to step
+        ["1", "env", "3", "env"]              # Environment to step
     ]
 }
 

@@ -1,29 +1,37 @@
 # DNNE Development Status
 
-## Current Task: Testing CIFAR-10 and Yield_Test_Async
-**Status**: 🚀 Ready to test new features
+## Current Task: Fix Command-Line Interface Inconsistencies
+**Status**: 🔧 Multiple UI/UX issues identified
 
 ### Immediate Tasks:
-1. **Test CIFAR-10 Workflow** - Verify the CIFAR10_Test workflow runs correctly with new dataset support
-2. **Test Yield_Test_Async** - Verify async-to-async balancing behavior with MNIST and CIFAR-10
+1. **Fix Yield_Test_Async workflow** - Update CrossEntropyLoss nodes to match new 2-input structure
+2. **Fix command-line inconsistencies** - Standardize argument formats across all switches
+3. **Fix balancing node titles** - Add node_id to title display
 
-### Commands for Testing:
-```bash
-# Export and test CIFAR-10
-cd /mnt/e/ALS-Projects/DNNE/DNNE-UI
-python claude_scripts/programmatic_export.py CIFAR10_Test
-cd export_system/exports/CIFAR10_Test
-python runner.py --timeout 30s
-
-# Export and test Yield_Test_Async
-cd /mnt/e/ALS-Projects/DNNE/DNNE-UI
-python claude_scripts/programmatic_export.py Yield_Test_Async
-cd export_system/exports/Yield_Test_Async
-python runner.py --debug balancing --timeout 60s
-```
+### Current Todo List:
+- [x] Export all workflows using the export_all_workflows script
+- [ ] Balancing node not showing node_id in title
+- [ ] Fix inconsistent command-line argument formats
+- [ ] Standardize on comma separators for all multi-value arguments
+- [ ] Make --verbose/--debug recognize node IDs directly without node. prefix
+- [ ] Update help text to show consistent comma separators and node ID format
 
 ## Recent Accomplishments (2025-01-30)
 **Status**: ✅ Major features completed!
+
+### 🔧 Node Interface Fixes
+- ✅ Moved weight initialization from Network to LinearLayer nodes
+- ✅ Added per-layer weight initialization with auto-detection (Kaiming for ReLU, Xavier for tanh/sigmoid)
+- ✅ Fixed CrossEntropyLoss to original 2-input design (predictions, labels)
+- ✅ Changed SGDOptimizer input from 'network' to 'model' for clarity
+- ✅ Restored EpochTracker to original 3-input design (epoch_stats, loss, accuracy)
+- ✅ Fixed MetricsLogger to use WARNING level (suppress INFO messages)
+- ✅ Successfully exported and tested MNIST_Test and CIFAR10_Test workflows
+
+### 📁 Version Control Improvements
+- ✅ Updated .gitignore to properly track default workflows
+- ✅ Added all 7 workflow JSON files to version control
+- ✅ Committed all node interface changes
 
 ### 🎨 Node Color System
 - ✅ Created centralized `node_colors.py` with color constants for all node types
@@ -50,6 +58,16 @@ python runner.py --debug balancing --timeout 60s
 ### 🔄 Yield API Updates
 - ✅ Updated PPO training to use new unified yield API
 - ✅ Added subgraph="ppo" and is_item_ref parameters to all yield calls
+
+## Current Issues
+
+### 🐛 Known Bugs
+1. **Yield_Test_Async workflow** - Still has old CrossEntropyLoss structure with 3 inputs (needs fixing to 2)
+2. **Command-line inconsistencies**:
+   - Some switches use comma separators (`--verbose mnist,queue`)
+   - Others use space separators (`--epochs 55:10 56:20`)
+   - Verbose requires "node." prefix (`--verbose node.10`) while epochs doesn't (`--epochs 55:10`)
+3. **Balancing node titles** - Don't show node ID in title (should show "Balancing Node (10)")
 
 ## Previous Work: Execution Balance in Concurrent Subgraphs
 **Status**: 📋 Implementation plan documented
