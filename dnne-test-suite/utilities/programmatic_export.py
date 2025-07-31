@@ -37,7 +37,7 @@ def normalize_workflow_name(name):
         return f"{name}.json"
     return name
 
-def export_workflow(workflow_name, target_dir=None):
+def export_workflow(workflow_name, target_dir=None, add_metadata=False):
     """Export a workflow programmatically"""
     print(f"🚀 Starting programmatic export of {workflow_name}...")
     
@@ -60,6 +60,12 @@ def export_workflow(workflow_name, target_dir=None):
     
     with open(workflow_path, 'r') as f:
         workflow = json.load(f)
+    
+    # Add metadata if requested
+    if add_metadata:
+        if "metadata" not in workflow:
+            workflow["metadata"] = {}
+        workflow["metadata"]["dnne-test"] = True
     
     print(f"✓ Loaded workflow with {len(workflow.get('nodes', []))} nodes")
     
@@ -114,6 +120,12 @@ Examples:
         help="List available workflows"
     )
     
+    parser.add_argument(
+        "--add-metadata",
+        action="store_true",
+        help="Add test metadata to the workflow (for test suite)"
+    )
+    
     args = parser.parse_args()
     
     # Handle --list option
@@ -129,7 +141,7 @@ Examples:
         parser.error("workflow_name is required unless using --list")
     
     # Perform export
-    success = export_workflow(args.workflow_name, args.target_dir)
+    success = export_workflow(args.workflow_name, args.target_dir, args.add_metadata)
     return 0 if success else 1
 
 if __name__ == "__main__":

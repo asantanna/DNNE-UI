@@ -46,7 +46,13 @@ def sample_mnist_workflow():
     workflow_path = PROJECT_ROOT / "user" / "default" / "workflows" / "MNIST_Test.json"
     if workflow_path.exists():
         with open(workflow_path, 'r') as f:
-            return json.load(f)
+            workflow = json.load(f)
+            # Add test metadata
+            if workflow:
+                if "metadata" not in workflow:
+                    workflow["metadata"] = {}
+                workflow["metadata"]["dnne-test"] = True
+            return workflow
     return None
 
 
@@ -56,7 +62,13 @@ def sample_cartpole_workflow():
     workflow_path = PROJECT_ROOT / "user" / "default" / "workflows" / "Cartpole_RL_Single.json"
     if workflow_path.exists():
         with open(workflow_path, 'r') as f:
-            return json.load(f)
+            workflow = json.load(f)
+            # Add test metadata
+            if workflow:
+                if "metadata" not in workflow:
+                    workflow["metadata"] = {}
+                workflow["metadata"]["dnne-test"] = True
+            return workflow
     return None
 
 

@@ -173,7 +173,7 @@ def validate_export_output(export_path: Path) -> bool:
     return True
 
 
-def create_temp_export_dir(create_dir: bool = True) -> Path:
+def create_temp_export_dir(create_dir: bool = False) -> Path:
     """Create a temporary directory for export testing within the allowed export path.
     
     Args:
@@ -322,7 +322,7 @@ def export_workflow_for_test(workflow_name: str, test_name: str = None) -> Path:
     # Run the export utility
     try:
         result = subprocess.run(
-            [sys.executable, str(export_script), workflow_name, "--target-dir", target_dir],
+            [sys.executable, str(export_script), workflow_name, "--target-dir", target_dir, "--add-metadata"],
             capture_output=True,
             text=True,
             timeout=60,  # 1 minute timeout

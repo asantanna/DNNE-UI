@@ -363,7 +363,7 @@ if __name__ == "__main__":
 """
         
         # Write to temporary file and execute
-        export_dir = create_temp_export_dir()
+        export_dir = create_temp_export_dir(create_dir=True)
         
         try:
             runner_file = export_dir / "test_runner.py"
@@ -433,7 +433,7 @@ if __name__ == "__main__":
     exit(0 if result else 1)
 """
         
-        export_dir = create_temp_export_dir()
+        export_dir = create_temp_export_dir(create_dir=True)
         
         try:
             test_file = export_dir / "queue_test.py"
@@ -487,7 +487,7 @@ if __name__ == "__main__":
     sys.exit(0 if success else 1)
 """
         
-        export_dir = create_temp_export_dir()
+        export_dir = create_temp_export_dir(create_dir=True)
         
         try:
             test_file = export_dir / "import_test.py"
@@ -573,7 +573,7 @@ if __name__ == "__main__":
         assert_valid_python_code(generated_code)
         
         # Test execution
-        export_dir = create_temp_export_dir()
+        export_dir = create_temp_export_dir(create_dir=True)
         
         try:
             test_file = export_dir / "template_integration_test.py"
@@ -642,7 +642,7 @@ if __name__ == "__main__":
     exit(0 if result else 1)
 """
         
-        export_dir = create_temp_export_dir()
+        export_dir = create_temp_export_dir(create_dir=True)
         
         try:
             test_file = export_dir / "error_handling_test.py"
