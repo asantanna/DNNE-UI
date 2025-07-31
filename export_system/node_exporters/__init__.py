@@ -27,8 +27,6 @@ from .display_exporter import DisplayExporter
 
 # Robotics Exporters
 from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
-from .cartpole_action_exporter import CartpoleActionExporter
-from .cartpole_reward_exporter import CartpoleRewardExporter
 from .camera_sensor_exporter import CameraSensorExporter
 from .imu_sensor_exporter import IMUSensorExporter
 from .vision_network_exporter import VisionNetworkExporter
@@ -76,8 +74,6 @@ def register_ml_exporters(exporter):
 def register_robotics_exporters(exporter):
     """Register all robotics node exporters"""
     exporter.register_node("IsaacGymEnvs", IsaacGymEnvsExporter)
-    exporter.register_node("CartpoleAction", CartpoleActionExporter)
-    exporter.register_node("CartpoleReward", CartpoleRewardExporter)
     exporter.register_node("CameraSensor", CameraSensorExporter)
     exporter.register_node("IMUSensor", IMUSensorExporter)
     exporter.register_node("VisionNetwork", VisionNetworkExporter)
@@ -134,8 +130,6 @@ __all__ = [
     'DisplayExporter',
     # Robotics nodes
     'IsaacGymEnvsExporter',
-    'CartpoleActionExporter',
-    'CartpoleRewardExporter',
     'CameraSensorExporter',
     'IMUSensorExporter',
     'VisionNetworkExporter',
