@@ -73,11 +73,11 @@ class TestCrossEntropyLossNode:
         assert "labels" in required
         
         # Test that exporter exists
-        from export_system.node_exporters import CrossEntropyLossExporter
+        from export_system.node_exporters.ml_nodes import CrossEntropyLossExporter
         
         # Test template name
         template_name = CrossEntropyLossExporter.get_template_name()
-        assert template_name == "nodes/cross_entropy_queue.tpl"
+        assert template_name == "nodes/cross_entropy_queue.py"
         
         # Test imports
         imports = CrossEntropyLossExporter.get_imports()
@@ -87,7 +87,7 @@ class TestCrossEntropyLossNode:
     @pytest.mark.ml
     def test_cross_entropy_template_variables(self):
         """Test CrossEntropyLoss template variable preparation."""
-        from export_system.node_exporters import CrossEntropyLossExporter
+        from export_system.node_exporters.ml_nodes import CrossEntropyLossExporter
         
         # Mock node data
         mock_data = {"widgets_values": []}
@@ -224,14 +224,14 @@ class TestSGDOptimizerNode:
         required = input_types["required"]
         
         # Should accept network/model connection
-        assert "model" in required  # Changed from "network" to "model" during refactoring
+        assert "network" in required
         
         # Test that exporter exists
-        from export_system.node_exporters import SGDOptimizerExporter
+        from export_system.node_exporters.ml_nodes import SGDOptimizerExporter
         
         # Test template name
         template_name = SGDOptimizerExporter.get_template_name()
-        assert template_name == "nodes/sgd_optimizer_queue.tpl"
+        assert template_name == "nodes/sgd_optimizer_queue.py"
         
         # Test imports
         imports = SGDOptimizerExporter.get_imports()
@@ -240,7 +240,7 @@ class TestSGDOptimizerNode:
     @pytest.mark.ml
     def test_sgd_optimizer_template_variables(self):
         """Test SGD optimizer template variable preparation."""
-        from export_system.node_exporters import SGDOptimizerExporter
+        from export_system.node_exporters.ml_nodes import SGDOptimizerExporter
         
         # Mock node data with SGD parameters
         mock_data = {
@@ -310,11 +310,11 @@ class TestTrainingStepNode:
         assert "optimizer" in required
         
         # Test that exporter exists
-        from export_system.node_exporters import TrainingStepExporter
+        from export_system.node_exporters.ml_nodes import TrainingStepExporter
         
         # Test template name
         template_name = TrainingStepExporter.get_template_name()
-        assert template_name == "nodes/training_step_queue.tpl"
+        assert template_name == "nodes/training_step_queue.py"
         
         # Test imports
         imports = TrainingStepExporter.get_imports()
@@ -324,7 +324,7 @@ class TestTrainingStepNode:
     @pytest.mark.ml
     def test_training_step_template_variables(self):
         """Test TrainingStep template variable preparation."""
-        from export_system.node_exporters import TrainingStepExporter
+        from export_system.node_exporters.ml_nodes import TrainingStepExporter
         
         # Mock node data
         mock_data = {"widgets_values": []}
@@ -412,16 +412,16 @@ class TestEpochTrackerNode:
         assert "max_epochs" in optional
         
         # Test that exporter exists
-        from export_system.node_exporters import EpochTrackerExporter
+        from export_system.node_exporters.ml_nodes import EpochTrackerExporter
         
         # Test template name
         template_name = EpochTrackerExporter.get_template_name()
-        assert template_name == "nodes/epoch_tracker_queue.tpl"
+        assert template_name == "nodes/epoch_tracker_queue.py"
     
     @pytest.mark.ml
     def test_epoch_tracker_template_variables(self):
         """Test EpochTracker template variable preparation."""
-        from export_system.node_exporters import EpochTrackerExporter
+        from export_system.node_exporters.ml_nodes import EpochTrackerExporter
         
         # Mock node data with max epochs
         mock_data = {
@@ -473,8 +473,11 @@ class TestTrainingNodeIntegration:
     def test_training_node_exporter_consistency(self):
         """Test that training nodes have consistent exporter interfaces."""
         from export_system.node_exporters import (
-            CrossEntropyLossExporter, SGDOptimizerExporter, TrainingStepExporter, EpochTrackerExporter
-        )
+    CrossEntropyLossExporter,
+    SGDOptimizerExporter,
+    TrainingStepExporter,
+    EpochTrackerExporter
+)
         
         exporters = [
             CrossEntropyLossExporter, SGDOptimizerExporter, 
@@ -495,7 +498,7 @@ class TestTrainingNodeIntegration:
             # Template name should be valid
             template_name = exporter_class.get_template_name()
             assert isinstance(template_name, str)
-            assert template_name.endswith('.tpl')  # Template extension changed to .tpl
+            assert template_name.endswith('.py')
     
     @pytest.mark.ml
     @pytest.mark.performance

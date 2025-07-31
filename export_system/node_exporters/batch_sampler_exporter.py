@@ -16,7 +16,8 @@ class BatchSamplerExporter(ExportableNode):
         param_specs = [
             {'name': 'batch_size', 'widget_index': 0, 'default': 32},
             {'name': 'shuffle', 'widget_index': 1, 'default': True},
-            {'name': 'seed', 'widget_index': 2, 'default': 42}
+            {'name': 'seed', 'widget_index': 2, 'default': 42},
+            {'name': 'seed_control', 'widget_index': 3, 'default': 'fixed'}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
@@ -26,7 +27,8 @@ class BatchSamplerExporter(ExportableNode):
             "CLASS_NAME": "BatchSamplerNode",
             "BATCH_SIZE": params['batch_size'],
             "SHUFFLE": params['shuffle'],
-            "SEED": params['seed']
+            "SEED": params['seed'],
+            "SEED_CONTROL": f'"{params["seed_control"]}"'  # Add quotes for string value
         }
     
     @classmethod

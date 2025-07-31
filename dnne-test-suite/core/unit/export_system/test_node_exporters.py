@@ -10,8 +10,12 @@ from unittest.mock import Mock, patch
 
 # Import node exporters
 from export_system.node_exporters import (
-    MNISTDatasetExporter, LinearLayerExporter, NetworkExporter,
-    SGDOptimizerExporter, CrossEntropyLossExporter, TrainingStepExporter
+    MNISTDatasetExporter,
+    LinearLayerExporter,
+    NetworkExporter,
+    SGDOptimizerExporter,
+    CrossEntropyLossExporter,
+    TrainingStepExporter
 )
 from fixtures.node_data import (
     LINEAR_LAYER_DATA, MNIST_DATASET_DATA, NETWORK_DATA, 
@@ -53,7 +57,7 @@ class TestMNISTDatasetExporter:
         
         assert isinstance(template_name, str)
         assert len(template_name) > 0
-        assert template_name.endswith('.tpl')
+        assert template_name.endswith('.py')
         assert 'mnist' in template_name.lower() or 'dataset' in template_name.lower()
     
     @pytest.mark.export
@@ -125,9 +129,58 @@ class TestLinearLayerExporter:
         template_name = LinearLayerExporter.get_template_name()
         
         assert isinstance(template_name, str)
-        assert template_name.endswith('.tpl')
+        assert template_name.endswith('.py')
         assert 'linear' in template_name.lower() or 'layer' in template_name.lower()
     
+    @pytest.mark.export
+    def test_dimension_parameter_extraction(self):
+        """Test extraction of layer dimensions."""
+        # Use ComfyUI format with widgets_values
+        node_data = {
+            "widgets_values": [128, True, "relu", 0.0]  # output_size, bias, activation, dropout
+        }
+        
+        # Mock connections for input size detection
+        mock_connections = {
+            "inputs": {
+                "input": {
+                    "from_node": "source_node",
+                    "from_slot": 0
+                }
+            }
+        }
+        
+        # Mock source node data
+        mock_all_nodes = [
+            {
+                "id": "source_node",
+                "type": "MNISTDataset",
+                "widgets_values": []
+            }
+        ]
+        
+        # Mock node registry with MNISTDataset 
+        from export_system.node_exporters.ml_nodes import MNISTDatasetExporter
+        mock_node_registry = {
+            "MNISTDataset": MNISTDatasetExporter
+        }
+        
+        template_vars = LinearLayerExporter.prepare_template_vars(
+            "layer_node", node_data, mock_connections, mock_node_registry, mock_all_nodes, []
+        )
+        
+        # Should extract dimensions from widgets_values and connections
+        assert template_vars["OUTPUT_SIZE"] == 128
+        assert template_vars["BIAS_VALUE"] == True
+        assert template_vars["ACTIVATION_VALUE"] == "relu"
+        assert template_vars["DROPOUT"] == 0.0
+        
+        # Input size should be determined from connection (MNIST = 784)
+        assert template_vars["INPUT_SIZE"] == 784
+        
+        # Should have node identification
+        assert template_vars["NODE_ID"] == "layer_node"
+        assert template_vars["CLASS_NAME"] == "LinearLayerNode"
     
     @pytest.mark.export
     def test_imports(self):
@@ -154,10 +207,54 @@ class TestNetworkExporter:
         template_name = NetworkExporter.get_template_name()
         
         assert isinstance(template_name, str)
-        assert template_name.endswith('.tpl')
+        assert template_name.endswith('.py')
         assert 'network' in template_name.lower()
     
+    @pytest.mark.export
+    def test_network_parameter_extraction(self):
+        """Test extraction of network parameters."""
+        node_data = {
+            "inputs": {
+                "device": "cpu"
+            },
+            "widgets": {
+                "input_shape": [1, 28, 28],
+                "num_classes": 10,
+                "dropout_rate": 0.1
+            }
+        }
+        
+        template_vars = NetworkExporter.prepare_template_vars(
+            "network_node", node_data, {}
+        )
+        
+        # Should extract device
+        if "DEVICE" in template_vars:
+            assert template_vars["DEVICE"] == "cpu"
+        
+        # Should handle shape information
+        if "INPUT_SHAPE" in template_vars:
+            assert template_vars["INPUT_SHAPE"] == [1, 28, 28]
+        
+        if "NUM_CLASSES" in template_vars:
+            assert template_vars["NUM_CLASSES"] == 10
     
+    @pytest.mark.export
+    def test_connection_handling(self):
+        """Test network connection processing."""
+        node_data = NETWORK_DATA
+        connections = {
+            "input": [("node_1", "dataset")],
+            "layers": [("node_2", "layer"), ("node_3", "layer")]
+        }
+        
+        template_vars = NetworkExporter.prepare_template_vars(
+            "network_node", node_data, connections
+        )
+        
+        # Should process connections
+        assert isinstance(template_vars, dict)
+        # Connection processing depends on implementation
 
 
 class TestSGDOptimizerExporter:
@@ -169,7 +266,7 @@ class TestSGDOptimizerExporter:
         template_name = SGDOptimizerExporter.get_template_name()
         
         assert isinstance(template_name, str)
-        assert template_name.endswith('.tpl')
+        assert template_name.endswith('.py')
         assert 'sgd' in template_name.lower() or 'optimizer' in template_name.lower()
     
     @pytest.mark.export
@@ -219,7 +316,7 @@ class TestCrossEntropyLossExporter:
         template_name = CrossEntropyLossExporter.get_template_name()
         
         assert isinstance(template_name, str)
-        assert template_name.endswith('.tpl')
+        assert template_name.endswith('.py')
         assert 'loss' in template_name.lower() or 'entropy' in template_name.lower()
     
     @pytest.mark.export
@@ -262,7 +359,7 @@ class TestTrainingStepExporter:
         template_name = TrainingStepExporter.get_template_name()
         
         assert isinstance(template_name, str)
-        assert template_name.endswith('.tpl')
+        assert template_name.endswith('.py')
         assert 'training' in template_name.lower() or 'step' in template_name.lower()
     
     @pytest.mark.export
@@ -339,7 +436,7 @@ class TestNodeExporterIntegration:
                 # Test basic functionality
                 template_name = node_exporter.get_template_name()
                 assert isinstance(template_name, str)
-                assert template_name.endswith('.tpl')
+                assert template_name.endswith('.py')
                 
                 imports = node_exporter.get_imports()
                 assert isinstance(imports, list)
@@ -442,3 +539,29 @@ class TestNodeExporterIntegration:
             for key, value in template_vars.items():
                 str(value)  # Should not raise exception
     
+    @pytest.mark.export
+    def test_connection_parameter_handling(self):
+        """Test handling of connection information."""
+        sample_connections = {
+            "input": [("node_1", "output")],
+            "model": [("node_2", "layer")],
+            "optimizer": [("node_3", "optimizer")]
+        }
+        
+        exporters = [
+            NetworkExporter,  # Likely uses connections
+            TrainingStepExporter,  # Likely uses connections
+        ]
+        
+        for exporter_class in exporters:
+            template_vars = exporter_class.prepare_template_vars(
+                "test_node", {"inputs": {}, "widgets": {}}, sample_connections
+            )
+            
+            # Should handle connections without crashing
+            assert isinstance(template_vars, dict)
+            assert "NODE_ID" in template_vars
+            assert "CLASS_NAME" in template_vars
+            
+            # Connection information might be processed into template vars
+            # (specific handling depends on implementation)

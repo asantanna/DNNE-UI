@@ -35,15 +35,15 @@ class TestTemplateLoading:
         
         # Key templates that should exist
         expected_templates = [
-            "mnist_dataset_queue.tpl",
-            "linear_layer_queue.tpl", 
-            "network_queue.tpl",
-            "sgd_optimizer_queue.tpl",
-            "cross_entropy_queue.tpl",
-            "training_step_queue.tpl"
+            "mnist_dataset_queue.py",
+            "linear_layer_queue.py", 
+            "network_queue.py",
+            "sgd_optimizer_queue.py",
+            "cross_entropy_queue.py",
+            "training_step_queue.py"
         ]
         
-        existing_templates = list(template_dir.glob("*_queue.tpl"))
+        existing_templates = list(template_dir.glob("*_queue.py"))
         template_names = [t.name for t in existing_templates]
         
         # At least some key templates should exist
@@ -54,11 +54,11 @@ class TestTemplateLoading:
     def test_template_file_format(self):
         """Test that template files have correct format."""
         template_dir = Path("export_system/templates/nodes")
-        template_files = list(template_dir.glob("*_queue.tpl"))
+        template_files = list(template_dir.glob("*_queue.py"))
         
         for template_file in template_files[:3]:  # Test first 3 templates
             assert template_file.exists()
-            assert template_file.suffix == ".tpl"
+            assert template_file.suffix == ".py"
             
             # Should contain Python code
             content = template_file.read_text()
@@ -180,7 +180,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     def test_actual_template_substitution(self):
         """Test substitution with actual template files."""
         template_dir = Path("export_system/templates/nodes")
-        template_files = list(template_dir.glob("*_queue.tpl"))
+        template_files = list(template_dir.glob("*_queue.py"))
         
         assert len(template_files) > 0, f"Template files must exist in {template_dir}. Missing template files indicates broken test environment."
         
@@ -189,7 +189,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         template_content = template_file.read_text()
         
         # Use appropriate sample template variables based on template name
-        template_name = template_file.stem  # Remove .tpl extension
+        template_name = template_file.stem  # Remove .py extension
         if "batch_sampler" in template_name:
             sample_vars = SAMPLE_TEMPLATE_VARS["batch_sampler"]
         elif "mnist_dataset" in template_name:
@@ -363,7 +363,7 @@ if __name__ == "__main__":
 """
         
         # Write to temporary file and execute
-        export_dir = create_temp_export_dir(create_dir=True)
+        export_dir = create_temp_export_dir()
         
         try:
             runner_file = export_dir / "test_runner.py"
@@ -433,7 +433,7 @@ if __name__ == "__main__":
     exit(0 if result else 1)
 """
         
-        export_dir = create_temp_export_dir(create_dir=True)
+        export_dir = create_temp_export_dir()
         
         try:
             test_file = export_dir / "queue_test.py"
@@ -487,7 +487,7 @@ if __name__ == "__main__":
     sys.exit(0 if success else 1)
 """
         
-        export_dir = create_temp_export_dir(create_dir=True)
+        export_dir = create_temp_export_dir()
         
         try:
             test_file = export_dir / "import_test.py"
@@ -573,7 +573,7 @@ if __name__ == "__main__":
         assert_valid_python_code(generated_code)
         
         # Test execution
-        export_dir = create_temp_export_dir(create_dir=True)
+        export_dir = create_temp_export_dir()
         
         try:
             test_file = export_dir / "template_integration_test.py"
@@ -642,7 +642,7 @@ if __name__ == "__main__":
     exit(0 if result else 1)
 """
         
-        export_dir = create_temp_export_dir(create_dir=True)
+        export_dir = create_temp_export_dir()
         
         try:
             test_file = export_dir / "error_handling_test.py"

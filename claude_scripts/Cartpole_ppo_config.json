@@ -1,0 +1,28 @@
+{
+  "minibatch_size": 8192,
+  "horizon_length": 16,
+  "learning_rate": "3e-4",
+  "schedule_type": "adaptive",
+  "gamma": 0.99,
+  "tau": 0.95,
+  "e_clip": 0.2,
+  "clip_value": true,
+  "mini_epochs": 8,
+  "critic_coef": 4,
+  "entropy_coef": 0.0,
+  "bounds_loss_coef": 0.0001,
+  "max_epochs": "${resolve_default:100,${....max_iterations}}",
+  "normalize_advantage": true,
+  "normalize_input": true,
+  "normalize_value": true,
+  "num_actors": "${....task.env.numEnvs}",
+  "kl_threshold": 0.008,
+  "network": {
+    "units": [
+      32,
+      32
+    ],
+    "activation": "elu",
+    "separate": false
+  }
+}

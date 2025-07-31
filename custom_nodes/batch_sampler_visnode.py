@@ -42,6 +42,10 @@ class BatchSamplerNode(RoboticsNodeBase):
                     "default": -1,
                     "tooltip": "Random seed for reproducible shuffling. Set to -1 for random seed, or any positive integer for deterministic shuffling."
                 }),
+                "seed_control": (["fixed", "randomize"], {
+                    "default": "fixed",
+                    "tooltip": "How to handle seed between epochs. 'fixed' uses same seed, 'randomize' generates new seed each epoch."
+                }),
             }
         }
 
@@ -50,7 +54,7 @@ class BatchSamplerNode(RoboticsNodeBase):
     FUNCTION = "create_dataloader"
     CATEGORY = "ml"
 
-    def create_dataloader(self, dataset, schema, batch_size, shuffle, seed):
+    def create_dataloader(self, dataset, schema, batch_size, shuffle, seed, seed_control):
         # Set seed if specified
         generator = None
         if seed >= 0:

@@ -135,7 +135,7 @@ def test_cartpole_inference():
                 
         print(f"\n📝 To test inference mode, run:")
         print(f"   cd {export_path}")
-        print(f"   python runner.py --inference --load-checkpoint ./checkpoints --timeout 30s")
+        print(f"   python runner.py --inference --load-checkpoint-dir ./checkpoints --timeout 30s")
         
     finally:
         # Clean up
@@ -207,7 +207,7 @@ def main():
         print("\n✅ All tests passed! Inference mode is ready to use.")
         print("\n📝 Usage:")
         print("   python runner.py --inference                    # Run in inference mode")
-        print("   python runner.py --inference --load-checkpoint ./checkpoints")
+        print("   python runner.py --inference --load-checkpoint-dir ./checkpoints")
         print("   python runner.py --inference --timeout 30s      # Run for 30 seconds")
     else:
         print("\n❌ Some tests failed. Please check the errors above.")

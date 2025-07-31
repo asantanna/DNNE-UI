@@ -66,16 +66,16 @@ class TestLinearLayerNode:
         required = input_types["required"]
         
         # Should have dimension and activation parameters
-        assert "out_features" in required
+        assert "output_size" in required
         assert "bias" in required
         assert "activation" in required
         
         # Test that exporter exists and works
-        from export_system.node_exporters import LinearLayerExporter
+        from export_system.node_exporters.ml_nodes import LinearLayerExporter
         
         # Test template name
         template_name = LinearLayerExporter.get_template_name()
-        assert template_name == "nodes/linear_layer_queue.tpl"
+        assert template_name == "nodes/linear_layer_queue.py"
         
         # Test imports
         imports = LinearLayerExporter.get_imports()
@@ -85,7 +85,7 @@ class TestLinearLayerNode:
     @pytest.mark.ml
     def test_linear_layer_template_variables(self):
         """Test LinearLayer template variable preparation."""
-        from export_system.node_exporters import LinearLayerExporter
+        from export_system.node_exporters.ml_nodes import LinearLayerExporter
         
         # Mock node data with widget values
         mock_data = {
@@ -124,10 +124,10 @@ class TestLinearLayerNode:
         # Check default values
         required = input_types["required"]
         
-        # Should have reasonable defaults for out_features
-        out_features_config = required["out_features"]
-        assert out_features_config[1]["default"] >= 1  # Should have a positive default
-        assert out_features_config[1]["min"] >= 1      # Should have a positive minimum
+        # Should have reasonable defaults for output_size
+        output_size_config = required["output_size"]
+        assert output_size_config[1]["default"] >= 1  # Should have a positive default
+        assert output_size_config[1]["min"] >= 1      # Should have a positive minimum
         
         # Should have bias default
         bias_config = required["bias"]
@@ -184,11 +184,11 @@ class TestNetworkNode:
         assert "to_output" in required  # Loop-back connection
         
         # Test that exporter exists
-        from export_system.node_exporters import NetworkExporter
+        from export_system.node_exporters.ml_nodes import NetworkExporter
         
         # Test template name
         template_name = NetworkExporter.get_template_name()
-        assert template_name == "nodes/network_queue.tpl"
+        assert template_name == "nodes/network_queue.py"
         
         # Test imports
         imports = NetworkExporter.get_imports()
@@ -247,8 +247,8 @@ class TestActivationNode:
         assert hasattr(node, "RETURN_NAMES")
         assert hasattr(node, "FUNCTION")
         
-        # ActivationNode uses 'apply_activation' function (changed during refactoring)
-        assert node.FUNCTION == "apply_activation"
+        # ActivationNode uses 'apply' function
+        assert node.FUNCTION == "apply"
         
         # Should return tensor output
         return_types = node.RETURN_TYPES
@@ -290,8 +290,8 @@ class TestConv2DLayerNode:
         assert hasattr(node, "RETURN_NAMES")
         assert hasattr(node, "FUNCTION")
         
-        # Conv2D uses 'apply_conv' function (changed during refactoring)
-        assert node.FUNCTION == "apply_conv"
+        # Conv2D should use 'forward' function like other layers
+        assert node.FUNCTION == "forward"
         
         # Should return tensor output
         return_types = node.RETURN_TYPES
@@ -329,8 +329,8 @@ class TestDropoutNode:
         assert hasattr(node, "RETURN_NAMES")
         assert hasattr(node, "FUNCTION")
         
-        # Dropout uses 'apply_dropout' function (changed during refactoring)
-        assert node.FUNCTION == "apply_dropout"
+        # Dropout should use 'apply' function
+        assert node.FUNCTION == "apply"
         
         # Should return tensor output
         return_types = node.RETURN_TYPES
@@ -387,8 +387,8 @@ class TestBatchNormNode:
         assert hasattr(node, "RETURN_NAMES")
         assert hasattr(node, "FUNCTION")
         
-        # BatchNorm uses 'apply_batchnorm' function (changed during refactoring)
-        assert node.FUNCTION == "apply_batchnorm"
+        # BatchNorm should use 'apply' function
+        assert node.FUNCTION == "apply"
         
         # Should return tensor output
         return_types = node.RETURN_TYPES
@@ -426,8 +426,8 @@ class TestFlattenNode:
         assert hasattr(node, "RETURN_NAMES")
         assert hasattr(node, "FUNCTION")
         
-        # Flatten uses 'flatten_tensor' function (changed during refactoring)
-        assert node.FUNCTION == "flatten_tensor"
+        # Flatten should use 'flatten' function
+        assert node.FUNCTION == "flatten"
         
         # Should return tensor output
         return_types = node.RETURN_TYPES
@@ -505,7 +505,7 @@ class TestLayerNodeIntegration:
         
         # Should have output size parameter for scaling tests
         all_params = {**input_types["required"], **input_types.get("optional", {})}
-        assert "out_features" in all_params
+        assert "output_size" in all_params
         
         # Test node structure for export performance
         assert hasattr(linear_node, "RETURN_TYPES")

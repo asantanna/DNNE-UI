@@ -54,110 +54,113 @@ class IsaacGymEnvs(RoboticsNodeBase):
             "required": {
                 "task": (task_list, {
                     "default": "Cartpole",
-                    "tooltip": "Isaac Gym task/environment to use. Each task has different observation and action spaces."
+                    "tooltip": "Select an IsaacGymEnvs task - REQUIRED for export"
                 }),
                 "num_envs": ("INT", {
-                    "default": 16,
+                    "default": 64,
                     "min": 1,
                     "max": 8192,
-                    "tooltip": "Number of parallel environments. More envs = more parallel data but higher GPU memory usage."
+                    "step": 1,
+                    "tooltip": "Number of parallel environments"
                 }),
                 "seed": ("INT", {
                     "default": 42,
-                    "tooltip": "Random seed for reproducibility. Use -1 for random seed."
+                    "min": 0,
+                    "max": 1000000,
+                    "tooltip": "Random seed for reproducibility"
                 }),
-                "device": (["cuda:0", "cuda:1", "cpu"], {
-                    "default": "cuda:0",
-                    "tooltip": "Device to run simulation on. CUDA strongly recommended for performance."
+                "control_after_generate": (["fixed", "randomize", "increment", "decrement"], {
+                    "default": "fixed",
+                    "tooltip": "How to handle seed between runs"
                 }),
                 "headless": ("BOOLEAN", {
                     "default": True,
-                    "tooltip": "Run without rendering window. Set False to see visualization (slower)."
+                    "tooltip": "Run in headless mode (no rendering)"
                 }),
-                "force_render": ("BOOLEAN", {
-                    "default": False,
-                    "tooltip": "Force rendering even in headless mode (for recording/debugging)."
+                "graphics_device_id": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 7,
+                    "tooltip": "GPU device ID for rendering"
                 }),
-                "eval_mode": ("BOOLEAN", {
+                "sim_device": ("STRING", {
+                    "default": "cuda:0",
+                    "tooltip": "Device for physics simulation (e.g., cuda:0, cpu)"
+                }),
+                "physics_engine": (["physx", "flex"], {
+                    "default": "physx",
+                    "tooltip": "Physics engine backend"
+                }),
+                "multi_gpu": ("BOOLEAN", {
                     "default": False,
-                    "tooltip": "Evaluation mode: deterministic actions, no exploration noise."
-                })
+                    "tooltip": "Use multi-GPU simulation"
+                }),
+                "enable_cameras": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "Enable camera sensors (impacts performance)"
+                }),
             },
             "optional": {
-                "custom_config": ("DICT", {
-                    "tooltip": "Custom configuration to override task defaults"
-                })
+                "force_render": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "Force rendering even in headless mode"
+                }),
+                "use_gpu_pipeline": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Use GPU pipeline for faster training"
+                }),
+                "num_threads": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 64,
+                    "tooltip": "Number of CPU threads (0 = auto)"
+                }),
+                "solver_type": ("INT", {
+                    "default": 1,
+                    "min": 0,
+                    "max": 2,
+                    "tooltip": "PhysX solver type (0=PGS, 1=TGS)"
+                }),
+                "num_subscenes": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 32,
+                    "tooltip": "Number of PhysX subscenes (0 = auto)"
+                }),
             }
         }
 
-    RETURN_TYPES = ("GYM_CONFIG",)
-    RETURN_NAMES = ("env_config",)
-    FUNCTION = "configure_env"
+    RETURN_TYPES = ("ISAAC_ENV_CONFIG",)
+    RETURN_NAMES = ("env",)
+    FUNCTION = "configure"
 
-    def configure_env(self, task, num_envs, seed, device, headless, force_render, eval_mode, custom_config=None):
-        """Configure Isaac Gym environment parameters"""
-        
-        # Create configuration
-        env_config = {
+    def configure(self, task, num_envs, seed, control_after_generate, headless, graphics_device_id, sim_device, 
+                  physics_engine, multi_gpu, enable_cameras, force_render=False, use_gpu_pipeline=True, 
+                  num_threads=0, solver_type=1, num_subscenes=0):
+        """
+        This method is never actually called during export.
+        It exists only to satisfy ComfyUI's node interface.
+        """
+        # Return configuration dict that would be used by PPO_Agent
+        config = {
             "task": task,
             "num_envs": num_envs,
-            "seed": seed if seed >= 0 else None,
-            "device": device,
+            "seed": seed,
+            "control_after_generate": control_after_generate,
             "headless": headless,
+            "graphics_device_id": graphics_device_id,
+            "sim_device": sim_device,
+            "physics_engine": physics_engine,
+            "multi_gpu": multi_gpu,
+            "enable_cameras": enable_cameras,
             "force_render": force_render,
-            "eval_mode": eval_mode,
-            "isaac_gym_envs_path": str(get_isaac_gym_envs_path()),
-            "sim_device": f"cuda:{device.split(':')[-1]}" if device.startswith("cuda") else "cpu",
-            "graphics_device_id": int(device.split(':')[-1]) if device.startswith("cuda") else 0,
+            "use_gpu_pipeline": use_gpu_pipeline,
+            "num_threads": num_threads,
+            "solver_type": solver_type,
+            "num_subscenes": num_subscenes
         }
         
-        # Merge custom config if provided
-        if custom_config:
-            env_config.update(custom_config)
-        
-        # Add task-specific defaults
-        task_defaults = self._get_task_defaults(task)
-        for key, value in task_defaults.items():
-            if key not in env_config:
-                env_config[key] = value
-        
-        return (env_config,)
-
-    def _get_task_defaults(self, task: str) -> Dict[str, Any]:
-        """Get default configuration for specific tasks"""
-        defaults = {
-            "Cartpole": {
-                "physics_engine": "physx",
-                "num_threads": 0,
-                "solver_type": 1,
-                "use_gpu_pipeline": True,
-                "up_axis": "z",
-                "dt": 0.01667,  # 60 Hz
-            },
-            "Ant": {
-                "physics_engine": "physx",
-                "num_threads": 0,
-                "solver_type": 1,
-                "use_gpu_pipeline": True,
-                "up_axis": "z",
-                "dt": 0.01667,
-            },
-            "Humanoid": {
-                "physics_engine": "physx",
-                "num_threads": 4,
-                "solver_type": 1,
-                "use_gpu_pipeline": True,
-                "up_axis": "z",
-                "dt": 0.0083,  # 120 Hz for stability
-            }
-        }
-        
-        return defaults.get(task, defaults["Cartpole"])
-
-    @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        # Virtual nodes don't need to track changes
-        return False
+        return (config,)
 
 
 # Node registration

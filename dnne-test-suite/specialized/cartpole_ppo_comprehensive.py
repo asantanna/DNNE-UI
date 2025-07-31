@@ -145,7 +145,7 @@ async def test_single_env():
     cmd = [
         sys.executable,
         str(export_path / "runner.py"),
-        "--timeout", "30s",
+        "--test-mode",
         "--verbose"
     ]
     
@@ -181,7 +181,7 @@ async def test_multi_env():
     cmd = [
         sys.executable,
         str(export_path / "runner.py"),
-        "--timeout", "30s",
+        "--test-mode",
         "--verbose"
     ]
     
@@ -217,7 +217,7 @@ async def test_standard_isaac_gym():
     cmd = [
         sys.executable,
         str(export_path / "runner.py"),
-        "--timeout", "60s"
+        "--test-mode"
     ]
     
     # Activate conda environment

@@ -60,43 +60,72 @@ class PPOAgentExporter(ExportableNode):
         
         # Add environment configuration
         if env_config:
+            # Fail-fast: all required env config values must be present
+            required_env_keys = [
+                'task', 'num_envs', 'seed', 'control_after_generate', 'headless',
+                'graphics_device_id', 'sim_device', 'physics_engine', 'multi_gpu',
+                'enable_cameras', 'force_render', 'use_gpu_pipeline', 'num_threads',
+                'solver_type', 'num_subscenes', 'isaac_gym_envs_path'
+            ]
+            missing_keys = [key for key in required_env_keys if key not in env_config]
+            if missing_keys:
+                raise ValueError(
+                    f"IsaacGymEnvs config missing required keys: {missing_keys}. "
+                    f"This indicates a mismatch between the exporter and visual node."
+                )
+            
             template_vars.update({
-                "ENV_TASK": env_config.get('task', 'Cartpole'),
-                "ENV_NUM_ENVS": env_config.get('num_envs', 64),
-                "ENV_SEED": env_config.get('seed', 42),
-                "ENV_HEADLESS": env_config.get('headless', True),
-                "ENV_GRAPHICS_DEVICE": env_config.get('graphics_device_id', 0),
-                "ENV_SIM_DEVICE": env_config.get('sim_device', 'cuda:0'),
-                "ENV_PHYSICS_ENGINE": env_config.get('physics_engine', 'physx'),
-                "ENV_MULTI_GPU": env_config.get('multi_gpu', False),
-                "ENV_ENABLE_CAMERAS": env_config.get('enable_cameras', False),
-                "ENV_FORCE_RENDER": env_config.get('force_render', False),
-                "ENV_USE_GPU_PIPELINE": env_config.get('use_gpu_pipeline', True),
-                "ENV_NUM_THREADS": env_config.get('num_threads', 0),
-                "ENV_SOLVER_TYPE": env_config.get('solver_type', 1),
-                "ENV_NUM_SUBSCENES": env_config.get('num_subscenes', 0),
-                "ISAAC_GYM_ENVS_PATH": env_config.get('isaac_gym_envs_path', '/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs'),
+                "ENV_TASK": env_config['task'],
+                "ENV_NUM_ENVS": env_config['num_envs'],
+                "ENV_SEED": env_config['seed'],
+                "ENV_CONTROL_AFTER_GENERATE": env_config['control_after_generate'],
+                "ENV_HEADLESS": env_config['headless'],
+                "ENV_GRAPHICS_DEVICE": env_config['graphics_device_id'],
+                "ENV_SIM_DEVICE": env_config['sim_device'],
+                "ENV_PHYSICS_ENGINE": env_config['physics_engine'],
+                "ENV_MULTI_GPU": env_config['multi_gpu'],
+                "ENV_ENABLE_CAMERAS": env_config['enable_cameras'],
+                "ENV_FORCE_RENDER": env_config['force_render'],
+                "ENV_USE_GPU_PIPELINE": env_config['use_gpu_pipeline'],
+                "ENV_NUM_THREADS": env_config['num_threads'],
+                "ENV_SOLVER_TYPE": env_config['solver_type'],
+                "ENV_NUM_SUBSCENES": env_config['num_subscenes'],
+                "ISAAC_GYM_ENVS_PATH": env_config['isaac_gym_envs_path'],
             })
         
         # Add PPO configuration
         if ppo_config:
+            # Fail-fast: all required PPO config values must be present
+            required_ppo_keys = [
+                'minibatch_size', 'horizon_length', 'learning_rate', 'schedule_type',
+                'gamma', 'tau', 'e_clip', 'clip_value', 'mini_epochs', 'critic_coef',
+                'entropy_coef', 'bounds_loss_coef', 'max_epochs', 'normalize_advantage',
+                'normalize_input', 'normalize_value', 'grad_norm', 'lr_schedule_kl_threshold'
+            ]
+            missing_keys = [key for key in required_ppo_keys if key not in ppo_config]
+            if missing_keys:
+                raise ValueError(
+                    f"PPOConfig missing required keys: {missing_keys}. "
+                    f"This indicates a mismatch between the exporter and visual node."
+                )
+            
             template_vars.update({
-                "PPO_MINIBATCH_SIZE": ppo_config.get('minibatch_size', 64),
-                "PPO_HORIZON_LENGTH": ppo_config.get('horizon_length', 16),
-                "PPO_LEARNING_RATE": ppo_config.get('learning_rate', 0.0003),
-                "PPO_SCHEDULE_TYPE": ppo_config.get('schedule_type', 'adaptive'),
-                "PPO_GAMMA": ppo_config.get('gamma', 0.99),
-                "PPO_TAU": ppo_config.get('tau', 0.95),
-                "PPO_E_CLIP": ppo_config.get('e_clip', 0.2),
-                "PPO_CLIP_VALUE": ppo_config.get('clip_value', True),
-                "PPO_MINI_EPOCHS": ppo_config.get('mini_epochs', 5),
-                "PPO_CRITIC_COEF": ppo_config.get('critic_coef', 4),
-                "PPO_ENTROPY_COEF": ppo_config.get('entropy_coef', 0.0),
-                "PPO_BOUNDS_LOSS_COEF": ppo_config.get('bounds_loss_coef', 0.0),
-                "PPO_MAX_EPOCHS": ppo_config.get('max_epochs', 100),
-                "PPO_NORMALIZE_ADVANTAGE": ppo_config.get('normalize_advantage', True),
-                "PPO_NORMALIZE_INPUT": ppo_config.get('normalize_input', True),
-                "PPO_NORMALIZE_VALUE": ppo_config.get('normalize_value', True),
+                "PPO_MINIBATCH_SIZE": ppo_config['minibatch_size'],
+                "PPO_HORIZON_LENGTH": ppo_config['horizon_length'],
+                "PPO_LEARNING_RATE": ppo_config['learning_rate'],
+                "PPO_SCHEDULE_TYPE": ppo_config['schedule_type'],
+                "PPO_GAMMA": ppo_config['gamma'],
+                "PPO_TAU": ppo_config['tau'],
+                "PPO_E_CLIP": ppo_config['e_clip'],
+                "PPO_CLIP_VALUE": ppo_config['clip_value'],
+                "PPO_MINI_EPOCHS": ppo_config['mini_epochs'],
+                "PPO_CRITIC_COEF": ppo_config['critic_coef'],
+                "PPO_ENTROPY_COEF": ppo_config['entropy_coef'],
+                "PPO_BOUNDS_LOSS_COEF": ppo_config['bounds_loss_coef'],
+                "PPO_MAX_EPOCHS": ppo_config['max_epochs'],
+                "PPO_NORMALIZE_ADVANTAGE": ppo_config['normalize_advantage'],
+                "PPO_NORMALIZE_INPUT": ppo_config['normalize_input'],
+                "PPO_NORMALIZE_VALUE": ppo_config['normalize_value'],
             })
             
             # Only add these if they exist in the PPO config (from YAML)
@@ -177,24 +206,32 @@ class PPOAgentExporter(ExportableNode):
         logging.info(f"[DNNE Export] IsaacGymEnvs widget_values: {widget_values}")
         
         # Map widget values to config (based on IsaacGymEnvs node definition)
-        # Widget values from workflow: ["Cartpole",64,42,"randomize",true,0,"cuda:0","physx",false,false,false,true,0,1,0]
-        # The "randomize" value at index 3 seems to be an extra widget not in the node definition
-        # Shifting indices by 1 after that point
+        # Fail-fast: ensure we have all required widget values
+        required_widget_count = 15  # 9 required + 5 optional + 1 for control_after_generate
+        if len(widget_values) < required_widget_count:
+            raise ValueError(
+                f"IsaacGymEnvs node {env_node_id} has {len(widget_values)} widget values, "
+                f"expected at least {required_widget_count}. "
+                f"This may indicate a mismatch between the visual node and workflow."
+            )
+        
+        # Extract values with explicit indexing - no defaults!
         return {
-            'task': widget_values[0] if len(widget_values) > 0 else 'Cartpole',
-            'num_envs': widget_values[1] if len(widget_values) > 1 else 64,
-            'seed': widget_values[2] if len(widget_values) > 2 else 42,
-            'headless': widget_values[4] if len(widget_values) > 4 else True,  # Skip index 3 ("randomize")
-            'graphics_device_id': widget_values[5] if len(widget_values) > 5 else 0,
-            'sim_device': widget_values[6] if len(widget_values) > 6 else 'cuda:0',
-            'physics_engine': widget_values[7] if len(widget_values) > 7 else 'physx',
-            'multi_gpu': widget_values[8] if len(widget_values) > 8 else False,
-            'enable_cameras': widget_values[9] if len(widget_values) > 9 else False,
-            'force_render': widget_values[10] if len(widget_values) > 10 else False,
-            'use_gpu_pipeline': widget_values[11] if len(widget_values) > 11 else True,
-            'num_threads': widget_values[12] if len(widget_values) > 12 else 0,
-            'solver_type': widget_values[13] if len(widget_values) > 13 else 1,
-            'num_subscenes': widget_values[14] if len(widget_values) > 14 else 0,
+            'task': widget_values[0],
+            'num_envs': widget_values[1],
+            'seed': widget_values[2],
+            'control_after_generate': widget_values[3],
+            'headless': widget_values[4],
+            'graphics_device_id': widget_values[5],
+            'sim_device': widget_values[6],
+            'physics_engine': widget_values[7],
+            'multi_gpu': widget_values[8],
+            'enable_cameras': widget_values[9],
+            'force_render': widget_values[10],
+            'use_gpu_pipeline': widget_values[11],
+            'num_threads': widget_values[12],
+            'solver_type': widget_values[13],
+            'num_subscenes': widget_values[14],
             'isaac_gym_envs_path': '/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs',  # Always use default path
         }
     
@@ -243,28 +280,35 @@ class PPOAgentExporter(ExportableNode):
         # 15: normalize_input, 16: normalize_value, 17: reward_shaper_scale,
         # 18: e_clip, 19: truncate_grads, 20: bounds_loss_coef
         
-        # Direct mapping from widget values - minibatch_size is now provided directly
-        horizon_length = widget_values[9] if len(widget_values) > 9 else 16
+        # Fail-fast: ensure we have all required widget values
+        required_widget_count = 21  # 9 required + 12 optional parameters
+        if len(widget_values) < required_widget_count:
+            raise ValueError(
+                f"PPOConfig node {config_node_id} has {len(widget_values)} widget values, "
+                f"expected at least {required_widget_count}. "
+                f"This may indicate a mismatch between the visual node and workflow."
+            )
         
+        # Direct mapping from widget values - no defaults!
         return {
-            'learning_rate': widget_values[0] if len(widget_values) > 0 else 0.0003,
-            'mini_epochs': widget_values[1] if len(widget_values) > 1 else 4,
-            'minibatch_size': widget_values[2] if len(widget_values) > 2 else 8192,  # Direct from widget
-            'e_clip': widget_values[3] if len(widget_values) > 3 else 0.2,
-            'critic_coef': widget_values[4] if len(widget_values) > 4 else 0.5,
-            'entropy_coef': widget_values[5] if len(widget_values) > 5 else 0.01,
-            'gamma': widget_values[6] if len(widget_values) > 6 else 0.99,
-            'tau': widget_values[7] if len(widget_values) > 7 else 0.95,
-            'grad_norm': widget_values[8] if len(widget_values) > 8 else 0.5,
-            'horizon_length': horizon_length,
-            'max_epochs': widget_values[10] if len(widget_values) > 10 else 100,  # Direct from max_iterations widget
-            'schedule_type': widget_values[11] if len(widget_values) > 11 else 'constant',
-            'lr_schedule_kl_threshold': widget_values[12] if len(widget_values) > 12 else 0.008,
-            'clip_value': widget_values[13] if len(widget_values) > 13 else True,
-            'normalize_advantage': widget_values[14] if len(widget_values) > 14 else True,
-            'normalize_input': widget_values[15] if len(widget_values) > 15 else True,
-            'normalize_value': widget_values[16] if len(widget_values) > 16 else True,
-            'bounds_loss_coef': widget_values[20] if len(widget_values) > 20 else 0.0001,
+            'learning_rate': widget_values[0],
+            'mini_epochs': widget_values[1],
+            'minibatch_size': widget_values[2],
+            'e_clip': widget_values[3],
+            'critic_coef': widget_values[4],
+            'entropy_coef': widget_values[5],
+            'gamma': widget_values[6],
+            'tau': widget_values[7],
+            'grad_norm': widget_values[8],
+            'horizon_length': widget_values[9],
+            'max_epochs': widget_values[10],
+            'schedule_type': widget_values[11],
+            'lr_schedule_kl_threshold': widget_values[12],
+            'clip_value': widget_values[13],
+            'normalize_advantage': widget_values[14],
+            'normalize_input': widget_values[15],
+            'normalize_value': widget_values[16],
+            'bounds_loss_coef': widget_values[20],
         }
     
     @classmethod

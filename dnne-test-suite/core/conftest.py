@@ -43,16 +43,10 @@ TEST_DATA_DIR = Path(__file__).parent / "fixtures"
 @pytest.fixture
 def sample_mnist_workflow():
     """Load the MNIST Test workflow for testing."""
-    workflow_path = PROJECT_ROOT / "user" / "default" / "workflows" / "MNIST_Test.json"
+    workflow_path = PROJECT_ROOT / "user" / "default" / "workflows" / "MNIST Test.json"
     if workflow_path.exists():
         with open(workflow_path, 'r') as f:
-            workflow = json.load(f)
-            # Add test metadata
-            if workflow:
-                if "metadata" not in workflow:
-                    workflow["metadata"] = {}
-                workflow["metadata"]["dnne-test"] = True
-            return workflow
+            return json.load(f)
     return None
 
 
@@ -62,13 +56,7 @@ def sample_cartpole_workflow():
     workflow_path = PROJECT_ROOT / "user" / "default" / "workflows" / "Cartpole_RL_Single.json"
     if workflow_path.exists():
         with open(workflow_path, 'r') as f:
-            workflow = json.load(f)
-            # Add test metadata
-            if workflow:
-                if "metadata" not in workflow:
-                    workflow["metadata"] = {}
-                workflow["metadata"]["dnne-test"] = True
-            return workflow
+            return json.load(f)
     return None
 
 

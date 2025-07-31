@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from export_system.graph_exporter import GraphExporter
 from export_system.node_exporters import register_all_exporters
 
-def export_workflow(workflow_name):
+def export_workflow(workflow_name="Cartpole_PPO"):
     """Export the specified workflow programmatically"""
     print(f"🚀 Starting programmatic export of {workflow_name}...")
     
@@ -54,14 +54,7 @@ def export_workflow(workflow_name):
         return False
 
 if __name__ == "__main__":
-    # Workflow name is required
-    if len(sys.argv) < 2:
-        print("❌ Error: Workflow name is required")
-        print("Usage: python programmatic_export.py <workflow_name>")
-        print("Example: python programmatic_export.py Cartpole_PPO")
-        print("Example: python programmatic_export.py \"MNIST Test\"")
-        sys.exit(1)
-    
-    workflow_name = sys.argv[1]
+    # Get workflow name from command line argument or default to Cartpole_PPO
+    workflow_name = sys.argv[1] if len(sys.argv) > 1 else "Cartpole_PPO"
     success = export_workflow(workflow_name)
     sys.exit(0 if success else 1)

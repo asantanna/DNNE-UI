@@ -137,11 +137,8 @@ def validate_workflow_structure(workflow: Dict[str, Any]) -> bool:
         if len(link) == 4:
             # Test format
             from_node, from_output, to_node, to_input = link
-        elif len(link) == 5:
-            # Standard export format (ComfyUI without type)
-            link_id, from_node, from_slot, to_node, to_slot = link
         elif len(link) == 6:
-            # Full ComfyUI format with type
+            # ComfyUI format
             link_id, from_node, from_slot, to_node, to_slot, link_type = link
         else:
             return False
@@ -173,13 +170,8 @@ def validate_export_output(export_path: Path) -> bool:
     return True
 
 
-def create_temp_export_dir(create_dir: bool = False) -> Path:
-    """Create a temporary directory for export testing within the allowed export path.
-    
-    Args:
-        create_dir: If True, create the directory. If False, just return the path.
-                   Set to False when using with GraphExporter which requires non-existent dirs.
-    """
+def create_temp_export_dir() -> Path:
+    """Create a temporary directory for export testing within the allowed export path."""
     import uuid
     import os
     
@@ -191,10 +183,8 @@ def create_temp_export_dir(create_dir: bool = False) -> Path:
     test_dir_name = f"test_{uuid.uuid4().hex[:8]}"
     temp_dir = export_base / test_dir_name
     
-    if create_dir:
-        # Create the directory for tests that write files directly
-        # (not using the exporter)
-        temp_dir.mkdir(parents=True, exist_ok=True)
+    # Create the directory
+    temp_dir.mkdir(parents=True, exist_ok=True)
     
     return temp_dir
 
@@ -322,7 +312,7 @@ def export_workflow_for_test(workflow_name: str, test_name: str = None) -> Path:
     # Run the export utility
     try:
         result = subprocess.run(
-            [sys.executable, str(export_script), workflow_name, "--target-dir", target_dir, "--add-metadata"],
+            [sys.executable, str(export_script), workflow_name, "--target-dir", target_dir],
             capture_output=True,
             text=True,
             timeout=60,  # 1 minute timeout
@@ -330,8 +320,7 @@ def export_workflow_for_test(workflow_name: str, test_name: str = None) -> Path:
         )
         
         if result.returncode != 0:
-            error_details = f"stdout: {result.stdout}\nstderr: {result.stderr}"
-            raise RuntimeError(f"Export failed with return code {result.returncode}:\n{error_details}")
+            raise RuntimeError(f"Export failed: {result.stderr}")
         
         export_path = project_root / "export_system" / "exports" / target_dir
         

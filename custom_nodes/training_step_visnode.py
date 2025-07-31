@@ -24,50 +24,29 @@ class TrainingStepNode(RoboticsNodeBase):
         return {
             "required": {
                 "loss": ("TENSOR", {
-                    "tooltip": "Loss tensor from loss node (e.g., CrossEntropyLoss). Must be scalar or reducible to scalar."
+                    "tooltip": "Loss tensor to backpropagate. Scalar tensor (single value) computed from loss function like CrossEntropyLoss."
                 }),
                 "optimizer": ("OPTIMIZER", {
-                    "tooltip": "Optimizer instance (e.g., from SGDOptimizer) that will update model parameters."
-                }),
-                "gradient_clip": ("FLOAT", {
-                    "default": 0.0,
-                    "min": 0.0,
-                    "max": 10.0,
-                    "step": 0.1,
-                    "tooltip": "Max norm for gradient clipping. 0 disables clipping. Use 1.0-5.0 to prevent exploding gradients."
+                    "tooltip": "Optimizer instance (SGD, Adam, etc.) that will update model parameters. Connect from SGDOptimizer or similar node."
                 })
             }
         }
 
-    RETURN_TYPES = ("SYNC", "FLOAT")
-    RETURN_NAMES = ("trigger", "grad_norm")
+    RETURN_TYPES = ("SYNC",)
+    RETURN_NAMES = ("ready",)
     FUNCTION = "train_step"
     CATEGORY = "ml"
 
-    def train_step(self, loss, optimizer, gradient_clip):
-        # Zero gradients from previous step
-        optimizer.zero_grad()
+    def train_step(self, loss, optimizer):
+        # Visual node - no execution, just return placeholder
+        ready_signal = {
+            "signal_type": "ready",
+            "timestamp": 0,
+            "source_node": "training_step",
+            "metadata": {"phase": "training_complete"}
+        }
         
-        # Backward pass
-        loss.backward()
-        
-        # Gradient clipping if requested
-        grad_norm = 0.0
-        if gradient_clip > 0:
-            # Get all parameters from optimizer
-            params = []
-            for group in optimizer.param_groups:
-                params.extend(group['params'])
-            
-            # Clip gradients
-            grad_norm = torch.nn.utils.clip_grad_norm_(params, gradient_clip)
-            grad_norm = grad_norm.item() if hasattr(grad_norm, 'item') else float(grad_norm)
-        
-        # Update parameters
-        optimizer.step()
-        
-        # Return trigger for next batch
-        return (True, grad_norm)
+        return (ready_signal,)
 
 # Node registration
 NODE_CLASS_MAPPINGS = {

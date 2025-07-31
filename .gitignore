@@ -13,20 +13,13 @@ extra_model_paths.yaml
 .idea/
 venv/
 .venv/
-# Ignore entire web directory (appears to be misplaced build output)
-web/
-
-# Legacy web extension rules (kept for compatibility)
 /web/extensions/*
 !/web/extensions/logging.js.example
 !/web/extensions/core/
 /tests-ui/data/object_info.json
 
-# Ignore user directory except for default workflows
-user/*
-!user/default/
-user/default/*
-!user/default/workflows/
+/user/
+!/user/default/workflows/
 
 *.log
 web_custom_versions/
@@ -43,9 +36,6 @@ uv.lock
 export_system/exports/*
 # !export_system/exports/Cartpole_PPO/
 # !export_system/exports/MNIST_Test/
-
-# Explicitly ignore test exports
-export_system/exports/test_*
 
 # Ignore downloaded data in exports
 export_system/exports/*/data/

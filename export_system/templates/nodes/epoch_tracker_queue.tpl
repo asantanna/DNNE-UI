@@ -1,8 +1,7 @@
 # Template variables - replaced during export
 template_vars = {
     "NODE_ID": "epoch_tracker_1",
-    "MAX_EPOCHS": 100,
-    "EARLY_STOP_PATIENCE": 10
+    "MAX_EPOCHS": 100
 }
 
 from framework.globals import Global as g, dnne_logging
@@ -36,11 +35,6 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             self.node_logger.info(f"Using global epochs override: {self.total_epochs}")
         else:
             self.total_epochs = {MAX_EPOCHS}
-        
-        # Early stopping configuration
-        self.early_stop_patience = {EARLY_STOP_PATIENCE}
-        self.best_loss = float('inf')
-        self.patience_counter = 0
         
         # Flag to track if we've shown the training starting message
         self.training_started = False

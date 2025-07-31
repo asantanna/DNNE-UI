@@ -110,7 +110,7 @@ Implemented a fixed-seed debugging strategy to make both DNNE and IsaacGymEnvs p
 
 ---
 
-## 2025-07-16 - Critical Discovery: DNNE Learning Performance Issues [RESOLVED]
+## 2025-07-16 - Critical Discovery: DNNE Learning Performance Issues
 
 ### What We Did
 - Ran comprehensive profiling comparisons between DNNE and IsaacGymEnvs
@@ -125,23 +125,38 @@ Implemented a fixed-seed debugging strategy to make both DNNE and IsaacGymEnvs p
 - **Checkpointing**: Working properly with automatic saves
 - **Visual Feedback**: Clear learning progression visible in cartpole balancing
 
-#### **DNNE Performance Initial Issues**
-- **Learning Performance**: Initially showed bimodal distribution (20-30 vs 70-90) with no real improvement
+#### **DNNE Performance Reality Check**
+- **Learning Performance**: **TERRIBLE** - episode returns showing bimodal distribution (20-30 vs 70-90) but no real improvement
 - **Episode Completion**: 800+ episodes but with inconsistent, erratic performance
-- **Learning Curve**: No meaningful progression initially
-- **Visual Observation**: Showed chaotic, unstable balancing behavior
+- **Learning Curve**: No meaningful progression - agent not actually learning to balance consistently
+- **Visual Observation**: Would show chaotic, unstable balancing behavior
 
 #### **Profiler Issues Identified**
 - **IsaacGymEnvs in Profiler**: Only 1 completed episode with 13.4 return (broken by profiler)
 - **DNNE in Profiler**: Appeared to show 48.9 average return (misleading results)
 - **Root Cause**: Profiler interfering with IsaacGymEnvs configuration, making comparisons invalid
 
-### Resolution
+### Critical Realizations
 
-**UPDATE**: These learning issues have been successfully resolved. DNNE now learns effectively and matches IsaacGymEnvs' learning behavior. The root causes were identified and fixed in subsequent updates.
+1. **DNNE Learning Algorithm is Broken**: Despite appearing to work in profiler comparisons, direct testing shows DNNE is not learning effectively
+2. **Profiler Masking Issues**: The profiler was making IsaacGymEnvs look broken while making DNNE look good
+3. **Performance vs Learning**: DNNE may have decent step rates but fundamentally fails at the learning task
+4. **Baseline Comparison**: Native IsaacGymEnvs demonstrates what proper PPO learning should look like
 
-### Current Status
-**RESOLVED**: DNNE learning is now working correctly. Focus has shifted to performance optimization to reach target FPS goals while maintaining the correct learning behavior.
+### Implications
+- **Previous comparisons were invalid** due to profiler interference
+- **DNNE's PPO implementation has fundamental issues** that prevent effective learning
+- **Queue-based architecture** may be introducing problems in the learning loop
+- **Need to debug DNNE's learning algorithm** rather than just performance metrics
+
+### Next Steps
+1. **Debug DNNE's PPO implementation** - compare with working IsaacGymEnvs implementation
+2. **Identify learning algorithm bugs** - observation normalization, reward processing, policy updates
+3. **Fix fundamental learning issues** before worrying about performance optimization
+4. **Validate learning** by comparing against IsaacGymEnvs baseline performance
+
+### Status
+**CRITICAL ISSUE IDENTIFIED**: DNNE does not learn effectively despite appearing to work in profiler tests. Learning algorithm debugging is now the top priority.
 
 ---
 EOF < /dev/null

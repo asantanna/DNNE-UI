@@ -4,14 +4,14 @@
 
 **Refactoring Complete**: DNNE has been completely refactored to use IsaacGymEnvs' (IGE) cartpole code and infrastructure as much as possible. This represents a major architectural shift from custom implementations to proven IGE components.
 
-**Current Focus - Performance Optimization**: DNNE learning has been fixed and now performs effectively. The focus has shifted to performance optimization to approach IsaacGymEnvs speeds.
+**Current Focus - Correctness First**: We are debugging and comparing DNNE vs IGE to ensure the new DNNE code performs identically to IGE's proven implementation. Correctness verification comes before performance optimization.
 
 **Development Phase**: 
 1. ✅ **Refactoring**: Complete - DNNE now inherits from IGE cartpole
-2. ✅ **Correctness**: Complete - DNNE learning matches IGE behavior  
-3. 🔄 **Performance**: Current phase - optimize to reach target FPS
+2. 🔄 **Correctness**: In progress - debugging to match IGE behavior exactly  
+3. ⏳ **Performance**: Next phase - optimize after correctness is verified
 
-**Note**: PPO training with both DNNE and IsaacGymEnvs is fully functional. Learning performance issues have been resolved.
+**Reference**: See `dnne_debugging_guide.md` for comprehensive debugging methodology and lessons learned.
 
 ## Architecture Overview
 
@@ -57,7 +57,7 @@ diff /tmp/ige_debug.txt /tmp/dnne_debug.txt
 - PPO training cycles
 - Loss computation values
 
-**Success Criteria**: Debug outputs should match exactly for all key metrics listed above.
+**Reference**: See `dnne_debugging_guide.md` for comprehensive debugging techniques and common fixes.
 
 ## Running Tests
 
@@ -96,7 +96,7 @@ python runner.py --headless --timeout 15s --profile
 
 ## Performance Targets
 
-**Current Status**: With learning issues resolved, these performance targets are now the primary focus.
+**Prerequisites**: These targets apply after correctness is verified and DNNE matches IGE's learning behavior exactly.
 
 - **Short-term**: 100+ FPS
 - **Medium-term**: 1,000+ FPS  
@@ -121,4 +121,4 @@ python claude_scripts/performance_comparison_table.py | grep "Avg FPS"
 
 ## Known Issues
 
-For debugging techniques and common issues, check the archived debug documents for historical reference.
+For debugging techniques and common issues, see the comprehensive `dnne_debugging_guide.md` in this directory.

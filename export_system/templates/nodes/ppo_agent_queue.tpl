@@ -44,6 +44,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             'task': '{ENV_TASK}',
             'num_envs': {ENV_NUM_ENVS},
             'seed': {ENV_SEED},
+            'control_after_generate': '{ENV_CONTROL_AFTER_GENERATE}',
             'headless': {ENV_HEADLESS},
             'graphics_device_id': {ENV_GRAPHICS_DEVICE},
             'sim_device': '{ENV_SIM_DEVICE}',
@@ -117,6 +118,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         # Track if training has been completed
         self.training_completed = False
+        
+        # Initialize seed control
+        self.initial_seed = self.env_config['seed']
+        self.current_seed = self.initial_seed
+        self.run_count = 0
     
     async def run(self):
         """Override run to execute training only once"""
@@ -176,6 +182,28 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         """
         Create configuration arguments for IsaacGymEnvs train.py
         """
+        # Apply seed control logic based on control_after_generate
+        control_mode = self.env_config.get('control_after_generate', 'fixed')
+        
+        if control_mode == 'randomize':
+            # Generate a new random seed for each run
+            import random
+            self.current_seed = random.randint(0, 1000000)
+            ppo_logger.info(f"Randomizing seed to: {{self.current_seed}}")
+        elif control_mode == 'increment':
+            # Increment seed after each run
+            if self.run_count > 0:
+                self.current_seed = self.initial_seed + self.run_count
+                ppo_logger.info(f"Incrementing seed to: {{self.current_seed}}")
+        elif control_mode == 'decrement':
+            # Decrement seed after each run
+            if self.run_count > 0:
+                self.current_seed = max(0, self.initial_seed - self.run_count)
+                ppo_logger.info(f"Decrementing seed to: {{self.current_seed}}")
+        # else: 'fixed' - keep using initial_seed/current_seed
+        
+        self.run_count += 1
+        
         # Check for visual mode override from command line
         visual_mode = Global.visual_mode
         headless_mode = Global.headless_mode
@@ -198,6 +226,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         config_args = [
             f"task={{self.env_config['task']}}",
             f"num_envs={{self.env_config['num_envs']}}",
+            f"seed={{self.current_seed}}",  # Use the controlled seed
             f"headless={{headless}}",
             f"force_render={{force_render}}",
             f"sim_device={{self.env_config['sim_device']}}",
