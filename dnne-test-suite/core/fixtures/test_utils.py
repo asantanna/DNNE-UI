@@ -330,7 +330,8 @@ def export_workflow_for_test(workflow_name: str, test_name: str = None) -> Path:
         )
         
         if result.returncode != 0:
-            raise RuntimeError(f"Export failed: {result.stderr}")
+            error_details = f"stdout: {result.stdout}\nstderr: {result.stderr}"
+            raise RuntimeError(f"Export failed with return code {result.returncode}:\n{error_details}")
         
         export_path = project_root / "export_system" / "exports" / target_dir
         

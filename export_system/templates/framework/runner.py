@@ -151,8 +151,6 @@ async def main():
                        help='Enable verbose logging (INFO level). Optional: comma-separated subsystems (e.g., "mnist,queue")')
     parser.add_argument('--debug', '-d', nargs='?', const='all', default=None,
                        help='Enable debug logging (DEBUG level). Optional: comma-separated subsystems (e.g., "yield,ppo")')
-    parser.add_argument('--test-mode', action='store_true',
-                       help='Run in test mode with limited duration and performance tracking')
     parser.add_argument('--save-checkpoint', action='store_true',
                        help='Enable checkpoint saving')
     parser.add_argument('--out-dir', type=str, default='runs/singles',
@@ -379,14 +377,7 @@ async def main():
 
     # Run the graph
     try:
-        if args.test_mode:
-            print('🧪 Test mode: Running for 30 seconds with performance tracking')
-            import time
-            start_time = time.time()
-            await runner.run(duration=30.0)  # Run for 30 seconds in test mode
-            end_time = time.time()
-            print(f'✅ Test mode completed in {{end_time - start_time:.1f}} seconds')
-        elif duration_seconds is not None:
+        if duration_seconds is not None:
             # Run for specified timeout duration
             import time
             start_time = time.time()
