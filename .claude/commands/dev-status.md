@@ -3,18 +3,15 @@
 ## Current Task: Fix Command-Line Interface Inconsistencies
 **Status**: 🔧 Multiple UI/UX issues identified
 
-### Immediate Tasks:
-1. **Fix Yield_Test_Async workflow** - Update CrossEntropyLoss nodes to match new 2-input structure
-2. **Fix command-line inconsistencies** - Standardize argument formats across all switches
-3. **Fix balancing node titles** - Add node_id to title display
-
-### Current Todo List:
-- [x] Export all workflows using the export_all_workflows script
+## 📋 CURRENT TODO LIST
+<!-- TODOS: This section contains the active todo items -->
 - [ ] Balancing node not showing node_id in title
 - [ ] Fix inconsistent command-line argument formats
 - [ ] Standardize on comma separators for all multi-value arguments
 - [ ] Make --verbose/--debug recognize node IDs directly without node. prefix
 - [ ] Update help text to show consistent comma separators and node ID format
+- [ ] Fix integration tests checkpoints (from test suite work)
+- [ ] Newly inserted nodes no longer have default color
 
 ## Recent Accomplishments (2025-01-30)
 **Status**: ✅ Major features completed!
@@ -62,12 +59,11 @@
 ## Current Issues
 
 ### 🐛 Known Bugs
-1. **Yield_Test_Async workflow** - Still has old CrossEntropyLoss structure with 3 inputs (needs fixing to 2)
-2. **Command-line inconsistencies**:
+1. **Command-line inconsistencies**:
    - Some switches use comma separators (`--verbose mnist,queue`)
    - Others use space separators (`--epochs 55:10 56:20`)
    - Verbose requires "node." prefix (`--verbose node.10`) while epochs doesn't (`--epochs 55:10`)
-3. **Balancing node titles** - Don't show node ID in title (should show "Balancing Node (10)")
+2. **Balancing node titles** - Don't show node ID in title (should show "Balancing Node (10)")
 
 ## Previous Work: Execution Balance in Concurrent Subgraphs
 **Status**: 📋 Implementation plan documented
@@ -133,25 +129,26 @@ python claude_scripts/toggle_DBG_TAG.py <filename>
 - **Adaptive Yielding**: `docs-dnne/architecture/adaptive-yielding.md` - Current yielding implementation (needs update)
 - **Logging Guidelines**: `docs-dnne/development/logging-guidelines.md` - Subsystem logging standards
 
-## Todo List
+## 📅 Potential Future Work Items
 
-### Short-term (Current Session)
-- [x] **Understand execution metrics** - 86/14 split is PPO CPU vs yield time (not MNIST time)
-- [x] **Document implementation plan** - Added to system-balancing.md
+### Medium-term
 - [ ] **Implement subgraph-based metrics** - Track actual throughput per subgraph
-
-### Medium-term (This Week)
 - [ ] **Add real-time progress display** - Show training progress every 5-10s
 - [ ] **Test --no-yield flag** - Verify PPO dominates without yielding
 - [ ] **Add subgraph activity tracking** - Track which subgraph is active with timestamps
 - [ ] **Test verbose output** - Monitor detailed execution patterns
 - [ ] **Update adaptive-yielding.md** - Currently marked as "hopelessly wrong"
 
-### Long-term (Future Improvements)
+### Long-term
 - [ ] **Fix Hydra disable_existing_loggers** - Find proper solution instead of workaround
 - [ ] **Create visual progress indicators** - Nice-to-have execution visualization
 - [ ] **Fix total yields counter** - Currently shows 0 despite yields happening
 - [ ] **Wire metrics to adaptive algorithm** - Make yielding respond to actual starvation
+
+### ✅ Recently Completed
+- [x] **Export all workflows using the export_all_workflows script**
+- [x] **Understand execution metrics** - 86/14 split is PPO CPU vs yield time (not MNIST time)
+- [x] **Document implementation plan** - Added to system-balancing.md
 
 ## Feature Requests
 *Detailed specs in docs-dnne/future/*
