@@ -69,7 +69,8 @@ class NetworkNode_{NODE_ID}(QueueNode):
                 if (self.checkpoint_load_on_start and g.load_checkpoint_dir) or (g.inference_mode and g.load_checkpoint_dir):
                     if g.inference_mode:
                         self.node_logger.info("🔍 Inference mode: Loading checkpoint automatically")
-                    self.load_checkpoint(str(g.load_checkpoint_dir))
+                    if not self.load_checkpoint(str(g.load_checkpoint_dir)):
+                        raise RuntimeError(f"Failed to load checkpoint from {g.load_checkpoint_dir}. Ensure a checkpoint was saved in a previous run.")
                     
             except ValueError as e:
                 self.node_logger.error(f"Checkpoint configuration error: {e}")
