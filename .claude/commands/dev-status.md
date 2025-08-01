@@ -1,7 +1,7 @@
 # DNNE Development Status
 
-## Current Task: Fix Command-Line Interface Inconsistencies
-**Status**: 🔧 Multiple UI/UX issues identified
+## Current Task: Run Integration Tests
+**Status**: 🧪 Ready for final testing
 
 ## 📋 CURRENT TODO LIST
 <!-- TODOS: This section contains the active todo items -->
@@ -49,15 +49,6 @@
 ### 🔄 Yield API Updates
 - ✅ Updated PPO training to use new unified yield API
 - ✅ Added subgraph="ppo" and is_item_ref parameters to all yield calls
-
-## Current Issues
-
-### 🐛 Known Bugs
-1. **Command-line inconsistencies**:
-   - Some switches use comma separators (`--verbose mnist,queue`)
-   - Others use space separators (`--epochs 55:10 56:20`)
-   - Verbose requires "node." prefix (`--verbose node.10`) while epochs doesn't (`--epochs 55:10`)
-2. **Balancing node titles** - Don't show node ID in title (should show "Balancing Node (10)")
 
 ## Previous Work: Execution Balance in Concurrent Subgraphs
 **Status**: 📋 Implementation plan documented
