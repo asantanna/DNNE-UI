@@ -5,13 +5,7 @@
 
 ## 📋 CURRENT TODO LIST
 <!-- TODOS: This section contains the active todo items -->
-- [ ] Balancing node not showing node_id in title
-- [ ] Fix inconsistent command-line argument formats
-- [ ] Standardize on comma separators for all multi-value arguments
-- [ ] Make --verbose/--debug recognize node IDs directly without node. prefix
-- [ ] Update help text to show consistent comma separators and node ID format
-- [ ] Fix integration tests checkpoints (from test suite work)
-- [ ] Newly inserted nodes no longer have default color
+- [ ] Run integration tests (./dnne-test integration)
 
 ## Recent Accomplishments (2025-01-30)
 **Status**: ✅ Major features completed!
