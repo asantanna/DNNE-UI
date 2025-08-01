@@ -214,6 +214,15 @@ class IsaacGymEnvConfigLoader:
         # Get global config values
         global_cfg = self._global_config
         
+        # Extract null action if available
+        null_action = env_cfg.get('nullAction', None)
+        if null_action is not None:
+            # Convert to string format for widget
+            null_action_str = ', '.join(str(x) for x in null_action)
+        else:
+            # Leave blank if not specified - will cause error if user tries to use IsaacGymSimNode
+            null_action_str = ""
+        
         return {
             "num_envs": num_envs,
             "seed": global_cfg.get('seed', 42),
@@ -244,6 +253,7 @@ class IsaacGymEnvConfigLoader:
                 physx_cfg.get('num_subscenes', global_cfg.get('num_subscenes', 4)), 
                 4
             ),
+            "null_action": null_action_str,  # Add null action to config
         }
     
     def _extract_ppo_config_node(self, ppo_config: Dict) -> Dict[str, Any]:

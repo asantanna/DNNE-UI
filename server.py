@@ -801,9 +801,10 @@ class PromptServer():
 
         @routes.get("/dnne/env_config/{task_name}")
         async def get_env_config(request):
-            """Get environment-specific configuration for all 3 nodes"""
+            """Get environment-specific configuration for connected nodes"""
             task_name = request.match_info.get("task_name", None)
-            logging.info(f"[DNNE] get_env_config called with task_name: {task_name}")
+            requesting_node_type = request.rel_url.query.get("node_type", None)
+            logging.info(f"[DNNE] get_env_config called with task_name: {task_name}, requesting_node: {requesting_node_type}")
             
             if not task_name or task_name == "none":
                 logging.warning(f"[DNNE] Invalid task name: {task_name}")
@@ -825,16 +826,30 @@ class PromptServer():
                     logging.warning(f"[DNNE] No configuration found for task: {task_name}")
                     return web.json_response({"error": f"No configuration found for task: {task_name}"}, status=404)
                 
-                # Return configuration for all 3 nodes
+                # Return configuration based on requesting node type
                 response_data = {
                     "task_name": task_name,
-                    "isaac_gym_env": config.get("isaac_gym_env_node", {}),
-                    "ppo_config": config.get("ppo_config_node", {}),
-                    "ppo_agent": config.get("ppo_agent_node", {})
                 }
-                logging.info(f"[DNNE] Returning config with {len(response_data['isaac_gym_env'])} env params, "
-                           f"{len(response_data['ppo_config'])} ppo_config params, "
-                           f"{len(response_data['ppo_agent'])} ppo_agent params")
+                
+                # Always include env config
+                env_config = config.get("isaac_gym_env_node", {})
+                response_data["isaac_gym_env"] = env_config
+                
+                # Add specific configs based on requesting node
+                if requesting_node_type == "PPOAgent":
+                    response_data["ppo_config"] = config.get("ppo_config_node", {})
+                    response_data["ppo_agent"] = config.get("ppo_agent_node", {})
+                elif requesting_node_type == "IsaacGymSim":
+                    # For IsaacGymSim, we need the null_action from env config
+                    response_data["isaac_gym_sim"] = {
+                        "null_action": env_config.get("null_action", "")
+                    }
+                else:
+                    # Default: return all configs for backward compatibility
+                    response_data["ppo_config"] = config.get("ppo_config_node", {})
+                    response_data["ppo_agent"] = config.get("ppo_agent_node", {})
+                
+                logging.info(f"[DNNE] Returning config for {requesting_node_type or 'all nodes'}")
                 return web.json_response(response_data)
                 
             except Exception as e:

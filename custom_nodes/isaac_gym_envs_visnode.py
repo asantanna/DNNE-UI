@@ -169,5 +169,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "IsaacGymEnvs": "Isaac Gym Environment"
+    "IsaacGymEnvs": "Isaac Gym Environment Config"
 }

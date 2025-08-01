@@ -45,6 +45,7 @@ node_aliases = {
     'EpochTracker': 'EpochTrackerNode',
     'TensorVisualizer': 'TensorVisualizerNode',
     'IsaacGymEnvs': 'IsaacGymEnvs',
+    'IsaacGymSim': 'IsaacGymSimNode',
     'PPOAgent': 'PPOAgentNode',
     'PPOConfig': 'PPOConfigNode',
     'OR': 'ORNode'
