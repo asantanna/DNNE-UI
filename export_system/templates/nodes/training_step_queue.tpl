@@ -21,16 +21,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.running = True
         self.node_logger.info(f"Starting node {{self.node_id}}")
         
-        # In inference mode, this node does nothing
-        if g.inference_mode:
-            self.node_logger.info("TrainingStep disabled in inference mode")
-            # Keep the node running but do nothing
-            try:
-                while self.running:
-                    await asyncio.sleep(1.0)
-            except asyncio.CancelledError:
-                pass
-            return
         
         try:
             # First, wait for optimizer (configuration)
@@ -61,20 +51,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.running = False
         
     async def compute(self, loss) -> Dict[str, Any]:
-        # Skip in inference mode
-        if g.inference_mode:
-            return {"ready": None, "step_complete": False}
-            
         if self.optimizer is None:
             raise RuntimeError(
                 f"TrainingStepNode {self.node_id}: No optimizer received. "
                 f"Check that SGDOptimizer node is connected and working properly."
             )
             
-        # Perform backpropagation
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+        # Perform backpropagation (skip in inference mode)
+        if not g.inference_mode:
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
         
         # Send ready signal for next batch after training step completes
         import time

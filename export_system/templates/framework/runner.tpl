@@ -251,7 +251,6 @@ async def main():
         headless_mode=args.headless,
         inference_mode=args.inference,
         profiling=args.dnne_profiling,
-        # epochs_override is deprecated - use node-specific config instead
         fixed_seed=args.fixed_seed
     )
 
@@ -297,9 +296,6 @@ async def main():
         print(f"📁 Loading checkpoints from: {{load_checkpoint_dir}}")
     print("=" * 60)
 
-    # Create nodes
-{NODE_INSTANCES_SECTION}
-
     # Node type mapping for command-line switches
     SWITCH_TO_NODE_TYPE = {{
         'epochs': 'EpochTrackerNode',
@@ -309,18 +305,18 @@ async def main():
     }}
 
     # Process node-specific arguments
-    def process_node_args(args, nodes):
+    def process_node_args(args, workflow_nodes):
         '''Process command-line args and assign to specific nodes'''
         node_configs = {{}}
         errors = []
         
-        # Map of node types to their instances
+        # Map of node types to their IDs from workflow
         node_type_map = {{}}
-        for node_id, node in nodes.items():
-            node_type = node.__class__.__name__.split('_')[0]  # Remove _nodeID suffix
+        for node_id, node_info in workflow_nodes.items():
+            node_type = node_info['type']
             if node_type not in node_type_map:
                 node_type_map[node_type] = []
-            node_type_map[node_type].append((node_id, node))
+            node_type_map[node_type].append(node_id)
         
         # Process each switch
         for switch_name, node_type in SWITCH_TO_NODE_TYPE.items():
@@ -347,10 +343,9 @@ async def main():
             else:
                 # Single value - check for ambiguity
                 if len(target_nodes) > 1:
-                    node_ids = [node_id for node_id, _ in target_nodes]
-                    errors.append(f"Ambiguous switch --{{switch_name}}: multiple {{node_type}} nodes found: {{node_ids}}")
+                    errors.append(f"Ambiguous switch --{{switch_name}}: multiple {{node_type}} nodes found: {{target_nodes}}")
                 elif len(target_nodes) == 1:
-                    node_id, _ = target_nodes[0]
+                    node_id = target_nodes[0]
                     node_configs.setdefault(node_id, {{}})[switch_name] = arg_value
                 # If no target nodes, silently ignore (backward compatibility)
         
@@ -363,13 +358,13 @@ async def main():
         
         return node_configs
 
-    # Create nodes dictionary
-    nodes = {{
-{NODE_DICTIONARY_SECTION}
+    # Define workflow nodes info for argument processing
+    workflow_nodes = {{
+{WORKFLOW_NODES_INFO}
     }}
     
     # Process node-specific configuration
-    node_configs = process_node_args(args, nodes)
+    node_configs = process_node_args(args, workflow_nodes)
     
     # Process generic overrides
     if args.override:
@@ -387,10 +382,18 @@ async def main():
                 node_configs[node_id] = {{}}
             node_configs[node_id].update(config)
     
-    # Apply node-specific configuration
+    # Apply node-specific configuration BEFORE creating nodes
     for node_id, config in node_configs.items():
         for key, value in config.items():
             g.set_node_config(node_id, key, value)
+
+    # Create nodes (AFTER configuration is set)
+{NODE_INSTANCES_SECTION}
+
+    # Create nodes dictionary for runner
+    nodes = {{
+{NODE_DICTIONARY_SECTION}
+    }}
     
     # Create runner
     runner = GraphRunner()

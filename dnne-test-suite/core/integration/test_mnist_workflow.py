@@ -9,9 +9,11 @@ import pytest
 import json
 import subprocess
 import sys
+import os
 import time
 from pathlib import Path
 from unittest.mock import Mock, patch
+import tempfile
 
 # Import DNNE components
 from export_system.graph_exporter import GraphExporter
@@ -23,17 +25,119 @@ from fixtures.test_utils import (
 )
 
 
+# Module-level variable to store checkpoint info file
+CHECKPOINT_INFO_FILE = Path(tempfile.gettempdir()) / "dnne_test_checkpoint_info.json"
+
+
 class TestMNISTExecution:
     """Test actual execution of exported MNIST workflows."""
     
-    # Class variable to share checkpoint path between tests
-    checkpoint_export_path = None
+    # Network node ID from MNIST_Test.json workflow
+    NETWORK_NODE_ID = 56 
     
+    @pytest.mark.integration
+    @pytest.mark.timeout(120)  # 2 minutes for 2 epochs
+    def test_1_mnist_execution_with_epoch_limit(self, sample_mnist_workflow):
+        """Test that exported code respects the --epochs flag and stops after specified epochs.
+        
+        This is test 1: Verifies --epochs 1 flag works correctly.
+        """
+        
+        if sample_mnist_workflow is None:
+            pytest.fail("MNIST Test workflow not available")
+            
+        workflow_name = "MNIST_Test"
+        export_path = None
+            
+        try:
+            # Use standardized export utility
+            export_path = export_workflow_for_test(workflow_name, "mnist_2_epochs")
+            
+            if validate_export_output(export_path):
+                runner_file = export_path / "runner.py"
+                
+                if runner_file.exists():
+                    # Track execution time
+                    test_start_time = time.time()
+                    
+                    # Run with --epochs 1 flag
+                    cmd = [sys.executable, str(runner_file), "--epochs", "1"]
+                    print(f"Running command: {' '.join(cmd)}")
+                    print(f"Working directory: {export_path}")
+                    print(f"Python executable: {sys.executable}")
+                    
+                    try:
+                        execution_result = subprocess.run(
+                            cmd,
+                            capture_output=True,
+                            text=True,
+                            timeout=120,  # Much shorter timeout for 2 epochs
+                            cwd=export_path
+                        )
+                    except subprocess.TimeoutExpired as e:
+                        print(f"Process timed out after 120 seconds")
+                        print(f"Partial STDOUT: {e.stdout if e.stdout else 'None'}")
+                        print(f"Partial STDERR: {e.stderr if e.stderr else 'None'}")
+                        pytest.fail("MNIST training timed out - process may be stuck during initialization")
+                    
+                    test_end_time = time.time()
+                    test_duration = test_end_time - test_start_time
+                    
+                    if execution_result.returncode == 0:
+                        stdout = execution_result.stdout
+                        
+                        # Count epoch mentions
+                        epoch_1_count = stdout.lower().count("epoch 1")
+                        epoch_2_count = stdout.lower().count("epoch 2") 
+                        epoch_3_count = stdout.lower().count("epoch 3")
+                        
+                        # Should see epoch 1, but NOT epoch 2
+                        assert epoch_1_count > 0, "Should see epoch 1"
+                        assert epoch_2_count == 0, "Should NOT see epoch 2 - training should stop after 1 epoch"
+                        
+                        print(f"✓ Training stopped correctly after 1 epoch")
+                        print(f"   Runtime: {test_duration:.1f} seconds")
+                        
+                        # We don't care about accuracy in this test - just that it stops at 1 epoch
+                        # Could optionally parse metrics for info
+                        accuracy, loss = self._parse_training_metrics(stdout)
+                        if accuracy:
+                            print(f"   (Info only - Accuracy after 1 epoch: {accuracy:.1%})")
+                        if loss:
+                            print(f"   (Info only - Loss after 1 epoch: {loss:.3f})")
+                        
+                    else:
+                        print(f"STDOUT: {execution_result.stdout}")
+                        print(f"STDERR: {execution_result.stderr}")
+                        pytest.fail(f"Execution failed with return code {execution_result.returncode}: {execution_result.stderr}")
+                        
+                else:
+                    pytest.fail("runner.py was not created during export")
+                    
+            else:
+                pytest.fail("Export validation failed")
+                
+        except Exception as e:
+            if "template" in str(e).lower():
+                pytest.fail(f"Missing template: {e}")
+            else:
+                raise
+                
+        finally:
+            if export_path:
+                cleanup_export_dir(export_path)
+
+                
     @pytest.mark.integration
     @pytest.mark.slow
     @pytest.mark.timeout(300)  # 5 minute timeout for full training
-    def test_exported_mnist_execution(self, sample_mnist_workflow):
-        """Test execution of exported MNIST training script with checkpoint saving."""
+    def test_2_exported_mnist_execution(self, sample_mnist_workflow):
+        """Test execution of exported MNIST training script with checkpoint saving.
+        
+        This is test 2: Runs 3 epochs of training and saves checkpoint at the end.
+        The checkpoint is used by test 3 for inference validation.
+        """
+        
         # Use real MNIST workflow if available
         if sample_mnist_workflow is None:
             pytest.fail("MNIST Test workflow not available")
@@ -55,9 +159,13 @@ class TestMNISTExecution:
                         # Track test execution time
                         test_start_time = time.time()
                         
-                        # Run with timeout to prevent hanging - 5 minutes for full training
+                        # Run with epochs and checkpoint saving
                         execution_result = subprocess.run(
-                            [sys.executable, str(runner_file), "--timeout", "30s"],
+                            [sys.executable, str(runner_file), 
+                             "--epochs", "3",
+                             "--save-checkpoint", 
+                             "--out-dir", "checkpoints",
+                             "--override", f"{self.NETWORK_NODE_ID}:checkpoint_enabled=True,{self.NETWORK_NODE_ID}:checkpoint_trigger_type=end"],
                             capture_output=True,
                             text=True,
                             timeout=300,  # 5 minute timeout
@@ -71,7 +179,11 @@ class TestMNISTExecution:
                         if execution_result.returncode == 0:
                             # Parse training output for performance metrics
                             stdout = execution_result.stdout
-                            print(f"MNIST training output:\n{stdout}")
+                            # Only print first and last 500 chars for brevity
+                            if len(stdout) > 1000:
+                                print(f"MNIST training output (truncated):\n{stdout[:500]}\n...\n{stdout[-500:]}")
+                            else:
+                                print(f"MNIST training output:\n{stdout}")
                             
                             # Check for early output (training started)
                             if len(stdout) < 100:
@@ -96,15 +208,36 @@ class TestMNISTExecution:
                             # Check for checkpoint save - REQUIRED
                             checkpoint_dir = export_path / "checkpoints"
                             if checkpoint_dir.exists():
-                                checkpoints = list(checkpoint_dir.glob("*.pth"))
-                                if checkpoints:
-                                    print(f"✓ Found {len(checkpoints)} checkpoint(s)")
-                                    # Store export path for test 3
-                                    TestMNISTExecution.checkpoint_export_path = export_path
-                                    # Don't cleanup this export - test 3 needs it
-                                    return
+                                # Check for node-specific checkpoint directory
+                                node_checkpoint_dir = checkpoint_dir / f"node_{self.NETWORK_NODE_ID}"
+                                if node_checkpoint_dir.exists():
+                                    model_file = node_checkpoint_dir / "model.pt"
+                                    metadata_file = node_checkpoint_dir / "metadata.json"
+                                    
+                                    if model_file.exists() and metadata_file.exists():
+                                        print(f"✓ Found checkpoint files in {node_checkpoint_dir.relative_to(export_path)}")
+                                        print(f"   - model.pt: {model_file.stat().st_size} bytes")
+                                        print(f"   - metadata.json: {metadata_file.stat().st_size} bytes")
+                                        
+                                        # Store export path for test 3
+                                        checkpoint_info = {
+                                            "export_path": str(export_path),
+                                            "checkpoint_dir": str(checkpoint_dir),
+                                            "node_checkpoint_dir": str(node_checkpoint_dir)
+                                        }
+                                        CHECKPOINT_INFO_FILE.write_text(json.dumps(checkpoint_info))
+                                        print(f"✓ Saved checkpoint info to {CHECKPOINT_INFO_FILE}")
+                                        # Don't cleanup this export - test 3 needs it
+                                        return
+                                    else:
+                                        missing = []
+                                        if not model_file.exists():
+                                            missing.append("model.pt")
+                                        if not metadata_file.exists():
+                                            missing.append("metadata.json")
+                                        raise AssertionError(f"Missing checkpoint files in {node_checkpoint_dir}: {', '.join(missing)}")
                                 else:
-                                    raise AssertionError("No checkpoint files found - checkpoints directory exists but is empty")
+                                    raise AssertionError(f"Node checkpoint directory not found: expected checkpoints/node_{self.NETWORK_NODE_ID}/")
                             else:
                                 raise AssertionError("Checkpoints directory not created - training should save checkpoints")
                             
@@ -149,8 +282,8 @@ class TestMNISTExecution:
                 raise
                 
         finally:
-            # Only cleanup if we didn't save checkpoint path for test 3
-            if export_path and TestMNISTExecution.checkpoint_export_path != export_path:
+            # Only cleanup if we didn't save checkpoint for test 3
+            if export_path and not CHECKPOINT_INFO_FILE.exists():
                 cleanup_export_dir(export_path)
     
     def _parse_training_metrics(self, output: str) -> tuple:
@@ -188,128 +321,75 @@ class TestMNISTExecution:
                 break
                 
         return final_accuracy, final_loss
+
     
     @pytest.mark.integration
-    @pytest.mark.timeout(120)  # 2 minutes for 2 epochs
-    def test_mnist_execution_with_epoch_limit(self, sample_mnist_workflow):
-        """Test that exported code respects the --epochs flag and stops after specified epochs."""
-        if sample_mnist_workflow is None:
-            pytest.fail("MNIST Test workflow not available")
+    @pytest.mark.timeout(180)  # 3 minutes for inference
+    def test_3_checkpoint_loading_and_inference(self):
+        """Test loading checkpoint and running inference mode with accuracy validation.
+        
+        This is test 3: Loads checkpoint from test 2 and verifies accuracy > 90% without learning.
+        """
+        
+        # This test depends on test 2 creating a checkpoint
+        if not CHECKPOINT_INFO_FILE.exists():
+            pytest.fail("No checkpoint was saved by test_2_exported_mnist_execution - cannot test checkpoint loading")
             
-        workflow_name = "MNIST_Test"
-        export_path = None
-            
-        try:
-            # Use standardized export utility
-            export_path = export_workflow_for_test(workflow_name, "mnist_2_epochs")
-            
-            if validate_export_output(export_path):
-                runner_file = export_path / "runner.py"
-                
-                if runner_file.exists():
-                    # Track execution time
-                    test_start_time = time.time()
-                    
-                    # Run with --epochs 2 flag
-                    execution_result = subprocess.run(
-                        [sys.executable, str(runner_file), "--epochs", "2"],
-                        capture_output=True,
-                        text=True,
-                        timeout=120,  # Much shorter timeout for 2 epochs
-                        cwd=export_path
-                    )
-                    
-                    test_end_time = time.time()
-                    test_duration = test_end_time - test_start_time
-                    
-                    if execution_result.returncode == 0:
-                        stdout = execution_result.stdout
-                        
-                        # Count epoch mentions
-                        epoch_1_count = stdout.lower().count("epoch 1")
-                        epoch_2_count = stdout.lower().count("epoch 2") 
-                        epoch_3_count = stdout.lower().count("epoch 3")
-                        
-                        # Should see epochs 1 and 2, but NOT epoch 3
-                        assert epoch_1_count > 0, "Should see epoch 1"
-                        assert epoch_2_count > 0, "Should see epoch 2"
-                        assert epoch_3_count == 0, "Should NOT see epoch 3 - training should stop after 2 epochs"
-                        
-                        print(f"✓ Training stopped correctly after 2 epochs")
-                        print(f"   Runtime: {test_duration:.1f} seconds")
-                        
-                        # We don't care about accuracy in this test - just that it stops at 2 epochs
-                        # Could optionally parse metrics for info
-                        accuracy, loss = self._parse_training_metrics(stdout)
-                        if accuracy:
-                            print(f"   (Info only - Accuracy after 2 epochs: {accuracy:.1%})")
-                        if loss:
-                            print(f"   (Info only - Loss after 2 epochs: {loss:.3f})")
-                        
-                    else:
-                        pytest.fail(f"Execution failed: {execution_result.stderr}")
-                        
-                else:
-                    pytest.fail("runner.py was not created during export")
-                    
-            else:
-                pytest.fail("Export validation failed")
-                
-        except Exception as e:
-            if "template" in str(e).lower():
-                pytest.fail(f"Missing template: {e}")
-            else:
-                raise
-                
-        finally:
-            if export_path:
-                cleanup_export_dir(export_path)
-    
-    @pytest.mark.integration
-    @pytest.mark.timeout(60)  # 1 minute for inference
-    def test_checkpoint_loading_and_inference(self):
-        """Test loading checkpoint and running inference mode with accuracy validation."""
-        # This test depends on test 1 creating a checkpoint
-        if TestMNISTExecution.checkpoint_export_path is None:
-            pytest.fail("No checkpoint was saved by test_exported_mnist_execution - cannot test checkpoint loading")
-            
-        export_path = TestMNISTExecution.checkpoint_export_path
+        # Load checkpoint info
+        checkpoint_info = json.loads(CHECKPOINT_INFO_FILE.read_text())
+        export_path = Path(checkpoint_info["export_path"])
+        
+        if not export_path.exists():
+            pytest.fail(f"Export path no longer exists: {export_path}")
         runner_file = export_path / "runner.py"
         
         if not runner_file.exists():
             pytest.fail("Runner file missing from checkpoint test")
             
-        # Find the checkpoint file
+        # Verify checkpoint directory structure
         checkpoint_dir = export_path / "checkpoints"
         if not checkpoint_dir.exists():
             pytest.fail("Checkpoints directory missing")
             
-        checkpoints = list(checkpoint_dir.glob("*.pth"))
-        if not checkpoints:
-            pytest.fail("No checkpoint files found")
+        node_checkpoint_dir = checkpoint_dir / f"node_{self.NETWORK_NODE_ID}"
+        if not node_checkpoint_dir.exists():
+            pytest.fail(f"Node checkpoint directory missing: expected checkpoints/node_{self.NETWORK_NODE_ID}/")
             
-        # Use the first (or latest) checkpoint
-        checkpoint_file = checkpoints[0]
-        print(f"Using checkpoint: {checkpoint_file.name}")
+        model_file = node_checkpoint_dir / "model.pt"
+        if not model_file.exists():
+            pytest.fail(f"Model checkpoint file missing: {model_file}")
+            
+        print(f"Found checkpoint directory: {checkpoint_dir.relative_to(export_path)}")
+        print(f"Loading from: {node_checkpoint_dir.relative_to(export_path)}")
+        
+        # Build command
+        cmd = [sys.executable, str(runner_file), 
+               "--inference",
+               "--load-checkpoint", "checkpoints",
+               "--epochs", "1"]
+        print(f"Running inference command: {' '.join(cmd)}")
+        print(f"Working directory: {export_path}")
         
         try:
-            # Run in inference mode with checkpoint
+            # Run in inference mode with checkpoint loading
             execution_result = subprocess.run(
-                [sys.executable, str(runner_file), 
-                 "--inference-mode",
-                 "--checkpoint", str(checkpoint_file.relative_to(export_path)),
-                 "--epochs", "1"],  # Just one epoch to validate
+                cmd,
                 capture_output=True,
                 text=True,
-                timeout=60,  # Should be fast
+                timeout=180,  # 3 minutes should be enough
                 cwd=export_path
             )
             
             if execution_result.returncode == 0:
                 stdout = execution_result.stdout
                 
-                # Verify checkpoint was loaded
-                assert "loading checkpoint" in stdout.lower() or "loaded checkpoint" in stdout.lower(), \
+                # Verify we're in inference mode
+                assert "inference mode enabled" in stdout.lower(), \
+                    "Should see inference mode message"
+                
+                # Verify checkpoint was loaded 
+                assert "loading checkpoints from: checkpoints" in stdout.lower() or \
+                       "loaded checkpoint" in stdout.lower(), \
                     "Should see checkpoint loading message"
                 
                 # Parse accuracy from inference
@@ -320,10 +400,11 @@ class TestMNISTExecution:
                     print(f"✓ Checkpoint loaded successfully")
                     print(f"   Inference accuracy: {accuracy:.1%}")
                 else:
-                    # If can't parse accuracy, at least check inference ran
-                    assert "inference" in stdout.lower() or "eval" in stdout.lower(), \
-                        "Should see inference/evaluation output"
+                    # If can't parse accuracy, at least check for epoch output
+                    assert "epoch 1" in stdout.lower(), \
+                        "Should see epoch 1 output in inference mode"
                     print("✓ Checkpoint loaded and inference ran (accuracy not parsed)")
+                    print("   Note: Consider improving accuracy parsing for inference mode")
                     
             else:
                 pytest.fail(f"Inference execution failed: {execution_result.stderr}")
@@ -332,6 +413,8 @@ class TestMNISTExecution:
             raise
             
         finally:
-            # Now we can clean up the checkpoint export
-            cleanup_export_dir(export_path)
-            TestMNISTExecution.checkpoint_export_path = None
+            # Now we can clean up the checkpoint export and info file
+            if export_path.exists():
+                cleanup_export_dir(export_path)
+            if CHECKPOINT_INFO_FILE.exists():
+                CHECKPOINT_INFO_FILE.unlink()

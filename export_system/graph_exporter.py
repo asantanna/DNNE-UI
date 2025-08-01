@@ -450,7 +450,7 @@ class GraphExporter:
         connections = self._generate_connections(links, nodes)
         
         # Generate minimal runner.py
-        self._generate_minimal_runner(output_path, node_instances, connections, metadata)
+        self._generate_minimal_runner(output_path, node_instances, connections, nodes, metadata)
         
         self.logger.info(f"Exported modular package to: {output_path}")
         
@@ -1091,8 +1091,33 @@ class PlaceholderNode_{node_id}(QueueNode):
             lines.append(f"        {conn},")
         return "\n".join(lines)
     
+    def _generate_workflow_nodes_info(self, nodes: List[Dict]) -> str:
+        """Generate the workflow nodes info section for the template"""
+        lines = []
+        for node in nodes:
+            node_id = str(node["id"])
+            node_type = node.get("class_type") or node.get("type")
+            
+            # Skip virtual nodes
+            if self._is_virtual_node(node_type):
+                continue
+                
+            # Extract just the base node type (remove Node suffix if present)
+            if node_type.endswith("Node"):
+                base_type = node_type
+            else:
+                base_type = node_type + "Node"
+                
+            lines.append(f'        "{node_id}": {{"type": "{base_type}"}},')
+        
+        # Remove trailing comma from last line
+        if lines:
+            lines[-1] = lines[-1].rstrip(',')
+            
+        return "\n".join(lines)
+    
     def _generate_minimal_runner(self, output_path: Path, node_instances: List[str], 
-                               connections: List[str], metadata: Dict):
+                               connections: List[str], nodes: List[Dict], metadata: Dict):
         """Generate a minimal runner.py that imports and wires nodes"""
         
         # Read the runner template
@@ -1117,6 +1142,7 @@ class PlaceholderNode_{node_id}(QueueNode):
         node_dictionary_section = self._generate_node_dictionary_section(node_instances)
         add_nodes_to_runner_section = self._generate_add_nodes_to_runner_section(node_instances)
         connections_section = self._generate_connections_section(connections)
+        workflow_nodes_info = self._generate_workflow_nodes_info(nodes)
         
         # Prepare template variables for substitution
         template_vars = {
@@ -1125,7 +1151,8 @@ class PlaceholderNode_{node_id}(QueueNode):
             "NODE_INSTANCES_SECTION": node_instances_section,
             "NODE_DICTIONARY_SECTION": node_dictionary_section,
             "ADD_NODES_TO_RUNNER_SECTION": add_nodes_to_runner_section,
-            "CONNECTIONS_SECTION": connections_section
+            "CONNECTIONS_SECTION": connections_section,
+            "WORKFLOW_NODES_INFO": workflow_nodes_info
         }
         
         # Substitute placeholders in template
