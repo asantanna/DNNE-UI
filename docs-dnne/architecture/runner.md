@@ -12,28 +12,40 @@ The `runner.py` file is the main entry point for exported DNNE workflows. Genera
 Sets the maximum training duration using flexible time formats.
 
 **Supported formats:**
+- `5` - Plain number interpreted as seconds (5 seconds)
 - `30s` - 30 seconds
 - `5m` - 5 minutes  
 - `1h` - 1 hour
 - `1h30m` - 1 hour 30 minutes
 - `2h45m30s` - 2 hours 45 minutes 30 seconds
 
-**Example:**
+**Examples:**
 ```bash
-python runner.py --timeout 5m --verbose
+python runner.py --timeout 30        # 30 seconds
+python runner.py --timeout 5m        # 5 minutes
+python runner.py --timeout 1h30m     # 1 hour 30 minutes
 ```
 
-#### `--save-checkpoint-dir <directory>`
-**Global enable** for checkpoint saving functionality.
+#### `--save-checkpoint`
+**Global enable** for checkpoint saving functionality (flag only).
 
 **Behavior:**
-- When provided: Nodes with `checkpoint_enabled=True` will save checkpoints to `{directory}/node_{id}/`
+- When provided: Nodes with `checkpoint_enabled=True` will save checkpoints
 - When omitted: No checkpoints saved regardless of individual node settings
+- Use with `--out-dir` to specify where checkpoints are saved
+
+#### `--out-dir <directory>`
+Specifies the output directory for checkpoints and other outputs.
+
+**Default:** `runs/singles`
+
+**Behavior:**
 - Creates subdirectories automatically: `node_1/`, `node_6/`, etc.
+- Used in conjunction with `--save-checkpoint`
 
 **Example:**
 ```bash
-python runner.py --save-checkpoint-dir training_checkpoints --timeout 10m
+python runner.py --save-checkpoint --out-dir training_checkpoints --timeout 10m
 ```
 
 ### Inference Control
@@ -42,10 +54,10 @@ python runner.py --save-checkpoint-dir training_checkpoints --timeout 10m
 Runs the workflow in inference mode with the following behavior:
 - Disables gradient computation (`torch.no_grad()`)
 - Sets all networks to evaluation mode
-- Automatically loads checkpoints if `--load-checkpoint-dir` is provided
+- Automatically loads checkpoints if `--load-checkpoint` is provided
 - Skips training-specific operations
 
-#### `--load-checkpoint-dir <directory>`
+#### `--load-checkpoint <directory>`
 **Global checkpoint loading** from the specified directory.
 
 **Behavior:**
@@ -56,7 +68,7 @@ Runs the workflow in inference mode with the following behavior:
 
 **Example:**
 ```bash
-python runner.py --inference --load-checkpoint-dir training_checkpoints --visual
+python runner.py --inference --load-checkpoint training_checkpoints --visual
 ```
 
 ### Visualization (Isaac Gym)
@@ -76,18 +88,102 @@ Forces headless mode (default behavior). Useful for explicit server/cloud deploy
 ### Debugging and Development
 
 #### `--verbose` / `-v`
-Enables detailed batch-level logging showing:
-- Individual training step details
-- Queue processing information
-- Checkpoint save/load operations
-- Node-level computation details
+Enables INFO-level logging. Can be used in two ways:
+- `--verbose` or `--verbose all` - Enable for all subsystems
+- `--verbose <subsystems>` - Enable for specific subsystems or node IDs
 
-#### `--test-mode`
-Runs in test mode with:
-- Limited duration execution
-- Performance tracking and reporting
-- Additional debugging output
-- Memory usage monitoring
+**Examples:**
+```bash
+python runner.py --verbose mnist,queue      # Verbose for mnist and queue subsystems
+python runner.py --verbose 42,55            # Verbose for nodes 42 and 55
+python runner.py --verbose all              # Verbose for everything
+```
+
+#### `--debug` / `-d`
+Enables DEBUG-level logging with detailed diagnostic information. Usage similar to `--verbose`:
+- `--debug` or `--debug all` - Debug output for all subsystems
+- `--debug <subsystems>` - Debug for specific subsystems or node IDs
+
+**Examples:**
+```bash
+python runner.py --debug yield,ppo          # Debug yielding and PPO subsystems
+python runner.py --debug 66                 # Debug node 66 only
+python runner.py --debug balancing,queue    # Debug balancing and queue subsystems
+```
+
+#### `--dnne-profiling`
+Enables performance profiling for C++ operations (particularly useful for Isaac Gym workflows).
+
+**Features:**
+- Times C++ kernel operations
+- Tracks GPU memory usage
+- Provides performance bottleneck analysis
+
+## Runtime Parameter Overrides
+
+DNNE provides multiple ways to override node parameters at runtime without re-exporting workflows.
+
+### `--epochs <value>`
+Override max epochs for EpochTracker nodes.
+
+**Formats:**
+- Single value: `--epochs 10` (only works if there's exactly ONE EpochTracker node)
+- Node-specific: `--epochs 55:10,56:20` (node 55 gets 10 epochs, node 56 gets 20)
+
+**Note:** If multiple EpochTracker nodes exist, you must use node-specific syntax or the command will fail with an ambiguity error.
+
+### `--max-iterations <value>`
+Override max iterations for PPOAgent nodes.
+
+**Examples:**
+```bash
+python runner.py --max-iterations 1000                    # Only works with ONE PPOAgent node
+python runner.py --max-iterations 66:5000,67:10000       # Node-specific settings
+```
+
+### `--learning-rate <value>`
+Override learning rate for SGDOptimizer nodes.
+
+**Examples:**
+```bash
+python runner.py --learning-rate 0.01                     # Only works with ONE SGDOptimizer
+python runner.py --learning-rate 68:0.001,69:0.01        # Different rates per node
+```
+
+### `--fixed-seed <seed>`
+Use fixed random seed for deterministic execution.
+
+**Features:**
+- Sets seeds for PyTorch, NumPy, and Python random
+- Enables deterministic algorithms in CUDA
+- Useful for reproducible experiments
+
+**Example:**
+```bash
+python runner.py --fixed-seed 42 --timeout 5m
+```
+
+### `--override <node_id:param=value,...>`
+Generic parameter override for any node configuration value.
+
+**Syntax:** `node_id:parameter=value`
+
+**Examples:**
+```bash
+# Enable checkpointing for node 56
+python runner.py --override 56:checkpoint_enabled=True
+
+# Multiple parameters for same node
+python runner.py --override 56:checkpoint_enabled=True,56:checkpoint_trigger_type=end
+
+# Mix different nodes and parameters
+python runner.py --override 42:learning_rate=0.001,56:checkpoint_enabled=True,64:max_epochs=50
+```
+
+**Supported value types:**
+- Booleans: `True`, `False` (case insensitive)
+- Numbers: `42`, `3.14`, `1e-4`
+- Strings: `unquoted_string` or `"quoted string with spaces"`
 
 ## Checkpoint System Architecture
 
@@ -99,12 +195,12 @@ DNNE uses a sophisticated two-level checkpoint control system that separates glo
 The command-line switches provide workflow-level control:
 
 **Checkpoint Saving:**
-- `--save-checkpoint-dir`: **Global enable** for all checkpoint saving
-- Provides the base directory where all node checkpoints will be stored
-- Without this flag, no checkpoints are saved regardless of node settings
+- `--save-checkpoint`: **Global enable** for all checkpoint saving
+- `--out-dir`: Specifies where checkpoints are stored (default: `runs/singles`)
+- Without `--save-checkpoint`, no checkpoints are saved regardless of node settings
 
 **Checkpoint Loading:**
-- `--load-checkpoint-dir`: **Global checkpoint loading** 
+- `--load-checkpoint <directory>`: **Global checkpoint loading** 
 - Loads all available checkpoint data from the specified directory
 - **Ignores per-node `checkpoint_enabled` settings during loading**
 - All found checkpoint data gets loaded into respective nodes
@@ -125,10 +221,10 @@ Each trainable node (Network, PPO Trainer) has individual checkpoint settings:
 
 | Global Switch | Node Setting | Saving Behavior | Loading Behavior |
 |---------------|--------------|-----------------|------------------|
-| `--save-checkpoint-dir` provided | `checkpoint_enabled=True` | ✅ Saves checkpoints | ✅ Loads if data exists |
-| `--save-checkpoint-dir` provided | `checkpoint_enabled=False` | ❌ No saving | ✅ Loads if data exists |
-| No `--save-checkpoint-dir` | `checkpoint_enabled=True` | ❌ No saving | ❌ No loading |
-| No `--save-checkpoint-dir` | `checkpoint_enabled=False` | ❌ No saving | ❌ No loading |
+| `--save-checkpoint` provided | `checkpoint_enabled=True` | ✅ Saves checkpoints | ✅ Loads if data exists |
+| `--save-checkpoint` provided | `checkpoint_enabled=False` | ❌ No saving | ✅ Loads if data exists |
+| No `--save-checkpoint` | `checkpoint_enabled=True` | ❌ No saving | ❌ No loading |
+| No `--save-checkpoint` | `checkpoint_enabled=False` | ❌ No saving | ❌ No loading |
 
 **Key Points:**
 - **Saving**: Requires BOTH global switch AND per-node enable
@@ -159,59 +255,66 @@ source /home/asantanna/miniconda/bin/activate DNNE_PY38
 
 # Run training for 5 minutes with checkpoints
 cd export_system/exports/Cartpole_PPO
-python runner.py --timeout 5m --save-checkpoint-dir training_checkpoints --verbose
+python runner.py --timeout 5m --save-checkpoint --out-dir training_checkpoints --verbose
 ```
 
 ### Inference with Visualization
 ```bash
 # Run trained model with Isaac Gym viewer
 cd export_system/exports/Cartpole_PPO
-python runner.py --inference --visual --load-checkpoint-dir training_checkpoints --verbose
+python runner.py --inference --visual --load-checkpoint training_checkpoints --verbose
 ```
 
 ### Cloud/Server Training
 ```bash
 # Headless training on server
-python runner.py --timeout 30m --save-checkpoint-dir checkpoints --headless --verbose
+python runner.py --timeout 30m --save-checkpoint --out-dir checkpoints --headless --verbose
 ```
 
 ### Development Testing
 ```bash
 # Quick test run with detailed output
-python runner.py --test-mode --verbose --timeout 2m
+python runner.py --verbose --timeout 2m
 ```
 
 ## Global Flags System
 
-The runner.py coordinates with generated node code through a global flags system using Python's `builtins` module:
+The runner.py coordinates with generated node code through the framework.globals module:
 
 ### Communication Mechanism
 ```python
-# runner.py sets global flags
-import builtins
-builtins.VISUAL_MODE = args.visual
-builtins.INFERENCE_MODE = args.inference
-builtins.SAVE_CHECKPOINT_DIR = args.save_checkpoint_dir
-builtins.LOAD_CHECKPOINT_DIR = args.load_checkpoint_dir
+# runner.py initializes global configuration
+from framework.globals import Global as g
+g.initialize(
+    verbose=args.verbose,
+    debug=args.debug,
+    save_checkpoint_dir=save_checkpoint_dir,
+    load_checkpoint_dir=load_checkpoint_dir,
+    visual_mode=args.visual,
+    headless_mode=args.headless,
+    inference_mode=args.inference,
+    profiling=args.dnne_profiling,
+    fixed_seed=args.fixed_seed
+)
 ```
 
 ### Node Template Integration
-Generated node code reads these flags to adapt behavior:
+Generated node code accesses these flags through the Global class:
 ```python
 # In generated node templates
-import builtins
-visual_mode = getattr(builtins, 'VISUAL_MODE', False)
-inference_mode = getattr(builtins, 'INFERENCE_MODE', False)
-save_dir = getattr(builtins, 'SAVE_CHECKPOINT_DIR', None)
+from framework.globals import Global
+visual_mode = Global.visual_mode
+inference_mode = Global.inference_mode
+save_dir = Global.save_checkpoint_dir
 ```
 
 ### Available Global Flags
-- `VISUAL_MODE`: Controls Isaac Gym viewer creation
-- `HEADLESS_MODE`: Forces headless operation
-- `INFERENCE_MODE`: Disables training operations
-- `VERBOSE`: Controls detailed logging
-- `SAVE_CHECKPOINT_DIR`: Directory for checkpoint saving
-- `LOAD_CHECKPOINT_DIR`: Directory for checkpoint loading
+- `visual_mode`: Controls Isaac Gym viewer creation
+- `headless_mode`: Forces headless operation
+- `inference_mode`: Disables training operations
+- `verbose`: Controls detailed logging
+- `save_checkpoint_dir`: Directory for checkpoint saving
+- `load_checkpoint_dir`: Directory for checkpoint loading
 
 ## Isaac Gym Integration
 
@@ -266,36 +369,6 @@ from nodes.isaacgymenvnode_7 import IsaacGymEnvNode_7
 - Visual mode adds rendering overhead
 - Checkpoint loading is one-time startup cost
 
-## Troubleshooting
-
-### Common Issues
-
-**"PyTorch was imported before isaacgym"**
-- Ensure proper conda environment activation
-- Runner.py handles import order automatically
-
-**"No checkpoint found"**
-- Verify checkpoint directory path
-- Check that training completed and saved checkpoints
-- Ensure node IDs match between training and inference
-
-**"Isaac Gym viewer not showing"**
-- Verify X11 forwarding if using SSH
-- Check that `--visual` flag is specified
-- Ensure graphics drivers are properly installed
-
-### Debug Commands
-```bash
-# Check checkpoint contents
-ls -la training_checkpoints/*/
-
-# Verify conda environment
-python -c "import torch, isaacgym; print('Environment OK')"
-
-# Test without visualization first
-python runner.py --inference --load-checkpoint-dir training_checkpoints --headless --verbose
-```
-
 ## Legacy Parameters
 
-**Note**: The `checkpoint_load_on_start` parameter exists in some node UI configurations but is deprecated. The current architecture uses command-line switches (`--load-checkpoint-dir`) for explicit checkpoint loading control, making the per-node setting redundant.
+**Note**: The `checkpoint_load_on_start` parameter exists in some node UI configurations but is deprecated. The current architecture uses command-line switches (`--load-checkpoint`) for explicit checkpoint loading control, making the per-node setting redundant.

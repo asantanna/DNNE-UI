@@ -962,6 +962,11 @@ class PlaceholderNode_{node_id}(QueueNode):
         metrics_logger_content = self._load_template("framework/metrics_logger.py")
         (framework_dir / "metrics_logger.py").write_text(metrics_logger_content, encoding='utf-8')
         self.logger.info("Exported metrics_logger.py for balancing node support")
+        
+        # Export override_parser.py (required for --override functionality)
+        override_parser_content = self._load_template("framework/override_parser.py")
+        (framework_dir / "override_parser.py").write_text(override_parser_content, encoding='utf-8')
+        self.logger.info("Exported override_parser.py for runtime parameter overrides")
     
     def _export_node_to_file(self, nodes_dir: Path, node_id: str, node_type: str, 
                             node_code: str, node_imports: List[str]) -> str:
@@ -1091,7 +1096,7 @@ class PlaceholderNode_{node_id}(QueueNode):
         """Generate a minimal runner.py that imports and wires nodes"""
         
         # Read the runner template
-        template_path = Path(__file__).parent / "templates" / "framework" / "runner.py"
+        template_path = Path(__file__).parent / "templates" / "framework" / "runner.tpl"
         if not template_path.exists():
             raise FileNotFoundError(f"Runner template not found at {template_path}")
         
