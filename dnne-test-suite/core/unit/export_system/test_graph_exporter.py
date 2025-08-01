@@ -421,9 +421,8 @@ class TestExportIntegration:
                 assert (export_path / "nodes").is_dir()
                 
         except Exception as e:
-            # Log error for debugging
-            print(f"MNIST workflow export error: {str(e)}")
-            # This might fail if templates are incomplete
+            # If export fails, the test should fail
+            pytest.fail(f"MNIST workflow export failed: {str(e)}")
             
         finally:
             cleanup_export_dir(export_path)
