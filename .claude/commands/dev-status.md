@@ -11,6 +11,23 @@
 - [ ] Add test for missing checkpoint fail-fast behavior (medium priority)
 - [ ] Optimize inference mode (medium priority)
 - [ ] Standardize test suite temporary filenames (low priority)
+- [ ] Add unit test to validate dnne config class (high priority)
+- [ ] Why is a test being skipped in the quick test suite (medium priority)
+
+## Recent Accomplishments (2025-02-02)
+**Status**: ✅ Path centralization completed!
+
+### 🔧 Path Centralization Project
+- ✅ Centralized all absolute paths through dnne_config.json
+- ✅ Updated dnne_config.json with new ~/DNNE paths and relative subdirectories
+- ✅ Enhanced dnne_config.py with ~ expansion and OS-aware path conversion for WSL
+- ✅ Created dnne_config_reader.sh helper for shell scripts  
+- ✅ Updated all components to use centralized configuration
+- ✅ Fixed export system to make packages self-sufficient:
+  - Copy dnne_config.py and dnne_config.json to framework/ directory
+  - Removed DNNE root from sys.path to avoid conflicts with nodes.py
+- ✅ Fixed server bug where pre-created directories caused export validation to fail
+- ✅ All tests passing: 171 unit tests + 3 integration tests
 
 ## Recent Accomplishments (2025-01-31)
 **Status**: ✅ Integration tests fixed!
