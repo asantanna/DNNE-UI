@@ -972,19 +972,166 @@ class PlaceholderNode_{node_id}(QueueNode):
         import shutil
         dnne_root = Path(__file__).parent.parent
         
-        # Copy dnne_config.py to framework directory
-        dnne_config_src = dnne_root / "dnne_config.py"
-        if not dnne_config_src.exists():
-            raise FileNotFoundError(f"dnne_config.py not found at {dnne_config_src}")
-        shutil.copy2(dnne_config_src, framework_dir / "dnne_config.py")
-        self.logger.info("Copied dnne_config.py to framework/ for path configuration")
+        # Create a custom dnne_config.py that loads from exported_config.json
+        dnne_config_content = '''#!/usr/bin/env python3
+"""
+DNNE Configuration Module (Exported Version)
+Loads configuration from exported_config.json
+"""
+
+import os
+import json
+from pathlib import Path
+from typing import Dict, Any, Optional
+
+
+class DNNEConfig:
+    """Manages DNNE configuration for exported workflows"""
+    
+    def __init__(self):
+        self._config = {}
+        self._config_file = None
+        self.load_config()
+    
+    def load_config(self):
+        """Load configuration from exported_config.json"""
+        # Try environment variable first
+        env_config_path = os.environ.get('DNNE_CONFIG_PATH')
+        if env_config_path and os.path.exists(env_config_path):
+            self._config_file = env_config_path
+            self._load_from_file(env_config_path)
+            return
         
-        # Copy dnne_config.json to framework directory
+        # Try project root (where this file is located)
+        project_config = Path(__file__).parent / 'exported_config.json'
+        if project_config.exists():
+            self._config_file = str(project_config)
+            self._load_from_file(project_config)
+            return
+        
+        # If no config found, raise error
+        raise FileNotFoundError(
+            "No exported_config.json found. This file should be created during export."
+        )
+    
+    def _load_from_file(self, config_path: Path):
+        """Load configuration from JSON file"""
+        try:
+            with open(config_path, 'r') as f:
+                self._config = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in config file {config_path}: {e}")
+    
+    def _convert_path_for_os(self, path: str) -> str:
+        """Convert path based on current OS"""
+        # For exported code, just expand ~
+        if path.startswith('~'):
+            path = os.path.expanduser(path)
+        return path
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get configuration value using dot notation"""
+        keys = key.split('.')
+        value = self._config
+        
+        for k in keys:
+            if isinstance(value, dict) and k in value:
+                value = value[k]
+            else:
+                return default
+        
+        return value
+    
+    def get_path(self, path_key: str) -> str:
+        """Get a path from the paths section"""
+        raw_path = self.get(f'paths.{path_key}', '')
+        return self._convert_path_for_os(raw_path)
+    
+    def get_conda_activate_command(self) -> str:
+        """Get the conda activation command"""
+        conda_path = self.get('conda.conda_path', '')
+        conda_env = self.get('conda.conda_env', '')
+        
+        if conda_path and conda_env:
+            conda_path = self._convert_path_for_os(conda_path)
+            return f"source {conda_path}/bin/activate {conda_env}"
+        return ""
+    
+    def get_temp_dir(self) -> Path:
+        """Get temporary directory"""
+        return Path(self.get('paths.temp_directory', '/tmp'))
+    
+    def get_all_paths(self) -> Dict[str, str]:
+        """Get all configured paths"""
+        return self.get('paths', {})
+
+
+# Global configuration instance
+config = DNNEConfig()
+
+
+# Convenience functions
+def get_linux_support_path() -> Path:
+    """Get Linux support directory"""
+    return Path(config.get_path('linux_support'))
+
+
+def get_isaac_gym_path() -> Path:
+    """Get Isaac Gym directory"""
+    linux_support = get_linux_support_path()
+    subdir = config.get('linux_support_subdirs.isaac_gym', 'isaacgym')
+    return linux_support / subdir
+
+
+def get_isaac_gym_envs_path() -> Path:
+    """Get IsaacGymEnvs directory"""
+    linux_support = get_linux_support_path()
+    subdir = config.get('linux_support_subdirs.isaac_gym_envs', 'IsaacGymEnvs')
+    return linux_support / subdir
+
+
+def get_rl_games_path() -> Path:
+    """Get rl_games_dnne directory"""
+    linux_support = get_linux_support_path()
+    subdir = config.get('linux_support_subdirs.rl_games_dnne', 'rl_games_dnne')
+    return linux_support / subdir
+'''
+        
+        # Write the custom dnne_config.py
+        with open(framework_dir / "dnne_config.py", 'w') as f:
+            f.write(dnne_config_content)
+        
+        self.logger.info("Created custom dnne_config.py for exported workflows")
+        
+        # Create exported_config.json with only exported and shared sections
         dnne_config_json_src = dnne_root / "dnne_config.json"
         if not dnne_config_json_src.exists():
             raise FileNotFoundError(f"dnne_config.json not found at {dnne_config_json_src}")
-        shutil.copy2(dnne_config_json_src, framework_dir / "dnne_config.json")
-        self.logger.info("Copied dnne_config.json to framework/ for path configuration")
+        
+        # Load full config and extract exported/shared sections
+        import json
+        with open(dnne_config_json_src, 'r') as f:
+            full_config = json.load(f)
+        
+        # Create exported config with only safe sections
+        exported_config = {}
+        
+        # Add exported section (flattened)
+        if 'exported' in full_config:
+            for key, value in full_config['exported'].items():
+                exported_config[key] = value
+        
+        # Add shared section
+        if 'shared' in full_config:
+            for key, value in full_config['shared'].items():
+                exported_config[key] = value
+        
+        # Write exported config
+        exported_config_path = framework_dir / "exported_config.json"
+        with open(exported_config_path, 'w') as f:
+            json.dump(exported_config, f, indent=2)
+        
+        self.logger.info("Created exported_config.json with client-safe configuration")
     
     def _export_node_to_file(self, nodes_dir: Path, node_id: str, node_type: str, 
                             node_code: str, node_imports: List[str]) -> str:

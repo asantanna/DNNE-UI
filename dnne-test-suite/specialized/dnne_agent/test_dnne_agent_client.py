@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for dnne_client - Linux side (active controller).
+Test script for dnne_agent_client - Linux side (active controller).
 Runs various tests against the dnne agent system.
 """
 
@@ -18,6 +18,27 @@ import psutil
 from pathlib import Path
 from typing import Optional, List
 
+# Add dnne-agent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "dnne-agent"))
+
+def get_windows_host_ip():
+    """Get Windows host IP address when running in WSL"""
+    try:
+        # Try to get the default gateway which is usually the Windows host in WSL
+        result = subprocess.run(['ip', 'route'], capture_output=True, text=True)
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if 'default' in line:
+                    # Extract IP from line like: "default via 172.22.160.1 dev eth0"
+                    parts = line.split()
+                    if len(parts) >= 3 and parts[0] == 'default' and parts[1] == 'via':
+                        return parts[2]
+    except Exception:
+        pass
+    
+    # Fall back to hardcoded IP if detection fails
+    return "172.22.160.1"
+
 # Exit codes
 EXIT_SUCCESS = 0
 EXIT_CONNECTION_FAILED = 1
@@ -25,9 +46,10 @@ EXIT_AGENT_ERROR = 2
 EXIT_DEPLOYMENT_FAILED = 3
 EXIT_WORKFLOW_ERROR = 4
 EXIT_TIMEOUT = 5
+EXIT_TEST_FAILED = 6
 
 
-class TestDNNEClient:
+class TestDNNEAgentClient:
     """Test controller for dnne_client"""
     
     def __init__(self, server_host="localhost", server_port=8766):
@@ -341,8 +363,11 @@ async def main():
     parser = argparse.ArgumentParser(description="Test controller for dnne_client")
     
     # Connection options
-    parser.add_argument("--server", default="localhost:8766",
-                       help="dnne_server endpoint (default: localhost:8766)")
+    default_host = get_windows_host_ip()
+    parser.add_argument("--server", default=f"{default_host}:8766",
+                       help=f"dnne_server endpoint (default: {default_host}:8766 for WSL)")
+    parser.add_argument("--server-host", default=default_host,
+                       help=f"dnne_server host (default: {default_host} for WSL)")
     parser.add_argument("--client", default="localhost:9999",
                        help="dnne_client UDP endpoint (default: localhost:9999)")
     parser.add_argument("--no-autostart", action="store_true",
@@ -376,6 +401,18 @@ async def main():
     parser.add_argument("--wait-complete", action="store_true",
                        help="Wait for workflow completion")
     
+    # Automated test suite options
+    parser.add_argument("--run-tests", action="store_true",
+                       help="Run automated test suite")
+    parser.add_argument("--test-basic", action="store_true",
+                       help="Run basic connectivity test")
+    parser.add_argument("--test-deploy", action="store_true",
+                       help="Run deployment test")
+    parser.add_argument("--test-workflow", action="store_true",
+                       help="Run workflow execution test")
+    parser.add_argument("--test-telemetry", action="store_true",
+                       help="Run telemetry test")
+    
     # Other options
     parser.add_argument("--duration", type=int, default=10,
                        help="Test duration in seconds (default: 10)")
@@ -385,7 +422,10 @@ async def main():
     args = parser.parse_args()
     
     # Parse server endpoint
-    if ':' in args.server:
+    if args.server_host:
+        host = args.server_host
+        port = 8766
+    elif ':' in args.server:
         host, port = args.server.split(':')
         port = int(port)
     else:
@@ -401,7 +441,7 @@ async def main():
         client_port = 9999
         
     # Create test controller
-    test = TestDNNEClient(host, port)
+    test = TestDNNEAgentClient(host, port)
     
     # Ensure agent unless --no-autostart or --stop-agent
     if not args.no_autostart and not args.stop_agent and not args.ensure_agent:
@@ -449,6 +489,38 @@ async def main():
                 test.send_telemetry("throughput", 100 + (time.time() % 50),
                                   host=client_host, port=client_port)
                 time.sleep(0.1)
+                
+        # Automated test suite
+        if args.run_tests:
+            test.log("Running automated test suite...", "🧪")
+            test_passed = True
+            
+            # Run all requested tests
+            if args.test_basic:
+                test.log("Running basic connectivity test...", "🔍")
+                if not args.test_connectivity:
+                    args.test_connectivity = True
+                    
+            if args.test_deploy:
+                test.log("Running deployment test...", "📦")
+                if not await test.deploy_and_run_test("hello_world", wait_complete=True):
+                    test_passed = False
+                    
+            if args.test_workflow:
+                test.log("Running workflow execution test...", "⚙️")
+                if not await test.deploy_and_run_test("long_running", wait_complete=False):
+                    test_passed = False
+                await asyncio.sleep(2)  # Let it run
+                if not await test.stop_workflow():
+                    test_passed = False
+                    
+            if args.test_telemetry:
+                test.log("Running telemetry test...", "📊")
+                if not test.send_telemetry_burst(10, host=client_host, port=client_port):
+                    test_passed = False
+                    
+            if not test_passed:
+                return EXIT_TEST_FAILED
                 
         # Workflow operations
         if args.run:

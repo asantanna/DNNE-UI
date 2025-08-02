@@ -71,13 +71,21 @@ class DNNEConfig:
     def _convert_path_for_os(self, path: str) -> str:
         """Convert path based on current OS"""
         import platform
+        import re
+        
+        # Don't try to convert Windows paths on Linux
+        if platform.system() != "Windows":
+            # Check for Windows path pattern: C:\ or C:/ or \\server\share
+            windows_path_pattern = r'^[A-Za-z]:[\\\/]|^\\\\[^\\]+'
+            if re.match(windows_path_pattern, path):
+                return path  # Return as-is, will fail validation appropriately
         
         # First expand ~ if present
         if path.startswith('~'):
             if platform.system() == "Windows":
                 # On Windows, ~ means the WSL home
-                wsl_prefix = self.get('wsl.windows_prefix', '\\\\wsl.localhost\\Ubuntu')
-                home_path = self.get('wsl.home_path', '/home/asantanna')
+                wsl_prefix = self.get('dnne.wsl.filesystem_prefix', self.get('wsl.windows_prefix', '\\\\wsl.localhost\\Ubuntu'))
+                home_path = self.get('dnne.wsl.home_path', self.get('wsl.home_path', '/home/asantanna'))
                 path = path.replace('~', wsl_prefix + home_path)
             else:
                 # On Linux, use normal expansion
@@ -116,17 +124,30 @@ class DNNEConfig:
             print("Note: Path validation skipped on Windows (WSL paths cannot be validated from Windows Python)")
             return
             
-        critical_paths = [
-            'dnne_root',
-            'linux_support'
-        ]
+        # On Linux, only validate Linux paths
+        critical_paths = []
+        
+        # Check which paths to validate based on config structure
+        if 'exported' in self._config and 'paths' in self._config['exported']:
+            # New structure - validate exported paths
+            for key in ['linux_support']:
+                if key in self._config['exported']['paths']:
+                    critical_paths.append(('exported.paths.' + key, key))
+        elif 'paths' in self._config:
+            # Old structure - validate appropriate paths
+            for key in ['linux_support']:
+                if key in self._config['paths']:
+                    critical_paths.append(('paths.' + key, key))
         
         errors = []
-        for path_key in critical_paths:
-            # Use get_path which does OS conversion and expansion
-            path_value = self.get_path(path_key)
-            if path_value and not os.path.exists(path_value):
-                errors.append(f"Critical path '{path_key}' does not exist: {path_value}")
+        for path_config, path_name in critical_paths:
+            # Get raw path value
+            path_value = self.get(path_config)
+            if path_value:
+                # Expand and check
+                expanded_path = os.path.expanduser(path_value)
+                if not os.path.exists(expanded_path):
+                    errors.append(f"Critical path '{path_name}' does not exist: {expanded_path}")
         
         if errors:
             for error in errors:
@@ -150,42 +171,75 @@ class DNNEConfig:
     
     def get_path(self, path_key: str) -> str:
         """Get a path from the paths section, converted for current OS"""
-        raw_path = self.get(f'paths.{path_key}', '')
+        import platform
+        
+        # On Windows, try dnne.paths first
+        if platform.system() == "Windows":
+            raw_path = self.get(f'dnne.paths.{path_key}', '')
+            if raw_path:
+                return self._convert_path_for_os(raw_path)
+        
+        # On Linux or if not found in dnne.paths, try exported.paths
+        raw_path = self.get(f'exported.paths.{path_key}', '')
+        if not raw_path:
+            # Fall back to old structure
+            raw_path = self.get(f'paths.{path_key}', '')
+        
         return self._convert_path_for_os(raw_path)
     
     def get_conda_activate_command(self) -> str:
         """Get the conda activation command"""
-        conda_path = self.get_path('conda_path')
-        conda_env = self.get_path('conda_env')
+        # Try exported conda config first (for Linux)
+        conda_path = self.get('exported.conda.conda_path', '')
+        conda_env = self.get('exported.conda.conda_env', '')
+        
+        # Fall back to old structure
+        if not conda_path:
+            conda_path = self.get('paths.conda_path', '')
+        if not conda_env:
+            conda_env = self.get('paths.conda_env', '')
         
         if conda_path and conda_env:
+            conda_path = self._convert_path_for_os(conda_path)
             return f"source {conda_path}/bin/activate {conda_env}"
         return ""
     
     def get_export_path(self, workflow_name: Optional[str] = None) -> Path:
         """Get the export path for a workflow"""
         dnne_root = Path(self.get_path('dnne_root'))
-        export_base = self.get('export.export_base', 'export_system/exports')
+        export_base = self.get('dnne.export.export_base', self.get('export.export_base', 'export_system/exports'))
         
         if workflow_name:
             return dnne_root / export_base / workflow_name
         else:
-            default_workflow = self.get('export.default_workflow', 'Cartpole_PPO')
+            default_workflow = self.get('dnne.export.default_workflow', self.get('export.default_workflow', 'Cartpole_PPO'))
             return dnne_root / export_base / default_workflow
     
     def get_workflow_path(self, workflow_name: str) -> Path:
         """Get the path to a workflow JSON file"""
         dnne_root = Path(self.get_path('dnne_root'))
-        workflow_path = self.get('export.workflow_path', 'user/default/workflows')
-        return dnne_root / workflow_path / f"{workflow_name}.json"
+        workflow_dir = self.get('dnne.export.workflow_dir', self.get('export.workflow_path', 'user/default/workflows'))
+        return dnne_root / workflow_dir / f"{workflow_name}.json"
     
     def get_temp_dir(self) -> Path:
         """Get temporary directory for profiling outputs"""
-        return Path(self.get('profiling.temp_directory', '/tmp'))
+        # Try new structure first
+        temp_dir = self.get('exported.paths.temp_directory', '')
+        if not temp_dir:
+            temp_dir = self.get('dnne.paths.temp_directory', '')
+        if not temp_dir:
+            # Fall back to old structure
+            temp_dir = self.get('profiling.temp_directory', '/tmp')
+        return Path(temp_dir)
     
     def get_all_paths(self) -> Dict[str, str]:
         """Get all configured paths"""
-        return self.get('paths', {})
+        # Merge paths from all sections
+        paths = {}
+        paths.update(self.get('dnne.paths', {}))
+        paths.update(self.get('exported.paths', {}))
+        paths.update(self.get('paths', {}))  # Old structure
+        return paths
     
     def __str__(self) -> str:
         """String representation showing loaded config file"""
@@ -208,21 +262,21 @@ def get_dnne_root() -> Path:
 def get_isaac_gym_envs_path() -> Path:
     """Get IsaacGymEnvs directory"""
     linux_support = Path(config.get_path('linux_support'))
-    subdir = config.get('linux_support_subdirs.isaac_gym_envs', 'IsaacGymEnvs')
+    subdir = config.get('shared.linux_support_subdirs.isaac_gym_envs', config.get('linux_support_subdirs.isaac_gym_envs', 'IsaacGymEnvs'))
     return linux_support / subdir
 
 
 def get_isaac_gym_path() -> Path:
     """Get Isaac Gym directory"""
     linux_support = Path(config.get_path('linux_support'))
-    subdir = config.get('linux_support_subdirs.isaac_gym', 'isaacgym')
+    subdir = config.get('shared.linux_support_subdirs.isaac_gym', config.get('linux_support_subdirs.isaac_gym', 'isaacgym'))
     return linux_support / subdir
 
 
 def get_rl_games_path() -> Path:
     """Get rl_games_dnne directory"""
     linux_support = Path(config.get_path('linux_support'))
-    subdir = config.get('linux_support_subdirs.rl_games_dnne', 'rl_games_dnne')
+    subdir = config.get('shared.linux_support_subdirs.rl_games_dnne', config.get('linux_support_subdirs.rl_games_dnne', 'rl_games_dnne'))
     return linux_support / subdir
 
 

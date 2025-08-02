@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Test script for dnne_server - Windows side (passive listener).
-Connects to dnne_server as a UI client and displays activity.
+Test script for dnne_agent_server - Windows side (passive listener).
+Connects to dnne_agent_server as a UI client and displays activity.
 """
 
 import asyncio
@@ -13,6 +13,9 @@ import subprocess
 import argparse
 import signal
 from pathlib import Path
+
+# Add dnne-agent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "dnne-agent"))
 from datetime import datetime
 
 # Global flag for shutdown
@@ -26,7 +29,7 @@ def signal_handler(signum, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
-class TestDNNEServer:
+class TestDNNEAgentServer:
     """Test UI client for dnne_server"""
     
     def __init__(self, server_url="ws://localhost:8767", verbose=False, quiet=False):
@@ -283,7 +286,7 @@ async def main():
         server_url = args.server
         
     # Create test client
-    test_client = TestDNNEServer(server_url, args.verbose, args.quiet)
+    test_client = TestDNNEAgentServer(server_url, args.verbose, args.quiet)
     
     # Ensure dnne_server is running
     if not args.no_autostart:

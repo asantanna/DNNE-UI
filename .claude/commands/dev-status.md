@@ -6,6 +6,8 @@
 ## 📋 CURRENT TODO LIST
 <!-- TODOS: This section contains the active todo items -->
 - [x] Run integration tests (./dnne-test integration)
+- [ ] Fix test_dnne_server health check leaving dangling connections (medium priority)
+- [ ] Add state change broadcasts from dnne_server when clients connect/disconnect (low priority)
 - [ ] Implement and test balancing nodes (high priority)
 - [ ] Create CIFAR-10 integration tests (medium priority)
 - [ ] Add test for missing checkpoint fail-fast behavior (medium priority)
@@ -13,6 +15,19 @@
 - [ ] Standardize test suite temporary filenames (low priority)
 - [ ] Add unit test to validate dnne config class (high priority)
 - [ ] Why is a test being skipped in the quick test suite (medium priority)
+
+## Recent Accomplishments (2025-08-02)
+**Status**: ✅ dnne-agent system implemented!
+
+### 🚀 DNNE Agent System
+- ✅ Implemented unified dnne_server (Windows) and dnne_client (Linux/WSL) architecture
+- ✅ Created persistent server that manages clients, workflows, and telemetry
+- ✅ Added UDP telemetry with fire-and-forget pattern for high-performance metrics
+- ✅ Implemented WebSocket control channel for workflow deployment and management
+- ✅ Created comprehensive test suite with granular control options
+- ✅ Added telemetry framework for exported nodes (BalancingNode updated)
+- ✅ Fixed server to handle brief health check connections gracefully
+- ✅ Successfully tested end-to-end: connectivity, telemetry, and workflow execution
 
 ## Recent Accomplishments (2025-02-02)
 **Status**: ✅ Path centralization completed!

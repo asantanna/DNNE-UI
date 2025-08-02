@@ -56,8 +56,8 @@ activate_environment() {
     source "$(dirname "${BASH_SOURCE[0]}")/../../dnne_config_reader.sh"
     
     # Get conda configuration from dnne_config
-    CONDA_PATH=$(get_dnne_config "paths.conda_path")
-    CONDA_ENV=$(get_dnne_config "paths.conda_env")
+    CONDA_PATH=$(get_dnne_config "exported.conda.conda_path")
+    CONDA_ENV=$(get_dnne_config "exported.conda.conda_env")
     
     # Activate environment
     source $CONDA_PATH/bin/activate $CONDA_ENV || {
@@ -217,6 +217,34 @@ dnne_test_robotics() {
 # Export system tests only
 dnne_test_export() {
     dnne_test_pytest "Export System Tests Only" "dnne-test-suite/core/ -m export" "30"
+}
+
+# DNNE Agent tests
+dnne_test_agent() {
+    log_info "🤖 Running DNNE Agent System Tests"
+    echo "================================================================"
+    
+    check_project_root
+    activate_environment
+    setup_test_config
+    
+    log_info "Running agent system tests..."
+    echo ""
+    
+    cd "$PROJECT_ROOT"
+    python dnne-test-suite/specialized/dnne_agent_test.py
+    local exit_code=$?
+    
+    echo ""
+    if [ $exit_code -eq 0 ]; then
+        log_success "Agent system tests completed successfully!"
+    elif [ $exit_code -eq 1 ]; then
+        log_warning "Agent server not running - please start dnne_agent_server.py on Windows"
+    else
+        log_error "Agent system tests failed!"
+    fi
+    
+    return $exit_code
 }
 
 # RL comprehensive tests (Cartpole PPO)
@@ -490,6 +518,7 @@ export -f dnne_test_coverage
 export -f dnne_test_ml
 export -f dnne_test_robotics
 export -f dnne_test_export
+export -f dnne_test_agent
 export -f dnne_test_rl_comprehensive
 export -f dnne_test_checkpoint
 export -f dnne_test_inference

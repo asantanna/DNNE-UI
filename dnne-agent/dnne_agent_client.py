@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-DNNE Client - Executes workflows and forwards telemetry.
+DNNE Agent Client - Executes workflows and forwards telemetry.
 
-Runs on Linux/WSL, connecting to dnne_server to:
+Runs on Linux/WSL, connecting to dnne_agent_server to:
 - Receive workflow deployments
 - Execute workflows locally
 - Forward telemetry from nodes
@@ -20,7 +20,7 @@ import os
 import subprocess
 import signal
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Tuple
 from collections import deque
 import tempfile
 import shutil
@@ -31,12 +31,12 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger('dnne_client')
+logger = logging.getLogger('dnne_agent_client')
 
 
 class WorkflowProcess:
     """Manages a running workflow process"""
-    def __init__(self, workflow_id: str, process: subprocess.Popen, workspace: Path):
+    def __init__(self, workflow_id: str, process: asyncio.subprocess.Process, workspace: Path):
         self.workflow_id = workflow_id
         self.process = process
         self.workspace = workspace
@@ -44,19 +44,63 @@ class WorkflowProcess:
         self.log_reader_task = None
 
 
-class DNNEClient:
-    """
-    DNNE Client - executes workflows and forwards telemetry.
+class TelemetryProtocol(asyncio.DatagramProtocol):
+    """Async UDP protocol for receiving telemetry"""
     
-    Connects to dnne_server and provides:
+    def __init__(self, client):
+        self.client = client
+        self.transport = None
+    
+    def connection_made(self, transport):
+        self.transport = transport
+        logger.info(f"Telemetry UDP listener ready on {transport.get_extra_info('sockname')}")
+    
+    def datagram_received(self, data: bytes, addr: Tuple[str, int]):
+        """Handle incoming telemetry packet"""
+        try:
+            # Parse telemetry packet
+            packet = self._parse_telemetry(data.decode())
+            if packet:
+                self.client.telemetry_buffer.append(packet)
+        except Exception as e:
+            logger.debug(f"Failed to process telemetry from {addr}: {e}")
+    
+    def _parse_telemetry(self, data: str) -> Optional[Dict[str, Any]]:
+        """Parse telemetry packet (JSON only)"""
+        try:
+            return json.loads(data)
+        except json.JSONDecodeError:
+            logger.debug(f"Invalid JSON telemetry: {data[:50]}...")
+            return None
+    
+    def error_received(self, exc):
+        logger.error(f"Telemetry UDP error: {exc}")
+    
+    def connection_lost(self, exc):
+        if exc:
+            logger.error(f"Telemetry UDP connection lost: {exc}")
+
+
+class DNNEAgentClient:
+    """
+    DNNE Agent Client - executes workflows and forwards telemetry.
+    
+    Connects to dnne_agent_server and provides:
     - Workflow deployment and execution
-    - UDP telemetry listener (port 9999)
-    - WebSocket control server for nodes (port 9998)
+    - UDP telemetry listener (configurable port)
     - Process management
     """
     
-    def __init__(self, server_url: str = "ws://localhost:8766"):
-        self.server_url = server_url
+    def __init__(self, config_path: Optional[str] = None, server_url: Optional[str] = None):
+        # Load configuration
+        self._load_config(config_path)
+        # Set server URL (parameter overrides config)
+        if server_url:
+            self.server_url = server_url
+        else:
+            server_port = self.get('dnne.agent_server.client_port', 8766)
+            self.server_url = f"ws://localhost:{server_port}"
+        
         self.websocket = None
         self.client_id = None
         
@@ -65,30 +109,79 @@ class DNNEClient:
         
         # Workflow management
         self.workflows: Dict[str, WorkflowProcess] = {}
-        self.workspace_base = Path(tempfile.gettempdir()) / "dnne_workspaces"
+        work_area = self.get('agent_client.work_area_base', '/tmp/dnne_work_areas')
+        self.workspace_base = Path(os.path.expanduser(work_area))
         self.workspace_base.mkdir(exist_ok=True)
         
         # Telemetry
-        self.telemetry_buffer = deque(maxlen=1000)
-        self.telemetry_socket = None
+        buffer_size = self.get('agent_client.telemetry_buffer_size', 1000)
+        self.telemetry_buffer = deque(maxlen=buffer_size)
+        self.telemetry_transport = None
+        self.telemetry_protocol = None
+        self.telemetry_port = self.get('agent_client.telemetry_port', 9999)
         
         # Control server for nodes
         self.node_connections = set()
     
+    def _load_config(self, config_path: Optional[str]):
+        """Load configuration from exported_config.json"""
+        if config_path is None:
+            # Look for exported_config.json in standard locations
+            possible_paths = [
+                Path("exported_config.json"),
+                Path(__file__).parent / "exported_config.json",
+                Path.home() / ".dnne" / "exported_config.json"
+            ]
+            
+            for path in possible_paths:
+                if path.exists():
+                    config_path = str(path)
+                    break
+            else:
+                # Use empty config if not found
+                logger.warning("No exported_config.json found, using defaults")
+                self.config = {}
+                return
+        
+        try:
+            with open(config_path, 'r') as f:
+                self.config = json.load(f)
+            logger.info(f"Loaded configuration from {config_path}")
+        except Exception as e:
+            logger.error(f"Failed to load config: {e}")
+            self.config = {}
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get configuration value using dot notation"""
+        keys = key.split('.')
+        value = self.config
+        
+        for k in keys:
+            if isinstance(value, dict) and k in value:
+                value = value[k]
+            else:
+                return default
+        
+        return value
+    
     def _check_conda_environment(self):
-        """Check that DNNE_PY38 conda environment is activated"""
+        """Check that required conda environment is activated"""
+        required_env = self.get('conda.conda_env', 'DNNE_PY38')
         conda_env = os.environ.get('CONDA_DEFAULT_ENV', '')
         
-        if conda_env != 'DNNE_PY38':
-            logger.error("❌ DNNE_PY38 conda environment is not activated!")
+        if conda_env != required_env:
+            logger.error(f"❌ {required_env} conda environment is not activated!")
             logger.error(f"   Current environment: {conda_env or 'None'}")
             logger.error("   Please activate the environment:")
-            logger.error("   $ conda activate DNNE_PY38")
+            
+            conda_path = self.get('conda.conda_path', '~/miniconda')
+            conda_path = os.path.expanduser(conda_path)
+            logger.error(f"   $ conda activate {required_env}")
             logger.error("   or")
-            logger.error("   $ source ~/miniconda3/bin/activate DNNE_PY38")
+            logger.error(f"   $ source {conda_path}/bin/activate {required_env}")
             sys.exit(1)
         
-        logger.info("✅ DNNE_PY38 conda environment is active")
+        logger.info(f"✅ {required_env} conda environment is active")
         
     async def connect_to_server(self):
         """Connect to dnne_server"""
@@ -144,61 +237,33 @@ class DNNEClient:
         return {"available": False}
     
     async def start_telemetry_listener(self):
-        """Start UDP listener for telemetry"""
+        """Start UDP listener for telemetry using asyncio"""
         try:
-            # Create UDP socket
-            self.telemetry_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.telemetry_socket.bind(('localhost', 9999))
-            self.telemetry_socket.setblocking(False)
+            loop = asyncio.get_event_loop()
             
-            logger.info("Telemetry listener started on localhost:9999")
+            # Create datagram endpoint
+            transport, protocol = await loop.create_datagram_endpoint(
+                lambda: TelemetryProtocol(self),
+                local_addr=('localhost', self.telemetry_port)
+            )
             
-            while True:
-                try:
-                    # Non-blocking receive
-                    data, addr = self.telemetry_socket.recvfrom(1024)
-                    
-                    # Parse telemetry packet
-                    packet = self._parse_telemetry(data.decode())
-                    if packet:
-                        self.telemetry_buffer.append(packet)
-                        
-                except BlockingIOError:
-                    # No data available
-                    await asyncio.sleep(0.001)
-                except Exception as e:
-                    logger.error(f"Telemetry receive error: {e}")
-                    await asyncio.sleep(0.1)
-                    
+            self.telemetry_transport = transport
+            self.telemetry_protocol = protocol
+            
+            logger.info(f"Telemetry listener started on localhost:{self.telemetry_port}")
+            
+            # Keep the listener running
+            await asyncio.Future()  # Run forever
+            
         except Exception as e:
             logger.error(f"Failed to start telemetry listener: {e}")
     
-    def _parse_telemetry(self, data: str) -> Optional[Dict[str, Any]]:
-        """Parse telemetry packet"""
-        try:
-            # Try JSON format first
-            if data.startswith('{'):
-                return json.loads(data)
-            
-            # Parse pipe-delimited format: metric|node_id|value|timestamp
-            parts = data.split('|')
-            if len(parts) >= 4:
-                return {
-                    "metric": parts[0],
-                    "node_id": parts[1],
-                    "value": float(parts[2]),
-                    "timestamp": float(parts[3])
-                }
-                
-        except Exception as e:
-            logger.debug(f"Failed to parse telemetry: {e}")
-            
-        return None
-    
     async def telemetry_forwarder(self):
         """Forward telemetry to server"""
+        batch_interval = self.get('agent_client.telemetry_batch_interval', 0.1)
+        
         while True:
-            await asyncio.sleep(0.1)  # Batch every 100ms
+            await asyncio.sleep(batch_interval)
             
             if self.telemetry_buffer and self.websocket:
                 # Send batch to server
@@ -288,13 +353,11 @@ class DNNEClient:
             # Start process (conda environment already verified to be active)
             cmd = [sys.executable, "runner.py"] + args
             
-            process = subprocess.Popen(
-                cmd,
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
                 cwd=workspace,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-                bufsize=1
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT
             )
             
             # Store process info
@@ -336,13 +399,14 @@ class DNNEClient:
             # Send SIGTERM
             workflow.process.terminate()
             
-            # Wait up to 10 seconds
+            # Wait for configured timeout
+            stop_timeout = self.get('agent_client.workflow_stop_timeout', 10)
             try:
-                workflow.process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
+                await asyncio.wait_for(workflow.process.wait(), timeout=stop_timeout)
+            except asyncio.TimeoutError:
                 # Force kill
                 workflow.process.kill()
-                workflow.process.wait()
+                await workflow.process.wait()
                 
             # Cancel log reader
             if workflow.log_reader_task:
@@ -371,43 +435,43 @@ class DNNEClient:
             
         try:
             while True:
-                line = workflow.process.stdout.readline()
-                if not line:
+                # Read line asynchronously
+                line_bytes = await workflow.process.stdout.readline()
+                if not line_bytes:
                     # Process ended
                     break
-                    
+                
+                line = line_bytes.decode('utf-8', errors='replace').strip()
+                
                 # Send log to server
-                if self.websocket:
+                if self.websocket and line:
                     await self.websocket.send(json.dumps({
                         "type": "log",
                         "workflow_id": workflow_id,
                         "level": "info",
-                        "message": line.strip()
+                        "message": line
                     }))
-                    
-                await asyncio.sleep(0)  # Yield control
                 
         except asyncio.CancelledError:
             pass
         except Exception as e:
             logger.error(f"Log reader error: {e}")
         finally:
-            # Check exit code
-            exit_code = workflow.process.poll()
-            if exit_code is not None:
-                status = "completed" if exit_code == 0 else "failed"
+            # Wait for process to complete and get exit code
+            exit_code = await workflow.process.wait()
+            status = "completed" if exit_code == 0 else "failed"
+            
+            if self.websocket:
+                await self.websocket.send(json.dumps({
+                    "type": "workflow_status",
+                    "workflow_id": workflow_id,
+                    "status": status,
+                    "details": {"exit_code": exit_code}
+                }))
                 
-                if self.websocket:
-                    await self.websocket.send(json.dumps({
-                        "type": "workflow_status",
-                        "workflow_id": workflow_id,
-                        "status": status,
-                        "details": {"exit_code": exit_code}
-                    }))
-                    
-                # Cleanup
-                if workflow_id in self.workflows:
-                    del self.workflows[workflow_id]
+            # Cleanup
+            if workflow_id in self.workflows:
+                del self.workflows[workflow_id]
     
     async def run(self):
         """Main client loop"""
@@ -439,16 +503,19 @@ class DNNEClient:
             for workflow_id in list(self.workflows.keys()):
                 await self.stop_workflow(workflow_id)
                 
-            if self.telemetry_socket:
-                self.telemetry_socket.close()
+            if self.telemetry_transport:
+                self.telemetry_transport.close()
 
 
 async def main():
     """Main entry point"""
-    # Get server URL from environment or use default
-    server_url = os.environ.get('DNNE_SERVER_URL', 'ws://localhost:8766')
+    # Get config path from environment or use default
+    config_path = os.environ.get('DNNE_CONFIG_PATH')
     
-    client = DNNEClient(server_url)
+    # Get server URL from environment or use config
+    server_url = os.environ.get('DNNE_SERVER_URL')
+    
+    client = DNNEAgentClient(config_path=config_path, server_url=server_url)
     
     try:
         await client.run()

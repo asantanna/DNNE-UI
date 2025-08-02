@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DNNE Server - Persistent service for workflow management and telemetry.
+DNNE Agent Server - Persistent service for workflow management and telemetry.
 
 Runs as a background service on Windows, managing:
 - Client connections (WSL/Linux)
@@ -21,6 +21,10 @@ from collections import defaultdict, deque
 from typing import Dict, Set, Optional, Any
 from pathlib import Path
 import uuid
+
+# Add parent directory to path to import dnne_config
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from dnne_config import DNNEConfig
 
 # Configure logging
 logging.basicConfig(
@@ -47,16 +51,16 @@ class WorkflowInfo:
         self.end_time = None
 
 
-class DNNEServer:
+class DNNEAgentServer:
     """
-    DNNE Server - manages clients, workflows, and telemetry.
+    DNNE Agent Server - manages clients, workflows, and telemetry.
     
-    Ports:
-    - 8766: Client connections (dnne_client)
-    - 8767: UI connections (DNNE-UI)
+    Configurable ports loaded from dnne_config.json
     """
     
     def __init__(self):
+        # Load configuration
+        self.config = DNNEConfig()
         # Client management
         self.clients: Dict[str, websockets.WebSocketServerProtocol] = {}
         self.client_info: Dict[str, Dict[str, Any]] = {}
@@ -66,39 +70,46 @@ class DNNEServer:
         
         # Workflow management
         self.workflows: Dict[str, WorkflowInfo] = {}
-        self.active_workflow: Optional[str] = None  # Single workflow for now
         
         # Telemetry
-        self.telemetry_buffer: Dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))
+        buffer_size = self.config.get('dnne.agent_server.telemetry_buffer_size', 1000)
+        self.telemetry_buffer: Dict[str, deque] = defaultdict(lambda: deque(maxlen=buffer_size))
         self.last_telemetry_broadcast = time.time()
         
         # Logs
-        self.workflow_logs: Dict[str, deque] = defaultdict(lambda: deque(maxlen=10000))
+        log_buffer_size = self.config.get('dnne.agent_server.log_buffer_size', 10000)
+        self.workflow_logs: Dict[str, deque] = defaultdict(lambda: deque(maxlen=log_buffer_size))
         
         # Server info
         self.start_time = time.time()
         
     async def start(self):
         """Start WebSocket servers"""
-        # Client server (port 8766)
+        # Get ports from config
+        client_port = self.config.get('dnne.agent_server.client_port', 8766)
+        ui_port = self.config.get('dnne.agent_server.ui_port', 8767)
+        ping_interval = self.config.get('dnne.agent_server.ping_interval', 30)
+        ping_timeout = self.config.get('dnne.agent_server.ping_timeout', 10)
+        
+        # Client server
         self.client_server = await websockets.serve(
             self.handle_client,
             "0.0.0.0",
-            8766,
-            ping_interval=30,
-            ping_timeout=10
+            client_port,
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout
         )
-        logger.info("Client server started on port 8766")
+        logger.info(f"Client server started on port {client_port}")
         
-        # UI server (port 8767)
+        # UI server
         self.ui_server = await websockets.serve(
             self.handle_ui,
             "0.0.0.0", 
-            8767,
-            ping_interval=30,
-            ping_timeout=10
+            ui_port,
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout
         )
-        logger.info("UI server started on port 8767")
+        logger.info(f"UI server started on port {ui_port}")
         
         # Start background tasks
         asyncio.create_task(self.telemetry_broadcaster())
@@ -258,15 +269,28 @@ class DNNEServer:
         
         if msg_type == "deploy_workflow":
             # Deploy workflow to client
-            if not self.clients:
+            client_id = data.get("client_id")
+            
+            # If no client_id specified, check if any clients connected
+            if not client_id:
+                if not self.clients:
+                    await websocket.send(json.dumps({
+                        "type": "error",
+                        "message": "No clients connected"
+                    }))
+                    return
+                    
+                # Use first connected client if not specified
+                client_id = list(self.clients.keys())[0]
+            
+            # Verify client exists
+            if client_id not in self.clients:
                 await websocket.send(json.dumps({
                     "type": "error",
-                    "message": "No clients connected"
+                    "message": f"Client {client_id} not connected"
                 }))
                 return
-                
-            # For now, use first connected client
-            client_id = list(self.clients.keys())[0]
+            
             workflow_id = f"wf_{uuid.uuid4().hex[:8]}"
             
             # Store workflow info
@@ -283,9 +307,6 @@ class DNNEServer:
                 "files": data.get("files", {})
             }))
             
-            # Set as active workflow
-            self.active_workflow = workflow_id
-            
             # Acknowledge to UI
             await websocket.send(json.dumps({
                 "type": "workflow_deployed",
@@ -297,26 +318,66 @@ class DNNEServer:
             
         elif msg_type == "start_workflow":
             # Start workflow execution
-            workflow_id = data.get("workflow_id", self.active_workflow)
-            if workflow_id and workflow_id in self.workflows:
-                workflow = self.workflows[workflow_id]
-                if workflow.client_id in self.clients:
-                    await self.clients[workflow.client_id].send(json.dumps({
-                        "type": "start",
-                        "workflow_id": workflow_id,
-                        "args": data.get("args", [])
-                    }))
+            workflow_id = data.get("workflow_id")
+            
+            if not workflow_id:
+                await websocket.send(json.dumps({
+                    "type": "error",
+                    "message": "workflow_id required"
+                }))
+                return
+                
+            if workflow_id not in self.workflows:
+                await websocket.send(json.dumps({
+                    "type": "error",
+                    "message": f"Workflow {workflow_id} not found"
+                }))
+                return
+                
+            workflow = self.workflows[workflow_id]
+            if workflow.client_id not in self.clients:
+                await websocket.send(json.dumps({
+                    "type": "error",
+                    "message": f"Client {workflow.client_id} not connected"
+                }))
+                return
+                
+            await self.clients[workflow.client_id].send(json.dumps({
+                "type": "start",
+                "workflow_id": workflow_id,
+                "args": data.get("args", [])
+            }))
                     
         elif msg_type == "stop_workflow":
             # Stop workflow execution
-            workflow_id = data.get("workflow_id", self.active_workflow)
-            if workflow_id and workflow_id in self.workflows:
-                workflow = self.workflows[workflow_id]
-                if workflow.client_id in self.clients:
-                    await self.clients[workflow.client_id].send(json.dumps({
-                        "type": "stop",
-                        "workflow_id": workflow_id
-                    }))
+            workflow_id = data.get("workflow_id")
+            
+            if not workflow_id:
+                await websocket.send(json.dumps({
+                    "type": "error",
+                    "message": "workflow_id required"
+                }))
+                return
+                
+            if workflow_id not in self.workflows:
+                await websocket.send(json.dumps({
+                    "type": "error",
+                    "message": f"Workflow {workflow_id} not found"
+                }))
+                return
+                
+            workflow = self.workflows[workflow_id]
+            if workflow.client_id not in self.clients:
+                await websocket.send(json.dumps({
+                    "type": "error",
+                    "message": f"Client {workflow.client_id} not connected"
+                }))
+                return
+                
+            await self.clients[workflow.client_id].send(json.dumps({
+                "type": "stop",
+                "workflow_id": workflow_id
+            }))
                     
         elif msg_type == "get_logs":
             # Get workflow logs
@@ -340,7 +401,8 @@ class DNNEServer:
     async def telemetry_broadcaster(self):
         """Periodically broadcast telemetry to UIs"""
         while True:
-            await asyncio.sleep(0.1)  # 100ms intervals
+            batch_interval = self.config.get('exported.agent_client.telemetry_batch_interval', 0.1)
+            await asyncio.sleep(batch_interval)
             
             if self.ui_connections and self.telemetry_buffer:
                 # Prepare telemetry batch
@@ -364,9 +426,9 @@ class DNNEServer:
     async def run_forever(self):
         """Run the server forever"""
         await self.start()
-        logger.info("DNNE Server started successfully")
-        logger.info("  Client port: 8766")
-        logger.info("  UI port: 8767")
+        logger.info("DNNE Agent Server started successfully")
+        logger.info(f"  Client port: {self.config.get('dnne.agent_server.client_port', 8766)}")
+        logger.info(f"  UI port: {self.config.get('dnne.agent_server.ui_port', 8767)}")
         
         # Keep running
         await asyncio.Future()  # Run forever
@@ -374,7 +436,7 @@ class DNNEServer:
 
 async def main():
     """Main entry point"""
-    server = DNNEServer()
+    server = DNNEAgentServer()
     
     try:
         await server.run_forever()

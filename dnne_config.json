@@ -1,28 +1,54 @@
 {
-  "paths": {
-    "dnne_root": "~/DNNE/DNNE-UI",
-    "frontend_root": "~/DNNE/DNNE-UI-Frontend",
-    "linux_support": "~/DNNE/DNNE-LINUX-SUPPORT",
-    "conda_path": "~/miniconda",
-    "conda_env": "DNNE_PY38"
+  "dnne": {
+    "agent_server": {
+      "client_port": 8766,
+      "ui_port": 8767,
+      "ping_interval": 30,
+      "ping_timeout": 10,
+      "max_connections": 10
+    },
+    "paths": {
+      "dnne_root": "E:\\ALS-Projects\\DNNE\\DNNE-UI",
+      "frontend_root": "E:\\ALS-Projects\\DNNE\\DNNE-UI-Frontend",
+      "temp_directory": "C:\\Temp"
+    },
+    "conda": {
+      "conda_path": "C:\\Users\\{username}\\miniconda3",
+      "conda_env": "DNNE_PY310"
+    },
+    "wsl": {
+      "filesystem_prefix": "\\\\wsl.localhost\\Ubuntu",
+      "home_path": "/home/asantanna"
+    },
+    "export": {
+      "default_workflow": "Cartpole_PPO",
+      "workflow_dir": "user/default/workflows",
+      "export_base": "export_system/exports"
+    }
   },
-  "wsl": {
-    "windows_prefix": "\\\\wsl.localhost\\Ubuntu",
-    "home_path": "/home/asantanna"
+  "exported": {
+    "agent_client": {
+      "telemetry_port": 9999,
+      "telemetry_buffer_size": 1000,
+      "work_area_base": "/tmp/dnne_work_areas",
+      "telemetry_retention_seconds": 300,
+      "workflow_stop_timeout": 10,
+      "telemetry_batch_interval": 0.1
+    },
+    "paths": {
+      "linux_support": "~/DNNE/DNNE-LINUX-SUPPORT",
+      "temp_directory": "/tmp"
+    },
+    "conda": {
+      "conda_path": "~/miniconda",
+      "conda_env": "DNNE_PY38"
+    }
   },
-  "linux_support_subdirs": {
-    "isaac_gym_envs": "IsaacGymEnvs",
-    "isaac_gym": "isaacgym",
-    "rl_games_dnne": "rl_games_dnne"
-  },
-  "export": {
-    "default_workflow": "Cartpole_PPO",
-    "workflow_path": "user/default/workflows",
-    "export_base": "export_system/exports"
-  },
-  "profiling": {
-    "default_num_envs": 512,
-    "default_timeout": 300,
-    "temp_directory": "/tmp"
+  "shared": {
+    "linux_support_subdirs": {
+      "isaac_gym_envs": "IsaacGymEnvs",
+      "isaac_gym": "isaacgym",
+      "rl_games_dnne": "rl_games_dnne"
+    }
   }
 }
