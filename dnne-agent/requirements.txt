@@ -1,0 +1,15 @@
+# DNNE Agent Requirements
+# For both dnne_server.py and dnne_client.py
+
+# Core dependencies
+websockets>=11.0
+asyncio
+
+# System monitoring
+psutil>=5.9.0
+
+# JSON handling is built-in
+# logging is built-in
+# socket is built-in
+# subprocess is built-in
+# pathlib is built-in

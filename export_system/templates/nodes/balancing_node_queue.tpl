@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional
 from collections import deque
 from framework import QueueNode
 from framework.globals import Global
+from framework import telemetry
 
 # Template variables
 template_vars = {
@@ -138,7 +139,16 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if len(self.latency_window) > 0:
             self.average_latency = sum(self.latency_window) / len(self.latency_window)
         
-        # Report metrics to Global (now handled by unified yield API)
+        # Report telemetry metrics
+        telemetry.report_throughput(self.node_id, self.current_frequency)
+        telemetry.report_latency(self.node_id, self.current_latency)
+        
+        # Report queue depths periodically
+        if self.execution_count % 10 == 0:
+            for name, queue in self.input_queues.items():
+                telemetry.report_queue_depth(self.node_id, f"input_{name}", queue.qsize())
+            for name, queue in self.output_queues.items():
+                telemetry.report_queue_depth(self.node_id, f"output_{name}", queue.qsize())
         
         # Use unified yield API with item reference
         # TODO: The subgraph name should be determined from workflow connections
@@ -155,9 +165,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         logger.record_metric(self.node_id, f"BalancingNode_{self.node_id}", "latency", 
                            self.current_latency)
         
-        # Check and record violations
+        # Check violations
         violations = self._check_violations()
+        
+        # Report violations via telemetry
         for v in violations:
+            telemetry.report_violation(
+                self.node_id, v["type"], 
+                v["expected"], v["actual"], v["guaranteed"]
+            )
+            
+            # Also record in metrics logger for persistence
             logger.record_violation(
                 self.node_id, f"BalancingNode_{self.node_id}",
                 v["type"], v["expected"], v["actual"], v["guaranteed"]
