@@ -110,8 +110,8 @@ def run_client_tests():
     ]
     
     try:
-        # Run the tests
-        result = subprocess.run(cmd, capture_output=False, text=True)
+        # Run the tests without capture to allow real-time output
+        result = subprocess.run(cmd)
         
         if result.returncode == 0:
             print("\n✅ All dnne_agent tests passed!")
@@ -136,13 +136,13 @@ async def main():
     
     if not server_running:
         print("\n" + "=" * 60)
-        print("⚠️  DNNE Agent Server Not Running!")
+        print("⚠️  DNNE Agent Test Server Not Running!")
         print("=" * 60)
-        print("\nTo run these tests, you must first start the server on Windows:")
+        print("\nTo run these tests, you must first start the test server on Windows:")
         print("1. Open a Windows terminal")
-        print("2. Navigate to the dnne-agent directory")
-        print("3. Run: python dnne_agent_server.py")
-        print("\nThen run this test again.")
+        print("2. Navigate to your DNNE-UI directory")
+        print("3. Run: python dnne-test-suite/specialized/dnne_agent/test_dnne_agent_server.py")
+        print("\nThen run this test again from Linux/WSL.")
         print("=" * 60)
         return EXIT_SERVER_NOT_RUNNING
     

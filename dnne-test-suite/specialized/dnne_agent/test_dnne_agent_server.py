@@ -30,7 +30,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 class TestDNNEAgentServer:
-    """Test UI client for dnne_server"""
+    """Test UI client for dnne_agent_server"""
     
     def __init__(self, server_url="ws://localhost:8767", verbose=False, quiet=False):
         self.server_url = server_url
@@ -62,26 +62,26 @@ class TestDNNEAgentServer:
             
         print(f"[{timestamp}] {prefix} {message}")
     
-    async def ensure_dnne_server_running(self):
-        """Check if dnne_server is running and start it if not"""
-        self.log("Checking if dnne_server is running...")
+    async def ensure_dnne_agent_server_running(self):
+        """Check if dnne_agent_server is running and start it if not"""
+        self.log("Checking if dnne_agent_server is running...")
         
-        # Check if dnne_server is already running
+        # Check if dnne_agent_server is already running
         if await self._check_server_running():
-            self.log("dnne_server is already running", "success")
+            self.log("dnne_agent_server is already running", "success")
             return True
             
         # Not running, start it
-        self.log("dnne_server not found, starting it...")
+        self.log("dnne_agent_server not found, starting it...")
         
-        # Find dnne_server.py
-        server_path = Path(__file__).parent / "dnne_server.py"
+        # Find dnne_agent_server.py
+        server_path = Path(__file__).parent.parent.parent.parent / "dnne-agent" / "dnne_agent_server.py"
         if not server_path.exists():
-            self.log(f"dnne_server.py not found at {server_path}", "error")
+            self.log(f"dnne_agent_server.py not found at {server_path}", "error")
             return False
             
         try:
-            # Start dnne_server
+            # Start dnne_agent_server
             if sys.platform == "win32":
                 # Windows: Create new console window
                 subprocess.Popen(
@@ -97,23 +97,23 @@ class TestDNNEAgentServer:
                 )
                 
             # Wait for server to start
-            self.log("Waiting for dnne_server to start...")
+            self.log("Waiting for dnne_agent_server to start...")
             await asyncio.sleep(3)
             
             # Check if it started successfully
             if await self._check_server_running():
-                self.log("dnne_server started successfully", "success")
+                self.log("dnne_agent_server started successfully", "success")
                 return True
             else:
-                self.log("dnne_server failed to start", "error")
+                self.log("dnne_agent_server failed to start", "error")
                 return False
                 
         except Exception as e:
-            self.log(f"Failed to start dnne_server: {e}", "error")
+            self.log(f"Failed to start dnne_agent_server: {e}", "error")
             return False
     
     async def _check_server_running(self):
-        """Check if dnne_server is running by trying a WebSocket connection"""
+        """Check if dnne_agent_server is running by trying a WebSocket connection"""
         try:
             ws = await asyncio.wait_for(
                 websockets.connect("ws://localhost:8767"),
@@ -131,18 +131,18 @@ class TestDNNEAgentServer:
             return False
     
     async def connect(self):
-        """Connect to dnne_server"""
+        """Connect to dnne_agent_server"""
         try:
             self.log(f"Connecting to {self.server_url}...")
             self.websocket = await websockets.connect(self.server_url)
-            self.log("Connected to dnne_server", "success")
+            self.log("Connected to dnne_agent_server", "success")
             return True
         except Exception as e:
             self.log(f"Failed to connect: {e}", "error")
             return False
     
     async def handle_message(self, data):
-        """Handle messages from dnne_server"""
+        """Handle messages from dnne_agent_server"""
         msg_type = data.get("type")
         
         if msg_type == "server_state":
@@ -265,9 +265,9 @@ class TestDNNEAgentServer:
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Test UI client for dnne_server")
+    parser = argparse.ArgumentParser(description="Test UI client for dnne_agent_server")
     parser.add_argument("--server", default="localhost:8767",
-                       help="dnne_server UI endpoint (default: localhost:8767)")
+                       help="dnne_agent_server UI endpoint (default: localhost:8767)")
     parser.add_argument("--verbose", "-v", action="store_true",
                        help="Show detailed output")
     parser.add_argument("--quiet", "-q", action="store_true",
@@ -275,7 +275,7 @@ async def main():
     parser.add_argument("--timeout", type=int,
                        help="Exit after timeout seconds")
     parser.add_argument("--no-autostart", action="store_true",
-                       help="Don't auto-start dnne_server")
+                       help="Don't auto-start dnne_agent_server")
     
     args = parser.parse_args()
     
@@ -288,9 +288,9 @@ async def main():
     # Create test client
     test_client = TestDNNEAgentServer(server_url, args.verbose, args.quiet)
     
-    # Ensure dnne_server is running
+    # Ensure dnne_agent_server is running
     if not args.no_autostart:
-        if not await test_client.ensure_dnne_server_running():
+        if not await test_client.ensure_dnne_agent_server_running():
             return 1
             
     # Connect to server

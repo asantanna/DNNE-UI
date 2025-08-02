@@ -50,7 +50,7 @@ EXIT_TEST_FAILED = 6
 
 
 class TestDNNEAgentClient:
-    """Test controller for dnne_client"""
+    """Test controller for dnne_agent_client"""
     
     def __init__(self, server_host="localhost", server_port=8766):
         self.server_host = server_host
@@ -58,7 +58,8 @@ class TestDNNEAgentClient:
         self.server_url = f"ws://{server_host}:{server_port}"
         self.ui_port = 8767  # UI port is always one higher than client port
         self.client_process = None
-        self.test_dir = Path(__file__).parent / "tests"
+        self.test_dir = Path(__file__).parent / "helpers"
+        self.last_workflow_id = None  # Track last deployed workflow
         
     def log(self, message, prefix=""):
         """Simple logging"""
@@ -68,37 +69,41 @@ class TestDNNEAgentClient:
         else:
             print(f"[{timestamp}] {message}")
     
-    def find_dnne_client_process(self):
-        """Find running dnne_client process"""
+    def find_dnne_agent_client_process(self):
+        """Find running dnne_agent_client process"""
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
                 cmdline = proc.info.get('cmdline', [])
-                if cmdline and 'dnne_client.py' in ' '.join(cmdline):
+                if cmdline and 'dnne_agent_client.py' in ' '.join(cmdline):
                     return proc
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         return None
     
-    def ensure_dnne_client_running(self):
-        """Start dnne_client if not running"""
+    def ensure_dnne_agent_client_running(self):
+        """Start dnne_agent_client if not running"""
         # Check if already running
-        proc = self.find_dnne_client_process()
+        proc = self.find_dnne_agent_client_process()
         if proc:
-            self.log(f"dnne_client already running (PID: {proc.pid})", "✓")
+            self.log(f"dnne_agent_client already running (PID: {proc.pid})", "✓")
             return True
             
-        # Start dnne_client
-        self.log("Starting dnne_client...")
+        # Start dnne_agent_client
+        self.log("Starting dnne_agent_client...")
         
-        client_path = Path(__file__).parent / "dnne_client.py"
+        client_path = Path(__file__).parent.parent.parent.parent / "dnne-agent" / "dnne_agent_client.py"
         if not client_path.exists():
-            self.log(f"dnne_client.py not found at {client_path}", "✗")
+            self.log(f"dnne_agent_client.py not found at {client_path}", "✗")
             return False
             
         try:
             # Set server URL via environment
             env = os.environ.copy()
-            env['DNNE_SERVER_URL'] = self.server_url
+            # Make sure the URL has the ws:// prefix
+            if not self.server_url.startswith('ws://'):
+                env['DNNE_SERVER_URL'] = f"ws://{self.server_host}:{self.server_port}"
+            else:
+                env['DNNE_SERVER_URL'] = self.server_url
             
             self.client_process = subprocess.Popen(
                 [sys.executable, str(client_path)],
@@ -112,48 +117,52 @@ class TestDNNEAgentClient:
             
             # Verify it's running
             if self.client_process.poll() is None:
-                self.log(f"dnne_client started (PID: {self.client_process.pid})", "✓")
+                self.log(f"dnne_agent_client started (PID: {self.client_process.pid})", "✓")
                 return True
             else:
-                self.log("dnne_client failed to start", "✗")
+                # Get output to see what went wrong
+                output, _ = self.client_process.communicate()
+                self.log("dnne_agent_client failed to start", "✗")
+                if output:
+                    self.log(f"Client output: {output.decode('utf-8', errors='ignore')}", "!")
                 return False
                 
         except Exception as e:
-            self.log(f"Failed to start dnne_client: {e}", "✗")
+            self.log(f"Failed to start dnne_agent_client: {e}", "✗")
             return False
     
-    def stop_dnne_client(self):
-        """Stop dnne_client gracefully"""
-        proc = self.find_dnne_client_process()
+    def stop_dnne_agent_client(self):
+        """Stop dnne_agent_client gracefully"""
+        proc = self.find_dnne_agent_client_process()
         if not proc:
-            self.log("dnne_client not running", "✓")
+            self.log("dnne_agent_client not running", "✓")
             return True
             
         try:
-            self.log(f"Stopping dnne_client (PID: {proc.pid})...")
+            self.log(f"Stopping dnne_agent_client (PID: {proc.pid})...")
             proc.terminate()
             
             # Wait up to 5 seconds
             try:
                 proc.wait(timeout=5)
-                self.log("dnne_client stopped", "✓")
+                self.log("dnne_agent_client stopped", "✓")
                 return True
             except psutil.TimeoutExpired:
                 # Force kill
                 proc.kill()
                 proc.wait()
-                self.log("dnne_client killed", "⚠")
+                self.log("dnne_agent_client killed", "⚠")
                 return True
                 
         except Exception as e:
-            self.log(f"Failed to stop dnne_client: {e}", "✗")
+            self.log(f"Failed to stop dnne_agent_client: {e}", "✗")
             return False
     
     async def test_connectivity(self):
-        """Test basic connectivity to dnne_server via dnne_client"""
+        """Test basic connectivity to dnne_agent_server via dnne_agent_client"""
         self.log("Testing connectivity...")
         
-        # dnne_client should be connected to dnne_server
+        # dnne_agent_client should be connected to dnne_agent_server
         # We'll verify by checking if dnne_server has clients
         try:
             # Connect directly to dnne_server UI port to check
@@ -261,6 +270,7 @@ class TestDNNEAgentClient:
                 if data.get("type") == "workflow_deployed":
                     workflow_id = data.get("workflow_id")
                     self.log(f"Deployed: {workflow_id}", "✓")
+                    self.last_workflow_id = workflow_id  # Save for stop command
                     
                     # Start workflow
                     await ws.send(json.dumps({
@@ -321,16 +331,21 @@ class TestDNNEAgentClient:
     
     async def stop_workflow(self):
         """Stop running workflow"""
-        self.log("Stopping workflow...")
+        if not self.last_workflow_id:
+            self.log("No workflow to stop", "⚠")
+            return False
+            
+        self.log(f"Stopping workflow {self.last_workflow_id}...")
         
         try:
             ui_url = f"ws://{self.server_host}:{self.ui_port}"
             ws = await websockets.connect(ui_url)
             await ws.recv()  # Initial state
             
-            # Send stop command (stops active workflow)
+            # Send stop command with workflow_id
             await ws.send(json.dumps({
-                "type": "stop_workflow"
+                "type": "stop_workflow",
+                "workflow_id": self.last_workflow_id
             }))
             
             # Wait for confirmation
@@ -342,10 +357,12 @@ class TestDNNEAgentClient:
                     message = await asyncio.wait_for(ws.recv(), timeout=1.0)
                     data = json.loads(message)
                     
-                    if data.get("type") == "workflow_status" and data.get("status") == "stopped":
-                        self.log("Workflow stopped", "✓")
-                        await ws.close()
-                        return True
+                    if data.get("type") == "workflow_status":
+                        status = data.get("status")
+                        if status in ["stopped", "completed"]:
+                            self.log(f"Workflow {status}", "✓")
+                            await ws.close()
+                            return True
                         
                 except asyncio.TimeoutError:
                     continue
@@ -360,7 +377,7 @@ class TestDNNEAgentClient:
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Test controller for dnne_client")
+    parser = argparse.ArgumentParser(description="Test controller for dnne_agent_client")
     
     # Connection options
     default_host = get_windows_host_ip()
@@ -369,17 +386,17 @@ async def main():
     parser.add_argument("--server-host", default=default_host,
                        help=f"dnne_server host (default: {default_host} for WSL)")
     parser.add_argument("--client", default="localhost:9999",
-                       help="dnne_client UDP endpoint (default: localhost:9999)")
+                       help="dnne_agent_client UDP endpoint (default: localhost:9999)")
     parser.add_argument("--no-autostart", action="store_true",
-                       help="Don't auto-start dnne_client")
+                       help="Don't auto-start dnne_agent_client")
     
     # Basic operations
     parser.add_argument("--test-connectivity", action="store_true",
                        help="Test basic connectivity")
     parser.add_argument("--stop-agent", action="store_true",
-                       help="Stop dnne_client")
+                       help="Stop dnne_agent_client")
     parser.add_argument("--ensure-agent", action="store_true",
-                       help="Ensure dnne_client is running")
+                       help="Ensure dnne_agent_client is running")
     
     # Telemetry tests
     parser.add_argument("--send-metric", metavar="TYPE:VALUE",
@@ -445,7 +462,7 @@ async def main():
     
     # Ensure agent unless --no-autostart or --stop-agent
     if not args.no_autostart and not args.stop_agent and not args.ensure_agent:
-        if not test.ensure_dnne_client_running():
+        if not test.ensure_dnne_agent_client_running():
             return EXIT_AGENT_ERROR
             
     # Execute requested operations
@@ -454,7 +471,7 @@ async def main():
     try:
         # Basic operations
         if args.ensure_agent:
-            if not test.ensure_dnne_client_running():
+            if not test.ensure_dnne_agent_client_running():
                 return EXIT_AGENT_ERROR
                 
         if args.test_connectivity:
@@ -462,7 +479,7 @@ async def main():
                 return EXIT_CONNECTION_FAILED
                 
         if args.stop_agent:
-            if not test.stop_dnne_client():
+            if not test.stop_dnne_agent_client():
                 return EXIT_AGENT_ERROR
             return EXIT_SUCCESS
             
