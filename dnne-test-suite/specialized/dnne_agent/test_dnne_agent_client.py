@@ -56,7 +56,7 @@ class TestDNNEAgentClient:
         self.server_host = server_host
         self.server_port = server_port
         self.server_url = f"ws://{server_host}:{server_port}"
-        self.ui_port = 8767  # UI port is always one higher than client port
+        self.test_port = 8768  # Test control port for simulating UI actions
         self.client_process = None
         self.test_dir = Path(__file__).parent / "helpers"
         self.last_workflow_id = None  # Track last deployed workflow
@@ -74,7 +74,8 @@ class TestDNNEAgentClient:
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
                 cmdline = proc.info.get('cmdline', [])
-                if cmdline and 'dnne_agent_client.py' in ' '.join(cmdline):
+                # Look specifically for dnne-agent/dnne_agent_client.py to avoid matching the test script
+                if cmdline and any('dnne-agent/dnne_agent_client.py' in arg for arg in cmdline):
                     return proc
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
@@ -165,9 +166,9 @@ class TestDNNEAgentClient:
         # dnne_agent_client should be connected to dnne_agent_server
         # We'll verify by checking if dnne_server has clients
         try:
-            # Connect directly to dnne_server UI port to check
-            ui_url = f"ws://{self.server_host}:{self.ui_port}"
-            ws = await websockets.connect(ui_url)
+            # Connect to test control port to check connectivity
+            test_url = f"ws://{self.server_host}:{self.test_port}"
+            ws = await websockets.connect(test_url)
             
             # Wait for server state
             message = await ws.recv()
@@ -244,9 +245,9 @@ class TestDNNEAgentClient:
         self.log(f"Deploying test: {test_name}")
         
         try:
-            # Connect to dnne_server UI port
-            ui_url = f"ws://{self.server_host}:{self.ui_port}"
-            ws = await websockets.connect(ui_url)
+            # Connect to test control port
+            test_url = f"ws://{self.server_host}:{self.test_port}"
+            ws = await websockets.connect(test_url)
             
             # Wait for initial state
             await ws.recv()
@@ -267,6 +268,10 @@ class TestDNNEAgentClient:
                 message = await ws.recv()
                 data = json.loads(message)
                 
+                # Skip initial state message
+                if data.get("type") == "state":
+                    continue
+                    
                 if data.get("type") == "workflow_deployed":
                     workflow_id = data.get("workflow_id")
                     self.log(f"Deployed: {workflow_id}", "✓")
@@ -338,8 +343,8 @@ class TestDNNEAgentClient:
         self.log(f"Stopping workflow {self.last_workflow_id}...")
         
         try:
-            ui_url = f"ws://{self.server_host}:{self.ui_port}"
-            ws = await websockets.connect(ui_url)
+            test_url = f"ws://{self.server_host}:{self.test_port}"
+            ws = await websockets.connect(test_url)
             await ws.recv()  # Initial state
             
             # Send stop command with workflow_id

@@ -16,6 +16,7 @@ import time
 import logging
 import sys
 import os
+import argparse
 from datetime import datetime
 from collections import defaultdict, deque
 from typing import Dict, Set, Optional, Any
@@ -29,13 +30,17 @@ from dnne_config import DNNEConfig
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
         logging.FileHandler('dnne_server.log')
     ]
 )
 logger = logging.getLogger('dnne_server')
+
+# Suppress websockets library logging
+logging.getLogger('websockets.server').setLevel(logging.WARNING)
+logging.getLogger('websockets.protocol').setLevel(logging.WARNING)
 
 
 class WorkflowInfo:
@@ -58,15 +63,20 @@ class DNNEAgentServer:
     Configurable ports loaded from dnne_config.json
     """
     
-    def __init__(self):
+    def __init__(self, enable_test_port=False):
         # Load configuration
         self.config = DNNEConfig()
+        self.enable_test_port = enable_test_port
+        
         # Client management
         self.clients: Dict[str, websockets.WebSocketServerProtocol] = {}
         self.client_info: Dict[str, Dict[str, Any]] = {}
         
         # UI connections
         self.ui_connections: Set[websockets.WebSocketServerProtocol] = set()
+        
+        # Test connections (only used when test port is enabled)
+        self.test_connections: Set[websockets.WebSocketServerProtocol] = set()
         
         # Workflow management
         self.workflows: Dict[str, WorkflowInfo] = {}
@@ -111,6 +121,18 @@ class DNNEAgentServer:
         )
         logger.info(f"UI server started on port {ui_port}")
         
+        # Test control server (only if enabled)
+        if self.enable_test_port:
+            test_port = self.config.get('dnne.agent_server.test_port', 8768)
+            self.test_server = await websockets.serve(
+                self.handle_test_control,
+                "0.0.0.0",
+                test_port
+            )
+            logger.warning(f"WARNING: Test control port enabled on {test_port} - DO NOT USE IN PRODUCTION")
+        else:
+            self.test_server = None
+        
         # Start background tasks
         asyncio.create_task(self.telemetry_broadcaster())
         
@@ -120,6 +142,7 @@ class DNNEAgentServer:
         self.clients[client_id] = websocket
         
         logger.info(f"Client {client_id} connected from {websocket.remote_address}")
+        logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
         
         try:
             async for message in websocket:
@@ -128,6 +151,7 @@ class DNNEAgentServer:
                 
         except websockets.exceptions.ConnectionClosed:
             logger.info(f"Client {client_id} disconnected")
+            logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients) - 1}, test: {len(self.test_connections)}")
         except Exception as e:
             logger.error(f"Error handling client {client_id}: {e}")
         finally:
@@ -189,13 +213,22 @@ class DNNEAgentServer:
                 elif status in ["completed", "failed", "stopped"]:
                     self.workflows[workflow_id].end_time = time.time()
                     
-                # Notify UIs
-                await self.broadcast_to_ui({
+                # Notify UIs and test connections
+                message = {
                     "type": "workflow_status",
                     "workflow_id": workflow_id,
                     "status": status,
                     "details": data.get("details")
-                })
+                }
+                await self.broadcast_to_ui(message)
+                
+                # Also broadcast to test connections
+                if self.test_connections:
+                    msg_json = json.dumps(message)
+                    await asyncio.gather(
+                        *[conn.send(msg_json) for conn in self.test_connections],
+                        return_exceptions=True
+                    )
                 
         elif msg_type == "log":
             # Log message from workflow
@@ -207,18 +240,28 @@ class DNNEAgentServer:
                     "message": data.get("message", "")
                 })
                 
-                # Forward to UIs
-                await self.broadcast_to_ui({
+                # Forward to UIs and test connections
+                message = {
                     "type": "workflow_log",
                     "workflow_id": workflow_id,
                     "log": data
-                })
+                }
+                await self.broadcast_to_ui(message)
+                
+                # Also forward to test connections
+                if self.test_connections:
+                    msg_json = json.dumps(message)
+                    await asyncio.gather(
+                        *[conn.send(msg_json) for conn in self.test_connections],
+                        return_exceptions=True
+                    )
     
     async def handle_ui(self, websocket):
         """Handle UI connections (DNNE-UI)"""
         self.ui_connections.add(websocket)
         connection_time = time.time()
-        logger.info(f"UI connected from {websocket.remote_address} ({len(self.ui_connections)} connection(s) open)")
+        logger.info(f"UI connected from {websocket.remote_address}")
+        logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
         
         connection_was_brief = False
         try:
@@ -254,14 +297,16 @@ class DNNEAgentServer:
             if time.time() - connection_time < 0.5:
                 connection_was_brief = True
             else:
-                logger.info("UI disconnected")
+                logger.info(f"UI disconnected")
+                logger.info(f"Open connections: UI: {len(self.ui_connections) - 1}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
         except Exception as e:
             logger.error(f"Error handling UI connection: {e}")
         finally:
             self.ui_connections.remove(websocket)
             # Log disconnection only for non-brief connections
             if not connection_was_brief and time.time() - connection_time >= 0.5:
-                logger.info("UI connection closed")
+                logger.info(f"UI connection closed")
+                logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
     
     async def handle_ui_message(self, websocket, data: Dict[str, Any]):
         """Process messages from UI"""
@@ -389,6 +434,47 @@ class DNNEAgentServer:
                     "logs": list(self.workflow_logs[workflow_id])[-100:]  # Last 100 lines
                 }))
     
+    async def handle_test_control(self, websocket):
+        """Handle test control connections (test harness only)"""
+        self.test_connections.add(websocket)
+        logger.warning(f"Test control connection from {websocket.remote_address}")
+        logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
+        
+        try:
+            # Send current state to test client
+            await websocket.send(json.dumps({
+                "type": "state",
+                "clients": {
+                    client_id: {
+                        **self.client_info.get(client_id, {}),
+                        "connected": client_id in self.clients
+                    }
+                    for client_id in self.client_info
+                },
+                "workflows": {
+                    wf_id: {
+                        "client_id": wf.client_id,
+                        "status": wf.status,
+                        "start_time": wf.start_time,
+                        "end_time": wf.end_time
+                    }
+                    for wf_id, wf in self.workflows.items()
+                }
+            }))
+            
+            async for message in websocket:
+                data = json.loads(message)
+                # Forward test commands to UI handler
+                await self.handle_ui_message(websocket, data)
+                
+        except websockets.exceptions.ConnectionClosed:
+            logger.info(f"Test control connection closed")
+            logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections) - 1})")
+        except Exception as e:
+            logger.error(f"Error handling test control connection: {e}")
+        finally:
+            self.test_connections.remove(websocket)
+    
     async def broadcast_to_ui(self, data: Dict[str, Any]):
         """Broadcast message to all connected UIs"""
         if self.ui_connections:
@@ -429,6 +515,8 @@ class DNNEAgentServer:
         logger.info("DNNE Agent Server started successfully")
         logger.info(f"  Client port: {self.config.get('dnne.agent_server.client_port', 8766)}")
         logger.info(f"  UI port: {self.config.get('dnne.agent_server.ui_port', 8767)}")
+        if self.enable_test_port:
+            logger.info(f"  Test port: {self.config.get('dnne.agent_server.test_port', 8768)} (TEST MODE ONLY)")
         
         # Keep running
         await asyncio.Future()  # Run forever
@@ -436,7 +524,14 @@ class DNNEAgentServer:
 
 async def main():
     """Main entry point"""
-    server = DNNEAgentServer()
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="DNNE Agent Server")
+    parser.add_argument("--enable-test-port", action="store_true",
+                       help="Enable test control port (DO NOT USE IN PRODUCTION)")
+    args = parser.parse_args()
+    
+    # Create server with test port if requested
+    server = DNNEAgentServer(enable_test_port=args.enable_test_port)
     
     try:
         await server.run_forever()

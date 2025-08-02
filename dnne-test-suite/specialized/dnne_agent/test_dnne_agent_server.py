@@ -85,13 +85,13 @@ class TestDNNEAgentServer:
             if sys.platform == "win32":
                 # Windows: Create new console window
                 subprocess.Popen(
-                    [sys.executable, str(server_path)],
+                    [sys.executable, str(server_path), "--enable-test-port"],
                     creationflags=subprocess.CREATE_NEW_CONSOLE
                 )
             else:
                 # Linux/Mac: Run in background
                 subprocess.Popen(
-                    [sys.executable, str(server_path)],
+                    [sys.executable, str(server_path), "--enable-test-port"],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL
                 )
