@@ -15,6 +15,9 @@ import signal
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
+import dnne_config
 
 from export_system.graph_exporter import GraphExporter
 from export_system.node_exporters import register_all_exporters
@@ -150,7 +153,7 @@ async def test_single_env():
     ]
     
     # Activate conda environment
-    activate_cmd = "source /home/asantanna/miniconda/bin/activate DNNE_PY38"
+    activate_cmd = dnne_config.config.get_conda_activate_command()
     full_cmd = ["bash", "-c", f"{activate_cmd} && {' '.join(cmd)}"]
     
     result = await run_with_timeout(full_cmd, 120, "Single Environment (num_envs=1)")
@@ -186,7 +189,7 @@ async def test_multi_env():
     ]
     
     # Activate conda environment
-    activate_cmd = "source /home/asantanna/miniconda/bin/activate DNNE_PY38"
+    activate_cmd = dnne_config.config.get_conda_activate_command()
     full_cmd = ["bash", "-c", f"{activate_cmd} && {' '.join(cmd)}"]
     
     result = await run_with_timeout(full_cmd, 120, "Multi Environment (num_envs=2)")
@@ -221,7 +224,7 @@ async def test_standard_isaac_gym():
     ]
     
     # Activate conda environment
-    activate_cmd = "source /home/asantanna/miniconda/bin/activate DNNE_PY38"
+    activate_cmd = dnne_config.config.get_conda_activate_command()
     full_cmd = ["bash", "-c", f"{activate_cmd} && {' '.join(cmd)}"]
     
     result = await run_with_timeout(full_cmd, 300, "Standard Isaac Gym (num_envs=16)")

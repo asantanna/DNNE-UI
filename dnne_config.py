@@ -62,11 +62,28 @@ class DNNEConfig:
             # Apply environment variable substitutions
             self._substitute_env_vars()
             
-            # Validate paths exist
+            # Validate paths exist after loading
             self._validate_paths()
             
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in config file {config_path}: {e}")
+    
+    def _convert_path_for_os(self, path: str) -> str:
+        """Convert path based on current OS"""
+        import platform
+        
+        # First expand ~ if present
+        if path.startswith('~'):
+            if platform.system() == "Windows":
+                # On Windows, ~ means the WSL home
+                wsl_prefix = self.get('wsl.windows_prefix', '\\\\wsl.localhost\\Ubuntu')
+                home_path = self.get('wsl.home_path', '/home/asantanna')
+                path = path.replace('~', wsl_prefix + home_path)
+            else:
+                # On Linux, use normal expansion
+                path = os.path.expanduser(path)
+        
+        return path
     
     def _substitute_env_vars(self):
         """Replace ${VAR} patterns with environment variable values"""
@@ -80,7 +97,8 @@ class DNNEConfig:
                     var_name = match.group(1)
                     return os.environ.get(var_name, match.group(0))
                 
-                return re.sub(pattern, replacer, value)
+                value = re.sub(pattern, replacer, value)
+                return value
             elif isinstance(value, dict):
                 return {k: substitute_in_value(v) for k, v in value.items()}
             elif isinstance(value, list):
@@ -91,20 +109,31 @@ class DNNEConfig:
     
     def _validate_paths(self):
         """Validate that critical paths exist"""
+        import platform
+        
+        # Skip validation on Windows for WSL paths
+        if platform.system() == "Windows":
+            print("Note: Path validation skipped on Windows (WSL paths cannot be validated from Windows Python)")
+            return
+            
         critical_paths = [
-            'paths.dnne_root',
-            'paths.linux_support'
+            'dnne_root',
+            'linux_support'
         ]
         
-        warnings = []
+        errors = []
         for path_key in critical_paths:
-            path_value = self.get(path_key)
+            # Use get_path which does OS conversion and expansion
+            path_value = self.get_path(path_key)
             if path_value and not os.path.exists(path_value):
-                warnings.append(f"Warning: Path '{path_key}' does not exist: {path_value}")
+                errors.append(f"Critical path '{path_key}' does not exist: {path_value}")
         
-        if warnings:
-            for warning in warnings:
-                print(f"⚠️  {warning}")
+        if errors:
+            for error in errors:
+                print(f"❌ {error}")
+            raise FileNotFoundError(
+                "Critical paths are missing. Please check your dnne_config.json and ensure all paths exist."
+            )
     
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value using dot notation (e.g., 'paths.dnne_root')"""
@@ -120,8 +149,9 @@ class DNNEConfig:
         return value
     
     def get_path(self, path_key: str) -> str:
-        """Get a path from the paths section"""
-        return self.get(f'paths.{path_key}', '')
+        """Get a path from the paths section, converted for current OS"""
+        raw_path = self.get(f'paths.{path_key}', '')
+        return self._convert_path_for_os(raw_path)
     
     def get_conda_activate_command(self) -> str:
         """Get the conda activation command"""
@@ -177,7 +207,23 @@ def get_dnne_root() -> Path:
 
 def get_isaac_gym_envs_path() -> Path:
     """Get IsaacGymEnvs directory"""
-    return Path(config.get_path('isaac_gym_envs'))
+    linux_support = Path(config.get_path('linux_support'))
+    subdir = config.get('linux_support_subdirs.isaac_gym_envs', 'IsaacGymEnvs')
+    return linux_support / subdir
+
+
+def get_isaac_gym_path() -> Path:
+    """Get Isaac Gym directory"""
+    linux_support = Path(config.get_path('linux_support'))
+    subdir = config.get('linux_support_subdirs.isaac_gym', 'isaacgym')
+    return linux_support / subdir
+
+
+def get_rl_games_path() -> Path:
+    """Get rl_games_dnne directory"""
+    linux_support = Path(config.get_path('linux_support'))
+    subdir = config.get('linux_support_subdirs.rl_games_dnne', 'rl_games_dnne')
+    return linux_support / subdir
 
 
 def get_linux_support_path() -> Path:

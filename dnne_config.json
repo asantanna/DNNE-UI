@@ -1,12 +1,19 @@
 {
   "paths": {
-    "dnne_root": "/mnt/e/ALS-Projects/DNNE/DNNE-UI",
-    "linux_support": "/home/asantanna/DNNE-LINUX-SUPPORT",
-    "isaac_gym_envs": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs",
-    "isaac_gym": "/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym",
-    "rl_games_dnne": "/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne",
-    "conda_path": "/home/asantanna/miniconda",
+    "dnne_root": "~/DNNE/DNNE-UI",
+    "frontend_root": "~/DNNE/DNNE-UI-Frontend",
+    "linux_support": "~/DNNE/DNNE-LINUX-SUPPORT",
+    "conda_path": "~/miniconda",
     "conda_env": "DNNE_PY38"
+  },
+  "wsl": {
+    "windows_prefix": "\\\\wsl.localhost\\Ubuntu",
+    "home_path": "/home/asantanna"
+  },
+  "linux_support_subdirs": {
+    "isaac_gym_envs": "IsaacGymEnvs",
+    "isaac_gym": "isaacgym",
+    "rl_games_dnne": "rl_games_dnne"
   },
   "export": {
     "default_workflow": "Cartpole_PPO",

@@ -29,11 +29,18 @@ if [ ! -f "main.py" ] || [ ! -d "dnne-test-suite" ]; then
     exit 1
 fi
 
+# Source dnne_config_reader helper
+source "$(dirname "${BASH_SOURCE[0]}")/../../dnne_config_reader.sh"
+
+# Get conda configuration from dnne_config
+CONDA_PATH=$(get_dnne_config "paths.conda_path")
+CONDA_ENV=$(get_dnne_config "paths.conda_env")
+
 # Activate conda environment
 echo "Activating conda environment..."
-source /home/asantanna/miniconda/bin/activate DNNE_PY38 || {
-    echo "Failed to activate conda environment DNNE_PY38"
-    echo "Please ensure conda is installed and DNNE_PY38 environment exists"
+source $CONDA_PATH/bin/activate $CONDA_ENV || {
+    echo "Failed to activate conda environment $CONDA_ENV"
+    echo "Please ensure conda is installed and $CONDA_ENV environment exists"
     exit 1
 }
 

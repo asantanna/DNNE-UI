@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 import logging
+import dnne_config
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +43,11 @@ class IsaacGymEnvConfigLoader:
         if hasattr(self, '_initialized'):
             return
             
-        # Determine the correct path based on platform
+        # Get path from dnne_config
         if isaac_gym_envs_path is None:
-            import platform
-            if platform.system() == "Windows":
-                # Running on Windows - use WSL path
-                isaac_gym_envs_path = r"\\wsl.localhost\Ubuntu\home\asantanna\DNNE-LINUX-SUPPORT\IsaacGymEnvs"
-            else:
-                # Running on Linux/WSL
-                isaac_gym_envs_path = "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs"
+            isaac_gym_envs_path = str(dnne_config.get_isaac_gym_envs_path())
+            if not isaac_gym_envs_path:
+                raise ConfigurationError("isaac_gym_envs path not found in dnne_config")
         
         self.base_path = Path(isaac_gym_envs_path)
         self.cfg_path = self.base_path / "isaacgymenvs" / "cfg"

@@ -967,6 +967,24 @@ class PlaceholderNode_{node_id}(QueueNode):
         override_parser_content = self._load_template("framework/override_parser.py")
         (framework_dir / "override_parser.py").write_text(override_parser_content, encoding='utf-8')
         self.logger.info("Exported override_parser.py for runtime parameter overrides")
+        
+        # Copy dnne_config.py and dnne_config.json from root
+        import shutil
+        dnne_root = Path(__file__).parent.parent
+        
+        # Copy dnne_config.py to framework directory
+        dnne_config_src = dnne_root / "dnne_config.py"
+        if not dnne_config_src.exists():
+            raise FileNotFoundError(f"dnne_config.py not found at {dnne_config_src}")
+        shutil.copy2(dnne_config_src, framework_dir / "dnne_config.py")
+        self.logger.info("Copied dnne_config.py to framework/ for path configuration")
+        
+        # Copy dnne_config.json to framework directory
+        dnne_config_json_src = dnne_root / "dnne_config.json"
+        if not dnne_config_json_src.exists():
+            raise FileNotFoundError(f"dnne_config.json not found at {dnne_config_json_src}")
+        shutil.copy2(dnne_config_json_src, framework_dir / "dnne_config.json")
+        self.logger.info("Copied dnne_config.json to framework/ for path configuration")
     
     def _export_node_to_file(self, nodes_dir: Path, node_id: str, node_type: str, 
                             node_code: str, node_imports: List[str]) -> str:

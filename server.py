@@ -727,10 +727,8 @@ class PromptServer():
                     workflow_export_dir = os.path.join(export_base_dir, safe_name)
                     workflow_export_path = Path(workflow_export_dir)
                     
-                    # Create directories
-                    os.makedirs(workflow_export_dir, exist_ok=True)
-                    
                     # Export the workflow to the target directory
+                    # Note: Do NOT create directory here - exporter handles directory creation
                     exported_runner_path = exporter.export_workflow(workflow, workflow_export_path)
                     
                     # Verify the export was successful
