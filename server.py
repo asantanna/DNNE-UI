@@ -938,11 +938,14 @@ class PromptServer():
 
     async def connect_to_agent_server(self):
         """Connect to the DNNE agent server as a UI client."""
-        agent_url = "ws://localhost:8767/ws"
+        from dnne_config import DNNEConfig
+        config = DNNEConfig()
+        agent_port = config.get('dnne.agent_server.ui_port', 8767)
+        agent_url = f"ws://localhost:{agent_port}/ws"
         
         try:
             self.agent_connection_status = "connecting"
-            logging.info("[DNNE] Connecting to agent server at localhost:8767...")
+            logging.info(f"[DNNE] Connecting to agent server at localhost:{agent_port}...")
             
             self.agent_ws = await self.client_session.ws_connect(agent_url)
             self.agent_connected = True

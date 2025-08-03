@@ -182,23 +182,29 @@ def check_and_start_agent_server():
         logging.info("DNNE Agent Server startup disabled by --no-agent-server flag")
         return True
         
-    agent_port = 8767
+    # Get ports from dnne_config
+    from dnne_config import DNNEConfig
+    config = DNNEConfig()
+    agent_port = config.get('dnne.agent_server.ui_port', 8767)
+    health_port = config.get('dnne.agent_server.health_port', 8769)
     max_retries = 5
     retry_delay = 1.0
     
     def is_port_open(port):
-        """Check if a port is open on localhost.
+        """Check if agent server is healthy via HTTP endpoint."""
+        import urllib.request
+        import urllib.error
+        import json
         
-        Note: This does a simple TCP connect which will cause the agent server
-        to log WebSocket handshake errors. This is expected and harmless.
-        """
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(1)
         try:
-            result = sock.connect_ex(('localhost', port))
-            sock.close()
-            return result == 0
-        except:
+            response = urllib.request.urlopen(f'http://localhost:{health_port}/health', timeout=1)
+            data = json.loads(response.read().decode('utf-8'))
+            return data.get('status') == 'healthy'
+        except urllib.error.URLError:
+            # Server not ready yet
+            return False
+        except Exception as e:
+            # Any other error means server isn't ready
             return False
     
     # Check if agent server is already running

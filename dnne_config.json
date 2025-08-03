@@ -3,6 +3,7 @@
     "agent_server": {
       "client_port": 8766,
       "ui_port": 8767,
+      "health_port": 8769,
       "test_port": 8768,
       "ping_interval": 30,
       "ping_timeout": 10,
@@ -29,6 +30,7 @@
   },
   "exported": {
     "agent_client": {
+      "telemetry_host": "localhost",
       "telemetry_port": 9999,
       "telemetry_buffer_size": 1000,
       "work_area_base": "/tmp/dnne_work_areas",

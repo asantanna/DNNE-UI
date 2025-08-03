@@ -22,6 +22,7 @@ from collections import defaultdict, deque
 from typing import Dict, Set, Optional, Any
 from pathlib import Path
 import uuid
+from aiohttp import web
 
 # Add parent directory to path to import dnne_config
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -93,6 +94,11 @@ class DNNEAgentServer:
         # Server info
         self.start_time = time.time()
         
+        # HTTP server for health checks
+        self.http_app = web.Application()
+        self.http_app.router.add_get('/health', self.handle_health)
+        self.http_server = None
+        
     async def start(self):
         """Start WebSocket servers"""
         # Get ports from config
@@ -135,6 +141,28 @@ class DNNEAgentServer:
         
         # Start background tasks
         asyncio.create_task(self.telemetry_broadcaster())
+        
+        # Start HTTP health check server on a separate port
+        health_port = self.config.get('dnne.agent_server.health_port', 8769)
+        runner = web.AppRunner(self.http_app)
+        await runner.setup()
+        self.http_server = web.TCPSite(runner, '0.0.0.0', health_port)
+        await self.http_server.start()
+        logger.info(f"HTTP health check available at http://localhost:{health_port}/health")
+    
+    async def handle_health(self, request):
+        """HTTP health check endpoint"""
+        return web.json_response({
+            'status': 'healthy',
+            'uptime': time.time() - self.start_time,
+            'connections': {
+                'ui': len(self.ui_connections),
+                'clients': len(self.clients),
+                'test': len(self.test_connections) if self.enable_test_port else 0
+            },
+            'workflows': len(self.workflows),
+            'server_time': datetime.now().isoformat()
+        })
         
     async def handle_client(self, websocket):
         """Handle client connections (dnne_client)"""
@@ -515,6 +543,7 @@ class DNNEAgentServer:
         logger.info("DNNE Agent Server started successfully")
         logger.info(f"  Client port: {self.config.get('dnne.agent_server.client_port', 8766)}")
         logger.info(f"  UI port: {self.config.get('dnne.agent_server.ui_port', 8767)}")
+        logger.info(f"  Health port: {self.config.get('dnne.agent_server.health_port', 8769)}")
         if self.enable_test_port:
             logger.info(f"  Test port: {self.config.get('dnne.agent_server.test_port', 8768)} (TEST MODE ONLY)")
         

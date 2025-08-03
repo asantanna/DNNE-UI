@@ -181,15 +181,34 @@ def get_telemetry() -> TelemetryClient:
     """
     Get the global telemetry client instance.
     
+    This should only be called if telemetry is enabled for the node.
+    Configuration must be available or this will fail.
+    
     Returns:
         TelemetryClient: The global telemetry client
     """
     global _telemetry_instance
     if _telemetry_instance is None:
-        # Check for environment variable configuration
-        host = os.environ.get('DNNE_TELEMETRY_HOST', 'localhost')
-        port = int(os.environ.get('DNNE_TELEMETRY_PORT', '9999'))
-        # Always create instance, individual nodes check their config
+        # Try to get from dnne_config - this MUST succeed if telemetry is enabled
+        try:
+            from framework.dnne_config import DNNEConfig
+            config = DNNEConfig()
+            # In exported configs, the 'exported' prefix is removed
+            host = config.get('agent_client.telemetry_host')
+            port = config.get('agent_client.telemetry_port')
+            
+            if host is None or port is None:
+                raise RuntimeError(
+                    "Telemetry enabled but configuration missing from exported_config.json. "
+                    "Need 'exported.agent_client.telemetry_host' and 'telemetry_port'."
+                )
+        except ImportError:
+            raise RuntimeError(
+                "Telemetry enabled but dnne_config module not found. "
+                "Cannot initialize telemetry without configuration."
+            )
+        
+        # Create instance with valid configuration
         _telemetry_instance = TelemetryClient(enabled=True, host=host, port=port)
     return _telemetry_instance
 
