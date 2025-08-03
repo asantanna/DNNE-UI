@@ -135,6 +135,66 @@ import comfy.model_management
 import comfyui_version
 import app.logger
 import hook_breaker_ac10a0
+import subprocess
+import socket
+
+def check_and_start_agent_server():
+    """Check if agent server is running and start it if not."""
+    agent_port = 8767
+    max_retries = 5
+    retry_delay = 1.0
+    
+    def is_port_open(port):
+        """Check if a port is open on localhost."""
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        try:
+            result = sock.connect_ex(('localhost', port))
+            sock.close()
+            return result == 0
+        except:
+            return False
+    
+    # Check if agent server is already running
+    if is_port_open(agent_port):
+        logging.info(f"DNNE Agent Server already running on port {agent_port}")
+        return True
+    
+    # Try to start the agent server
+    logging.info("Starting DNNE Agent Server...")
+    agent_script = os.path.join(os.path.dirname(__file__), "dnne-agent", "dnne_agent_server.py")
+    
+    if not os.path.exists(agent_script):
+        logging.error(f"Agent server script not found at: {agent_script}")
+        return False
+    
+    try:
+        # Start the agent server as a detached subprocess
+        if os.name == 'nt':  # Windows
+            subprocess.Popen(
+                [sys.executable, agent_script],
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+            )
+        else:  # Unix/Linux
+            subprocess.Popen(
+                [sys.executable, agent_script],
+                start_new_session=True
+            )
+        
+        # Wait for server to start
+        for i in range(max_retries):
+            time.sleep(retry_delay)
+            if is_port_open(agent_port):
+                logging.info(f"DNNE Agent Server started successfully on port {agent_port}")
+                return True
+            logging.info(f"Waiting for agent server to start... ({i+1}/{max_retries})")
+        
+        logging.error("Agent server failed to start within timeout")
+        return False
+        
+    except Exception as e:
+        logging.error(f"Failed to start agent server: {e}")
+        return False
 
 def cuda_malloc_warning():
     device = comfy.model_management.get_torch_device()
@@ -299,6 +359,9 @@ if __name__ == "__main__":
     # Running directly, just start ComfyUI.
     logging.info("Python version: {}".format(sys.version))
     logging.info("ComfyUI version: {}".format(comfyui_version.__version__))
+    
+    # Start the agent server before starting ComfyUI
+    check_and_start_agent_server()
 
     event_loop, _, start_all_func = start_comfyui()
     try:

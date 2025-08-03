@@ -192,6 +192,13 @@ class PromptServer():
         self.client_id = None
 
         self.on_prompt_handlers = []
+        
+        # Agent server connection
+        self.agent_ws = None
+        self.agent_connected = False
+        self.agent_clients = {}  # Cache of connected clients
+        self.agent_connection_status = "disconnected"
+        self.agent_reconnect_task = None
 
         @routes.get('/ws')
         async def websocket_handler(request):
@@ -635,6 +642,29 @@ class PromptServer():
             queue_info['queue_pending'] = current_queue[1]
             return web.json_response(queue_info)
         
+        @routes.get("/api/agent/clients")
+        async def get_agent_clients(request):
+            """Return list of connected agent clients."""
+            clients = [
+                {"id": "local", "type": "local", "display": "Local"}
+            ]
+            
+            # Add connected remote clients
+            for client_id, info in self.agent_clients.items():
+                clients.append({
+                    "id": client_id,
+                    "type": "remote",
+                    "display": info.get("hostname", "Unknown"),
+                    "hostname": info.get("hostname"),
+                    "platform": info.get("platform"),
+                    "connected_at": info.get("connected_at")
+                })
+            
+            return web.json_response({
+                "clients": clients,
+                "connection_status": self.agent_connection_status
+            })
+        
         @routes.post("/prompt")
         async def post_prompt(request):
             logging.info("got prompt - exporting workflow")
@@ -653,6 +683,10 @@ class PromptServer():
 
             if "prompt" in json_data:
                 prompt = json_data["prompt"]
+                export_target = json_data.get("export_target", "local")
+                run_after_export = json_data.get("run_after_export", False)
+                
+                logging.info(f"Export target: {export_target}, Run after export: {run_after_export}")
                 
                 # EXPORT WORKFLOW INSTEAD OF EXECUTE
                 try:
@@ -737,7 +771,53 @@ class PromptServer():
                     
                     logging.info(f"Export saved to: {workflow_export_dir}")
                     
-                    # Return success with file location
+                    # Handle remote export if target is not local
+                    if export_target != "local" and self.agent_connected:
+                        try:
+                            logging.info(f"Deploying to remote client: {export_target}")
+                            
+                            # Read all exported files
+                            files_to_deploy = {}
+                            for root, dirs, files in os.walk(workflow_export_dir):
+                                for file in files:
+                                    file_path = os.path.join(root, file)
+                                    relative_path = os.path.relpath(file_path, workflow_export_dir)
+                                    with open(file_path, 'rb') as f:
+                                        files_to_deploy[relative_path] = f.read().decode('utf-8')
+                            
+                            # Send deploy command to agent server
+                            deploy_msg = {
+                                "type": "deploy_workflow",
+                                "workflow_id": str(number),
+                                "workflow_name": safe_name,
+                                "client_id": export_target,
+                                "files": files_to_deploy,
+                                "run_after_deploy": run_after_export
+                            }
+                            
+                            await self.agent_ws.send_json(deploy_msg)
+                            logging.info(f"Deployment request sent to agent server")
+                            
+                            return web.json_response({
+                                "success": True,
+                                "export_path": workflow_export_dir,
+                                "files": ["runner.py"],
+                                "message": f"Workflow exported locally and deploying to {export_target}",
+                                "remote_deployment": "initiated"
+                            })
+                            
+                        except Exception as e:
+                            logging.error(f"Remote deployment failed: {e}")
+                            # Still return success for local export
+                            return web.json_response({
+                                "success": True,
+                                "export_path": workflow_export_dir,
+                                "files": ["runner.py"],
+                                "message": f"Workflow exported locally. Remote deployment failed: {str(e)}",
+                                "remote_deployment": "failed"
+                            })
+                    
+                    # Return success for local export
                     return web.json_response({
                         "success": True,
                         "export_path": workflow_export_dir,
@@ -856,9 +936,131 @@ class PromptServer():
                 logging.error(traceback.format_exc())
                 return web.json_response({"error": str(e)}, status=500)
 
+    async def connect_to_agent_server(self):
+        """Connect to the DNNE agent server as a UI client."""
+        agent_url = "ws://localhost:8767/ws"
+        
+        try:
+            self.agent_connection_status = "connecting"
+            logging.info("[DNNE] Connecting to agent server at localhost:8767...")
+            
+            self.agent_ws = await self.client_session.ws_connect(agent_url)
+            self.agent_connected = True
+            self.agent_connection_status = "connected"
+            logging.info("[DNNE] Connected to agent server")
+            
+            # Start listening for messages
+            asyncio.create_task(self.agent_message_loop())
+            
+        except Exception as e:
+            logging.error(f"[DNNE] Failed to connect to agent server: {e}")
+            self.agent_connected = False
+            self.agent_connection_status = "error"
+            # Schedule reconnection
+            if self.agent_reconnect_task is None or self.agent_reconnect_task.done():
+                self.agent_reconnect_task = asyncio.create_task(self.agent_reconnect_loop())
+    
+    async def agent_reconnect_loop(self):
+        """Attempt to reconnect to the agent server periodically."""
+        reconnect_delay = 5.0  # seconds
+        
+        while not self.agent_connected:
+            await asyncio.sleep(reconnect_delay)
+            await self.connect_to_agent_server()
+    
+    async def agent_message_loop(self):
+        """Process messages from the agent server."""
+        try:
+            async for msg in self.agent_ws:
+                if msg.type == aiohttp.WSMsgType.TEXT:
+                    data = json.loads(msg.data)
+                    await self.handle_agent_message(data)
+                elif msg.type == aiohttp.WSMsgType.ERROR:
+                    logging.error(f'[DNNE] Agent ws error: {self.agent_ws.exception()}')
+                    break
+        except Exception as e:
+            logging.error(f"[DNNE] Agent message loop error: {e}")
+        finally:
+            self.agent_connected = False
+            self.agent_connection_status = "disconnected"
+            # Schedule reconnection
+            if self.agent_reconnect_task is None or self.agent_reconnect_task.done():
+                self.agent_reconnect_task = asyncio.create_task(self.agent_reconnect_loop())
+    
+    async def handle_agent_message(self, message):
+        """Handle messages from the agent server."""
+        msg_type = message.get("type")
+        
+        if msg_type == "server_state":
+            # Initial state from agent server
+            clients = message.get("clients", {})
+            self.agent_clients = {}
+            for client_id, info in clients.items():
+                if info.get("connected"):
+                    self.agent_clients[client_id] = {
+                        "id": client_id,
+                        "hostname": info.get("hostname"),
+                        "platform": info.get("platform"),
+                        "connected_at": info.get("connected_at")
+                    }
+            logging.info(f"[DNNE] Received agent state: {len(self.agent_clients)} clients connected")
+            
+        elif msg_type == "client_connected":
+            # New client connected
+            client_id = message.get("client_id")
+            info = message.get("info", {})
+            self.agent_clients[client_id] = {
+                "id": client_id,
+                "hostname": info.get("hostname"),
+                "platform": info.get("platform"),
+                "connected_at": info.get("connected_at")
+            }
+            logging.info(f"[DNNE] Agent client connected: {info.get('hostname')}")
+            # Forward to UI clients
+            self.send_sync("agent_update", {
+                "action": "client_connected",
+                "client": self.agent_clients[client_id]
+            })
+            
+        elif msg_type == "client_disconnected":
+            # Client disconnected
+            client_id = message.get("client_id")
+            if client_id in self.agent_clients:
+                hostname = self.agent_clients[client_id].get("hostname")
+                del self.agent_clients[client_id]
+                logging.info(f"[DNNE] Agent client disconnected: {hostname}")
+                # Forward to UI clients
+                self.send_sync("agent_update", {
+                    "action": "client_disconnected",
+                    "client_id": client_id
+                })
+        
+        elif msg_type == "workflow_deployed":
+            # Workflow deployed to client
+            logging.info(f"[DNNE] Workflow deployed to {message.get('client_id')}")
+            self.send_sync("agent_update", {
+                "action": "workflow_deployed",
+                "workflow_id": message.get("workflow_id"),
+                "client_id": message.get("client_id")
+            })
+            
+        elif msg_type == "workflow_status":
+            # Workflow status update
+            status = message.get("status")
+            logging.info(f"[DNNE] Workflow status: {status}")
+            self.send_sync("agent_update", {
+                "action": "workflow_status",
+                "workflow_id": message.get("workflow_id"),
+                "client_id": message.get("client_id"),
+                "status": status
+            })
+    
     async def setup(self):
         timeout = aiohttp.ClientTimeout(total=None) # no timeout
         self.client_session = aiohttp.ClientSession(timeout=timeout)
+        
+        # Connect to agent server
+        await self.connect_to_agent_server()
 
     def add_routes(self):
         self.user_manager.add_routes(self.routes)
