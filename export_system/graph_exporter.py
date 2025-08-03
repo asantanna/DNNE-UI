@@ -968,6 +968,11 @@ class PlaceholderNode_{node_id}(QueueNode):
         (framework_dir / "override_parser.py").write_text(override_parser_content, encoding='utf-8')
         self.logger.info("Exported override_parser.py for runtime parameter overrides")
         
+        # Export telemetry.py (required by balancing node and others)
+        telemetry_content = self._load_template("framework/telemetry.py")
+        (framework_dir / "telemetry.py").write_text(telemetry_content, encoding='utf-8')
+        self.logger.info("Exported telemetry.py for telemetry support")
+        
         # Copy dnne_config.py and dnne_config.json from root
         import shutil
         dnne_root = Path(__file__).parent.parent

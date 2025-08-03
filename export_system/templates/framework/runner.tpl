@@ -169,6 +169,8 @@ async def main():
                        help='Use fixed random seed for deterministic execution')
     parser.add_argument('--override', type=str, default=None,
                        help='Override specific node configuration values (e.g., --override 56:checkpoint_enabled=True,56:checkpoint_trigger_type=end)')
+    parser.add_argument('--enable-telemetry', type=str, nargs='?', const='all', default=None,
+                       help='Enable telemetry reporting. Optional: comma-separated node IDs or "all" (e.g., --enable-telemetry 10,11 or --enable-telemetry)')
     args = parser.parse_args()
     
     # Convert node-specific arguments that should be integers when no ':' present
@@ -360,6 +362,21 @@ async def main():
             if node_id not in node_configs:
                 node_configs[node_id] = {{}}
             node_configs[node_id].update(config)
+    
+    # Process telemetry enablement using same mechanism
+    if args.enable_telemetry:
+        if args.enable_telemetry == 'all':
+            # Enable telemetry for all nodes
+            for node_id in workflow_nodes.keys():
+                node_configs.setdefault(node_id, {{}})['telemetry_enabled'] = True
+        else:
+            # Enable for specific nodes
+            for node_id in args.enable_telemetry.split(','):
+                node_id = node_id.strip()
+                if node_id in workflow_nodes:
+                    node_configs.setdefault(node_id, {{}})['telemetry_enabled'] = True
+                else:
+                    print(f"⚠️  Warning: Unknown node ID '{{node_id}}' in --enable-telemetry")
     
     # Apply node-specific configuration BEFORE creating nodes
     for node_id, config in node_configs.items():

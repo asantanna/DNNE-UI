@@ -296,7 +296,9 @@ class DNNEAgentClient:
                 
                 # Write files
                 for file_path, content in files.items():
-                    full_path = workspace / file_path
+                    # Convert Windows paths to Posix paths
+                    normalized_path = file_path.replace('\\', '/')
+                    full_path = workspace / normalized_path
                     full_path.parent.mkdir(parents=True, exist_ok=True)
                     full_path.write_text(content)
                     

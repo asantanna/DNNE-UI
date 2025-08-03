@@ -19,7 +19,7 @@ class TelemetryClient:
     Designed for minimal overhead and zero blocking on the sending node.
     """
     
-    def __init__(self, enabled: bool = True, host: str = "localhost", port: int = 9999):
+    def __init__(self, enabled: bool = False, host: str = "localhost", port: int = 9999):
         """
         Initialize telemetry client.
         
@@ -189,7 +189,8 @@ def get_telemetry() -> TelemetryClient:
         # Check for environment variable configuration
         host = os.environ.get('DNNE_TELEMETRY_HOST', 'localhost')
         port = int(os.environ.get('DNNE_TELEMETRY_PORT', '9999'))
-        _telemetry_instance = TelemetryClient(host=host, port=port)
+        # Always create instance, individual nodes check their config
+        _telemetry_instance = TelemetryClient(enabled=True, host=host, port=port)
     return _telemetry_instance
 
 

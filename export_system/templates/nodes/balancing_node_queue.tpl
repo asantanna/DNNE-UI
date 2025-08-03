@@ -139,16 +139,19 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if len(self.latency_window) > 0:
             self.average_latency = sum(self.latency_window) / len(self.latency_window)
         
-        # Report telemetry metrics
-        telemetry.report_throughput(self.node_id, self.current_frequency)
-        telemetry.report_latency(self.node_id, self.current_latency)
+        # Report telemetry metrics if enabled via --override
+        if Global.get_node_config(self.node_id, 'telemetry_enabled', False):
+            telemetry.report_throughput(self.node_id, self.current_frequency)
+            telemetry.report_latency(self.node_id, self.current_latency)
         
-        # Report queue depths periodically
-        if self.execution_count % 10 == 0:
+        # Report queue depths periodically if telemetry enabled
+        if Global.get_node_config(self.node_id, 'telemetry_enabled', False) and self.execution_count % 10 == 0:
             for name, queue in self.input_queues.items():
                 telemetry.report_queue_depth(self.node_id, f"input_{name}", queue.qsize())
-            for name, queue in self.output_queues.items():
-                telemetry.report_queue_depth(self.node_id, f"output_{name}", queue.qsize())
+            # Note: output_subscribers contains lists of subscriber queues, not direct queues
+            # So we report the number of subscribers per output instead
+            for name, subscribers in self.output_subscribers.items():
+                telemetry.report_queue_depth(self.node_id, f"output_{name}_subscribers", len(subscribers))
         
         # Use unified yield API with item reference
         # TODO: The subgraph name should be determined from workflow connections
@@ -168,14 +171,16 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Check violations
         violations = self._check_violations()
         
-        # Report violations via telemetry
+        # Report violations via telemetry if enabled
+        if Global.get_node_config(self.node_id, 'telemetry_enabled', False):
+            for v in violations:
+                telemetry.report_violation(
+                    self.node_id, v["type"], 
+                    v["expected"], v["actual"], v["guaranteed"]
+                )
+        
+        # Always record violations in metrics logger for persistence
         for v in violations:
-            telemetry.report_violation(
-                self.node_id, v["type"], 
-                v["expected"], v["actual"], v["guaranteed"]
-            )
-            
-            # Also record in metrics logger for persistence
             logger.record_violation(
                 self.node_id, f"BalancingNode_{self.node_id}",
                 v["type"], v["expected"], v["actual"], v["guaranteed"]

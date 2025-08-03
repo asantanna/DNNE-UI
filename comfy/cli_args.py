@@ -158,6 +158,12 @@ parser.add_argument("--multi-user", action="store_true", help="Enables per-user 
 parser.add_argument("--verbose", default='INFO', const='DEBUG', nargs="?", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Set the logging level')
 parser.add_argument("--log-stdout", action="store_true", help="Send normal process output to stdout instead of stderr (default).")
 
+# DNNE Agent Server arguments
+parser.add_argument("--agent-server-terminal", action="store_true", help="Start DNNE Agent Server in a new terminal window for debugging.")
+parser.add_argument("--no-agent-server", action="store_true", help="Don't start the DNNE Agent Server automatically.")
+parser.add_argument("--stop-agent-server", action="store_true", help="Stop any running DNNE Agent Server before starting.")
+parser.add_argument("--restart-agent-server", action="store_true", help="Stop and restart the DNNE Agent Server.")
+
 # The default built-in provider hosted under web/
 DEFAULT_VERSION_STRING = "comfyanonymous/ComfyUI@latest"
 

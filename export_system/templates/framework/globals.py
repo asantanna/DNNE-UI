@@ -200,6 +200,10 @@ class Global:
     # === Node-specific Configuration ===
     node_configs: Dict[str, Dict[str, Any]] = {}  # node_id -> {config_key: value}
     
+    # === Telemetry Configuration ===
+    telemetry_enabled_nodes: set = set()  # Set of node IDs with telemetry enabled
+    telemetry_enabled_subsystems: set = set()  # Set of subsystems with telemetry enabled
+    
     @classmethod
     def initialize(cls, **kwargs):
         """

@@ -137,15 +137,61 @@ import app.logger
 import hook_breaker_ac10a0
 import subprocess
 import socket
+import psutil
+
+def stop_agent_server():
+    """Stop any running DNNE Agent Server processes."""
+    agent_port = 8767
+    killed_count = 0
+    
+    # Find and kill processes listening on agent ports
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        try:
+            # Check if it's a Python process running our agent server
+            if proc.info['cmdline'] and any('dnne_agent_server.py' in arg for arg in proc.info['cmdline']):
+                logging.info(f"Stopping DNNE Agent Server (PID: {proc.info['pid']})")
+                proc.terminate()
+                try:
+                    proc.wait(timeout=5)
+                except psutil.TimeoutExpired:
+                    proc.kill()
+                killed_count += 1
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    
+    if killed_count > 0:
+        logging.info(f"Stopped {killed_count} DNNE Agent Server process(es)")
+        # Wait a bit for ports to be released
+        time.sleep(1)
+    else:
+        logging.info("No running DNNE Agent Server found")
+    
+    return killed_count > 0
 
 def check_and_start_agent_server():
     """Check if agent server is running and start it if not."""
+    # Handle stop/restart options first
+    if args.stop_agent_server or args.restart_agent_server:
+        stop_agent_server()
+        if args.stop_agent_server and not args.restart_agent_server:
+            # Just stop, don't start
+            return True
+    
+    # Skip if disabled
+    if args.no_agent_server:
+        logging.info("DNNE Agent Server startup disabled by --no-agent-server flag")
+        return True
+        
     agent_port = 8767
     max_retries = 5
     retry_delay = 1.0
     
     def is_port_open(port):
-        """Check if a port is open on localhost."""
+        """Check if a port is open on localhost.
+        
+        Note: This does a simple TCP connect which will cause the agent server
+        to log WebSocket handshake errors. This is expected and harmless.
+        """
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(1)
         try:
@@ -169,16 +215,19 @@ def check_and_start_agent_server():
         return False
     
     try:
-        # Start the agent server as a detached subprocess
-        if os.name == 'nt':  # Windows
+        # Start the agent server (Windows only)
+        if args.agent_server_terminal:
+            # Start in a new terminal window
+            subprocess.Popen(
+                ['start', 'cmd', '/k', sys.executable, agent_script],
+                shell=True
+            )
+            logging.info("Starting DNNE Agent Server in new terminal window...")
+        else:
+            # Start as a detached subprocess (original behavior)
             subprocess.Popen(
                 [sys.executable, agent_script],
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
-            )
-        else:  # Unix/Linux
-            subprocess.Popen(
-                [sys.executable, agent_script],
-                start_new_session=True
             )
         
         # Wait for server to start
