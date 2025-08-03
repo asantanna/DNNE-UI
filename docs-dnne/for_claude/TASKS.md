@@ -40,11 +40,11 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [x] Import and include AgentStatusBar component
 - [x] Adjust layout to accommodate status bar
 
-### 1.5 Modify Export Request ⚡ NEXT
-**File**: `/DNNE-UI-Frontend/src/scripts/app.ts`
-- [ ] Update `queuePrompt` to include `export_target` field
-- [ ] Pass selected target from dropdown
-- [ ] Include `run_after_export` flag (future checkbox)
+### 1.5 Modify Export Request ✅
+**File**: `/DNNE-UI-Frontend/src/scripts/api.ts`
+- [x] Add `export_target` field to QueuePromptRequestBody interface
+- [x] Include `export_target` from workspaceStore in request body
+- [x] Add `run_after_export` field to interface (for future use)
 
 ## Phase 2: Backend Integration
 

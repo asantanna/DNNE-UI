@@ -238,18 +238,19 @@ This document describes the integration between DNNE UI, DNNE Server, and the DN
   ]
 }
 ```
+**Note**: "local" is a special reserved export_target that means export to DNNE server's filesystem
 4. **UI populates** export dropdown
 
 ### Scenario 3: Export Workflow (Unified)
 1. **User selects** target from dropdown (e.g., "Local" or "wsl-machine")
-2. **User optionally checks** "Run after export" checkbox (disabled for local)
+2. **User optionally checks** "Run after export" checkbox (future feature)
 3. **User clicks** Export button
-4. **UI sends** to DNNE:
+4. **UI sends** to DNNE (same format for both local and remote):
 ```json
 {
   "prompt": {...workflow data...},
-  "export_target": "client_abc123",  // or "local" for local export
-  "run_after_export": true
+  "export_target": "local",  // or "client_abc123" for remote
+  "run_after_export": false  // true for remote with run option
 }
 ```
 5. **DNNE exports** to local filesystem
