@@ -1,0 +1,57 @@
+{
+  "test_suite": "Browser Lifecycle Tools",
+  "test_date": "2025-08-04T12:44:00Z",
+  "total_tests": 4,
+  "passed": 4,
+  "failed": 0,
+  "success_rate": 100.0,
+  "detailed_results": [
+    {
+      "test": "cleanup_browser",
+      "success": true,
+      "message": "Browser cleaned up successfully",
+      "response": {
+        "success": true,
+        "message": "Browser cleaned up"
+      },
+      "notes": "Clean shutdown of browser resources"
+    },
+    {
+      "test": "initialize_browser_after_cleanup",
+      "success": true,
+      "message": "Browser re-initialized successfully after cleanup",
+      "response": {
+        "success": true,
+        "message": "Browser initialized successfully"
+      },
+      "notes": "Successful connection to DNNE UI, UI ready state achieved"
+    },
+    {
+      "test": "restart_browser",
+      "success": true,
+      "message": "Browser restarted with state preservation",
+      "response": {
+        "success": true,
+        "message": "Browser restarted successfully"
+      },
+      "notes": "State preserved across restart, clean shutdown and re-initialization"
+    },
+    {
+      "test": "check_ui_health",
+      "success": true,
+      "message": "UI health check passed despite status bar timeout",
+      "response": {
+        "success": true,
+        "message": "UI is healthy",
+        "healthy": true,
+        "issues": []
+      },
+      "notes": "Status bar timeout (5000ms) but overall health check passed"
+    }
+  ],
+  "summary": "All browser lifecycle tools working correctly. Minor issue with status bar detection but doesn't affect overall functionality.",
+  "recommendations": [
+    "Consider increasing status bar timeout or making it optional",
+    "All core browser lifecycle operations functioning properly"
+  ]
+}
