@@ -293,6 +293,104 @@ class DNNEUIMCPServer:
             name="check_ui_health",
             description="Check if the DNNE UI is healthy and responsive"
         )
+        
+        # Additional workflow tools
+        async def save_workflow(name: Optional[str] = None) -> Dict[str, Any]:
+            """
+            Save the current workflow
+            
+            Args:
+                name: Optional name for save-as operation
+            """
+            try:
+                if not self.browser_controller:
+                    return format_mcp_response(False, error="Browser not initialized")
+                
+                try:
+                    from .tools.workflow_tools import WorkflowTools
+                except ImportError:
+                    from tools.workflow_tools import WorkflowTools
+                tools = WorkflowTools(self.browser_controller, self.state)
+                return await tools.save_workflow(name)
+                
+            except Exception as e:
+                logger.error(f"Failed to save workflow: {e}")
+                return format_mcp_response(False, error=str(e))
+        
+        self.server.add_tool(
+            save_workflow,
+            name="save_workflow",
+            description="Save the current workflow (optionally with a new name)"
+        )
+        
+        async def new_blank_workflow() -> Dict[str, Any]:
+            """Create a new blank workflow"""
+            try:
+                if not self.browser_controller:
+                    return format_mcp_response(False, error="Browser not initialized")
+                
+                try:
+                    from .tools.workflow_tools import WorkflowTools
+                except ImportError:
+                    from tools.workflow_tools import WorkflowTools
+                tools = WorkflowTools(self.browser_controller, self.state)
+                return await tools.new_blank_workflow()
+                
+            except Exception as e:
+                logger.error(f"Failed to create new workflow: {e}")
+                return format_mcp_response(False, error=str(e))
+        
+        self.server.add_tool(
+            new_blank_workflow,
+            name="new_blank_workflow",
+            description="Create a new blank workflow"
+        )
+        
+        async def clear_workflow() -> Dict[str, Any]:
+            """Clear the current workflow"""
+            try:
+                if not self.browser_controller:
+                    return format_mcp_response(False, error="Browser not initialized")
+                
+                try:
+                    from .tools.workflow_tools import WorkflowTools
+                except ImportError:
+                    from tools.workflow_tools import WorkflowTools
+                tools = WorkflowTools(self.browser_controller, self.state)
+                return await tools.clear_workflow()
+                
+            except Exception as e:
+                logger.error(f"Failed to clear workflow: {e}")
+                return format_mcp_response(False, error=str(e))
+        
+        self.server.add_tool(
+            clear_workflow,
+            name="clear_workflow",
+            description="Clear the current workflow"
+        )
+        
+        async def get_workflow_list() -> Dict[str, Any]:
+            """Get list of available workflows"""
+            try:
+                if not self.browser_controller:
+                    return format_mcp_response(False, error="Browser not initialized")
+                
+                try:
+                    from .tools.workflow_tools import WorkflowTools
+                except ImportError:
+                    from tools.workflow_tools import WorkflowTools
+                tools = WorkflowTools(self.browser_controller, self.state)
+                return await tools.get_workflow_list()
+                
+            except Exception as e:
+                logger.error(f"Failed to get workflow list: {e}")
+                return format_mcp_response(False, error=str(e))
+        
+        self.server.add_tool(
+            get_workflow_list,
+            name="get_workflow_list",
+            description="Get list of available workflows"
+        )
     
     async def run(self):
         """Run the MCP server"""
