@@ -23,8 +23,7 @@ class StateManager:
             "last_error": None,
             # Temporary session state only - will be queried from browser
             "current_workflow": None,
-            "selected_client": None,
-            "export_target": "Local"
+            "selected_client": "Local"
         }
     
     def update(self, key: str, value: Any) -> None:

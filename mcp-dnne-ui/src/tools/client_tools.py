@@ -115,12 +115,13 @@ class ClientTools:
             logger.error(f"Failed to get connected clients: {e}")
             return format_mcp_response(False, error=str(e))
     
-    async def select_client(self, name: str) -> Dict[str, Any]:
+    async def select_client(self, name: str, location: str = "taskbar") -> Dict[str, Any]:
         """
-        Select a specific client from the dropdown
+        Select a specific client from the specified location
         
         Args:
-            name: Name of the client to select
+            name: Client name to select (e.g., "Local", "Tardigrade", "Agent 1", "All Clients")
+            location: Where to select from - "taskbar" or "log_window" (default: "taskbar")
         
         Returns:
             MCP response with success status
@@ -129,10 +130,21 @@ class ClientTools:
             if not self.browser:
                 return format_mcp_response(False, error="Browser not initialized")
             
-            logger.info(f"Selecting client: {name}")
+            logger.info(f"Selecting client: {name} from {location}")
             
-            # Find and click client dropdown
-            client_selector = ".client-dropdown, select[name*='client'], .client-selector"
+            # Determine selector based on location
+            if location == "taskbar":
+                # Client dropdown in taskbar (was export-target-dropdown)
+                client_selector = ".export-target-dropdown, .client-dropdown"
+            elif location == "log_window":
+                # Client selector in log window
+                client_selector = ".log-client-dropdown, .client-select"
+            else:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid location: {location}. Use 'taskbar' or 'log_window'"
+                )
+            
             dropdown_exists = await self.browser.is_visible(client_selector)
             
             if not dropdown_exists:
@@ -160,11 +172,16 @@ class ClientTools:
             """)
             
             if success:
+                # Update state with selected client
                 self.state["selected_client"] = name
+                
                 return format_mcp_response(
                     True,
-                    data={"selected": name},
-                    message=f"Selected client: {name}"
+                    data={
+                        "selected": name,
+                        "location": location
+                    },
+                    message=f"Selected client '{name}' from {location}"
                 )
             else:
                 # Close dropdown if selection failed

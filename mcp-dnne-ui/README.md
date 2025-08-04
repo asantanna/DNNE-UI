@@ -87,8 +87,8 @@ Add to your Claude Desktop MCP configuration:
 
 #### Export Operations
 - `export_workflow(run_after)` - Export the current workflow
-- `set_export_target(target)` - Set export destination
 - `get_export_status()` - Check export progress
+- Use `select_client(name, "taskbar")` to set export destination
 
 #### Client Management
 - `get_connected_clients()` - List all connected clients
@@ -104,7 +104,9 @@ Add to your Claude Desktop MCP configuration:
 
 #### UI Navigation
 - `open_sidebar_tab(tab)` - Open workflows or nodes sidebar
-- `open_menu(path)` - Navigate menu items
+- `click_menu_header(name)` - Toggle menu open/closed (e.g., "Workflow", "Edit")
+- `click_menu_item(path)` - Click menu item (e.g., "Workflow/Save As", "Edit/Undo")
+- `open_menu(path)` - Navigate menu items (legacy, use click_menu_item)
 - `dismiss_dialog()` - Close any open dialog
 - `get_error_message()` - Get current error message
 

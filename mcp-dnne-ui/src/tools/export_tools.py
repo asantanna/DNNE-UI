@@ -29,55 +29,6 @@ class ExportTools:
         self.browser = browser_controller
         self.state = state
     
-    async def set_export_target(self, target: str) -> Dict[str, Any]:
-        """
-        Set the export target (Local, Remote, etc.)
-        
-        Args:
-            target: Export target to select
-        
-        Returns:
-            MCP response with success status
-        """
-        try:
-            if not self.browser:
-                return format_mcp_response(False, error="Browser not initialized")
-            
-            logger.info(f"Setting export target to: {target}")
-            
-            # Click on the export target dropdown
-            dropdown_visible = await self.browser.is_visible(EXPORT_TARGET_DROPDOWN)
-            
-            if dropdown_visible:
-                await self.browser.click(EXPORT_TARGET_DROPDOWN)
-                await asyncio.sleep(0.5)
-                
-                # Select the target option
-                option_selector = f".p-dropdown-item:has-text('{target}')"
-                success = await self.browser.click(option_selector)
-                
-                if success:
-                    self.state["export_target"] = target
-                    return format_mcp_response(
-                        True,
-                        data={"target": target},
-                        message=f"Export target set to: {target}"
-                    )
-                else:
-                    return format_mcp_response(
-                        False,
-                        error=f"Failed to select target: {target}"
-                    )
-            else:
-                return format_mcp_response(
-                    False,
-                    error="Export target dropdown not visible"
-                )
-                
-        except Exception as e:
-            logger.error(f"Failed to set export target: {e}")
-            return format_mcp_response(False, error=str(e))
-    
     async def get_export_status(self) -> Dict[str, Any]:
         """
         Check the current export status

@@ -371,3 +371,181 @@ class UITools:
         except Exception as e:
             logger.error(f"Failed while waiting for UI: {e}")
             return format_mcp_response(False, error=str(e))
+    
+    async def click_menu_header(self, menu_name: str) -> Dict[str, Any]:
+        """
+        Click a menu header to open/close the menu
+        
+        Args:
+            menu_name: Name of menu (e.g., "Workflow", "Edit", "DNNE")
+        
+        Returns:
+            MCP response with menu state
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info(f"Clicking menu header: {menu_name}")
+            
+            # Map menu names to indices
+            menu_indices = {
+                "workflow": 1,
+                "edit": 2,
+                "dnne": 3,
+                "help": 4
+            }
+            
+            menu_index = menu_indices.get(menu_name.lower())
+            if not menu_index:
+                return format_mcp_response(
+                    False,
+                    error=f"Unknown menu: {menu_name}"
+                )
+            
+            # Get menu selector
+            menu_selector = f"{get_menu_item_selector(menu_index)} .p-menubar-item-label"
+            
+            # Check if submenu is currently visible
+            was_open = await self.browser.is_visible(MENU_SUBMENU)
+            
+            # Click menu header
+            success = await self.browser.click(menu_selector)
+            
+            if success:
+                # Wait a bit for animation
+                await asyncio.sleep(0.3)
+                
+                # Check new state
+                is_open = await self.browser.is_visible(MENU_SUBMENU)
+                
+                return format_mcp_response(
+                    True,
+                    data={
+                        "menu": menu_name,
+                        "was_open": was_open,
+                        "is_open": is_open,
+                        "toggled": was_open != is_open
+                    },
+                    message=f"Menu '{menu_name}' is now {'open' if is_open else 'closed'}"
+                )
+            else:
+                return format_mcp_response(
+                    False,
+                    error=f"Failed to click menu header: {menu_name}"
+                )
+                
+        except Exception as e:
+            logger.error(f"Failed to click menu header: {e}")
+            return format_mcp_response(False, error=str(e))
+    
+    async def click_menu_item(self, path: str) -> Dict[str, Any]:
+        """
+        Click a menu item by path (e.g., 'Workflow/Save As')
+        
+        This function properly handles menu state - checks if submenu is
+        already visible before clicking menu header.
+        
+        Args:
+            path: Menu path like "Workflow/Save As" or "Edit/Undo"
+        
+        Returns:
+            MCP response with success status
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info(f"Clicking menu item: {path}")
+            
+            # Parse the menu path
+            menu_parts, final_item = parse_menu_path(path)
+            
+            if not menu_parts:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid menu path: {path}"
+                )
+            
+            # Map menu names to indices
+            menu_indices = {
+                "workflow": 1,
+                "edit": 2,
+                "dnne": 3,
+                "help": 4
+            }
+            
+            # Get the top menu index
+            top_menu = menu_parts[0].lower()
+            if top_menu not in menu_indices:
+                return format_mcp_response(
+                    False,
+                    error=f"Unknown menu: {menu_parts[0]}"
+                )
+            
+            menu_index = menu_indices[top_menu]
+            
+            # Check if submenu is already visible
+            submenu_visible = await self.browser.is_visible(MENU_SUBMENU)
+            
+            if not submenu_visible:
+                # Open menu first
+                menu_selector = get_menu_item_selector(menu_index)
+                await self.browser.click(f"{menu_selector} .p-menubar-item-label")
+                await asyncio.sleep(0.5)
+            
+            # Map common menu items to their indices
+            menu_item_indices = {
+                # Workflow menu
+                "new": 1, "new blank workflow": 1,
+                "open": 2, "open workflow": 2,
+                "browse templates": 3,
+                "save": 4, "save workflow": 4,
+                "save as": 5, "save workflow as": 5,
+                "export": 6, "export workflow": 6,
+                "export api": 7, "export (api)": 7,
+                # Edit menu
+                "undo": 1,
+                "redo": 2,
+                "clear": 3, "clear workflow": 3,
+                "refresh": 4, "refresh node definitions": 4,
+                "clipspace": 5, "open clipspace": 5
+            }
+            
+            # Try to find item by index first
+            item_index = menu_item_indices.get(final_item.lower())
+            
+            if item_index:
+                # Click by index
+                item_selector = get_submenu_item_selector(item_index)
+                success = await self.browser.click(item_selector)
+            else:
+                # Fall back to text search
+                success = await self.browser.evaluate(f"""
+                    () => {{
+                        const items = document.querySelectorAll('.p-menubar-submenu .p-menubar-item-label');
+                        for (let item of items) {{
+                            if (item.textContent?.trim().toLowerCase() === '{final_item.lower()}') {{
+                                item.click();
+                                return true;
+                            }}
+                        }}
+                        return false;
+                    }}
+                """)
+            
+            if success:
+                return format_mcp_response(
+                    True,
+                    data={"path": path},
+                    message=f"Clicked menu item: {path}"
+                )
+            else:
+                return format_mcp_response(
+                    False,
+                    error=f"Menu item not found: {final_item}"
+                )
+                
+        except Exception as e:
+            logger.error(f"Failed to click menu item: {e}")
+            return format_mcp_response(False, error=str(e))

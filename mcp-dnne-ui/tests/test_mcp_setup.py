@@ -9,7 +9,7 @@ import json
 import asyncio
 
 # Add src directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 async def test_mcp_server():
     """Test that the MCP server can be imported and initialized"""

@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from dnne_ui_mcp_server import DNNE_UI_MCPServer
 from browser_controller import BrowserController

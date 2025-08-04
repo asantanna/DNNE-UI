@@ -567,10 +567,10 @@ class BrowserController:
         Get agent and client status from status bar
         
         Returns:
-            Dict with agent_connected, client_count, export_target
+            Dict with agent_connected, client_count, selected_client
         """
         if not self.page:
-            return {"agent_connected": False, "client_count": 0, "export_target": "Local"}
+            return {"agent_connected": False, "client_count": 0, "selected_client": "Local"}
         
         try:
             status = await self.page.evaluate("""
@@ -580,7 +580,7 @@ class BrowserController:
                         return {
                             agent_connected: false,
                             client_count: 0,
-                            export_target: 'Local',
+                            selected_client: 'Local',
                             debug: 'No status bar found'
                         };
                     }
@@ -594,15 +594,15 @@ class BrowserController:
                     const clientMatch = statusText.match(/Clients:\\s*(\\d+)/);
                     const clientCount = clientMatch ? parseInt(clientMatch[1]) : 0;
                     
-                    // Get export target from dropdown
-                    const targetDropdown = document.querySelector('.export-target-dropdown');
-                    const exportTarget = targetDropdown ? 
-                        (targetDropdown.value || targetDropdown.textContent || 'Local') : 'Local';
+                    // Get selected client from dropdown
+                    const clientDropdown = document.querySelector('.export-target-dropdown, .client-dropdown');
+                    const selectedClient = clientDropdown ? 
+                        (clientDropdown.value || clientDropdown.textContent || 'Local') : 'Local';
                     
                     return {
                         agent_connected: agentConnected,
                         client_count: clientCount,
-                        export_target: exportTarget,
+                        selected_client: selectedClient,
                         debug_status_text: statusText  // Add debug info
                     };
                 }
@@ -610,7 +610,7 @@ class BrowserController:
             return status
         except Exception as e:
             logger.error(f"Failed to get agent status: {e}")
-            return {"agent_connected": False, "client_count": 0, "export_target": "Local"}
+            return {"agent_connected": False, "client_count": 0, "selected_client": "Local"}
     
     async def get_ui_state(self) -> Dict[str, Any]:
         """
@@ -637,7 +637,7 @@ class BrowserController:
                 "links_visible": canvas["links_visible"],
                 "agent_connected": agent["agent_connected"],
                 "client_count": agent["client_count"],
-                "export_target": agent["export_target"]
+                "selected_client": agent.get("selected_client", "Local")
             }
         except Exception as e:
             logger.error(f"Failed to get UI state: {e}")
