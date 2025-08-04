@@ -391,6 +391,14 @@ class DNNEUIMCPServer:
             name="get_workflow_list",
             description="Get list of available workflows"
         )
+        
+        # Register all additional tools from tool modules
+        try:
+            from .tools.register_all_tools import register_all_additional_tools
+        except ImportError:
+            from tools.register_all_tools import register_all_additional_tools
+        
+        register_all_additional_tools(self)
     
     async def run(self):
         """Run the MCP server"""
