@@ -1,0 +1,31 @@
+{
+  "dnne": {
+    "agent_server": {
+      "host": "172.22.160.1",
+      "port": 8767,
+      "client_port": 8767
+    }
+  },
+  "agent_client": {
+    "telemetry_host": "localhost",
+    "telemetry_port": 9999,
+    "telemetry_buffer_size": 1000,
+    "work_area_base": "/tmp/dnne_work_areas",
+    "telemetry_retention_seconds": 300,
+    "workflow_stop_timeout": 10,
+    "telemetry_batch_interval": 0.1
+  },
+  "paths": {
+    "linux_support": "~/DNNE/DNNE-LINUX-SUPPORT",
+    "temp_directory": "/tmp"
+  },
+  "conda": {
+    "conda_path": "~/miniconda",
+    "conda_env": "DNNE_PY38"
+  },
+  "linux_support_subdirs": {
+    "isaac_gym_envs": "IsaacGymEnvs",
+    "isaac_gym": "isaacgym",
+    "rl_games_dnne": "rl_games_dnne"
+  }
+}
