@@ -148,32 +148,49 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 
 ## Phase 5: Missing Core Functionality
 
-### 5.1 Run After Export
+### 5.1 Frontend UI Reorganization
+- [x] Separate Export button and target dropdown
+- [x] Replace interrupt X with "Stop" button  
+- [x] Add "Run after export" checkbox
+- [x] Update control layout to: [Target: ▼] [Export] [☑ Run] [Stop] [Show Logs]
+- [x] Add runAfterExport state to workspaceStore
+- [x] Wire up all controls to proper message handlers
+- [x] Change Show Logs from SplitButton to regular Button
+- [x] Create LogViewer component with target dropdown and refresh button
+- [x] Comment out Help menu (ComfyUI-specific)
+- [x] Add DNNE menu placeholder
+
+### 5.2 Run After Export Backend
 - [ ] Implement run_after_export in server.py /prompt endpoint
 - [ ] Send start command to agent after successful deployment
 - [ ] Handle workflow startup errors
 - [ ] Update UI to show running status
 
-### 5.2 Telemetry Pipeline
+### 5.3 Telemetry Pipeline
 - [ ] Test telemetry flow: client → agent → DNNE
 - [ ] Implement telemetry storage in DNNE server
 - [ ] Forward telemetry data to UI via WebSocket
 - [ ] Handle telemetry buffer overflow
 
-### 5.3 Show Logs Button
-- [ ] Implement logs API endpoint in server.py
-- [ ] Store workflow logs from agent
-- [ ] Add log viewer component in frontend
+### 5.4 Show Logs Implementation
+- [ ] Implement GET /api/logs/{workflow_id} endpoint in server.py
+- [ ] Implement GET /api/logs/all endpoint for all active workflows
+- [ ] Store workflow logs from agent messages
+- [ ] Add log viewer modal component in frontend
 - [ ] Handle log streaming for running workflows
+- [ ] Implement log history storage and retrieval
 
-### 5.4 Complete Testing
+### 5.5 Complete Testing
+- [ ] Test new UI layout with local export
+- [ ] Test new UI layout with remote export
 - [ ] End-to-end test with telemetry enabled
 - [ ] Test run_after_export functionality
 - [ ] Verify logs are captured and displayed
 - [ ] Test error scenarios
 
 ## Known Issues/Blockers
-- Run after export not implemented
+- Frontend controls need reorganization for clarity
+- Run after export not wired up end-to-end
 - Telemetry data not being processed
 - Show Logs button non-functional
 
@@ -183,6 +200,10 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 3. Add telemetry visualization dashboard
 4. Support for multiple simultaneous exports
 5. Add workflow management (stop/restart/delete)
+6. Implement "All" option in log viewer (needs design for interleaving/sectioning logs)
+7. Add log export functionality
+8. Add log search/filter capabilities
+9. Implement log history storage and retrieval
 
 ## Summary
 The DNNE Agent Integration is now complete and fully functional! The system supports:
