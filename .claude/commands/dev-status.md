@@ -3,6 +3,10 @@
 ## Current Work
 See `docs-dnne/for_claude/TASKS.md` for the complete task list and project roadmap.
 
+### TODO List
+- [ ] Fix IsaacGymEnvs node widget mismatch on export (BUG: "node 12 has 0 widget values, expected at least 15" when exporting Cartpole_PPO)
+- [ ] Remove non-functional items from Workflow menu: Browse Templates, Export, Export (API)
+
 ## Claude Code Capabilities
 - **Server Control**: Can restart DNNE server via `/remote_command` endpoint
 - **Browser Automation**: Can view and interact with UI via MCP Puppeteer
@@ -26,6 +30,13 @@ await mcp__puppeteer__puppeteer_navigate({
 - **Known Issue**: Taking screenshots causes the window to start clipping the status bar - reason unknown
 
 ## Recent Accomplishments (2025-08-04)
+- ✅ Created comprehensive Puppeteer debugging documentation at `docs-dnne/development/using_puppeteer_for_debug.md`
+- ✅ Successfully tested all UI elements with Puppeteer (sidebar tabs, canvas controls, export button, menus)
+- ✅ Documented working selectors for workflows tree navigation using aria-label attributes
+- ✅ Fixed default workflow to load blank instead of ComfyUI image generation workflow
+- ✅ Documented JavaScript evaluation capabilities for accessing canvas state and UI information
+
+## Previous Accomplishments (2025-08-04)
 - ✅ Implemented remote command endpoint for server control
 - ✅ Can now restart server programmatically (no manual intervention needed)
 - ✅ Simplified WSL2 access with --listen 0.0.0.0 flag
@@ -62,6 +73,9 @@ python claude_scripts/programmatic_export.py MNIST_Test
 # Run exported workflow
 cd export_system/exports/MNIST_Test
 python runner.py --epochs 10
+
+# Build the frontend
+./build_frontend.sh
 ```
 
 ### Claude Code Server Control
