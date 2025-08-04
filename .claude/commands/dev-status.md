@@ -9,6 +9,22 @@ See `docs-dnne/for_claude/TASKS.md` for the complete task list and project roadm
 - **Status Monitoring**: Can check server status, uptime, and node count
 - **Access from WSL2**: Server accessible at `http://172.22.160.1:8188`
 
+### Puppeteer Configuration for DNNE UI
+**Use this exact configuration:**
+
+```javascript
+await mcp__puppeteer__puppeteer_navigate({
+  url: "http://172.22.160.1:8188",
+  launchOptions: {"headless": false, "defaultViewport": null, "args": ["--start-maximized"]}
+});
+```
+
+**Important**: 
+- Must use --start-maximized to see the status bar
+- Status bar shows: "Agent: ⚪ Connected | Clients: 0" on left, Export/Run controls on right
+- Tested on 1920x1080 displays
+- **Known Issue**: Taking screenshots causes the window to start clipping the status bar - reason unknown
+
 ## Recent Accomplishments (2025-08-04)
 - ✅ Implemented remote command endpoint for server control
 - ✅ Can now restart server programmatically (no manual intervention needed)
