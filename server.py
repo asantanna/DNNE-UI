@@ -2,6 +2,7 @@ import os
 import sys
 import asyncio
 import traceback
+import time
 from pathlib import Path
 
 import nodes
@@ -167,6 +168,7 @@ class PromptServer():
         self.client_session:Optional[aiohttp.ClientSession] = None
         self.number = 0
         self.current_workflow_name = None  # Track currently loaded workflow
+        self.start_time = time.time()  # Track server start time for uptime
 
         middlewares = [cache_control]
         if args.enable_compress_response_body:
@@ -876,6 +878,215 @@ class PromptServer():
                     self.prompt_queue.delete_history_item(id_to_delete)
 
             return web.Response(status=200)
+        
+        @routes.post("/remote_command")
+        async def handle_remote_command(request):
+            """Handle remote command requests for server control."""
+            import time
+            from datetime import datetime
+            
+            try:
+                json_data = await request.json()
+                
+                # Simple auth check (can be enhanced later)
+                auth_token = json_data.get("auth")
+                expected_token = os.environ.get("DNNE_REMOTE_AUTH")
+                if expected_token and auth_token != expected_token:
+                    return web.json_response({
+                        "success": False,
+                        "message": "Authentication failed",
+                        "timestamp": datetime.now().isoformat()
+                    }, status=401)
+                
+                command = json_data.get("command")
+                args = json_data.get("args", {})
+                request_id = json_data.get("request_id")
+                
+                logging.info(f"[Remote Command] Received: {command} with args: {args}")
+                
+                # Command dispatch
+                if command == "restart":
+                    # Handle server restart
+                    delay = args.get("delay", 2)
+                    reason = args.get("reason", "Remote command")
+                    preserve_args = args.get("preserve_args", True)
+                    
+                    logging.info(f"[Remote Command] Server restart requested: {reason}")
+                    
+                    # Schedule restart
+                    async def do_restart():
+                        await asyncio.sleep(delay)
+                        logging.info("[Remote Command] Executing restart...")
+                        
+                        # Close connections gracefully
+                        if hasattr(self, 'agent_ws') and self.agent_ws:
+                            await self.agent_ws.close()
+                        
+                        # Start new server window using dnne.bat
+                        import subprocess
+                        import platform
+                        
+                        if platform.system() == "Windows":
+                            # Get the directory where server.py is located
+                            # __file__ gives us the actual file path as Windows sees it
+                            current_file = os.path.abspath(__file__)
+                            server_dir = os.path.dirname(current_file)
+                            
+                            # dnne.bat is in the same directory as server.py
+                            dnne_bat = os.path.join(server_dir, "dnne.bat")
+                            
+                            # If the path looks like a WSL path, we need to use the Windows path
+                            # The server is running on Windows, so __file__ should already be a Windows path
+                            if not os.path.exists(dnne_bat):
+                                # Try to find dnne.bat in current working directory
+                                cwd_dnne_bat = os.path.join(os.getcwd(), "dnne.bat")
+                                if os.path.exists(cwd_dnne_bat):
+                                    dnne_bat = cwd_dnne_bat
+                                    server_dir = os.getcwd()
+                                else:
+                                    logging.error(f"[Remote Command] Cannot find dnne.bat at {dnne_bat} or {cwd_dnne_bat}")
+                                    return
+                            
+                            logging.info(f"[Remote Command] Starting new server with: {dnne_bat}")
+                            logging.info(f"[Remote Command] Working directory: {server_dir}")
+                            
+                            # Start dnne.bat in a new window
+                            # Just call dnne.bat directly - it will handle opening its own window
+                            subprocess.Popen(
+                                [dnne_bat],
+                                cwd=server_dir,
+                                shell=False,
+                                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+                            )
+                            
+                            # Give the new process a moment to start
+                            await asyncio.sleep(0.5)
+                            
+                            # Exit current process
+                            logging.info("[Remote Command] Shutting down current server...")
+                            os._exit(0)
+                        else:
+                            # On Unix-like systems, restart with current args
+                            os.execv(sys.executable, [sys.executable] + sys.argv)
+                    
+                    asyncio.create_task(do_restart())
+                    
+                    return web.json_response({
+                        "success": True,
+                        "command": command,
+                        "message": f"Server will restart in {delay} seconds",
+                        "data": {"delay": delay, "reason": reason},
+                        "request_id": request_id,
+                        "timestamp": datetime.now().isoformat()
+                    })
+                
+                elif command == "get_status":
+                    # Get server status
+                    uptime = time.time() - self.start_time if hasattr(self, 'start_time') else 0
+                    
+                    return web.json_response({
+                        "success": True,
+                        "command": command,
+                        "message": "Server status retrieved",
+                        "data": {
+                            "uptime": uptime,
+                            "version": __version__,
+                            "agent_connected": self.agent_connected if hasattr(self, 'agent_connected') else False,
+                            "agent_status": self.agent_connection_status if hasattr(self, 'agent_connection_status') else "unknown",
+                            "queue_size": len(self.prompt_queue.get_current_queue_volatile()[1]),
+                            "node_count": len(nodes.NODE_CLASS_MAPPINGS)
+                        },
+                        "request_id": request_id,
+                        "timestamp": datetime.now().isoformat()
+                    })
+                
+                elif command == "reload_nodes":
+                    # Reload custom nodes
+                    try:
+                        from comfy.cli_args import args as cli_args
+                        
+                        # Clear the node mappings
+                        nodes.NODE_CLASS_MAPPINGS.clear()
+                        nodes.NODE_DISPLAY_NAME_MAPPINGS.clear()
+                        
+                        # Re-initialize nodes
+                        nodes.init_extra_nodes(
+                            init_custom_nodes=not cli_args.disable_all_custom_nodes,
+                            init_api_nodes=not cli_args.disable_api_nodes
+                        )
+                        
+                        return web.json_response({
+                            "success": True,
+                            "command": command,
+                            "message": "Nodes reloaded successfully",
+                            "data": {
+                                "node_count": len(nodes.NODE_CLASS_MAPPINGS)
+                            },
+                            "request_id": request_id,
+                            "timestamp": datetime.now().isoformat()
+                        })
+                    except Exception as e:
+                        return web.json_response({
+                            "success": False,
+                            "command": command,
+                            "message": f"Failed to reload nodes: {str(e)}",
+                            "request_id": request_id,
+                            "timestamp": datetime.now().isoformat()
+                        }, status=500)
+                
+                elif command == "clear_cache":
+                    # Clear various caches
+                    cache_type = args.get("type", "all")
+                    
+                    if cache_type in ["all", "models"]:
+                        comfy.model_management.cleanup_models()
+                    
+                    if cache_type in ["all", "nodes"]:
+                        # Clear node cache if available
+                        pass
+                    
+                    return web.json_response({
+                        "success": True,
+                        "command": command,
+                        "message": f"Cache cleared: {cache_type}",
+                        "data": {"cache_type": cache_type},
+                        "request_id": request_id,
+                        "timestamp": datetime.now().isoformat()
+                    })
+                
+                elif command == "get_logs":
+                    # Get recent logs (simplified version)
+                    # In a full implementation, we'd capture logs to a buffer
+                    return web.json_response({
+                        "success": True,
+                        "command": command,
+                        "message": "Log retrieval not fully implemented",
+                        "data": {
+                            "logs": ["Log capture not yet implemented"],
+                            "note": "Future enhancement"
+                        },
+                        "request_id": request_id,
+                        "timestamp": datetime.now().isoformat()
+                    })
+                
+                else:
+                    return web.json_response({
+                        "success": False,
+                        "command": command,
+                        "message": f"Unknown command: {command}",
+                        "request_id": request_id,
+                        "timestamp": datetime.now().isoformat()
+                    }, status=400)
+                    
+            except Exception as e:
+                logging.error(f"[Remote Command] Error: {e}")
+                logging.error(traceback.format_exc())
+                return web.json_response({
+                    "success": False,
+                    "message": str(e),
+                    "request_id": json_data.get("request_id") if 'json_data' in locals() else None,
+                    "timestamp": datetime.now().isoformat()
+                }, status=500)
 
         @routes.get("/dnne/env_config/{task_name}")
         async def get_env_config(request):
