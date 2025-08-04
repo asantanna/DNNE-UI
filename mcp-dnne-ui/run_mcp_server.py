@@ -10,11 +10,11 @@ import os
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from dnne_ui_mcp_server import DNNEUIMCPServer
+from dnne_ui_mcp_server import DNNE_UI_MCPServer
 
 def main():
     """Main entry point for the MCP server"""
-    server = DNNEUIMCPServer()
+    server = DNNE_UI_MCPServer()
     
     # Run the server
     server.run()

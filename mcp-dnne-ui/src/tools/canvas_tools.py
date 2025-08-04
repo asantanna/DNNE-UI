@@ -23,7 +23,7 @@ class CanvasTools:
         Initialize canvas tools
         
         Args:
-            server: DNNEUIMCPServer instance for dynamic browser access
+            server: DNNE_UI_MCPServer instance for dynamic browser access
             state: Shared state dictionary
         """
         self.server = server

@@ -113,7 +113,7 @@ class BrowserController:
             logger.error(f"UI not ready after {timeout}ms: {e}")
             return False
     
-    async def click(self, selector: str, timeout: int = 5000) -> bool:
+    async def click(self, selector: str, timeout: int = 3000) -> bool:
         """
         Click an element with retry logic
         
@@ -139,7 +139,7 @@ class BrowserController:
             logger.error(f"Failed to click {selector}: {e}")
             return False
     
-    async def get_text(self, selector: str, timeout: int = 5000) -> Optional[str]:
+    async def get_text(self, selector: str, timeout: int = 3000) -> Optional[str]:
         """
         Get text content of an element
         
@@ -163,7 +163,7 @@ class BrowserController:
             logger.error(f"Failed to get text from {selector}: {e}")
             return None
     
-    async def type_text(self, selector: str, text: str, timeout: int = 5000) -> bool:
+    async def type_text(self, selector: str, text: str, timeout: int = 3000) -> bool:
         """
         Type text into an input field
         
@@ -234,7 +234,7 @@ class BrowserController:
             logger.error(f"Failed to evaluate script: {e}")
             return None
     
-    async def wait_for_selector(self, selector: str, timeout: int = 5000) -> bool:
+    async def wait_for_selector(self, selector: str, timeout: int = 3000) -> bool:
         """
         Wait for an element to appear
         
@@ -355,22 +355,62 @@ class BrowserController:
             logger.error(f"Failed to restart browser: {e}")
             return False
     
-    async def health_check(self) -> bool:
+    def is_playwright_browser_process_active(self) -> bool:
         """
-        Check if browser is healthy and responsive
+        Check if Playwright browser process is active
         
         Returns:
-            True if browser is healthy
+            True if browser process exists and is connected
         """
-        if not self.browser or not self.page:
+        try:
+            return self.browser is not None and self.browser.is_connected()
+        except:
+            return False
+    
+    def is_browser_window_available(self) -> bool:
+        """
+        Check if browser window/page exists and is not closed
+        
+        Returns:
+            True if there is an available browser window
+        """
+        try:
+            return (
+                self.page is not None and 
+                not self.page.is_closed()
+            )
+        except:
+            return False
+    
+    async def is_javascript_executable(self) -> bool:
+        """
+        Check if JavaScript can be executed in the page
+        
+        Returns:
+            True if JavaScript execution is possible
+        """
+        if not self.is_browser_window_available():
             return False
         
         try:
-            # Try a simple evaluation
             result = await self.page.evaluate("() => 1 + 1")
             return result == 2
         except:
             return False
+    
+    async def is_responsive(self) -> bool:
+        """
+        High-level check if browser is responsive to operations
+        Checks: process active → window available → JS executable
+        
+        Returns:
+            True if browser is fully responsive
+        """
+        if not self.is_playwright_browser_process_active():
+            return False
+        if not self.is_browser_window_available():
+            return False
+        return await self.is_javascript_executable()
     
     async def ensure_healthy(self) -> bool:
         """
@@ -379,7 +419,7 @@ class BrowserController:
         Returns:
             True if browser is healthy (after potential restart)
         """
-        if await self.health_check():
+        if await self.is_responsive():
             return True
         
         logger.warning("Browser unhealthy, attempting restart...")
@@ -417,3 +457,188 @@ class BrowserController:
             logger.warning(f"Failed to handle dialog: {e}")
         
         return False
+    
+    # Browser State Query Methods - Get state directly from browser
+    
+    async def get_current_workflow(self) -> Optional[str]:
+        """
+        Get the current workflow name from browser
+        
+        Returns:
+            Workflow name or None
+        """
+        if not self.page:
+            return None
+        
+        try:
+            # Get from document title
+            title = await self.page.evaluate("document.title")
+            if title and "Unsaved Workflow" not in title:
+                return title
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get current workflow: {e}")
+            return None
+    
+    async def get_sidebar_state(self) -> Dict[str, Any]:
+        """
+        Get current sidebar state from browser
+        
+        Returns:
+            Dict with sidebar_open and active_tab
+        """
+        if not self.page:
+            return {"sidebar_open": False, "active_tab": None}
+        
+        try:
+            state = await self.page.evaluate("""
+                () => {
+                    const sidebar = document.querySelector('.side-bar-container');
+                    const isOpen = sidebar && !sidebar.classList.contains('collapsed');
+                    
+                    let activeTab = null;
+                    if (isOpen) {
+                        const activeButton = document.querySelector('.side-bar-button.active');
+                        if (activeButton) {
+                            if (activeButton.classList.contains('workflows-tab-button')) {
+                                activeTab = 'workflows';
+                            } else if (activeButton.classList.contains('nodes-tab-button')) {
+                                activeTab = 'nodes';
+                            }
+                        }
+                    }
+                    
+                    return {
+                        sidebar_open: isOpen,
+                        active_tab: activeTab
+                    };
+                }
+            """)
+            return state
+        except Exception as e:
+            logger.error(f"Failed to get sidebar state: {e}")
+            return {"sidebar_open": False, "active_tab": None}
+    
+    async def get_canvas_info(self) -> Dict[str, Any]:
+        """
+        Get canvas information from browser
+        
+        Returns:
+            Dict with node_count, zoom_level, links_visible
+        """
+        if not self.page:
+            return {"node_count": 0, "zoom_level": 1.0, "links_visible": True}
+        
+        try:
+            info = await self.page.evaluate("""
+                () => {
+                    const nodes = document.querySelectorAll('.node');
+                    const canvas = document.querySelector('canvas') || document.querySelector('.graph-canvas');
+                    
+                    // Try to get zoom from transform or data attribute
+                    let zoom = 1.0;
+                    if (canvas) {
+                        const transform = canvas.style.transform;
+                        const scaleMatch = transform && transform.match(/scale\\(([^)]+)\\)/);
+                        if (scaleMatch) {
+                            zoom = parseFloat(scaleMatch[1]);
+                        }
+                    }
+                    
+                    // Check if links are visible
+                    const links = document.querySelectorAll('.link-line, .connection-line');
+                    const linksVisible = links.length > 0 && 
+                        (!links[0].style.display || links[0].style.display !== 'none');
+                    
+                    return {
+                        node_count: nodes.length,
+                        zoom_level: zoom,
+                        links_visible: linksVisible
+                    };
+                }
+            """)
+            return info
+        except Exception as e:
+            logger.error(f"Failed to get canvas info: {e}")
+            return {"node_count": 0, "zoom_level": 1.0, "links_visible": True}
+    
+    async def get_agent_status(self) -> Dict[str, Any]:
+        """
+        Get agent and client status from status bar
+        
+        Returns:
+            Dict with agent_connected, client_count, export_target
+        """
+        if not self.page:
+            return {"agent_connected": False, "client_count": 0, "export_target": "Local"}
+        
+        try:
+            status = await self.page.evaluate("""
+                () => {
+                    const statusBar = document.querySelector('.agent-status-bar');
+                    if (!statusBar) {
+                        return {
+                            agent_connected: false,
+                            client_count: 0,
+                            export_target: 'Local',
+                            debug: 'No status bar found'
+                        };
+                    }
+                    
+                    const statusText = statusBar.textContent || '';
+                    
+                    // Parse agent status
+                    const agentConnected = statusText.includes('Connected');
+                    
+                    // Parse client count
+                    const clientMatch = statusText.match(/Clients:\\s*(\\d+)/);
+                    const clientCount = clientMatch ? parseInt(clientMatch[1]) : 0;
+                    
+                    // Get export target from dropdown
+                    const targetDropdown = document.querySelector('.export-target-dropdown');
+                    const exportTarget = targetDropdown ? 
+                        (targetDropdown.value || targetDropdown.textContent || 'Local') : 'Local';
+                    
+                    return {
+                        agent_connected: agentConnected,
+                        client_count: clientCount,
+                        export_target: exportTarget,
+                        debug_status_text: statusText  // Add debug info
+                    };
+                }
+            """)
+            return status
+        except Exception as e:
+            logger.error(f"Failed to get agent status: {e}")
+            return {"agent_connected": False, "client_count": 0, "export_target": "Local"}
+    
+    async def get_ui_state(self) -> Dict[str, Any]:
+        """
+        Get comprehensive UI state from browser
+        
+        Returns:
+            Complete UI state dictionary
+        """
+        if not self.page:
+            return {}
+        
+        try:
+            workflow = await self.get_current_workflow()
+            sidebar = await self.get_sidebar_state()
+            canvas = await self.get_canvas_info()
+            agent = await self.get_agent_status()
+            
+            return {
+                "current_workflow": workflow,
+                "sidebar_open": sidebar["sidebar_open"],
+                "sidebar_tab": sidebar["active_tab"],
+                "node_count": canvas["node_count"],
+                "zoom_level": canvas["zoom_level"],
+                "links_visible": canvas["links_visible"],
+                "agent_connected": agent["agent_connected"],
+                "client_count": agent["client_count"],
+                "export_target": agent["export_target"]
+            }
+        except Exception as e:
+            logger.error(f"Failed to get UI state: {e}")
+            return {}

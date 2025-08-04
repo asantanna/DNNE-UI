@@ -4,16 +4,16 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..dnne_ui_mcp_server import DNNEUIMCPServer
+    from ..dnne_ui_mcp_server import DNNE_UI_MCPServer
 
 logger = logging.getLogger(__name__)
 
-def register_all_additional_tools(server: "DNNEUIMCPServer"):
+def register_all_additional_tools(server: "DNNE_UI_MCPServer"):
     """
     Register all additional tools from various tool modules
     
     Args:
-        server: The DNNEUIMCPServer instance
+        server: The DNNE_UI_MCPServer instance
     """
     
     # Import tool classes

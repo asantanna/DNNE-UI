@@ -8,7 +8,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from dnne_ui_mcp_server import DNNEUIMCPServer
+from dnne_ui_mcp_server import DNNE_UI_MCPServer
 from browser_controller import BrowserController
 
 async def test_browser_controller():
@@ -56,7 +56,7 @@ async def test_mcp_server():
     print("-" * 50)
     
     try:
-        server = DNNEUIMCPServer()
+        server = DNNE_UI_MCPServer()
         print("✓ MCP server created successfully")
         print(f"  - DNNE URL: {server.dnne_url}")
         print(f"  - Headless: {server.headless}")

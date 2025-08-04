@@ -19,11 +19,16 @@ def get_env_var(key: str, default: Optional[str] = None) -> Optional[str]:
     """Get environment variable with optional default"""
     return os.getenv(key, default)
 
-def ensure_screenshot_dir(dir_path: str = "./screenshots") -> Path:
-    """Ensure screenshot directory exists"""
-    path = Path(dir_path)
+def ensure_screenshot_dir(dir_path: Optional[str] = None) -> Path:
+    """Ensure screenshot directory exists in MCP directory"""
+    if dir_path is None:
+        # Always use the MCP screenshots directory
+        mcp_dir = Path(__file__).parent.parent.parent  # Go up to mcp-dnne-ui
+        path = mcp_dir / "screenshots"
+    else:
+        path = Path(dir_path)
     path.mkdir(parents=True, exist_ok=True)
-    return path
+    return path.absolute()
 
 async def retry_with_backoff(
     func, 

@@ -9,7 +9,7 @@ from typing import Dict, Any, List
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from dnne_ui_mcp_server import DNNEUIMCPServer
+from dnne_ui_mcp_server import DNNE_UI_MCPServer
 from browser_controller import BrowserController
 from utils.helpers import format_mcp_response
 from utils.state_manager import StateManager
@@ -41,7 +41,7 @@ class DNNEMCPTestSuite:
     async def setup(self):
         """Set up test environment"""
         print("Setting up test environment...")
-        self.server = DNNEUIMCPServer()
+        self.server = DNNE_UI_MCPServer()
         
         if self.run_browser_tests:
             self.browser = BrowserController()

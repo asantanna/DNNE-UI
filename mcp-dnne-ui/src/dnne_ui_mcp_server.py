@@ -1,7 +1,17 @@
 #!/usr/bin/env python3
-"""DNNE UI MCP Server - High-level automation for DNNE UI"""
+"""
+DNNE UI MCP Server - Browser automation for DNNE UI testing
+
+Naming Convention:
+- Functions WITHOUT 'util_' prefix: Query through UI only (test what users see)
+- Functions WITH 'util_' prefix: Query servers directly (get ground truth)
+
+Use UI functions for testing the user interface.
+Use util functions for debugging and verification.
+"""
 
 import asyncio
+import aiohttp
 import logging
 import os
 import sys
@@ -35,7 +45,7 @@ load_dotenv()
 setup_logging(get_env_var("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
-class DNNEUIMCPServer:
+class DNNE_UI_MCPServer:
     """MCP Server for DNNE UI automation"""
     
     def __init__(self):
@@ -48,7 +58,7 @@ class DNNEUIMCPServer:
         self.dnne_url = get_env_var("DNNE_URL", "http://172.22.160.1:8188")
         self.headless = get_env_var("BROWSER_HEADLESS", "false").lower() == "true"
         
-        # State management with persistence
+        # State management - in-memory only, no disk persistence
         self.state_manager = StateManager()
         self.state = self.state_manager.state
         
@@ -65,17 +75,37 @@ class DNNEUIMCPServer:
         async def initialize_browser() -> Dict[str, Any]:
             """Initialize the browser and navigate to DNNE UI"""
             try:
-                if not self.browser_controller:
-                    self.browser_controller = BrowserController(
-                        dnne_url=self.dnne_url,
-                        headless=self.headless
-                    )
-                    await self.browser_controller.initialize()
-                    return format_mcp_response(True, message="Browser initialized successfully")
-                else:
-                    return format_mcp_response(True, message="Browser already initialized")
+                # Check if browser exists AND is healthy
+                if self.browser_controller:
+                    # Check if browser process is active
+                    if self.browser_controller.is_playwright_browser_process_active():
+                        # Check if browser window is available
+                        if self.browser_controller.is_browser_window_available():
+                            # Check if it's responsive to JavaScript
+                            if await self.browser_controller.is_javascript_executable():
+                                return format_mcp_response(True, message="Browser already initialized and healthy")
+                            else:
+                                logger.info("Browser window exists but not responsive to JavaScript, cleaning up...")
+                        else:
+                            logger.info("Browser process active but window closed, cleaning up...")
+                    else:
+                        logger.info("Browser controller exists but process not active, cleaning up...")
+                    
+                    # Browser exists but not healthy
+                    await self.browser_controller.cleanup()
+                    self.browser_controller = None
+                
+                # Create new browser instance
+                self.browser_controller = BrowserController(
+                    dnne_url=self.dnne_url,
+                    headless=self.headless
+                )
+                await self.browser_controller.initialize()
+                return format_mcp_response(True, message="Browser initialized successfully")
+                
             except Exception as e:
                 logger.error(f"Failed to initialize browser: {e}")
+                self.browser_controller = None  # Clear reference on failure
                 return format_mcp_response(False, error=str(e))
         
         self.server.add_tool(
@@ -101,23 +131,56 @@ class DNNEUIMCPServer:
             description="Clean up browser resources"
         )
         
+        async def is_browser_running() -> Dict[str, Any]:
+            """Check if browser window is available"""
+            if not self.browser_controller:
+                return format_mcp_response(False, data={
+                    "process_active": False,
+                    "window_available": False
+                }, message="Browser not initialized")
+            
+            process_active = self.browser_controller.is_playwright_browser_process_active()
+            window_available = self.browser_controller.is_browser_window_available()
+            
+            if not process_active:
+                message = "Browser process not active"
+            elif not window_available:
+                message = "Browser process active but window closed"
+            else:
+                message = "Browser window available"
+            
+            return format_mcp_response(
+                window_available,
+                data={
+                    "process_active": process_active,
+                    "window_available": window_available
+                },
+                message=message
+            )
+        
+        self.server.add_tool(
+            is_browser_running,
+            name="is_browser_running",
+            description="Check if browser window is available"
+        )
+        
         async def restart_browser() -> Dict[str, Any]:
             """Restart browser for recovery"""
             try:
+                # Always clean up existing browser first if it exists
                 if self.browser_controller:
-                    success = await self.browser_controller.restart_browser()
-                    if success:
-                        # Update error diagnostics with new browser
-                        self.error_diagnostics.browser = self.browser_controller
-                        return format_mcp_response(True, message="Browser restarted successfully")
-                    else:
-                        return format_mcp_response(False, error="Browser restart failed")
-                else:
-                    # Initialize if not existing
-                    return await initialize_browser()
+                    try:
+                        await self.browser_controller.cleanup()
+                    except Exception as cleanup_error:
+                        logger.warning(f"Error during browser cleanup: {cleanup_error}")
+                    self.browser_controller = None
+                
+                # Now initialize a fresh browser
+                return await initialize_browser()
                     
             except Exception as e:
                 logger.error(f"Failed to restart browser: {e}")
+                self.browser_controller = None
                 return format_mcp_response(False, error=str(e))
         
         self.server.add_tool(
@@ -138,17 +201,20 @@ class DNNEUIMCPServer:
                 if not self.browser_controller:
                     return format_mcp_response(False, error="Browser not initialized")
                 
+                # Check current sidebar state from browser
+                sidebar_state = await self.browser_controller.get_sidebar_state()
+                
                 # Open workflows sidebar if needed
-                if not self.state["sidebar_open"]:
+                if not sidebar_state["sidebar_open"] or sidebar_state["active_tab"] != "workflows":
                     await self.browser_controller.click(WORKFLOWS_TAB)
                     await asyncio.sleep(1)  # Wait for sidebar animation
-                    self.state["sidebar_open"] = True
                 
                 # Click on the workflow
                 workflow_selector = get_workflow_selector(name)
                 success = await self.browser_controller.click(workflow_selector)
                 
                 if success:
+                    # Update in-memory state for session tracking
                     self.state["current_workflow"] = name
                     return format_mcp_response(
                         True, 
@@ -177,16 +243,16 @@ class DNNEUIMCPServer:
                 if not self.browser_controller:
                     return format_mcp_response(False, error="Browser not initialized")
                 
-                # Try to get from window title or tab
-                title = await self.browser_controller.evaluate("document.title")
+                # Query browser directly for current workflow
+                workflow_name = await self.browser_controller.get_current_workflow()
                 
-                # Extract workflow name from title if present
-                if title and "Unsaved Workflow" not in title:
-                    self.state["current_workflow"] = title
+                # Update in-memory state for session tracking
+                if workflow_name:
+                    self.state["current_workflow"] = workflow_name
                 
                 return format_mcp_response(
                     True,
-                    data={"workflow_name": self.state["current_workflow"]}
+                    data={"workflow_name": workflow_name}
                 )
                 
             except Exception as e:
@@ -278,11 +344,40 @@ class DNNEUIMCPServer:
             description="Take a screenshot of the DNNE UI"
         )
         
-        async def check_ui_health() -> Dict[str, Any]:
+        async def is_ui_healthy() -> Dict[str, Any]:
             """Check if the DNNE UI is healthy and responsive"""
             try:
+                # First check if browser is even initialized
                 if not self.browser_controller:
-                    return format_mcp_response(False, error="Browser not initialized")
+                    return format_mcp_response(
+                        False, 
+                        error="Browser not initialized",
+                        data={"browser_initialized": False}
+                    )
+                
+                # Check if browser process is active
+                if not self.browser_controller.is_playwright_browser_process_active():
+                    return format_mcp_response(
+                        False, 
+                        error="Browser process not active. Use initialize_browser.",
+                        data={"browser_process": False}
+                    )
+                
+                # Check if browser window is available
+                if not self.browser_controller.is_browser_window_available():
+                    return format_mcp_response(
+                        False,
+                        error="Browser window closed. Use restart_browser.",
+                        data={"browser_process": True, "window_available": False}
+                    )
+                
+                # Check if JavaScript is executable
+                if not await self.browser_controller.is_javascript_executable():
+                    return format_mcp_response(
+                        False,
+                        error="Browser window not responsive. Use restart_browser.",
+                        data={"browser_process": True, "window_available": True, "js_executable": False}
+                    )
                 
                 issues = []
                 
@@ -297,16 +392,23 @@ class DNNEUIMCPServer:
                 if await self.browser_controller.is_visible(DIALOG):
                     issues.append("Error dialog is open")
                 
-                # Check agent status
-                agent_text = await self.browser_controller.get_text(".status-bar")
-                if agent_text and "Disconnected" in agent_text:
+                # Get agent status from browser
+                agent_status = await self.browser_controller.get_agent_status()
+                if not agent_status["agent_connected"]:
                     issues.append("Agent is disconnected")
+                
+                # Get comprehensive UI state
+                ui_state = await self.browser_controller.get_ui_state()
                 
                 healthy = len(issues) == 0
                 
                 return format_mcp_response(
                     healthy,
-                    data={"healthy": healthy, "issues": issues},
+                    data={
+                        "healthy": healthy,
+                        "issues": issues,
+                        "ui_state": ui_state
+                    },
                     message="UI is healthy" if healthy else f"UI has {len(issues)} issues"
                 )
                 
@@ -315,8 +417,8 @@ class DNNEUIMCPServer:
                 return format_mcp_response(False, error=str(e))
         
         self.server.add_tool(
-            check_ui_health,
-            name="check_ui_health",
+            is_ui_healthy,
+            name="is_ui_healthy",
             description="Check if the DNNE UI is healthy and responsive"
         )
         
@@ -425,6 +527,171 @@ class DNNEUIMCPServer:
             from tools.register_all_tools import register_all_additional_tools
         
         register_all_additional_tools(self)
+        
+        # Register utility tools that bypass UI for ground truth
+        self._register_utility_tools()
+    
+    def _register_utility_tools(self):
+        """Register utility tools that query servers directly (bypass UI)"""
+        
+        async def util_is_agent_server_running() -> Dict[str, Any]:
+            """Utility: Check agent server health directly (bypasses UI)"""
+            result = await self._util_is_agent_server_running()
+            return format_mcp_response(
+                result.get("running", False),
+                data=result,
+                message="Agent server is running" if result.get("running") else "Agent server not reachable"
+            )
+        
+        self.server.add_tool(
+            util_is_agent_server_running,
+            name="util_is_agent_server_running",
+            description="Utility: Check agent server health directly (bypasses UI)"
+        )
+        
+        async def util_get_dnne_server_status() -> Dict[str, Any]:
+            """Utility: Get DNNE server status directly (bypasses UI)"""
+            result = await self._util_get_dnne_server_status()
+            return format_mcp_response(
+                result.get("running", False),
+                data=result,
+                message="DNNE server is running" if result.get("running") else "DNNE server not reachable"
+            )
+        
+        self.server.add_tool(
+            util_get_dnne_server_status,
+            name="util_get_dnne_server_status",
+            description="Utility: Get DNNE server status directly (bypasses UI)"
+        )
+        
+        async def util_find_elements_by_text(text: str, limit: int = 10) -> Dict[str, Any]:
+            """Utility: Find DOM elements by text content for debugging"""
+            result = await self._util_find_elements_by_text(text, limit)
+            return format_mcp_response(
+                result.get("found", False),
+                data=result,
+                message=f"Found {result.get('count', 0)} elements containing '{text}'"
+            )
+        
+        self.server.add_tool(
+            util_find_elements_by_text,
+            name="util_find_elements_by_text",
+            description="Utility: Find DOM elements by text content for debugging"
+        )
+    
+    async def _util_find_elements_by_text(self, text: str, limit: int = 10) -> Dict[str, Any]:
+        """
+        Utility: Find DOM elements containing specific text (bypasses normal selectors)
+        Useful for debugging when selectors aren't working
+        
+        Args:
+            text: Text to search for in elements
+            limit: Maximum number of results to return (default 10)
+        
+        Returns:
+            Dict with found elements and their selectors
+        """
+        if not self.browser_controller or not self.browser_controller.is_browser_window_available():
+            return {"found": False, "error": "Browser not available", "count": 0, "elements": []}
+        
+        try:
+            # Escape the search text for JavaScript
+            escaped_text = text.replace('\\', '\\\\').replace('"', '\\"')
+            
+            results = await self.browser_controller.page.evaluate(f"""
+                () => {{
+                    const searchText = "{escaped_text}";
+                    const maxResults = {limit};
+                    const allElements = document.querySelectorAll('*');
+                    const results = [];
+                    let count = 0;
+                    
+                    for (let el of allElements) {{
+                        if (count >= maxResults) break;
+                        
+                        // Skip script and style elements
+                        if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') continue;
+                        
+                        // Check if element directly contains the text (not just children)
+                        const hasText = el.textContent && el.textContent.includes(searchText);
+                        const hasDirectText = el.childNodes && Array.from(el.childNodes).some(
+                            node => node.nodeType === 3 && node.textContent.includes(searchText)
+                        );
+                        
+                        if (hasText) {{
+                            results.push({{
+                                tagName: el.tagName.toLowerCase(),
+                                className: el.className || '',
+                                id: el.id || '',
+                                selector: el.id ? `#${{el.id}}` : 
+                                          el.className ? `.${{el.className.split(' ').filter(c => c).join('.')}}` : 
+                                          el.tagName.toLowerCase(),
+                                text: el.textContent.substring(0, 200),
+                                hasDirectText: hasDirectText
+                            }});
+                            count++;
+                        }}
+                    }}
+                    
+                    return {{
+                        found: results.length > 0,
+                        count: results.length,
+                        elements: results
+                    }};
+                }}
+            """)
+            
+            return results
+            
+        except Exception as e:
+            return {"found": False, "error": str(e), "count": 0, "elements": []}
+    
+    async def _util_is_agent_server_running(self) -> Dict[str, Any]:
+        """
+        Utility: Check agent server health directly (bypasses UI)
+        Queries http://172.22.160.1:8769/health
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get('http://172.22.160.1:8769/health', timeout=5) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return {
+                            "running": True,
+                            "healthy": data.get("status") == "healthy",
+                            "uptime": data.get("uptime"),
+                            "connections": data.get("connections"),
+                            "data": data
+                        }
+                    else:
+                        return {"running": False, "error": f"HTTP {resp.status}"}
+        except asyncio.TimeoutError:
+            return {"running": False, "error": "Connection timeout"}
+        except Exception as e:
+            return {"running": False, "error": str(e)}
+    
+    async def _util_get_dnne_server_status(self) -> Dict[str, Any]:
+        """
+        Utility: Get DNNE server status directly (bypasses UI)
+        Queries http://172.22.160.1:8188/api/agent/clients
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get('http://172.22.160.1:8188/api/agent/clients', timeout=5) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return {
+                            "running": True,
+                            "clients": data.get("clients", []),
+                            "connection_status": data.get("connection_status"),
+                            "data": data
+                        }
+                    else:
+                        return {"running": False, "error": f"HTTP {resp.status}"}
+        except asyncio.TimeoutError:
+            return {"running": False, "error": "Connection timeout"}
+        except Exception as e:
+            return {"running": False, "error": str(e)}
     
     def run(self):
         """Run the MCP server"""
@@ -436,7 +703,7 @@ class DNNEUIMCPServer:
 
 def main():
     """Main entry point"""
-    server = DNNEUIMCPServer()
+    server = DNNE_UI_MCPServer()
     server.run()
 
 if __name__ == "__main__":

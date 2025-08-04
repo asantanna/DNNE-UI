@@ -19,12 +19,12 @@ async def test_mcp_server():
     try:
         # Test imports
         print("✓ Testing imports...")
-        from dnne_ui_mcp_server import DNNEUIMCPServer
-        print("  ✓ Successfully imported DNNEUIMCPServer")
+        from dnne_ui_mcp_server import DNNE_UI_MCPServer
+        print("  ✓ Successfully imported DNNE_UI_MCPServer")
         
         # Test initialization
         print("\n✓ Testing server initialization...")
-        server = DNNEUIMCPServer()
+        server = DNNE_UI_MCPServer()
         print("  ✓ Server initialized successfully")
         
         # Check registered tools (FastMCP doesn't expose tools directly)

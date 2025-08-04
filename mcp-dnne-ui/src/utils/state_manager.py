@@ -1,108 +1,45 @@
-"""State management and persistence for DNNE UI MCP Server"""
+"""State management for DNNE UI MCP Server - In-memory only, no disk persistence"""
 
-import json
 import logging
-from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 class StateManager:
-    """Manage and persist MCP server state"""
+    """Manage MCP server state in-memory only (no disk persistence)"""
     
-    def __init__(self, state_file: str = "mcp_state.json"):
-        """
-        Initialize state manager
-        
-        Args:
-            state_file: Path to state persistence file
-        """
-        self.state_file = Path(state_file)
-        self.state: Dict[str, Any] = self._load_state()
-        self.last_save = datetime.now()
-        
-    def _load_state(self) -> Dict[str, Any]:
-        """Load state from file or create default"""
-        default_state = {
-            "current_workflow": None,
-            "selected_client": None,
-            "export_target": "Local",
-            "sidebar_open": False,
-            "sidebar_tab": None,
-            "last_error": None,
-            "links_visible": True,
+    def __init__(self):
+        """Initialize state manager with in-memory state only"""
+        self.state: Dict[str, Any] = self._create_default_state()
+        logger.info("StateManager initialized with in-memory state only")
+    
+    def _create_default_state(self) -> Dict[str, Any]:
+        """Create default in-memory state"""
+        return {
             "session_start": datetime.now().isoformat(),
             "operations_count": 0,
-            "last_operation": None
+            "last_operation": None,
+            "last_error": None,
+            # Temporary session state only - will be queried from browser
+            "current_workflow": None,
+            "selected_client": None,
+            "export_target": "Local"
         }
-        
-        if self.state_file.exists():
-            try:
-                with open(self.state_file, 'r') as f:
-                    loaded_state = json.load(f)
-                    # Merge with defaults to ensure all keys exist
-                    default_state.update(loaded_state)
-                    logger.info(f"Loaded state from {self.state_file}")
-            except Exception as e:
-                logger.warning(f"Failed to load state: {e}. Using defaults.")
-        
-        return default_state
     
-    def save_state(self, force: bool = False) -> bool:
+    def update(self, key: str, value: Any) -> None:
         """
-        Save current state to file
-        
-        Args:
-            force: Force save even if recently saved
-            
-        Returns:
-            True if saved successfully
-        """
-        try:
-            # Only save every 30 seconds unless forced
-            if not force:
-                elapsed = (datetime.now() - self.last_save).total_seconds()
-                if elapsed < 30:
-                    return True
-            
-            # Prepare state for JSON serialization
-            save_data = self.state.copy()
-            save_data["last_saved"] = datetime.now().isoformat()
-            
-            # Write to temp file first, then rename (atomic operation)
-            temp_file = self.state_file.with_suffix('.tmp')
-            with open(temp_file, 'w') as f:
-                json.dump(save_data, f, indent=2, default=str)
-            
-            # Atomic rename
-            temp_file.replace(self.state_file)
-            
-            self.last_save = datetime.now()
-            logger.debug(f"State saved to {self.state_file}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to save state: {e}")
-            return False
-    
-    def update(self, key: str, value: Any, save: bool = True) -> None:
-        """
-        Update a state value
+        Update a state value in memory only
         
         Args:
             key: State key to update
             value: New value
-            save: Whether to persist immediately
         """
         old_value = self.state.get(key)
         self.state[key] = value
         
         if old_value != value:
             logger.debug(f"State updated: {key} = {value}")
-            
-        if save:
-            self.save_state()
     
     def get(self, key: str, default: Any = None) -> Any:
         """
@@ -129,12 +66,12 @@ class StateManager:
         """
         current = self.state.get(key, 0)
         new_value = current + 1
-        self.update(key, new_value, save=False)
+        self.update(key, new_value)
         return new_value
     
     def record_operation(self, operation: str, success: bool = True) -> None:
         """
-        Record an operation in state
+        Record an operation in memory
         
         Args:
             operation: Name of the operation
@@ -145,24 +82,14 @@ class StateManager:
             "name": operation,
             "success": success,
             "timestamp": datetime.now().isoformat()
-        }, save=False)
+        })
         
         if not success:
-            self.update("last_error", operation, save=False)
-        
-        self.save_state()
+            self.update("last_error", operation)
     
     def clear_session_state(self) -> None:
-        """Clear session-specific state while preserving configuration"""
-        preserve_keys = ["export_target", "links_visible"]
-        preserved = {k: v for k, v in self.state.items() if k in preserve_keys}
-        
-        self.state = self._load_state()
-        self.state.update(preserved)
-        self.state["session_start"] = datetime.now().isoformat()
-        self.state["operations_count"] = 0
-        
-        self.save_state(force=True)
+        """Reset session state to defaults"""
+        self.state = self._create_default_state()
         logger.info("Session state cleared")
     
     def get_session_stats(self) -> Dict[str, Any]:
@@ -184,47 +111,3 @@ class StateManager:
             "current_workflow": self.state.get("current_workflow"),
             "selected_client": self.state.get("selected_client")
         }
-
-
-class StateRecovery:
-    """Handle state recovery after crashes or restarts"""
-    
-    def __init__(self, state_manager: StateManager):
-        self.state_manager = state_manager
-        
-    async def recover_ui_state(self, browser_controller) -> Dict[str, Any]:
-        """
-        Attempt to recover UI to match saved state
-        
-        Args:
-            browser_controller: Browser controller instance
-            
-        Returns:
-            Recovery results
-        """
-        results = {
-            "recovered": [],
-            "failed": [],
-            "skipped": []
-        }
-        
-        if not browser_controller or not browser_controller.page:
-            results["failed"].append("Browser not available")
-            return results
-        
-        state = self.state_manager.state
-        
-        # Recover sidebar state
-        if state.get("sidebar_open") and state.get("sidebar_tab"):
-            try:
-                tab = state["sidebar_tab"]
-                selector = f".{tab}-tab-button"
-                await browser_controller.click(selector)
-                results["recovered"].append(f"Sidebar tab: {tab}")
-            except Exception as e:
-                results["failed"].append(f"Sidebar recovery: {e}")
-        
-        # Note: Workflow recovery would require more complex logic
-        # to reload the specific workflow file
-        
-        return results

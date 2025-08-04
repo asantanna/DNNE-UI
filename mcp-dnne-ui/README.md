@@ -148,9 +148,9 @@ ruff check src/
 
 ## Documentation
 
-- [MCP Specification](../docs-dnne/development/dnne_ui_MCP.md)
-- [Implementation Plan](../docs-dnne/development/dnne_ui_MCP_implementation_plan.md)
-- [Task Tracking](../docs-dnne/development/dnne_ui_MCP_TASKS.md)
+- [Development Guide](DEVELOPMENT.md) - Architecture, testing, and technical details
+- [Task Tracking](TASKS.md) - Current status and TODO list
+- [UI Selectors](SELECTORS.md) - Complete selector and navigation reference
 
 ## License
 

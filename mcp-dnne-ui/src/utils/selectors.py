@@ -48,7 +48,7 @@ CLEAR_LOGS = ".clear-logs"  # TBD
 
 def get_workflow_selector(name: str) -> str:
     """Get selector for a specific workflow in the tree"""
-    return f'li[aria-label="{name}"] .p-tree-node-content'
+    return f'li[aria-label="{name}"] > .p-tree-node-content'
 
 def get_menu_item_selector(index: int) -> str:
     """Get selector for menu item by index"""

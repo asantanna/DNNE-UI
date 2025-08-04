@@ -47,10 +47,14 @@ class WorkflowTools:
                 # Save As operation
                 logger.info(f"Saving workflow as: {name}")
                 
-                # Open Workflow menu
-                menu_selector = get_menu_item_selector(1)  # Workflow is first menu
-                await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-                await asyncio.sleep(0.5)
+                # Check if submenu is already visible
+                submenu_visible = await self.browser.is_visible(MENU_SUBMENU)
+                
+                if not submenu_visible:
+                    # Open Workflow menu
+                    menu_selector = get_menu_item_selector(1)  # Workflow is first menu
+                    await self.browser.click(f"{menu_selector} .p-menubar-item-label")
+                    await asyncio.sleep(0.5)
                 
                 # Click Save Workflow As (5th item)
                 save_as_selector = get_submenu_item_selector(5)
@@ -115,10 +119,14 @@ class WorkflowTools:
             
             logger.info("Creating new blank workflow")
             
-            # Open Workflow menu
-            menu_selector = get_menu_item_selector(1)
-            await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-            await asyncio.sleep(0.5)
+            # Check if submenu is already visible
+            submenu_visible = await self.browser.is_visible(MENU_SUBMENU)
+            
+            if not submenu_visible:
+                # Open Workflow menu
+                menu_selector = get_menu_item_selector(1)
+                await self.browser.click(f"{menu_selector} .p-menubar-item-label")
+                await asyncio.sleep(0.5)
             
             # Click New Blank Workflow (1st item)
             new_selector = get_submenu_item_selector(1)
@@ -151,10 +159,14 @@ class WorkflowTools:
             
             logger.info("Clearing current workflow")
             
-            # Open Edit menu
-            menu_selector = get_menu_item_selector(2)  # Edit is second menu
-            await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-            await asyncio.sleep(0.5)
+            # Check if submenu is already visible
+            submenu_visible = await self.browser.is_visible(MENU_SUBMENU)
+            
+            if not submenu_visible:
+                # Open Edit menu
+                menu_selector = get_menu_item_selector(2)  # Edit is second menu
+                await self.browser.click(f"{menu_selector} .p-menubar-item-label")
+                await asyncio.sleep(0.5)
             
             # Click Clear Workflow (3rd item in Edit menu)
             clear_selector = get_submenu_item_selector(3)
@@ -194,10 +206,14 @@ class WorkflowTools:
             
             logger.info("Opening workflow dialog")
             
-            # Open Workflow menu
-            menu_selector = get_menu_item_selector(1)
-            await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-            await asyncio.sleep(0.5)
+            # Check if submenu is already visible
+            submenu_visible = await self.browser.is_visible(MENU_SUBMENU)
+            
+            if not submenu_visible:
+                # Open Workflow menu
+                menu_selector = get_menu_item_selector(1)
+                await self.browser.click(f"{menu_selector} .p-menubar-item-label")
+                await asyncio.sleep(0.5)
             
             # Click Open Workflow (2nd item)
             open_selector = get_submenu_item_selector(2)
