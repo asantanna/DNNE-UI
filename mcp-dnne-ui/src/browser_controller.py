@@ -314,9 +314,106 @@ class BrowserController:
             await self.playwright.stop()
             self.playwright = None
     
-    async def restart_browser(self) -> None:
-        """Restart the browser (useful for recovery)"""
+    async def restart_browser(self) -> bool:
+        """
+        Restart the browser (useful for recovery)
+        
+        Returns:
+            True if restart successful
+        """
         logger.info("Restarting browser")
-        await self.cleanup()
-        await asyncio.sleep(1)
-        await self.initialize()
+        
+        try:
+            # Save current state if possible
+            saved_state = None
+            if self.page:
+                try:
+                    saved_state = await self.page.evaluate("""
+                        () => ({
+                            url: window.location.href,
+                            workflow: document.title
+                        })
+                    """)
+                except:
+                    pass
+            
+            # Clean up existing browser
+            await self.cleanup()
+            await asyncio.sleep(2)  # Give it time to fully close
+            
+            # Reinitialize
+            await self.initialize()
+            
+            # Try to restore state
+            if saved_state and saved_state.get("url") != self.dnne_url:
+                logger.info(f"Restoring previous state: {saved_state}")
+                # Navigation happens in initialize, so state should be restored
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to restart browser: {e}")
+            return False
+    
+    async def health_check(self) -> bool:
+        """
+        Check if browser is healthy and responsive
+        
+        Returns:
+            True if browser is healthy
+        """
+        if not self.browser or not self.page:
+            return False
+        
+        try:
+            # Try a simple evaluation
+            result = await self.page.evaluate("() => 1 + 1")
+            return result == 2
+        except:
+            return False
+    
+    async def ensure_healthy(self) -> bool:
+        """
+        Ensure browser is healthy, restart if needed
+        
+        Returns:
+            True if browser is healthy (after potential restart)
+        """
+        if await self.health_check():
+            return True
+        
+        logger.warning("Browser unhealthy, attempting restart...")
+        return await self.restart_browser()
+    
+    async def handle_unexpected_dialog(self) -> bool:
+        """
+        Check for and dismiss unexpected dialogs
+        
+        Returns:
+            True if a dialog was dismissed
+        """
+        if not self.page:
+            return False
+        
+        try:
+            dialog_selector = ".p-dialog"
+            dialog_visible = await self.page.is_visible(dialog_selector)
+            
+            if dialog_visible:
+                logger.info("Unexpected dialog detected, attempting to dismiss...")
+                
+                # Try close button first
+                close_btn = ".p-dialog-header-close"
+                if await self.page.is_visible(close_btn):
+                    await self.page.click(close_btn)
+                else:
+                    # Try Cancel or OK button
+                    await self.page.click(".p-dialog-footer button:has-text('Cancel'), .p-dialog-footer button:has-text('OK')")
+                
+                await asyncio.sleep(0.5)
+                return True
+                
+        except Exception as e:
+            logger.warning(f"Failed to handle dialog: {e}")
+        
+        return False

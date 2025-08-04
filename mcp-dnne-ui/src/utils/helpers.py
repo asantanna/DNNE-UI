@@ -3,7 +3,7 @@
 import asyncio
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 import logging
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,9 @@ async def retry_with_backoff(
     func, 
     max_retries: int = 3, 
     initial_delay: float = 1.0,
-    backoff_factor: float = 2.0
+    backoff_factor: float = 2.0,
+    max_delay: float = 30.0,
+    retry_on: Optional[tuple] = None
 ) -> Any:
     """
     Retry a function with exponential backoff
@@ -39,6 +41,8 @@ async def retry_with_backoff(
         max_retries: Maximum number of retry attempts
         initial_delay: Initial delay in seconds
         backoff_factor: Factor to multiply delay by after each retry
+        max_delay: Maximum delay between retries
+        retry_on: Tuple of exception types to retry on (None = all exceptions)
     
     Returns:
         Result of the function call
@@ -53,15 +57,47 @@ async def retry_with_backoff(
         try:
             return await func()
         except Exception as e:
+            # Check if we should retry on this exception type
+            if retry_on and not isinstance(e, retry_on):
+                logger.error(f"Non-retryable exception: {e}")
+                raise
+            
             last_exception = e
             if attempt < max_retries - 1:
-                logger.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {delay}s...")
+                logger.warning(f"Attempt {attempt + 1}/{max_retries} failed: {e}")
+                logger.info(f"Retrying in {delay:.1f} seconds...")
                 await asyncio.sleep(delay)
-                delay *= backoff_factor
+                delay = min(delay * backoff_factor, max_delay)
             else:
-                logger.error(f"All {max_retries} attempts failed")
+                logger.error(f"All {max_retries} attempts failed. Last error: {e}")
     
     raise last_exception
+
+class RetryableOperation:
+    """Context manager for retryable operations with state tracking"""
+    
+    def __init__(self, operation_name: str, max_retries: int = 3):
+        self.operation_name = operation_name
+        self.max_retries = max_retries
+        self.attempts = 0
+        self.errors = []
+        
+    async def __aenter__(self):
+        self.attempts += 1
+        logger.debug(f"Starting {self.operation_name} (attempt {self.attempts}/{self.max_retries})")
+        return self
+        
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if exc_val:
+            self.errors.append(str(exc_val))
+            if self.attempts < self.max_retries:
+                logger.warning(f"{self.operation_name} failed: {exc_val}")
+                return False  # Don't suppress exception
+            else:
+                logger.error(f"{self.operation_name} failed after {self.attempts} attempts")
+        else:
+            logger.debug(f"{self.operation_name} succeeded on attempt {self.attempts}")
+        return False
 
 def parse_menu_path(path: str) -> tuple[list[str], str]:
     """

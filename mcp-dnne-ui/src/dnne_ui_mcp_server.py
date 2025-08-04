@@ -19,11 +19,15 @@ try:
     from .browser_controller import BrowserController
     from .utils.helpers import setup_logging, get_env_var, format_mcp_response
     from .utils.selectors import *
+    from .utils.state_manager import StateManager
+    from .utils.error_handler import ErrorDiagnostics, with_error_handling
 except ImportError:
     # For direct script execution
     from browser_controller import BrowserController
     from utils.helpers import setup_logging, get_env_var, format_mcp_response
     from utils.selectors import *
+    from utils.state_manager import StateManager
+    from utils.error_handler import ErrorDiagnostics, with_error_handling
 
 # Load environment variables
 load_dotenv()
@@ -45,14 +49,12 @@ class DNNEUIMCPServer:
         self.dnne_url = get_env_var("DNNE_URL", "http://172.22.160.1:8188")
         self.headless = get_env_var("BROWSER_HEADLESS", "false").lower() == "true"
         
-        # State tracking
-        self.state = {
-            "current_workflow": None,
-            "selected_client": None,
-            "export_target": "Local",
-            "sidebar_open": False,
-            "last_error": None
-        }
+        # State management with persistence
+        self.state_manager = StateManager()
+        self.state = self.state_manager.state
+        
+        # Error diagnostics
+        self.error_diagnostics = ErrorDiagnostics()
         
         # Register all tools
         self._register_tools()
@@ -98,6 +100,31 @@ class DNNEUIMCPServer:
             cleanup_browser,
             name="cleanup_browser",
             description="Clean up browser resources"
+        )
+        
+        async def restart_browser() -> Dict[str, Any]:
+            """Restart browser for recovery"""
+            try:
+                if self.browser_controller:
+                    success = await self.browser_controller.restart_browser()
+                    if success:
+                        # Update error diagnostics with new browser
+                        self.error_diagnostics.browser = self.browser_controller
+                        return format_mcp_response(True, message="Browser restarted successfully")
+                    else:
+                        return format_mcp_response(False, error="Browser restart failed")
+                else:
+                    # Initialize if not existing
+                    return await initialize_browser()
+                    
+            except Exception as e:
+                logger.error(f"Failed to restart browser: {e}")
+                return format_mcp_response(False, error=str(e))
+        
+        self.server.add_tool(
+            restart_browser,
+            name="restart_browser",
+            description="Restart the browser for recovery"
         )
         
         # Workflow management tools
