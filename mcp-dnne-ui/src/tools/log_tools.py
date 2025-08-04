@@ -19,16 +19,21 @@ logger = logging.getLogger(__name__)
 class LogTools:
     """Tools for log analysis and management in DNNE UI"""
     
-    def __init__(self, browser_controller, state: Dict[str, Any]):
+    def __init__(self, server, state: Dict[str, Any]):
         """
         Initialize log tools
         
         Args:
-            browser_controller: BrowserController instance
+            server: DNNEUIMCPServer instance for dynamic browser access
             state: Shared state dictionary
         """
-        self.browser = browser_controller
+        self.server = server
         self.state = state
+    
+    @property
+    def browser(self):
+        """Get browser controller dynamically from server"""
+        return self.server.browser_controller
     
     async def get_client_logs(self, client_name: Optional[str] = None) -> Dict[str, Any]:
         """

@@ -18,16 +18,21 @@ logger = logging.getLogger(__name__)
 class UITools:
     """Tools for UI navigation and interaction in DNNE UI"""
     
-    def __init__(self, browser_controller, state: Dict[str, Any]):
+    def __init__(self, server, state: Dict[str, Any]):
         """
         Initialize UI tools
         
         Args:
-            browser_controller: BrowserController instance
+            server: DNNEUIMCPServer instance for dynamic browser access
             state: Shared state dictionary
         """
-        self.browser = browser_controller
+        self.server = server
         self.state = state
+    
+    @property
+    def browser(self):
+        """Get browser controller dynamically from server"""
+        return self.server.browser_controller
     
     async def open_sidebar_tab(self, tab: str) -> Dict[str, Any]:
         """

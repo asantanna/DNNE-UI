@@ -28,11 +28,11 @@ def register_all_additional_tools(server: "DNNEUIMCPServer"):
         from tools.ui_tools import UITools
         from tools.canvas_tools import CanvasTools
     
-    # Create tool instances
-    client_tools = ClientTools(server.browser_controller, server.state)
-    log_tools = LogTools(server.browser_controller, server.state)
-    ui_tools = UITools(server.browser_controller, server.state)
-    canvas_tools = CanvasTools(server.browser_controller, server.state)
+    # Create tool instances with server reference for dynamic browser access
+    client_tools = ClientTools(server, server.state)
+    log_tools = LogTools(server, server.state)
+    ui_tools = UITools(server, server.state)
+    canvas_tools = CanvasTools(server, server.state)
     
     # Register client management tools
     server.server.add_tool(

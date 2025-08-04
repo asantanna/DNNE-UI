@@ -18,16 +18,21 @@ logger = logging.getLogger(__name__)
 class CanvasTools:
     """Tools for canvas operations in DNNE UI"""
     
-    def __init__(self, browser_controller, state: Dict[str, Any]):
+    def __init__(self, server, state: Dict[str, Any]):
         """
         Initialize canvas tools
         
         Args:
-            browser_controller: BrowserController instance
+            server: DNNEUIMCPServer instance for dynamic browser access
             state: Shared state dictionary
         """
-        self.browser = browser_controller
+        self.server = server
         self.state = state
+    
+    @property
+    def browser(self):
+        """Get browser controller dynamically from server"""
+        return self.server.browser_controller
     
     async def zoom_to_fit(self) -> Dict[str, Any]:
         """
