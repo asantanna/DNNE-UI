@@ -1,132 +1,23 @@
 # DNNE Development Status
 
-## Current Task: DNNE Agent System Testing and Refinement
-**Status**: ✅ Completed!
+## Current Work
+See `docs-dnne/for_claude/TASKS.md` for the complete task list and project roadmap.
 
-## 📋 CURRENT TODO LIST
-<!-- TODOS: This section contains the active todo items -->
-- [ ] Fix test_dnne_server health check leaving dangling connections (medium priority)
-- [ ] Add state change broadcasts from dnne_server when clients connect/disconnect (low priority)
-- [ ] Implement and test balancing nodes (high priority)
-- [ ] Create CIFAR-10 integration tests (medium priority)
-- [ ] Add test for missing checkpoint fail-fast behavior (medium priority)
-- [ ] Optimize inference mode (medium priority)
-- [ ] Standardize test suite temporary filenames (low priority)
-- [ ] Add unit test to validate dnne config class (high priority)
-- [ ] Why is a test being skipped in the quick test suite (medium priority)
+## Recent Accomplishments (2025-08-04)
+- ✅ Simplified WSL2 access with --listen 0.0.0.0 flag
+- ✅ Consolidated agent documentation into single dnne-agent.md file
+- ✅ Removed unnecessary Chrome proxy complexity
 
 ## Recent Accomplishments (2025-08-02)
-**Status**: ✅ dnne-agent system fully refactored and tested!
-
-### 🚀 DNNE Agent System Refactoring
-- ✅ Refactored dnne-agent system for production readiness with security and efficiency improvements
-- ✅ Split configuration into three sections: dnne (server-only), exported (client-only), shared
-- ✅ Renamed files for clarity: dnne_client.py → dnne_agent_client.py, dnne_server.py → dnne_agent_server.py
-- ✅ Replaced inefficient busy-wait UDP polling with asyncio DatagramProtocol
-- ✅ Replaced synchronous subprocess.Popen with asyncio.create_subprocess_exec
-- ✅ Fixed stop_workflow to include workflow_id and accept both "stopped" and "completed" status
-- ✅ Fixed process detection bug where test script was finding itself (test_dnne_agent_client.py)
-- ✅ Added automatic Windows host IP detection for WSL (typically 172.22.160.1)
-- ✅ Integrated agent tests with dnne-test framework via new dnne_test_agent() function
-- ✅ Implemented test port architecture (8768) to prevent test clients from using production UI port
-- ✅ Added --enable-test-port flag to dnne_agent_server for test-only functionality
-- ✅ Fixed workflow status forwarding to test connections for proper test completion
-- ✅ Updated connection logging to show comprehensive counts (UI, agent, test connections)
-- ✅ Suppressed noisy websockets library logging
-- ✅ All agent tests now pass consistently: connectivity, deployment, workflow execution, telemetry
-
-### 🚀 DNNE Agent System Implementation (Earlier)
-- ✅ Implemented unified dnne_server (Windows) and dnne_client (Linux/WSL) architecture
-- ✅ Created persistent server that manages clients, workflows, and telemetry
-- ✅ Added UDP telemetry with fire-and-forget pattern for high-performance metrics
-- ✅ Implemented WebSocket control channel for workflow deployment and management
-- ✅ Created comprehensive test suite with granular control options
-- ✅ Added telemetry framework for exported nodes (BalancingNode updated)
-- ✅ Fixed server to handle brief health check connections gracefully
-- ✅ Successfully tested end-to-end: connectivity, telemetry, and workflow execution
+- ✅ Refactored dnne-agent system for production readiness
+- ✅ Implemented asyncio-based UDP telemetry (replaced busy-wait polling)
+- ✅ Added test port architecture (8768) for isolated testing
+- ✅ All agent tests passing: connectivity, deployment, execution, telemetry
 
 ## Recent Accomplishments (2025-02-02)
-**Status**: ✅ Path centralization completed!
-
-### 🔧 Path Centralization Project
-- ✅ Centralized all absolute paths through dnne_config.json
-- ✅ Updated dnne_config.json with new ~/DNNE paths and relative subdirectories
-- ✅ Enhanced dnne_config.py with ~ expansion and OS-aware path conversion for WSL
-- ✅ Created dnne_config_reader.sh helper for shell scripts  
-- ✅ Updated all components to use centralized configuration
-- ✅ Fixed export system to make packages self-sufficient:
-  - Copy dnne_config.py and dnne_config.json to framework/ directory
-  - Removed DNNE root from sys.path to avoid conflicts with nodes.py
-- ✅ Fixed server bug where pre-created directories caused export validation to fail
+- ✅ Centralized all paths through dnne_config.json
+- ✅ Made exported packages self-sufficient (copy framework files)
 - ✅ All tests passing: 171 unit tests + 3 integration tests
-
-## Recent Accomplishments (2025-01-31)
-**Status**: ✅ Integration tests fixed!
-
-### 🧪 Integration Test Fixes
-- ✅ Fixed --epochs flag not working (configuration was applied after node creation)
-- ✅ Fixed test 3 checkpoint path sharing between tests (using temporary file)
-- ✅ Fixed inference mode hanging (removed auto-trigger hack from GetBatch)
-- ✅ Made missing checkpoint a fail-fast error instead of warning
-- ✅ All integration tests now pass successfully
-
-## Recent Accomplishments (2025-01-30)
-**Status**: ✅ Major features completed!
-
-### 🔧 Node Interface Fixes
-- ✅ Moved weight initialization from Network to LinearLayer nodes
-- ✅ Added per-layer weight initialization with auto-detection (Kaiming for ReLU, Xavier for tanh/sigmoid)
-- ✅ Fixed CrossEntropyLoss to original 2-input design (predictions, labels)
-- ✅ Changed SGDOptimizer input from 'network' to 'model' for clarity
-- ✅ Restored EpochTracker to original 3-input design (epoch_stats, loss, accuracy)
-- ✅ Fixed MetricsLogger to use WARNING level (suppress INFO messages)
-- ✅ Successfully exported and tested MNIST_Test and CIFAR10_Test workflows
-
-### 📁 Version Control Improvements
-- ✅ Updated .gitignore to properly track default workflows
-- ✅ Added all 7 workflow JSON files to version control
-- ✅ Committed all node interface changes
-
-### 🎨 Node Color System
-- ✅ Created centralized `node_colors.py` with color constants for all node types
-- ✅ Updated server.py to send COLOR and BGCOLOR in node_info API
-- ✅ Frontend now applies node colors from backend automatically
-- ✅ All nodes have consistent, visually distinct colors by category
-
-### 📊 CIFAR-10 Dataset Support
-- ✅ Implemented CIFAR10Dataset node for loading CIFAR-10 image datasets
-- ✅ Created exporter and queue template for CIFAR-10
-- ✅ Added schema resolution methods to ExportableNode base class
-- ✅ Fixed Yield_Test_Async workflow with CIFAR-10 integration
-
-### 🔢 Universal Node ID Display
-- ✅ All nodes now show their ID in titles (e.g., "Linear Layer (42)")
-- ✅ Solved the mystery of where IDs were being added (change tracker + auto-save)
-- ✅ Implemented consistent ID display for new nodes and loaded workflows
-
-### 🛠️ Export System Improvements
-- ✅ Updated all node exporters to use new schema resolution approach
-- ✅ Created `export_all_workflows.py` script for batch exports
-- ✅ Fixed various export issues and removed deprecated methods
-
-### 🔄 Yield API Updates
-- ✅ Updated PPO training to use new unified yield API
-- ✅ Added subgraph="ppo" and is_item_ref parameters to all yield calls
-
-## Previous Work: Execution Balance in Concurrent Subgraphs
-**Status**: 📋 Implementation plan documented
-
-We documented the plan for proper subgraph-based metrics. Previous work:
-- ✅ Implemented subsystem-specific logging (`--debug balancing`)
-- ✅ Fixed periodic balance reports (every 10s)
-- 🔍 Discovered current metrics measure PPO CPU time vs yield time (not actual MNIST execution)
-- 📋 Documented implementation plan in system-balancing.md
-
-**Next Steps** (see `docs-dnne/architecture/system-balancing.md#implementation-plan---metrics-collection`):
-1. Implement subgraph-based metrics collection
-2. Track throughput (items/sec) for all nodes
-3. Track CPU time for sync nodes only
-4. Report total async time to identify starvation
 
 ## Quick Reference
 
@@ -135,95 +26,27 @@ We documented the plan for proper subgraph-based metrics. Previous work:
 # Activate environment
 source /home/asantanna/miniconda/bin/activate DNNE_PY38
 
-# Export single workflow
-cd /mnt/e/ALS-Projects/DNNE/DNNE-UI
-python claude_scripts/programmatic_export.py Yield_Test
+# Start DNNE UI (Windows)
+./dnne.bat
 
-# Export ALL workflows
-python claude_scripts/export_all_workflows.py
+# Start Agent Client (WSL2)
+python dnne-agent/dnne_agent_client.py
 
-# Run with balance debugging (shows reports every 10s)
-cd export_system/exports/Yield_Test
-python runner.py --debug balancing --timeout 60s
+# Export workflow
+python claude_scripts/programmatic_export.py MNIST_Test
 
-# Toggle debug prints on/off
-python claude_scripts/toggle_DBG_TAG.py <filename>
+# Run exported workflow
+cd export_system/exports/MNIST_Test
+python runner.py --epochs 10
 ```
 
-### Command-Line Switches for `runner.py`
-- `--debug <subsystems>` - Enable debug for specific subsystems (e.g., `balancing,yield`)
-- `--verbose <subsystems>` - Enable info-level logging for subsystems
-- `--timeout 30s` or `--timeout 5m` - Set run duration
-- `--save-checkpoint --out-dir <dir>` - Enable checkpoint saving
-- `--epochs 55:10 56:20` - Node-specific settings (nodeID:value)
-- `--no-yield` - Disable adaptive yielding (for testing)
-
-### Available Logging Subsystems
-- `balancing` - Execution balance reports between subgraphs
-- `yield` - Adaptive yielding timing and decisions
-- `ppo` - PPO training details
-- `mnist` - MNIST training progress
-- `queue` - Queue operations and flow
-- `checkpoint` - Checkpoint save/load operations
-
-### Important Locations
-- Workflows: `/mnt/e/ALS-Projects/DNNE/DNNE-UI/user/default/workflows/`
-- Exports: `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/exports/`
-- Templates: `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/templates/`
-- RL Games: `/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne/`
+### Key Ports
+- **8188**: DNNE UI
+- **8766-8769**: Agent system
+- **9999**: Telemetry UDP
 
 ### Key Documentation
-- **System Balancing**: `docs-dnne/architecture/system-balancing.md` - Philosophy and implementation plan for subgraph-based metrics
-- **Adaptive Yielding**: `docs-dnne/architecture/adaptive-yielding.md` - Current yielding implementation (needs update)
-- **Logging Guidelines**: `docs-dnne/development/logging-guidelines.md` - Subsystem logging standards
-
-## 📅 Potential Future Work Items
-
-### Medium-term
-- [ ] **Implement subgraph-based metrics** - Track actual throughput per subgraph
-- [ ] **Add real-time progress display** - Show training progress every 5-10s
-- [ ] **Test --no-yield flag** - Verify PPO dominates without yielding
-- [ ] **Add subgraph activity tracking** - Track which subgraph is active with timestamps
-- [ ] **Test verbose output** - Monitor detailed execution patterns
-- [ ] **Update adaptive-yielding.md** - Currently marked as "hopelessly wrong"
-
-### Long-term
-- [ ] **Fix Hydra disable_existing_loggers** - Find proper solution instead of workaround
-- [ ] **Create visual progress indicators** - Nice-to-have execution visualization
-- [ ] **Fix total yields counter** - Currently shows 0 despite yields happening
-- [ ] **Wire metrics to adaptive algorithm** - Make yielding respond to actual starvation
-
-### ✅ Recently Completed
-- [x] **Export all workflows using the export_all_workflows script**
-- [x] **Understand execution metrics** - 86/14 split is PPO CPU vs yield time (not MNIST time)
-- [x] **Document implementation plan** - Added to system-balancing.md
-
-## Feature Requests
-*Detailed specs in docs-dnne/future/*
-
-### 🧠 ML Features
-- [ ] **ConvNet Support** (Medium/Medium) - Add MaxPool2D, BatchNorm2D, Flatten nodes for CNN architectures
-- [ ] **Advanced Optimizers** (Medium/Medium) - Add Adam, AdamW, RMSprop optimizers and LR schedulers
-- [ ] **Data Pipeline** (Medium/Medium) - Custom datasets, data augmentation, validation splitting
-
-### 🤖 Robotics Features  
-- [ ] **PPO Decomposition** (Low/Large) - Split PPOAgent into Actor, Critic, Trainer, Buffer nodes
-- [ ] **Rate Limiting** (Low/Small) - Add Hz control to GetBatch for fixed-frequency robotics
-
-### 🔧 System Features
-- [ ] **UI Feedback** (Low/Medium) - Progress bars, connection status, better error messages
-- [ ] **Linux Test Suite** (Low/Large) - Automated testing framework for Linux compatibility
-- [ ] **Architecture Refactor** (Low/Ongoing) - Technical debt and queue framework improvements
-
-### 📊 Visualization Features
-- [ ] **Training Dashboards** (Low/Medium) - Real-time loss graphs, metrics visualization
-
----
-
-### Key Implementation Notes
-
-**Thread-Safe Yielding**: PPO runs in thread pool with `run_in_executor`, uses ThreadSafeYielder singleton to request yields from main loop. MNIST runs naturally async.
-
-**Logging Workaround**: Hydra disables loggers after configuration. We re-enable in a2c_common.py before use. Proper fix: configure Hydra with `disable_existing_loggers: False`.
-
-**Balance Measurement**: Currently tracks PPO CPU time vs yield time via `sync_adaptive_yield()` calls. Will be updated to track per-subgraph metrics (throughput and CPU time where applicable). See implementation plan in system-balancing.md.
+- **Tasks**: `docs-dnne/for_claude/TASKS.md` - Current work items
+- **Agent**: `docs-dnne/architecture/dnne-agent.md` - Agent architecture
+- **Runner**: `docs-dnne/development/runner.md` - Command line switches for runner.py
+- **CLAUDE.md**: Project overview and development guidance
