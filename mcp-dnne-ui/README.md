@@ -19,9 +19,10 @@ This MCP server replaces low-level Puppeteer commands with task-oriented functio
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- DNNE UI server running (typically on Windows)
+- Python 3.10 or higher
+- DNNE UI server running on http://172.22.160.1:8188
 - Chrome/Chromium browser
+- MCP dependencies (mcp, playwright, python-dotenv)
 
 ### Setup
 

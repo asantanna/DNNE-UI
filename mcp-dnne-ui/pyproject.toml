@@ -3,7 +3,7 @@ name = "mcp-dnne-ui"
 version = "0.1.0"
 description = "MCP server for DNNE UI automation using Playwright"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 authors = [
     {name = "DNNE Team", email = "dnne@example.com"}
 ]
@@ -21,6 +21,9 @@ dev = [
     "black>=23.0.0",
     "ruff>=0.1.0",
 ]
+
+[project.scripts]
+mcp-dnne-ui = "src.dnne_ui_mcp_server:main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
