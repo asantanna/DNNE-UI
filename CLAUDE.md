@@ -12,9 +12,9 @@ The primary innovation is the **export system** that converts visual node graphs
 ### Repository Structure
 
 #### Code Locations
-- Backend code is checked out to: `/mnt/e/ALS-Projects/DNNE/DNNE-UI`
-- Front end code is checked out to: `/mnt/e/ALS-Projects/DNNE/DNNE-UI-Frontend`
-- Linux support code is checked out to: `/home/asantanna/DNNE-LINUX-SUPPORT`
+- Backend code is checked out to: `/home/asantanna/DNNE/DNNE-UI`
+- Front end code is checked out to: `/home/asantanna/DNNE/DNNE-UI-Frontend`
+- Linux support code is checked out to: `/home/asantanna/DNNE/DNNE-LINUX-SUPPORT`
 
 #### Backend Repository (This Repository)
 Contains the main DNNE-UI backend with:
@@ -66,7 +66,7 @@ pip install -r requirements.txt
 
 ### Testing Export System
 ```bash
-python /mnt/e/ALS-Projects/DNNE/DNNE-UI/claude_scripts/programmatic_export.py
+python /home/asantanna/DNNE/DNNE-UI/claude_scripts/programmatic_export.py
 ```
 
 ### Running Exported Scripts
@@ -177,7 +177,7 @@ The system has three main components:
 **STATUS**: Under investigation - need to verify checkpoint loading integrity in inference mode.
 
 ### **CRITICAL FILE ORGANIZATION RULE**
-**⚠️ ABSOLUTE PROHIBITION: NEVER create ANY files in the project root directory (/mnt/e/ALS-Projects/DNNE/DNNE-UI/) ⚠️**
+**⚠️ ABSOLUTE PROHIBITION: NEVER create ANY files in the project root directory (/home/asantanna/DNNE/DNNE-UI/) ⚠️**
 
 **EXPORTS MUST GO TO**: `export_system/exports/{workflow_name}/` ONLY
 **TEST FILES MUST GO TO**: `dnne-test-suite` directories ONLY
