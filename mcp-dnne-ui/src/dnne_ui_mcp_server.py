@@ -13,7 +13,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
 from mcp.server import FastMCP
-from mcp.server.stdio import stdio_server
 
 try:
     from .browser_controller import BrowserController
@@ -427,27 +426,22 @@ class DNNEUIMCPServer:
         
         register_all_additional_tools(self)
     
-    async def run(self):
+    def run(self):
         """Run the MCP server"""
         logger.info("Starting DNNE UI MCP Server")
         logger.info(f"DNNE URL: {self.dnne_url}")
         
-        # Run the stdio server
-        async with stdio_server() as (read_stream, write_stream):
-            await self.server.run(
-                read_stream,
-                write_stream,
-                self.server.create_initialization_options()
-            )
+        # FastMCP handles stdio transport
+        self.server.run("stdio")
 
-async def main():
+def main():
     """Main entry point"""
     server = DNNEUIMCPServer()
-    await server.run()
+    server.run()
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        main()
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
     except Exception as e:
