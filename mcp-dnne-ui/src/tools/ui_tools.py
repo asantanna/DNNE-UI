@@ -506,12 +506,15 @@ class UITools:
                 "save as": 7, "save workflow as": 7,  # Item 7: "Save As"
                 "export": 8, "export workflow": 8,    # Item 8: "Export"
                 "export api": 9, "export (api)": 9,   # Item 9: "Export (API)"
-                # Edit menu
+                # Edit menu (positions include separators)
                 "undo": 1,
                 "redo": 2,
-                "clear": 3, "clear workflow": 3,
+                # separator at 3
                 "refresh": 4, "refresh node definitions": 4,
-                "clipspace": 5, "open clipspace": 5
+                # separator at 5
+                "clear": 6, "clear workflow": 6,
+                # separator at 7
+                "clipspace": 8, "open clipspace": 8
             }
             
             # Find item by index
