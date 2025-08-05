@@ -3,10 +3,10 @@
 *Last Updated: 2025-08-04*
 
 ## Quick Stats
-- **Total Tools**: 33 implemented
-- **Tested**: 15/33 (45%)
-- **Working**: 8/15 (53%)
-- **Remaining**: 18 tools to test
+- **Total Tools**: 39 implemented
+- **Tested**: 39/39 (100%)
+- **Working**: 31/39 (79.5%)
+- **Failed**: 8 tools need fixes
 
 ## ✅ Completed
 
@@ -19,71 +19,55 @@
 - [x] Error handling framework
 - [x] Claude Desktop integration
 
-### Working Tools
-- [x] initialize_browser
-- [x] cleanup_browser
-- [x] restart_browser
-- [x] is_browser_running
-- [x] is_ui_healthy
-- [x] take_screenshot
-- [x] get_workflow_list
-- [x] load_workflow
-- [x] export_workflow
-- [x] get_current_workflow_name
-- [x] new_blank_workflow
-- [x] get_node_count
+### Recent Improvements (2025-08-04)
+- [x] Migrated to MCP_PY310 conda environment
+- [x] Fixed status bar selector (.agent-status-bar)
+- [x] Fixed dialog close button selector (.p-dialog-close-button)
+- [x] Implemented fail-fast error handling
+- [x] Created comprehensive test suite (test_all_mcp_tools.py)
+- [x] Fixed canvas tools evaluate() argument error
+- [x] Renamed ensure_healthy() to is_healthy()
+- [x] Bulletproof UI restoration in tests
+
+### Working Tools (31/39)
+See test_results_comprehensive.json for complete list
 
 ### Documentation
-- [x] README.md - User guide
+- [x] README.md - User guide with MCP_PY310 instructions
 - [x] SELECTORS.md - UI selector reference
-- [x] DEVELOPMENT.md - Technical documentation
+- [x] DEVELOPMENT.md - Updated with fail-fast principles
 - [x] TASKS.md - This file
+- [x] ENVIRONMENT_SETUP.md - New conda environment guide
+- [x] requirements.txt - Dependencies for MCP_PY310
 
 ## 🚧 In Progress
 
 ### Current Focus
-- [ ] Fix save dialog navigation (menu already open issue)
-- [ ] Test save_workflow with corrected menu navigation
+- [ ] Implement missing workflow tools (load_workflow, export_workflow)
+- [ ] Fix remaining selector issues
 
 ## 📋 TODO
 
-### High Priority Fixes
-- [ ] **Save Dialog Navigation**
-  - Issue: Menu closes when already open
-  - Fix: Check submenu visibility before clicking
-  - File: `src/tools/workflow_tools.py`
+### Failed Tools (8 to fix)
+1. **load_workflow** - Missing implementation
+2. **get_current_workflow_name** - Missing implementation  
+3. **save_workflow** - Save dialog doesn't appear
+4. **export_workflow** - Missing implementation
+5. **is_ui_healthy** - Method name mismatch
+6. **select_client** - Client dropdown selector not found
+7. **clear_logs** - Clear Logs button not found
+8. **wait_for_log_pattern** - Timeout handling
 
-- [ ] **Export Slot Corruption**
-  - Issue: DNNE export system has slot issues
-  - Impact: Core functionality blocked
-  - Note: Main DNNE issue, not MCP-specific
+### High Priority Selectors to Fix
+- [ ] **Client Dropdown** (.client-dropdown)
+- [ ] **Clear Logs Button** (.clear-logs)
+- [ ] **Show All Logs Button** (.show-all-logs)
 
-### Tools to Implement (5 remaining)
-- [ ] get_training_metrics() - Parse logs for metrics
-- [ ] get_export_errors() - Find export issues in logs
-- [ ] get_recent_errors() - Get recent error messages
-- [ ] wait_for_log_pattern() - Wait for specific log output
-- [ ] get_canvas_state() - Get detailed canvas information
-
-### Tools to Test (18 remaining)
-- [ ] save_workflow (after fix)
-- [ ] clear_workflow
-- [ ] open_workflow
-- [ ] get_connected_clients
-- [ ] select_client
-- [ ] get_agent_status
-- [ ] get_client_logs
-- [ ] show_all_logs
-- [ ] clear_logs
-- [ ] open_sidebar_tab
-- [ ] open_menu
-- [ ] dismiss_dialog
-- [ ] get_error_message
-- [ ] wait_for_ui_ready
-- [ ] zoom_to_fit
-- [ ] zoom_in
-- [ ] zoom_out
-- [ ] toggle_link_visibility
+### Missing Implementations
+- [ ] load_workflow() - Load workflow from sidebar
+- [ ] get_current_workflow_name() - Get active workflow
+- [ ] export_workflow() - Export current workflow
+- [ ] Log analysis tools (5 functions)
 
 ### Low Priority
 - [ ] Performance optimization
@@ -115,16 +99,18 @@
 
 ## 📊 Testing Results
 
-### By Category
+### By Category (Updated 2025-08-04)
 | Category | Tested | Working | Success Rate |
 |----------|--------|---------|--------------|
-| Browser Lifecycle | 4/4 | 4/4 | 100% |
-| Workflow Mgmt | 6/6 | 3/6 | 50% |
-| Export Tools | 1/1 | 1/1 | 100% |
-| Canvas Ops | 1/4 | 1/4 | 25% |
-| Client Mgmt | 0/3 | - | - |
-| Log Tools | 0/9 | - | - |
-| UI Navigation | 0/6 | - | - |
+| Browser Lifecycle | 4/4 | 4/4 | 100% ✅ |
+| Core Workflow | 6/6 | 3/6 | 50% ⚠️ |
+| Export System | 1/1 | 0/1 | 0% ❌ |
+| Health & Status | 4/4 | 3/4 | 75% ⚠️ |
+| Client Management | 5/5 | 3/5 | 60% ⚠️ |
+| Log Management | 5/5 | 4/5 | 80% ✅ |
+| UI Navigation | 7/7 | 7/7 | 100% ✅ |
+| Canvas Operations | 6/6 | 6/6 | 100% ✅ |
+| Utility Tools | 1/1 | 1/1 | 100% ✅ |
 
 ## 🎯 Milestones
 
@@ -164,11 +150,14 @@
 
 ### Quick Commands
 ```bash
-# Start MCP server
-python run_mcp_server.py
+# Activate MCP environment
+source /home/asantanna/miniconda/bin/activate MCP_PY310
 
-# Run tests
-pytest tests/
+# Start MCP server
+python src/dnne_ui_mcp_server.py
+
+# Run comprehensive tests
+python tests/test_all_mcp_tools.py
 
 # Take screenshot (from MCP)
 mcp__dnne-ui__take_screenshot

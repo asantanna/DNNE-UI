@@ -1,9 +1,21 @@
 # DNNE Development Status
 
-## Current Work
-See `docs-dnne/for_claude/TASKS.md` for the complete task list and project roadmap.
+## Current Work: MCP Server Improvements (2025-08-04)
+Working on DNNE UI automation via MCP (Model Context Protocol) server that replaces Puppeteer with a more reliable Python/Playwright solution.
+
+### Today's Accomplishments
+- ✅ Fixed critical UI selectors (status bar, dialog close buttons)
+- ✅ Implemented fail-fast error handling (no more silent failures)
+- ✅ Created comprehensive test suite - 100% coverage, 79.5% passing
+- ✅ Migrated to MCP_PY310 conda environment
+- ✅ Fixed dialog dismiss functionality with bulletproof UI restoration
+
+### Active Work
+See `mcp-dnne-ui/DEVELOPMENT.md` for technical details and `mcp-dnne-ui/TASKS.md` for current issues.
 
 ### TODO List
+- [ ] Fix missing workflow tool implementations (load_workflow, export_workflow)
+- [ ] Fix client dropdown and log button selectors
 - [ ] Fix IsaacGymEnvs node widget mismatch on export (BUG: "node 12 has 0 widget values, expected at least 15" when exporting Cartpole_PPO)
 - [ ] Remove non-functional items from Workflow menu: Browse Templates, Export, Export (API)
 

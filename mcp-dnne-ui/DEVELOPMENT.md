@@ -3,7 +3,7 @@
 ## Architecture Overview
 
 ### Technology Stack
-- **Language**: Python 3.10+
+- **Language**: Python 3.10+ (MCP_PY310 conda environment)
 - **Browser Automation**: Playwright (not Puppeteer)
 - **MCP Framework**: FastMCP
 - **Async**: asyncio for non-blocking operations
@@ -32,29 +32,36 @@
 - Utility functions use `util_` prefix for ground truth operations
 - Tool names match function names for consistency
 
+#### Fail-Fast Design Principles
+- **No fallback selectors** - Fail immediately with clear error messages
+- **No default values** - Throw NotImplementedError for missing implementations
+- **Clear error context** - Include selector paths and expected elements
+- **Immediate feedback** - No silent failures or wrong behavior
+
 ## Current Implementation Status
 
 ### Working Components (Production Ready) ✅
 - Browser lifecycle management (init, cleanup, restart)
 - Screenshot capture with configurable paths
-- Health checks and status monitoring
-- Basic workflow operations (new, list, get current)
+- Health checks and status monitoring (fixed agent status selector)
+- Basic workflow operations (new, clear, list)
 - MCP server communication with Claude Desktop
-- Workflow loading with correct selectors
-- Export functionality
+- Menu navigation with submenu state checking
+- Dialog dismissal with updated selectors
+- Canvas operations (zoom, fit view, link visibility)
+- Comprehensive test suite with bulletproof UI restoration
 
 ### Known Issues 🔧
 
-#### 1. Save Dialog Navigation (HIGH PRIORITY)
-**Problem**: Save As dialog doesn't appear when clicking menu item
-**Root Cause**: Menu is already open after workflow load, clicking menu header closes it
-**Solution**: Check if submenu is visible before clicking menu header
-```python
-submenu_visible = await self.browser.is_visible(MENU_SUBMENU)
-if not submenu_visible:
-    # Only click menu if not already open
-    await self.browser.click(menu_selector)
-```
+#### 1. Client Dropdown Selector (HIGH PRIORITY)
+**Problem**: Client dropdown selector not found in UI
+**Impact**: Cannot select export targets
+**Next Steps**: Identify correct selector from UI inspection
+
+#### 2. Log Button Selectors (HIGH PRIORITY)
+**Problem**: Clear Logs and Show All Logs buttons not found
+**Impact**: Log management functionality incomplete
+**Status**: Buttons may be disabled or have different selectors
 
 #### 2. Export System Slot Corruption (MEDIUM PRIORITY)
 **Problem**: Export may fail with slot corruption errors
@@ -143,9 +150,10 @@ class ConnectionError(DNNEError): pass   # DNNE server connection
 
 ### Test Coverage (as of 2025-08-04)
 ```
-Total Tools: 33
-Tested: 15 (45.5%)
-Working: 8 (53.3% of tested)
+Total Tools: 39
+Tested: 39 (100%)
+Working: 31 (79.5%)
+Failed: 8 (20.5%)
 ```
 
 ### Test Categories
@@ -156,14 +164,14 @@ Working: 8 (53.3% of tested)
 
 ### Running Tests
 ```bash
-# Run all tests
-pytest tests/
+# Activate MCP_PY310 environment first
+source /home/asantanna/miniconda/bin/activate MCP_PY310
 
-# Run specific category
-pytest tests/test_browser_lifecycle.py
+# Run comprehensive test suite
+python tests/test_all_mcp_tools.py
 
-# Run with coverage
-pytest --cov=src tests/
+# Test results are saved to:
+# tests/test_results_comprehensive.json
 ```
 
 ## Debugging Techniques
