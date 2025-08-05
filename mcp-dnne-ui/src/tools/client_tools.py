@@ -6,12 +6,14 @@ from typing import Dict, Any, List, Optional
 try:
     from ..utils.helpers import format_mcp_response
     from ..utils.selectors import *
+    from ..utils.timing_constants import ANIMATION_DELAY
 except ImportError:
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from utils.helpers import format_mcp_response
     from utils.selectors import *
+    from utils.timing_constants import ANIMATION_DELAY
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +58,7 @@ class ClientTools:
             if dropdown_exists:
                 # Click to open dropdown
                 await self.browser.click(client_selector)
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(ANIMATION_DELAY)
                 
                 # Get all client options
                 clients = await self.browser.evaluate("""
@@ -154,7 +156,7 @@ class ClientTools:
             
             # Open dropdown
             await self.browser.click(client_selector)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(ANIMATION_DELAY)
             
             # Find and click the specific client
             success = await self.browser.evaluate(f"""

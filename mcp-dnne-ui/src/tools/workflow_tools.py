@@ -6,12 +6,20 @@ from typing import Dict, Any, Optional
 try:
     from ..utils.helpers import format_mcp_response
     from ..utils.selectors import *
+    from ..utils.timing_constants import (
+        MENU_TIMEOUT, DIALOG_TIMEOUT, ANIMATION_DELAY, 
+        DIALOG_SETTLE_DELAY, WORKFLOW_LOAD_DELAY
+    )
 except ImportError:
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from utils.helpers import format_mcp_response
     from utils.selectors import *
+    from utils.timing_constants import (
+        MENU_TIMEOUT, DIALOG_TIMEOUT, ANIMATION_DELAY, 
+        DIALOG_SETTLE_DELAY, WORKFLOW_LOAD_DELAY
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +62,10 @@ class WorkflowTools:
                     # Open Workflow menu
                     menu_selector = get_menu_item_selector(1)  # Workflow is first menu
                     await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(ANIMATION_DELAY)
                     
                     # Ensure submenu is now visible
-                    submenu_visible = await self.browser.wait_for_selector(MENU_SUBMENU, timeout=2000)
+                    submenu_visible = await self.browser.wait_for_selector(MENU_SUBMENU, timeout=MENU_TIMEOUT)
                     if not submenu_visible:
                         return format_mcp_response(False, error="Workflow submenu did not open")
                 
@@ -74,10 +82,10 @@ class WorkflowTools:
                 if not clicked:
                     return format_mcp_response(False, error="Failed to click Save As menu item")
                     
-                await asyncio.sleep(1)  # Give more time for dialog to appear
+                await asyncio.sleep(DIALOG_SETTLE_DELAY)  # Give more time for dialog to appear
                 
                 # Wait for save dialog
-                dialog_visible = await self.browser.wait_for_selector(DIALOG, timeout=3000)
+                dialog_visible = await self.browser.wait_for_selector(DIALOG, timeout=DIALOG_TIMEOUT)
                 if not dialog_visible:
                     return format_mcp_response(False, error="Save dialog did not appear")
                 
@@ -110,7 +118,7 @@ class WorkflowTools:
                     }));
                 """)
                 
-                await asyncio.sleep(1)
+                await asyncio.sleep(DIALOG_SETTLE_DELAY)
                 
                 return format_mcp_response(
                     True,
@@ -141,12 +149,12 @@ class WorkflowTools:
                 # Open Workflow menu
                 menu_selector = get_menu_item_selector(1)
                 await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(ANIMATION_DELAY)
             
             # Click New Blank Workflow (1st item)
             new_selector = get_submenu_item_selector(1)
             await self.browser.click(new_selector)
-            await asyncio.sleep(1)
+            await asyncio.sleep(DIALOG_SETTLE_DELAY)
             
             # Update state
             self.state["current_workflow"] = None
@@ -181,12 +189,12 @@ class WorkflowTools:
                 # Open Edit menu
                 menu_selector = get_menu_item_selector(2)  # Edit is second menu
                 await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(ANIMATION_DELAY)
             
             # Click Clear Workflow (3rd item in Edit menu)
             clear_selector = get_submenu_item_selector(3)
             await self.browser.click(clear_selector)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(ANIMATION_DELAY)
             
             # Check for confirmation dialog
             dialog_visible = await self.browser.is_visible(DIALOG)
@@ -194,7 +202,7 @@ class WorkflowTools:
                 # Click confirm button
                 confirm_button = f"{DIALOG_FOOTER} button:has-text('Yes'), {DIALOG_FOOTER} button:has-text('Confirm')"
                 await self.browser.click(confirm_button)
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(ANIMATION_DELAY)
             
             # Update state
             self.state["current_workflow"] = None
@@ -228,12 +236,12 @@ class WorkflowTools:
                 # Open Workflow menu
                 menu_selector = get_menu_item_selector(1)
                 await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(ANIMATION_DELAY)
             
             # Click Open Workflow (2nd item)
             open_selector = get_submenu_item_selector(2)
             await self.browser.click(open_selector)
-            await asyncio.sleep(1)
+            await asyncio.sleep(DIALOG_SETTLE_DELAY)
             
             # Wait for file dialog or sidebar to open
             # This might open a file input or the workflows sidebar
@@ -263,7 +271,7 @@ class WorkflowTools:
             # Open workflows sidebar if not open
             if not self.state.get("sidebar_open"):
                 await self.browser.click(WORKFLOWS_TAB)
-                await asyncio.sleep(1)
+                await asyncio.sleep(DIALOG_SETTLE_DELAY)
                 self.state["sidebar_open"] = True
             
             # Get all workflow items
@@ -309,7 +317,7 @@ class WorkflowTools:
             sidebar_visible = await self.browser.is_visible(".workflows-tab-button.active")
             if not sidebar_visible:
                 await self.browser.click(WORKFLOWS_TAB)
-                await asyncio.sleep(1)
+                await asyncio.sleep(DIALOG_SETTLE_DELAY)
             
             # Add .json if not present
             if not name.endswith('.json'):
@@ -328,7 +336,7 @@ class WorkflowTools:
             
             # Click the workflow
             await self.browser.click(workflow_selector)
-            await asyncio.sleep(2)  # Wait for workflow to load
+            await asyncio.sleep(WORKFLOW_LOAD_DELAY)  # Wait for workflow to load
             
             # Update state
             self.state["current_workflow"] = name
@@ -431,11 +439,11 @@ class WorkflowTools:
                     
                     if not is_checked:
                         await self.browser.click(RUN_AFTER_EXPORT)
-                        await asyncio.sleep(0.3)
+                        await asyncio.sleep(ANIMATION_DELAY)
             
             # Click export button
             await self.browser.click(EXPORT_BUTTON)
-            await asyncio.sleep(2)  # Wait for export to start
+            await asyncio.sleep(WORKFLOW_LOAD_DELAY)  # Wait for export to start
             
             # Update state
             self.state["last_export"] = {

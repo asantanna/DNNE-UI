@@ -7,8 +7,16 @@ from typing import Optional, Dict, Any
 from playwright.async_api import async_playwright, Browser, Page, Playwright
 try:
     from .utils.helpers import ensure_screenshot_dir, retry_with_backoff
+    from .utils.timing_constants import (
+        BROWSER_LAUNCH_TIMEOUT, BROWSER_READY_TIMEOUT, BROWSER_CLOSE_TIMEOUT,
+        SELECTOR_TIMEOUT, CLICK_TIMEOUT, TYPE_TIMEOUT, ANIMATION_DELAY, BROWSER_CLOSE_DELAY
+    )
 except ImportError:
     from utils.helpers import ensure_screenshot_dir, retry_with_backoff
+    from utils.timing_constants import (
+        BROWSER_LAUNCH_TIMEOUT, BROWSER_READY_TIMEOUT, BROWSER_CLOSE_TIMEOUT,
+        SELECTOR_TIMEOUT, CLICK_TIMEOUT, TYPE_TIMEOUT, ANIMATION_DELAY, BROWSER_CLOSE_DELAY
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +76,7 @@ class BrowserController:
             response = await self.page.goto(
                 self.dnne_url,
                 wait_until="domcontentloaded",
-                timeout=30000
+                timeout=BROWSER_LAUNCH_TIMEOUT
             )
             
             if response and response.status == 200:
@@ -85,7 +93,7 @@ class BrowserController:
             logger.error(f"Navigation failed: {e}")
             return False
     
-    async def wait_for_ui_ready(self, timeout: int = 10000) -> bool:
+    async def wait_for_ui_ready(self, timeout: int = BROWSER_READY_TIMEOUT) -> bool:
         """
         Wait for DNNE UI to be fully loaded
         
@@ -104,7 +112,7 @@ class BrowserController:
             await self.page.wait_for_selector('.comfyui-menu', timeout=timeout)
             
             # Small delay to ensure everything is rendered
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(ANIMATION_DELAY)
             
             logger.info("UI is ready")
             return True
@@ -113,7 +121,7 @@ class BrowserController:
             logger.error(f"UI not ready after {timeout}ms: {e}")
             return False
     
-    async def click(self, selector: str, timeout: int = 3000) -> bool:
+    async def click(self, selector: str, timeout: int = CLICK_TIMEOUT) -> bool:
         """
         Click an element with retry logic
         
@@ -139,7 +147,7 @@ class BrowserController:
             logger.error(f"Failed to click {selector}: {e}")
             return False
     
-    async def get_text(self, selector: str, timeout: int = 3000) -> Optional[str]:
+    async def get_text(self, selector: str, timeout: int = SELECTOR_TIMEOUT) -> Optional[str]:
         """
         Get text content of an element
         
@@ -163,7 +171,7 @@ class BrowserController:
             logger.error(f"Failed to get text from {selector}: {e}")
             return None
     
-    async def type_text(self, selector: str, text: str, timeout: int = 3000) -> bool:
+    async def type_text(self, selector: str, text: str, timeout: int = TYPE_TIMEOUT) -> bool:
         """
         Type text into an input field
         
@@ -234,7 +242,7 @@ class BrowserController:
             logger.error(f"Failed to evaluate script: {e}")
             return None
     
-    async def wait_for_selector(self, selector: str, timeout: int = 3000) -> bool:
+    async def wait_for_selector(self, selector: str, timeout: int = SELECTOR_TIMEOUT) -> bool:
         """
         Wait for an element to appear
         
@@ -339,7 +347,7 @@ class BrowserController:
             
             # Clean up existing browser
             await self.cleanup()
-            await asyncio.sleep(2)  # Give it time to fully close
+            await asyncio.sleep(BROWSER_CLOSE_DELAY)  # Give it time to fully close
             
             # Reinitialize
             await self.initialize()
@@ -450,7 +458,7 @@ class BrowserController:
                     # Try Cancel or OK button
                     await self.page.click(".p-dialog-footer button:has-text('Cancel'), .p-dialog-footer button:has-text('OK')")
                 
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(ANIMATION_DELAY)
                 return True
                 
         except Exception as e:

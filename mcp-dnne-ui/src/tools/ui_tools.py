@@ -6,12 +6,18 @@ from typing import Dict, Any, Optional
 try:
     from ..utils.helpers import format_mcp_response, parse_menu_path
     from ..utils.selectors import *
+    from ..utils.timing_constants import (
+        MENU_TIMEOUT, SELECTOR_TIMEOUT, ANIMATION_DELAY
+    )
 except ImportError:
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from utils.helpers import format_mcp_response, parse_menu_path
     from utils.selectors import *
+    from utils.timing_constants import (
+        MENU_TIMEOUT, SELECTOR_TIMEOUT, ANIMATION_DELAY
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +79,7 @@ class UITools:
             
             if success:
                 # Wait for sidebar animation
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(ANIMATION_DELAY)
                 self.state["sidebar_open"] = True
                 self.state["sidebar_tab"] = tab_lower
                 
@@ -138,7 +144,7 @@ class UITools:
             # Click the top menu
             menu_selector = get_menu_item_selector(menu_index)
             await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(ANIMATION_DELAY)
             
             # If there are nested menus, navigate them
             # For now, we'll handle single-level submenus
@@ -230,7 +236,7 @@ class UITools:
                     error=f"Failed to click dialog close button '{close_button}'"
                 )
             
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(ANIMATION_DELAY)
             
             # Verify dialog is gone
             still_visible = await self.browser.is_visible(DIALOG)
@@ -408,7 +414,7 @@ class UITools:
             
             if success:
                 # Wait a bit for animation
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(ANIMATION_DELAY)
                 
                 # Check new state
                 is_open = await self.browser.is_visible(MENU_SUBMENU)
@@ -487,8 +493,8 @@ class UITools:
                 menu_selector = get_menu_item_selector(menu_index)
                 await self.browser.click(f"{menu_selector} .p-menubar-item-label")
                 # Wait for submenu to appear
-                await self.browser.wait_for_selector(MENU_SUBMENU, timeout=2000)
-                await asyncio.sleep(0.2)  # Short pause for animation
+                await self.browser.wait_for_selector(MENU_SUBMENU, timeout=MENU_TIMEOUT)
+                await asyncio.sleep(ANIMATION_DELAY)  # Short pause for animation
             
             # Map common menu items to their indices (based on actual UI positions)
             menu_item_indices = {
@@ -610,7 +616,7 @@ class UITools:
             # Click to toggle dropdown
             logger.debug(f"Clicking dropdown: {dropdown_selector}")
             await self.browser.click(dropdown_selector)
-            await asyncio.sleep(0.3)  # Wait for animation
+            await asyncio.sleep(ANIMATION_DELAY)  # Wait for animation
             
             # Check new state and count items
             dropdown_state = await self.browser.evaluate("""
@@ -714,7 +720,7 @@ class UITools:
             # Open dropdown
             logger.debug(f"Opening dropdown: {dropdown_selector}")
             await self.browser.click(dropdown_selector)
-            await asyncio.sleep(0.5)  # Wait for dropdown to open
+            await asyncio.sleep(ANIMATION_DELAY)  # Wait for dropdown to open
             
             # Find and click the specific item
             success = await self.browser.evaluate(f"""

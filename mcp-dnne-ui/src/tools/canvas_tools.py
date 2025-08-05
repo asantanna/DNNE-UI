@@ -6,12 +6,14 @@ from typing import Dict, Any
 try:
     from ..utils.helpers import format_mcp_response
     from ..utils.selectors import *
+    from ..utils.timing_constants import ANIMATION_DELAY
 except ImportError:
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from utils.helpers import format_mcp_response
     from utils.selectors import *
+    from utils.timing_constants import ANIMATION_DELAY
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +53,7 @@ class CanvasTools:
             success = await self.browser.click(FIT_VIEW)
             
             if success:
-                await asyncio.sleep(0.5)  # Wait for animation
+                await asyncio.sleep(ANIMATION_DELAY)  # Wait for animation
                 
                 # Get current zoom level if possible
                 zoom_level = await self.browser.evaluate("""
@@ -109,7 +111,7 @@ class CanvasTools:
             success = await self.browser.click(TOGGLE_LINKS)
             
             if success:
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(ANIMATION_DELAY)
                 
                 # Get new visibility state
                 visible_after = await self.browser.evaluate("""
@@ -212,7 +214,7 @@ class CanvasTools:
             success = await self.browser.click(ZOOM_IN)
             
             if success:
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(ANIMATION_DELAY)
                 
                 # Get new zoom level
                 zoom_after = await self.browser.evaluate("""
@@ -269,7 +271,7 @@ class CanvasTools:
             success = await self.browser.click(ZOOM_OUT)
             
             if success:
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(ANIMATION_DELAY)
                 
                 # Get new zoom level
                 zoom_after = await self.browser.evaluate("""
