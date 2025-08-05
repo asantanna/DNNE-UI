@@ -452,7 +452,7 @@ class ComprehensiveMCPTestSuite:
             if not self.browser:
                 return {"success": False, "error": "Browser not initialized"}
             
-            healthy = await self.browser.ensure_healthy()
+            healthy = await self.browser.is_healthy()
             if healthy:
                 return {"success": True, "message": "UI is healthy"}
             else:

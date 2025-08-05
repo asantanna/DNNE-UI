@@ -47,9 +47,8 @@ class ClientTools:
             
             logger.info("Getting connected clients")
             
-            # Look for client dropdown selector
-            # The actual selector needs to be determined from the UI
-            client_selector = ".client-dropdown, select[name*='client'], .client-selector"
+            # Use the client dropdown selector
+            client_selector = CLIENT_DROPDOWN
             
             # First try to find the dropdown
             dropdown_exists = await self.browser.is_visible(client_selector)
@@ -260,43 +259,11 @@ class ClientTools:
         Returns:
             MCP response with success status
         """
-        try:
-            if not self.browser:
-                return format_mcp_response(False, error="Browser not initialized")
-            
-            logger.info("Showing all logs")
-            
-            # Look for Show All Logs button
-            show_logs_selector = "button:has-text('Show All Logs'), button:has-text('Show Logs'), .show-all-logs"
-            
-            button_exists = await self.browser.is_visible(show_logs_selector)
-            
-            if button_exists:
-                await self.browser.click(show_logs_selector)
-                await asyncio.sleep(1)  # Wait for logs to load
-                
-                return format_mcp_response(
-                    True,
-                    message="Showing all logs"
-                )
-            else:
-                # Try alternative - maybe logs are already visible
-                logs_visible = await self.browser.is_visible(".log-panel, .logs-container, [class*='log']")
-                
-                if logs_visible:
-                    return format_mcp_response(
-                        True,
-                        message="Logs are already visible"
-                    )
-                else:
-                    return format_mcp_response(
-                        False,
-                        error="Show All Logs button not found"
-                    )
-                    
-        except Exception as e:
-            logger.error(f"Failed to show all logs: {e}")
-            return format_mcp_response(False, error=str(e))
+        logger.info("show_all_logs called")
+        return format_mcp_response(
+            False,
+            error="Not implemented yet"
+        )
     
     async def clear_logs(self) -> Dict[str, Any]:
         """
@@ -305,38 +272,8 @@ class ClientTools:
         Returns:
             MCP response with success status
         """
-        try:
-            if not self.browser:
-                return format_mcp_response(False, error="Browser not initialized")
-            
-            logger.info("Clearing logs")
-            
-            # Look for Clear Logs button
-            clear_selector = "button:has-text('Clear'), button:has-text('Clear Logs'), .clear-logs"
-            
-            button_exists = await self.browser.is_visible(clear_selector)
-            
-            if button_exists:
-                await self.browser.click(clear_selector)
-                await asyncio.sleep(0.5)
-                
-                # Check for confirmation dialog
-                dialog_visible = await self.browser.is_visible(DIALOG)
-                if dialog_visible:
-                    confirm_button = f"{DIALOG_FOOTER} button:has-text('Yes'), {DIALOG_FOOTER} button:has-text('Confirm')"
-                    await self.browser.click(confirm_button)
-                    await asyncio.sleep(0.5)
-                
-                return format_mcp_response(
-                    True,
-                    message="Logs cleared"
-                )
-            else:
-                return format_mcp_response(
-                    False,
-                    error="Clear Logs button not found"
-                )
-                    
-        except Exception as e:
-            logger.error(f"Failed to clear logs: {e}")
-            return format_mcp_response(False, error=str(e))
+        logger.info("clear_logs called")
+        return format_mcp_response(
+            False,
+            error="Not implemented yet"
+        )

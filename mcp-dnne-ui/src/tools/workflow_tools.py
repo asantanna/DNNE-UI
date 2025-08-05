@@ -273,3 +273,167 @@ class WorkflowTools:
         except Exception as e:
             logger.error(f"Failed to get workflow list: {e}")
             return format_mcp_response(False, error=str(e))
+    
+    async def load_workflow(self, name: str) -> Dict[str, Any]:
+        """
+        Load a workflow from the sidebar
+        
+        Args:
+            name: Name of the workflow to load (with or without .json)
+        
+        Returns:
+            MCP response with success status
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info(f"Loading workflow: {name}")
+            
+            # Ensure sidebar is open
+            sidebar_visible = await self.browser.is_visible(".workflows-tab-button.active")
+            if not sidebar_visible:
+                await self.browser.click(WORKFLOWS_TAB)
+                await asyncio.sleep(1)
+            
+            # Add .json if not present
+            if not name.endswith('.json'):
+                name = f"{name}.json"
+            
+            # Find and click the workflow
+            workflow_selector = get_workflow_selector(name)
+            
+            # Check if workflow exists
+            workflow_exists = await self.browser.is_visible(workflow_selector)
+            if not workflow_exists:
+                return format_mcp_response(
+                    False,
+                    error=f"Workflow '{name}' not found in sidebar"
+                )
+            
+            # Click the workflow
+            await self.browser.click(workflow_selector)
+            await asyncio.sleep(2)  # Wait for workflow to load
+            
+            # Update state
+            self.state["current_workflow"] = name
+            
+            return format_mcp_response(
+                True,
+                data={"workflow": name},
+                message=f"Loaded workflow: {name}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to load workflow: {e}")
+            return format_mcp_response(False, error=str(e))
+    
+    async def get_current_workflow_name(self) -> Dict[str, Any]:
+        """
+        Get the name of the currently loaded workflow
+        
+        Returns:
+            MCP response with current workflow name
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info("Getting current workflow name")
+            
+            # Try to get from active tab
+            workflow_name = await self.browser.evaluate("""
+                () => {
+                    // Look for active workflow tab
+                    const activeTab = document.querySelector('.workflow-tabs .active-tab');
+                    if (activeTab) {
+                        return activeTab.textContent.trim();
+                    }
+                    
+                    // Look in title
+                    const title = document.title;
+                    if (title && title !== 'ComfyUI') {
+                        return title.replace(' - ComfyUI', '');
+                    }
+                    
+                    // Check state
+                    if (window.app && window.app.graph && window.app.graph.name) {
+                        return window.app.graph.name;
+                    }
+                    
+                    return 'Unsaved Workflow';
+                }
+            """)
+            
+            # Update state
+            self.state["current_workflow"] = workflow_name
+            
+            return format_mcp_response(
+                True,
+                data={"name": workflow_name},
+                message=f"Current workflow: {workflow_name}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to get current workflow name: {e}")
+            return format_mcp_response(False, error=str(e))
+    
+    async def export_workflow(self, run_after: bool = False) -> Dict[str, Any]:
+        """
+        Export the current workflow
+        
+        Args:
+            run_after: Whether to run the workflow after exporting
+        
+        Returns:
+            MCP response with export status
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info(f"Exporting workflow (run_after={run_after})")
+            
+            # Click export button
+            export_button_exists = await self.browser.is_visible(EXPORT_BUTTON)
+            if not export_button_exists:
+                return format_mcp_response(
+                    False,
+                    error="Export button not found"
+                )
+            
+            # Check run after export checkbox if needed
+            if run_after:
+                checkbox_exists = await self.browser.is_visible(RUN_AFTER_EXPORT)
+                if checkbox_exists:
+                    # Check if already checked
+                    is_checked = await self.browser.evaluate(f"""
+                        () => {{
+                            const checkbox = document.querySelector('{RUN_AFTER_EXPORT}');
+                            return checkbox ? checkbox.checked : false;
+                        }}
+                    """)
+                    
+                    if not is_checked:
+                        await self.browser.click(RUN_AFTER_EXPORT)
+                        await asyncio.sleep(0.3)
+            
+            # Click export button
+            await self.browser.click(EXPORT_BUTTON)
+            await asyncio.sleep(2)  # Wait for export to start
+            
+            # Update state
+            self.state["last_export"] = {
+                "timestamp": asyncio.get_event_loop().time(),
+                "run_after": run_after
+            }
+            
+            return format_mcp_response(
+                True,
+                data={"run_after": run_after},
+                message="Export initiated"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to export workflow: {e}")
+            return format_mcp_response(False, error=str(e))

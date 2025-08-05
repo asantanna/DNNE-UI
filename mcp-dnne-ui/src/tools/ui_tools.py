@@ -543,3 +543,228 @@ class UITools:
         except Exception as e:
             logger.error(f"Failed to click menu item: {e}")
             return format_mcp_response(False, error=str(e))
+    
+    async def click_droplist(self, path: str) -> Dict[str, Any]:
+        """
+        Click a dropdown to open it (for testing/screenshots)
+        
+        Args:
+            path: Dropdown path like "taskbar/client" or "log_window/filter"
+                  Format: location/control
+                  
+        Returns:
+            MCP response with dropdown state
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info(f"Clicking dropdown: {path}")
+            
+            # Parse the path
+            parts = path.split('/')
+            if len(parts) != 2:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid droplist path: {path}. Use format 'location/control' (e.g., 'taskbar/client')"
+                )
+            
+            location = parts[0].lower()
+            control = parts[1].lower()
+            
+            # Selector mapping for different dropdowns
+            dropdown_selectors = {
+                "taskbar": {
+                    "client": CLIENT_DROPDOWN  # #client-dropdown
+                },
+                "log_window": {
+                    "client": ".log-client-dropdown",
+                    "filter": ".log-filter-dropdown"
+                }
+            }
+            
+            # Get the dropdown selector
+            if location not in dropdown_selectors:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid location: {location}. Valid locations: {', '.join(dropdown_selectors.keys())}"
+                )
+            
+            if control not in dropdown_selectors[location]:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid control '{control}' for location '{location}'. Valid controls: {', '.join(dropdown_selectors[location].keys())}"
+                )
+            
+            dropdown_selector = dropdown_selectors[location][control]
+            
+            # Check if dropdown exists
+            dropdown_exists = await self.browser.is_visible(dropdown_selector)
+            if not dropdown_exists:
+                return format_mcp_response(
+                    False,
+                    error=f"Dropdown not found at {location}/{control} with selector: {dropdown_selector}"
+                )
+            
+            # Check if dropdown is already open by looking for dropdown items
+            items_visible_before = await self.browser.evaluate("""
+                () => {
+                    const items = document.querySelectorAll('.p-select-item, .p-dropdown-item, [role="option"]');
+                    return items.length > 0 && items[0].offsetParent !== null;
+                }
+            """)
+            
+            # Click to toggle dropdown
+            logger.debug(f"Clicking dropdown: {dropdown_selector}")
+            await self.browser.click(dropdown_selector)
+            await asyncio.sleep(0.3)  # Wait for animation
+            
+            # Check new state and count items
+            dropdown_state = await self.browser.evaluate("""
+                () => {
+                    const items = document.querySelectorAll('.p-select-item, .p-dropdown-item, [role="option"]');
+                    const visible = items.length > 0 && items[0].offsetParent !== null;
+                    
+                    // Get item texts if visible
+                    const itemTexts = visible ? 
+                        Array.from(items).map(el => el.textContent?.trim()).filter(t => t) : [];
+                    
+                    return {
+                        is_open: visible,
+                        item_count: itemTexts.length,
+                        items: itemTexts
+                    };
+                }
+            """)
+            
+            return format_mcp_response(
+                True,
+                data={
+                    "location": location,
+                    "control": control,
+                    "was_open": items_visible_before,
+                    "is_open": dropdown_state["is_open"],
+                    "toggled": items_visible_before != dropdown_state["is_open"],
+                    "item_count": dropdown_state["item_count"],
+                    "items": dropdown_state["items"]
+                },
+                message=f"Dropdown '{control}' at '{location}' is now {'open' if dropdown_state['is_open'] else 'closed'}"
+            )
+                
+        except Exception as e:
+            logger.error(f"Failed to click dropdown: {e}")
+            return format_mcp_response(False, error=str(e))
+    
+    async def click_droplist_item(self, path: str, item: str) -> Dict[str, Any]:
+        """
+        Click a dropdown list item
+        
+        Args:
+            path: Dropdown path like "taskbar/client" or "log_window/filter"
+                  Format: location/control
+            item: The item to select (e.g., "Local", "Tardigrade")
+        
+        Returns:
+            MCP response with success status
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info(f"Clicking droplist item: {path} -> {item}")
+            
+            # Parse the path
+            parts = path.split('/')
+            if len(parts) != 2:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid droplist path: {path}. Use format 'location/control' (e.g., 'taskbar/client')"
+                )
+            
+            location = parts[0].lower()
+            control = parts[1].lower()
+            
+            # Selector mapping for different dropdowns
+            dropdown_selectors = {
+                "taskbar": {
+                    "client": CLIENT_DROPDOWN  # #client-dropdown
+                },
+                "log_window": {
+                    "client": ".log-client-dropdown",
+                    "filter": ".log-filter-dropdown"
+                }
+            }
+            
+            # Get the dropdown selector
+            if location not in dropdown_selectors:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid location: {location}. Valid locations: {', '.join(dropdown_selectors.keys())}"
+                )
+            
+            if control not in dropdown_selectors[location]:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid control '{control}' for location '{location}'. Valid controls: {', '.join(dropdown_selectors[location].keys())}"
+                )
+            
+            dropdown_selector = dropdown_selectors[location][control]
+            
+            # Check if dropdown exists
+            dropdown_exists = await self.browser.is_visible(dropdown_selector)
+            if not dropdown_exists:
+                return format_mcp_response(
+                    False,
+                    error=f"Dropdown not found at {location} with selector: {dropdown_selector}"
+                )
+            
+            # Open dropdown
+            logger.debug(f"Opening dropdown: {dropdown_selector}")
+            await self.browser.click(dropdown_selector)
+            await asyncio.sleep(0.5)  # Wait for dropdown to open
+            
+            # Find and click the specific item
+            success = await self.browser.evaluate(f"""
+                (itemText) => {{
+                    // Look for dropdown items with various selectors
+                    const selectors = [
+                        '.p-select-item',
+                        '.p-dropdown-item',
+                        'option',
+                        '[role="option"]'
+                    ];
+                    
+                    for (const selector of selectors) {{
+                        const options = document.querySelectorAll(selector);
+                        for (const opt of options) {{
+                            const text = opt.textContent?.trim();
+                            if (text === itemText) {{
+                                opt.click();
+                                return true;
+                            }}
+                        }}
+                    }}
+                    return false;
+                }}
+            """, item)
+            
+            if success:
+                return format_mcp_response(
+                    True,
+                    data={
+                        "location": location,
+                        "selected": item
+                    },
+                    message=f"Selected '{item}' from {location} dropdown"
+                )
+            else:
+                # Close dropdown if selection failed
+                await self.browser.click(dropdown_selector)
+                return format_mcp_response(
+                    False,
+                    error=f"Item not found in dropdown: {item}"
+                )
+                
+        except Exception as e:
+            logger.error(f"Failed to click droplist item: {e}")
+            return format_mcp_response(False, error=str(e))

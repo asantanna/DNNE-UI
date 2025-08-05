@@ -276,8 +276,13 @@ class DNNE_UI_MCPServer:
                 if not self.browser_controller:
                     return format_mcp_response(False, error="Browser not initialized")
                 
-                # TODO: Set run_after checkbox if needed
-                # This will need the actual selector once identified
+                # Check if run_after is requested
+                if run_after:
+                    logger.info("export_workflow called with run_after=True")
+                    return format_mcp_response(
+                        False,
+                        error="Not implemented yet"
+                    )
                 
                 # Click export button
                 success = await self.browser_controller.click(EXPORT_BUTTON)

@@ -10,12 +10,16 @@ QUEUE_TAB = ".queue-tab-button"  # To be removed
 EXPORT_BUTTON = '[data-testid="export-button"]'
 EXPORT_TARGET_DROPDOWN = ".export-target-dropdown"
 RUN_AFTER_EXPORT = "#run-after-export"  # TBD - need to verify actual selector
+STOP_BUTTON = 'button[aria-label="Stop"]'
+SHOW_LOGS_BUTTON = 'button[aria-label="Show Logs"]'
+TARGET_DROPDOWN = ".target-dropdown"
 
 # Canvas controls
-ZOOM_IN = '[aria-label="Zoom In"]'
-ZOOM_OUT = '[aria-label="Zoom Out"]'
-FIT_VIEW = '[aria-label="Fit View"]'
-TOGGLE_LINKS = '[data-testid="toggle-link-visibility-button"]'
+ZOOM_IN = 'button[aria-label="Zoom In"]'
+ZOOM_OUT = 'button[aria-label="Zoom Out"]'
+FIT_VIEW = 'button[aria-label="Fit View"]'
+TOGGLE_LINKS = 'button[data-testid="toggle-link-visibility-button"]'
+SELECT_MODE = 'button[aria-label="Select Mode"]'
 
 # Workflow management
 WORKFLOW_TABS = ".workflow-tabs"
@@ -32,6 +36,7 @@ MENU_SUBMENU = ".p-menubar-submenu"
 # Status bar
 STATUS_BAR = ".agent-status-bar"
 AGENT_STATUS = ".agent-status-bar"
+AGENT_STATUS_BOTTOM = ".agent-status-bar-bottom"
 
 # Dialogs
 DIALOG = ".p-dialog"
@@ -41,9 +46,9 @@ DIALOG_FOOTER = ".p-dialog-footer"
 DIALOG_CLOSE = ".p-dialog-close-button"
 
 # Client/Logs
-CLIENT_DROPDOWN = ".client-dropdown"  # TBD
+CLIENT_DROPDOWN = "#client-dropdown"  # Client dropdown in action bar
 LOG_PANEL = ".log-panel"  # TBD
-SHOW_ALL_LOGS = ".show-all-logs"  # TBD
+SHOW_ALL_LOGS = 'button[aria-label="Show Logs"]'
 CLEAR_LOGS = ".clear-logs"  # TBD
 
 def get_workflow_selector(name: str) -> str:
