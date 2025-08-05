@@ -212,29 +212,23 @@ class UITools:
                 else:
                     dialog_type = "info"
             
-            # Try to close via X button
+            # Try to close via X button - fail fast if not found
             close_button = f"{DIALOG} {DIALOG_CLOSE}"
             close_exists = await self.browser.is_visible(close_button)
             
-            if close_exists:
-                await self.browser.click(close_button)
-            else:
-                # Try OK/Cancel buttons
-                ok_button = f"{DIALOG_FOOTER} button:has-text('OK'), {DIALOG_FOOTER} button:has-text('Close')"
-                cancel_button = f"{DIALOG_FOOTER} button:has-text('Cancel')"
-                
-                if await self.browser.is_visible(ok_button):
-                    await self.browser.click(ok_button)
-                elif await self.browser.is_visible(cancel_button):
-                    await self.browser.click(cancel_button)
-                else:
-                    # Try pressing Escape
-                    await self.browser.evaluate("""
-                        document.dispatchEvent(new KeyboardEvent('keydown', {
-                            key: 'Escape',
-                            bubbles: true
-                        }));
-                    """)
+            if not close_exists:
+                return format_mcp_response(
+                    False, 
+                    error=f"Dialog close button not found using selector '{close_button}'. Dialog structure may have changed."
+                )
+            
+            # Click the close button
+            success = await self.browser.click(close_button)
+            if not success:
+                return format_mcp_response(
+                    False,
+                    error=f"Failed to click dialog close button '{close_button}'"
+                )
             
             await asyncio.sleep(0.5)
             

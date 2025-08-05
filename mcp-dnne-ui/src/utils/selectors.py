@@ -30,15 +30,15 @@ MENU_LABELS = ".p-menubar-item-label"
 MENU_SUBMENU = ".p-menubar-submenu"
 
 # Status bar
-STATUS_BAR = ".status-bar"  # TBD - need to verify actual selector
-AGENT_STATUS = ".agent-status"  # TBD
+STATUS_BAR = ".agent-status-bar"
+AGENT_STATUS = ".agent-status-bar"
 
 # Dialogs
 DIALOG = ".p-dialog"
 DIALOG_HEADER = ".p-dialog-header"
 DIALOG_CONTENT = ".p-dialog-content"
 DIALOG_FOOTER = ".p-dialog-footer"
-DIALOG_CLOSE = ".p-dialog-header-close"
+DIALOG_CLOSE = ".p-dialog-close-button"
 
 # Client/Logs
 CLIENT_DROPDOWN = ".client-dropdown"  # TBD

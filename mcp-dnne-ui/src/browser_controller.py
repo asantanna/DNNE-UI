@@ -412,9 +412,9 @@ class BrowserController:
             return False
         return await self.is_javascript_executable()
     
-    async def ensure_healthy(self) -> bool:
+    async def is_healthy(self) -> bool:
         """
-        Ensure browser is healthy, restart if needed
+        Check if browser is healthy
         
         Returns:
             True if browser is healthy (after potential restart)

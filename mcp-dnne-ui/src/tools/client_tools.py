@@ -209,68 +209,45 @@ class ClientTools:
             logger.info("Getting agent status")
             
             # Look for agent status in the status bar
-            status_text = await self.browser.get_text(".status-bar")
+            status_text = await self.browser.get_text(STATUS_BAR)
             
             if not status_text:
-                # Try alternative selectors
-                status_text = await self.browser.evaluate("""
-                    () => {
-                        // Look for agent status in various places
-                        const statusBar = document.querySelector('.status-bar, [class*="status"]');
-                        if (statusBar) {
-                            const text = statusBar.textContent;
-                            if (text && text.includes('Agent')) {
-                                return text;
-                            }
-                        }
-                        
-                        // Look for specific agent indicator
-                        const agentElement = document.querySelector('[class*="agent"], [data-testid*="agent"]');
-                        if (agentElement) {
-                            return agentElement.textContent;
-                        }
-                        
-                        return null;
-                    }
-                """)
+                return format_mcp_response(
+                    False, 
+                    error=f"Status bar not found using selector '{STATUS_BAR}'. Status bar may not be visible or selector needs updating."
+                )
             
-            if status_text:
-                # Parse the status
+            # Parse the status
+            connected = False
+            status = "unknown"
+            
+            if "Connected" in status_text:
+                connected = True
+                status = "connected"
+            elif "Disconnected" in status_text:
                 connected = False
-                status = "unknown"
-                
-                if "Connected" in status_text:
-                    connected = True
-                    status = "connected"
-                elif "Disconnected" in status_text:
-                    connected = False
-                    status = "disconnected"
-                elif "Connecting" in status_text:
-                    connected = False
-                    status = "connecting"
-                
-                # Extract client count if present
-                client_count = 0
-                import re
-                match = re.search(r'Clients:\s*(\d+)', status_text)
-                if match:
-                    client_count = int(match.group(1))
-                
-                return format_mcp_response(
-                    True,
-                    data={
-                        "connected": connected,
-                        "status": status,
-                        "client_count": client_count,
-                        "raw_status": status_text
-                    },
-                    message=f"Agent is {status}"
-                )
-            else:
-                return format_mcp_response(
-                    False,
-                    error="Agent status not found in UI"
-                )
+                status = "disconnected"
+            elif "Connecting" in status_text:
+                connected = False
+                status = "connecting"
+            
+            # Extract client count if present
+            client_count = 0
+            import re
+            match = re.search(r'Clients:\s*(\d+)', status_text)
+            if match:
+                client_count = int(match.group(1))
+            
+            return format_mcp_response(
+                True,
+                data={
+                    "connected": connected,
+                    "status": status,
+                    "client_count": client_count,
+                    "raw_status": status_text
+                },
+                message=f"Agent is {status}"
+            )
                 
         except Exception as e:
             logger.error(f"Failed to get agent status: {e}")

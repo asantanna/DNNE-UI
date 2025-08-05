@@ -19,10 +19,10 @@ This MCP server replaces low-level Puppeteer commands with task-oriented functio
 
 ### Prerequisites
 
-- Python 3.10 or higher
+- MCP_PY310 conda environment (Python 3.10.18)
 - DNNE UI server running on http://172.22.160.1:8188
 - Chrome/Chromium browser
-- MCP dependencies (mcp, playwright, python-dotenv)
+- MCP dependencies (installed via requirements.txt)
 
 ### Setup
 
@@ -31,15 +31,14 @@ This MCP server replaces low-level Puppeteer commands with task-oriented functio
 cd mcp-dnne-ui
 ```
 
-2. Create a virtual environment:
+2. Activate the MCP_PY310 conda environment:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source /home/asantanna/miniconda/bin/activate MCP_PY310
 ```
 
 3. Install dependencies:
 ```bash
-pip install -e .
+pip install -r requirements.txt
 playwright install chromium
 ```
 
@@ -54,6 +53,7 @@ cp .env.example .env
 ### Starting the MCP Server
 
 ```bash
+source /home/asantanna/miniconda/bin/activate MCP_PY310
 python src/dnne_ui_mcp_server.py
 ```
 

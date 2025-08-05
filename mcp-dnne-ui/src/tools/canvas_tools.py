@@ -120,9 +120,9 @@ class CanvasTools:
                             const style = window.getComputedStyle(firstLink);
                             return style.display !== 'none' && style.visibility !== 'hidden';
                         }
-                        return !arguments[0]; // Toggle from before state
+                        return true; // Default to visible if no links found
                     }
-                """, visible_before)
+                """)
                 
                 self.state["links_visible"] = visible_after
                 

@@ -70,6 +70,16 @@ async def test_mcp_server():
 
 async def main():
     """Run all tests"""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Test DNNE UI MCP Server")
+    parser.add_argument(
+        "--with-browser",
+        action="store_true",
+        help="Run browser-dependent tests (requires DNNE server running)"
+    )
+    args = parser.parse_args()
+    
     print("=" * 60)
     print("DNNE UI MCP Server Test Suite")
     print("=" * 60)
@@ -77,14 +87,13 @@ async def main():
     # Test MCP server instantiation
     await test_mcp_server()
     
-    # Ask user if they want to test browser (requires DNNE server running)
+    # Run browser tests if requested
     print("\n" + "=" * 60)
-    response = input("Test browser controller? (requires DNNE server running) [y/N]: ")
-    
-    if response.lower() == 'y':
+    if args.with_browser:
+        print("Running browser controller tests (DNNE server required)")
         await test_browser_controller()
     else:
-        print("Skipping browser test")
+        print("Skipping browser tests (use --with-browser to enable)")
     
     print("\n" + "=" * 60)
     print("All tests complete!")
