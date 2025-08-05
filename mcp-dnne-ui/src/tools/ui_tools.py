@@ -486,18 +486,20 @@ class UITools:
                 # Open menu first
                 menu_selector = get_menu_item_selector(menu_index)
                 await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-                await asyncio.sleep(0.5)
+                # Wait for submenu to appear
+                await self.browser.wait_for_selector(MENU_SUBMENU, timeout=2000)
+                await asyncio.sleep(0.2)  # Short pause for animation
             
-            # Map common menu items to their indices
+            # Map common menu items to their indices (based on actual UI positions)
             menu_item_indices = {
-                # Workflow menu
+                # Workflow menu (actual positions from debug)
                 "new": 1, "new blank workflow": 1,
-                "open": 2, "open workflow": 2,
-                "browse templates": 3,
-                "save": 4, "save workflow": 4,
-                "save as": 5, "save workflow as": 5,
-                "export": 6, "export workflow": 6,
-                "export api": 7, "export (api)": 7,
+                "open": 3, "open workflow": 3,  # Item 3: "OpenCtrl + o"
+                "browse templates": 4,           # Item 4: "Browse Templates"
+                "save": 6, "save workflow": 6,  # Item 6: "SaveCtrl + s"
+                "save as": 7, "save workflow as": 7,  # Item 7: "Save As"
+                "export": 8, "export workflow": 8,    # Item 8: "Export"
+                "export api": 9, "export (api)": 9,   # Item 9: "Export (API)"
                 # Edit menu
                 "undo": 1,
                 "redo": 2,
@@ -506,27 +508,18 @@ class UITools:
                 "clipspace": 5, "open clipspace": 5
             }
             
-            # Try to find item by index first
+            # Find item by index
             item_index = menu_item_indices.get(final_item.lower())
             
-            if item_index:
-                # Click by index
-                item_selector = get_submenu_item_selector(item_index)
-                success = await self.browser.click(item_selector)
-            else:
-                # Fall back to text search
-                success = await self.browser.evaluate(f"""
-                    () => {{
-                        const items = document.querySelectorAll('.p-menubar-submenu .p-menubar-item-label');
-                        for (let item of items) {{
-                            if (item.textContent?.trim().toLowerCase() === '{final_item.lower()}') {{
-                                item.click();
-                                return true;
-                            }}
-                        }}
-                        return false;
-                    }}
-                """)
+            if not item_index:
+                return format_mcp_response(
+                    False,
+                    error=f"Menu item not mapped: {final_item}. Available items: {list(menu_item_indices.keys())}"
+                )
+            
+            # Click by nth-child selector
+            item_selector = get_submenu_item_selector(item_index)
+            success = await self.browser.click(item_selector)
             
             if success:
                 return format_mcp_response(
@@ -537,7 +530,7 @@ class UITools:
             else:
                 return format_mcp_response(
                     False,
-                    error=f"Menu item not found: {final_item}"
+                    error=f"Failed to click menu item selector: {item_selector}"
                 )
                 
         except Exception as e:
@@ -767,4 +760,38 @@ class UITools:
                 
         except Exception as e:
             logger.error(f"Failed to click droplist item: {e}")
+            return format_mcp_response(False, error=str(e))
+    
+    async def run_javascript(self, code: str, return_result: bool = True) -> Dict[str, Any]:
+        """Execute JavaScript code in the current browser context
+        
+        Args:
+            code: JavaScript code to execute
+            return_result: Whether to return the result (default True)
+        
+        Returns:
+            MCP response with result or success status
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.debug(f"Executing JavaScript: {code[:100]}...")
+            
+            if return_result:
+                result = await self.browser.evaluate(f"() => {{ {code} }}")
+                return format_mcp_response(
+                    True,
+                    data={"result": result},
+                    message="JavaScript executed successfully"
+                )
+            else:
+                await self.browser.evaluate(f"() => {{ {code} }}")
+                return format_mcp_response(
+                    True,
+                    message="JavaScript executed successfully (no return value)"
+                )
+                
+        except Exception as e:
+            logger.error(f"Failed to execute JavaScript: {e}")
             return format_mcp_response(False, error=str(e))

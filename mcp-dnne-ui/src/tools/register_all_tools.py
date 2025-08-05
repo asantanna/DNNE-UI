@@ -160,6 +160,12 @@ def register_all_additional_tools(server: "DNNE_UI_MCPServer"):
         description="Click a dropdown list item (e.g., path='taskbar/client', item='Local')"
     )
     
+    register_tool(
+        ui_tools.run_javascript,
+        name="run_javascript",
+        description="Execute JavaScript code in the current browser context"
+    )
+    
     # Register canvas operation tools
     register_tool(
         canvas_tools.zoom_to_fit,

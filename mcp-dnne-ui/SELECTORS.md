@@ -29,12 +29,14 @@ def get_submenu_item_selector(index: int) -> str:
 
 #### Workflow Menu (1st menu)
 1. **New Blank Workflow** - 1st item
-2. **Open Workflow** - 2nd item  
-3. **Browse Templates** - 3rd item (non-functional)
-4. **Save Workflow** - 4th item
-5. **Save Workflow As** - 5th item
-6. **Export Workflow** - 6th item (redundant)
-7. **Export Workflow (API)** - 7th item (non-functional)
+2. **(separator)** - 2nd item (empty)
+3. **Open Workflow** - 3rd item
+4. **Browse Templates** - 4th item (non-functional)
+5. **(separator)** - 5th item (empty)
+6. **Save Workflow** - 6th item
+7. **Save Workflow As** - 7th item ← CORRECTED INDEX
+8. **Export Workflow** - 8th item (redundant)
+9. **Export Workflow (API)** - 9th item (non-functional)
 
 #### Edit Menu (2nd menu)
 1. **Undo** - 1st item

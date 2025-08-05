@@ -55,11 +55,26 @@ class WorkflowTools:
                     menu_selector = get_menu_item_selector(1)  # Workflow is first menu
                     await self.browser.click(f"{menu_selector} .p-menubar-item-label")
                     await asyncio.sleep(0.5)
+                    
+                    # Ensure submenu is now visible
+                    submenu_visible = await self.browser.wait_for_selector(MENU_SUBMENU, timeout=2000)
+                    if not submenu_visible:
+                        return format_mcp_response(False, error="Workflow submenu did not open")
                 
                 # Click Save Workflow As (5th item)
                 save_as_selector = get_submenu_item_selector(5)
-                await self.browser.click(save_as_selector)
-                await asyncio.sleep(0.5)
+                logger.debug(f"Clicking Save As with selector: {save_as_selector}")
+                
+                # Check if the menu item exists before clicking
+                item_exists = await self.browser.is_visible(save_as_selector)
+                if not item_exists:
+                    return format_mcp_response(False, error=f"Save As menu item not found with selector: {save_as_selector}")
+                
+                clicked = await self.browser.click(save_as_selector)
+                if not clicked:
+                    return format_mcp_response(False, error="Failed to click Save As menu item")
+                    
+                await asyncio.sleep(1)  # Give more time for dialog to appear
                 
                 # Wait for save dialog
                 dialog_visible = await self.browser.wait_for_selector(DIALOG, timeout=3000)
