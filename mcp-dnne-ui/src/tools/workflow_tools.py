@@ -182,19 +182,14 @@ class WorkflowTools:
             
             logger.info("Clearing current workflow")
             
-            # Check if submenu is already visible
-            submenu_visible = await self.browser.is_visible(MENU_SUBMENU)
+            # Use the UI tools to click the menu item
+            from .ui_tools import UITools
+            ui_tools = UITools(self.server, self.state)
             
-            if not submenu_visible:
-                # Open Edit menu
-                menu_selector = get_menu_item_selector(2)  # Edit is second menu
-                await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-                await asyncio.sleep(ANIMATION_DELAY)
-            
-            # Click Clear Workflow (3rd item in Edit menu)
-            clear_selector = get_submenu_item_selector(3)
-            await self.browser.click(clear_selector)
-            await asyncio.sleep(ANIMATION_DELAY)
+            # Click Edit > Clear Workflow
+            result = await ui_tools.click_menu_item("Edit/Clear Workflow")
+            if not result.get("success"):
+                return result
             
             # Check for confirmation dialog
             dialog_visible = await self.browser.is_visible(DIALOG)
@@ -313,8 +308,8 @@ class WorkflowTools:
             
             logger.info(f"Loading workflow: {name}")
             
-            # Ensure sidebar is open
-            sidebar_visible = await self.browser.is_visible(".workflows-tab-button.active")
+            # Ensure sidebar is open - check if workflows tab is selected
+            sidebar_visible = await self.browser.is_visible(".workflows-tab-button.side-bar-button-selected")
             if not sidebar_visible:
                 await self.browser.click(WORKFLOWS_TAB)
                 await asyncio.sleep(DIALOG_SETTLE_DELAY)
@@ -328,7 +323,22 @@ class WorkflowTools:
             
             # Check if workflow exists
             workflow_exists = await self.browser.is_visible(workflow_selector)
+            logger.debug(f"Checking selector: {workflow_selector}")
+            logger.debug(f"Workflow exists: {workflow_exists}")
+            
             if not workflow_exists:
+                # Double-check with JavaScript
+                js_check = await self.browser.evaluate(f"""
+                    () => {{
+                        const elem = document.querySelector('{workflow_selector}');
+                        return {{
+                            found: !!elem,
+                            text: elem ? elem.textContent : null
+                        }};
+                    }}
+                """)
+                logger.debug(f"JavaScript check: {js_check}")
+                
                 return format_mcp_response(
                     False,
                     error=f"Workflow '{name}' not found in sidebar"
