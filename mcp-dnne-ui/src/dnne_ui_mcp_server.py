@@ -197,39 +197,13 @@ class DNNE_UI_MCPServer:
             Args:
                 name: Name of the workflow file (e.g., "MNIST_Test.json")
             """
+            # Use the workflow tools implementation which handles edge cases better
             try:
-                if not self.browser_controller:
-                    return format_mcp_response(False, error="Browser not initialized")
-                
-                # Check current sidebar state from browser
-                sidebar_state = await self.browser_controller.get_sidebar_state()
-                
-                # Open workflows sidebar if needed
-                if not sidebar_state["sidebar_open"] or sidebar_state["active_tab"] != "workflows":
-                    await self.browser_controller.click(WORKFLOWS_TAB)
-                    await asyncio.sleep(1)  # Wait for sidebar animation
-                
-                # Click on the workflow
-                workflow_selector = get_workflow_selector(name)
-                success = await self.browser_controller.click(workflow_selector)
-                
-                if success:
-                    # Update in-memory state for session tracking
-                    self.state["current_workflow"] = name
-                    return format_mcp_response(
-                        True, 
-                        data={"workflow_name": name},
-                        message=f"Loaded workflow: {name}"
-                    )
-                else:
-                    return format_mcp_response(
-                        False, 
-                        error=f"Failed to find workflow: {name}"
-                    )
-                    
-            except Exception as e:
-                logger.error(f"Failed to load workflow: {e}")
-                return format_mcp_response(False, error=str(e))
+                from .tools.workflow_tools import WorkflowTools
+            except ImportError:
+                from tools.workflow_tools import WorkflowTools
+            tools = WorkflowTools(self.browser_controller, self.state)
+            return await tools.load_workflow(name)
         
         self.server.add_tool(
             load_workflow,
