@@ -232,7 +232,7 @@ class ComprehensiveMCPTestSuite:
                 # Reset to default/empty workflow
                 try:
                     from tools.workflow_tools import WorkflowTools
-                    tools = WorkflowTools(self.browser, self.server.state)
+                    tools = WorkflowTools(self.server, self.server.state)
                     await tools.new_blank_workflow()
                     print("    ✅ Reset to blank workflow")
                 except:
@@ -383,7 +383,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.browser, self.server.state)
+        tools = WorkflowTools(self.server, self.server.state)
         return await tools.load_workflow("MNIST_Test")
     
     async def test_get_current_workflow_name(self):
@@ -392,7 +392,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.browser, self.server.state)
+        tools = WorkflowTools(self.server, self.server.state)
         return await tools.get_current_workflow_name()
         
     async def test_save_workflow(self):
@@ -401,7 +401,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.browser, self.server.state)
+        tools = WorkflowTools(self.server, self.server.state)
         return await tools.save_workflow("test_workflow")
     
     async def test_new_blank_workflow(self):
@@ -410,7 +410,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.browser, self.server.state)
+        tools = WorkflowTools(self.server, self.server.state)
         return await tools.new_blank_workflow()
     
     async def test_clear_workflow(self):
@@ -419,7 +419,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.browser, self.server.state)
+        tools = WorkflowTools(self.server, self.server.state)
         return await tools.clear_workflow()
     
     async def test_get_workflow_list(self):
@@ -428,7 +428,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.browser, self.server.state)
+        tools = WorkflowTools(self.server, self.server.state)
         return await tools.get_workflow_list()
     
     # Export System Tests
@@ -438,7 +438,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.browser, self.server.state)
+        tools = WorkflowTools(self.server, self.server.state)
         return await tools.export_workflow(run_after=False)
     
     # Health & Status Tests

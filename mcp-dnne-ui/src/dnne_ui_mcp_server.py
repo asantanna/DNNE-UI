@@ -202,7 +202,7 @@ class DNNE_UI_MCPServer:
                 from .tools.workflow_tools import WorkflowTools
             except ImportError:
                 from tools.workflow_tools import WorkflowTools
-            tools = WorkflowTools(self.browser_controller, self.state)
+            tools = WorkflowTools(self, self.state)
             return await tools.load_workflow(name)
         
         self.server.add_tool(
@@ -417,7 +417,7 @@ class DNNE_UI_MCPServer:
                     from .tools.workflow_tools import WorkflowTools
                 except ImportError:
                     from tools.workflow_tools import WorkflowTools
-                tools = WorkflowTools(self.browser_controller, self.state)
+                tools = WorkflowTools(self, self.state)
                 return await tools.save_workflow(name)
                 
             except Exception as e:
@@ -440,7 +440,7 @@ class DNNE_UI_MCPServer:
                     from .tools.workflow_tools import WorkflowTools
                 except ImportError:
                     from tools.workflow_tools import WorkflowTools
-                tools = WorkflowTools(self.browser_controller, self.state)
+                tools = WorkflowTools(self, self.state)
                 return await tools.new_blank_workflow()
                 
             except Exception as e:
@@ -463,7 +463,7 @@ class DNNE_UI_MCPServer:
                     from .tools.workflow_tools import WorkflowTools
                 except ImportError:
                     from tools.workflow_tools import WorkflowTools
-                tools = WorkflowTools(self.browser_controller, self.state)
+                tools = WorkflowTools(self, self.state)
                 return await tools.clear_workflow()
                 
             except Exception as e:
@@ -486,7 +486,7 @@ class DNNE_UI_MCPServer:
                     from .tools.workflow_tools import WorkflowTools
                 except ImportError:
                     from tools.workflow_tools import WorkflowTools
-                tools = WorkflowTools(self.browser_controller, self.state)
+                tools = WorkflowTools(self, self.state)
                 return await tools.get_workflow_list()
                 
             except Exception as e:

@@ -26,16 +26,21 @@ logger = logging.getLogger(__name__)
 class WorkflowTools:
     """Tools for managing workflows in DNNE UI"""
     
-    def __init__(self, browser_controller, state: Dict[str, Any]):
+    def __init__(self, server, state: Dict[str, Any]):
         """
         Initialize workflow tools
         
         Args:
-            browser_controller: BrowserController instance
+            server: DNNE_UI_MCPServer instance for dynamic browser access
             state: Shared state dictionary
         """
-        self.browser = browser_controller
+        self.server = server
         self.state = state
+    
+    @property
+    def browser(self):
+        """Get browser controller dynamically from server"""
+        return self.server.browser_controller
     
     async def save_workflow(self, name: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -55,32 +60,14 @@ class WorkflowTools:
                 # Save As operation
                 logger.info(f"Saving workflow as: {name}")
                 
-                # Check if submenu is already visible
-                submenu_visible = await self.browser.is_visible(MENU_SUBMENU)
+                # Use UI tools to click the menu item
+                from .ui_tools import UITools
+                ui_tools = UITools(self.server, self.state)
                 
-                if not submenu_visible:
-                    # Open Workflow menu
-                    menu_selector = get_menu_item_selector(1)  # Workflow is first menu
-                    await self.browser.click(f"{menu_selector} .p-menubar-item-label")
-                    await asyncio.sleep(ANIMATION_DELAY)
-                    
-                    # Ensure submenu is now visible
-                    submenu_visible = await self.browser.wait_for_selector(MENU_SUBMENU, timeout=MENU_TIMEOUT)
-                    if not submenu_visible:
-                        return format_mcp_response(False, error="Workflow submenu did not open")
-                
-                # Click Save Workflow As (5th item)
-                save_as_selector = get_submenu_item_selector(5)
-                logger.debug(f"Clicking Save As with selector: {save_as_selector}")
-                
-                # Check if the menu item exists before clicking
-                item_exists = await self.browser.is_visible(save_as_selector)
-                if not item_exists:
-                    return format_mcp_response(False, error=f"Save As menu item not found with selector: {save_as_selector}")
-                
-                clicked = await self.browser.click(save_as_selector)
-                if not clicked:
-                    return format_mcp_response(False, error="Failed to click Save As menu item")
+                # Click Workflow > Save As
+                result = await ui_tools.click_menu_item("Workflow/Save As")
+                if not result.get("success"):
+                    return result
                     
                 await asyncio.sleep(DIALOG_SETTLE_DELAY)  # Give more time for dialog to appear
                 
@@ -93,9 +80,16 @@ class WorkflowTools:
                 input_selector = f"{DIALOG} input[type='text']"
                 await self.browser.type_text(input_selector, name)
                 
-                # Click Save button
-                save_button = f"{DIALOG_FOOTER} button:has-text('Save')"
-                await self.browser.click(save_button)
+                # Click Confirm button using JavaScript for reliability
+                await self.browser.evaluate("""
+                    const buttons = document.querySelectorAll('.p-dialog-content button');
+                    for (const button of buttons) {
+                        if (button.textContent.trim() === 'Confirm') {
+                            button.click();
+                            break;
+                        }
+                    }
+                """)
                 
                 # Update state
                 self.state["current_workflow"] = name
