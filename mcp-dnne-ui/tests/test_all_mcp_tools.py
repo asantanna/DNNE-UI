@@ -31,7 +31,7 @@ class ToolTestResult:
         status_icons = {
             "pass": "✅",
             "fail": "❌", 
-            "skip": "⚠️",
+            "skip": "⚠️",  # Changed to Note: in output
             "pending": "⏳",
             "running": "🔄"
         }
@@ -46,10 +46,11 @@ class ToolTestResult:
 class ComprehensiveMCPTestSuite:
     """Complete test suite for all MCP tools"""
     
-    def __init__(self, run_browser_tests: bool = True):
+    def __init__(self, run_browser_tests: bool = True, suppress_browser_messages: bool = False):
         self.server = None
         self.browser = None
         self.run_browser_tests = run_browser_tests
+        self.suppress_browser_messages = suppress_browser_messages
         self.results: List[ToolTestResult] = []
         self.categories = {
             "Browser Lifecycle": [],
@@ -80,7 +81,7 @@ class ComprehensiveMCPTestSuite:
             print("Waiting for DNNE UI to be ready...")
             ready = await self.browser.wait_for_ui_ready(timeout=10000)
             if not ready:
-                print("⚠️  DNNE UI not fully ready - some tests may fail")
+                print("Note: DNNE UI not fully ready - some tests may fail")
         
     async def teardown(self):
         """Clean up test environment"""
@@ -104,7 +105,8 @@ class ComprehensiveMCPTestSuite:
         - No blocking elements
         """
         if not self.browser or not self.browser.page:
-            print("    ⚠️ Browser unavailable, skipping UI restoration")
+            if not self.suppress_browser_messages:
+                print("    Note: Browser unavailable, skipping UI restoration")
             return
         
         try:
@@ -210,7 +212,8 @@ class ComprehensiveMCPTestSuite:
                 - "general": General error recovery
         """
         if not self.browser:
-            print("    ⚠️ Browser unavailable, skipping error recovery")
+            if not self.suppress_browser_messages:
+                print("    Note: Browser unavailable, skipping error recovery")
             return
         
         try:
@@ -236,7 +239,7 @@ class ComprehensiveMCPTestSuite:
                     await tools.new_blank_workflow()
                     print("    ✅ Reset to blank workflow")
                 except:
-                    print("    ⚠️ Could not reset workflow")
+                    print("    Note: Could not reset workflow")
             
             elif recovery_type == "browser_restart":
                 # Nuclear option - restart browser
@@ -245,9 +248,9 @@ class ComprehensiveMCPTestSuite:
                     if success:
                         print("    ✅ Browser restarted")
                     else:
-                        print("    ⚠️ Browser restart failed")
+                        print("    Note: Browser restart failed")
                 except:
-                    print("    ⚠️ Browser restart failed")
+                    print("    Note: Browser restart failed")
             
             else:  # general recovery
                 # Remove any blocking elements
@@ -683,7 +686,19 @@ class ComprehensiveMCPTestSuite:
         
         from tools.canvas_tools import CanvasTools
         tools = CanvasTools(self.server, self.server.state)
-        return await tools.toggle_link_visibility()
+        
+        # Get initial state
+        initial_state = self.server.state.get("links_visible", True)
+        
+        # Toggle visibility
+        result = await tools.toggle_link_visibility()
+        
+        # If successful, toggle back to restore original state
+        if result.get("success"):
+            await asyncio.sleep(0.5)  # Small delay before toggling back
+            await tools.toggle_link_visibility()
+        
+        return result
     
     async def test_get_node_count(self):
         """Test getting node count"""
@@ -840,7 +855,7 @@ class ComprehensiveMCPTestSuite:
         print(f"✅ Passed: {passed} ({passed/total*100:.1f}%)")
         print(f"❌ Failed: {failed} ({failed/total*100:.1f}%)")
         if skipped > 0:
-            print(f"⚠️  Skipped: {skipped} ({skipped/total*100:.1f}%)")
+            print(f"Note: Skipped: {skipped} ({skipped/total*100:.1f}%)")
         
         # Category breakdown
         print(f"\nCATEGORY BREAKDOWN:")
@@ -879,7 +894,7 @@ class ComprehensiveMCPTestSuite:
         if failed == 0:
             print("🎉 ALL TESTS PASSED!")
         else:
-            print(f"⚠️  {failed} TESTS FAILED - See details above")
+            print(f"Note: {failed} TESTS FAILED - See details above")
         print("="*80)
     
     def export_results_json(self):
@@ -940,17 +955,25 @@ async def main():
         action="store_true",
         help="Skip browser-dependent tests (core functionality only)"
     )
+    parser.add_argument(
+        "--suppress-browser-messages",
+        action="store_true",
+        help="Suppress browser unavailable messages during cleanup"
+    )
     args = parser.parse_args()
     
     run_browser_tests = not args.no_browser
     
     if run_browser_tests:
         print("Running COMPREHENSIVE tests with browser automation")
-        print("⚠️  Requires DNNE server running at http://172.22.160.1:8188")
+        print("Note: Requires DNNE server running at http://172.22.160.1:8188")
     else:
         print("Running CORE tests only (no browser automation)")
     
-    suite = ComprehensiveMCPTestSuite(run_browser_tests=run_browser_tests)
+    suite = ComprehensiveMCPTestSuite(
+        run_browser_tests=run_browser_tests,
+        suppress_browser_messages=args.suppress_browser_messages
+    )
     success = await suite.run_all_tests()
     
     sys.exit(0 if success else 1)

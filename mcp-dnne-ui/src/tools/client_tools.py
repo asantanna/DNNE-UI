@@ -49,45 +49,32 @@ class ClientTools:
             
             logger.info("Getting connected clients")
             
-            # Use the client dropdown selector
-            client_selector = CLIENT_DROPDOWN
+            # Use UITools to get client list from dropdown
+            from .ui_tools import UITools
+            ui_tools = UITools(self.server, self.state)
             
-            # First try to find the dropdown
-            dropdown_exists = await self.browser.is_visible(client_selector)
+            # Try to open client dropdown
+            dropdown_result = await ui_tools.click_droplist("taskbar/client")
             
-            if dropdown_exists:
-                # Click to open dropdown
-                await self.browser.click(client_selector)
-                await asyncio.sleep(ANIMATION_DELAY)
+            if dropdown_result.get("success"):
+                clients = dropdown_result.get("items", [])
+                # Clean client names (remove emoji prefixes)
+                clean_clients = []
+                for client in clients:
+                    clean_name = client.lstrip("📍").strip()
+                    clean_clients.append(clean_name)
                 
-                # Get all client options
-                clients = await self.browser.evaluate("""
-                    () => {
-                        // Try different selector patterns
-                        let options = document.querySelectorAll('.p-dropdown-item');
-                        if (!options.length) {
-                            options = document.querySelectorAll('option');
-                        }
-                        if (!options.length) {
-                            options = document.querySelectorAll('[role="option"]');
-                        }
-                        
-                        return Array.from(options).map(opt => 
-                            opt.textContent?.trim() || opt.value || ''
-                        ).filter(text => text);
-                    }
-                """)
-                
-                # Close dropdown
-                await self.browser.click(client_selector)
+                # Close dropdown if it was opened
+                if dropdown_result.get("toggled"):
+                    await ui_tools.click_droplist("taskbar/client")
                 
                 return format_mcp_response(
                     True,
                     data={
-                        "clients": clients or [],
-                        "count": len(clients) if clients else 0
+                        "clients": clean_clients,
+                        "count": len(clean_clients)
                     },
-                    message=f"Found {len(clients) if clients else 0} connected clients"
+                    message=f"Found {len(clean_clients)} connected clients"
                 )
             else:
                 # No dropdown, check status bar for client count
@@ -133,46 +120,50 @@ class ClientTools:
             
             logger.info(f"Selecting client: {name} from {location}")
             
-            # Determine selector based on location
+            # Use UITools for dropdown interaction
+            from .ui_tools import UITools
+            ui_tools = UITools(self.server, self.state)
+            
+            # Determine dropdown path based on location
             if location == "taskbar":
-                # Client dropdown in taskbar (was export-target-dropdown)
-                client_selector = ".export-target-dropdown, .client-dropdown"
+                dropdown_path = "taskbar/client"
             elif location == "log_window":
-                # Client selector in log window
-                client_selector = ".log-client-dropdown, .client-select"
+                dropdown_path = "log_window/filter"
             else:
                 return format_mcp_response(
                     False,
                     error=f"Invalid location: {location}. Use 'taskbar' or 'log_window'"
                 )
             
-            dropdown_exists = await self.browser.is_visible(client_selector)
-            
-            if not dropdown_exists:
+            # Open dropdown
+            open_result = await ui_tools.click_droplist(dropdown_path)
+            if not open_result.get("success"):
                 return format_mcp_response(
                     False,
-                    error="Client dropdown not found"
+                    error=f"Failed to open dropdown: {open_result.get('error')}"
                 )
             
-            # Open dropdown
-            await self.browser.click(client_selector)
-            await asyncio.sleep(ANIMATION_DELAY)
+            # Check if client exists in the dropdown
+            items = open_result.get("items", [])
+            found = False
+            for item in items:
+                # Remove emoji prefix if present (e.g., "📍Local" -> "Local")
+                clean_item = item.lstrip("📍").strip()
+                if clean_item == name:
+                    found = True
+                    break
             
-            # Find and click the specific client
-            success = await self.browser.evaluate(f"""
-                () => {{
-                    const options = document.querySelectorAll('.p-dropdown-item, option, [role="option"]');
-                    for (let opt of options) {{
-                        if (opt.textContent?.trim() === '{name}') {{
-                            opt.click();
-                            return true;
-                        }}
-                    }}
-                    return false;
-                }}
-            """)
+            if not found:
+                # Close dropdown
+                await ui_tools.click_droplist(dropdown_path)
+                return format_mcp_response(
+                    False,
+                    error=f"Client not found: {name}"
+                )
             
-            if success:
+            # Select the client
+            select_result = await ui_tools.click_droplist_item(dropdown_path, name)
+            if select_result.get("success"):
                 # Update state with selected client
                 self.state["selected_client"] = name
                 
@@ -185,11 +176,9 @@ class ClientTools:
                     message=f"Selected client '{name}' from {location}"
                 )
             else:
-                # Close dropdown if selection failed
-                await self.browser.click(client_selector)
                 return format_mcp_response(
                     False,
-                    error=f"Client not found: {name}"
+                    error=f"Failed to select client: {select_result.get('error')}"
                 )
                 
         except Exception as e:
