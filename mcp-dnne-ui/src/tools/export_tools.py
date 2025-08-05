@@ -6,14 +6,14 @@ from typing import Dict, Any
 try:
     from ..utils.helpers import format_mcp_response
     from ..utils.selectors import *
-    from ..utils.timing_constants import ANIMATION_DELAY, LONG_RUNNING_TIMEOUT
+    from ..utils.timing_constants import ANIMATION_DELAY, EXPORT_TIMEOUT
 except ImportError:
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from utils.helpers import format_mcp_response
     from utils.selectors import *
-    from utils.timing_constants import ANIMATION_DELAY, LONG_RUNNING_TIMEOUT
+    from utils.timing_constants import ANIMATION_DELAY, EXPORT_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +168,7 @@ class ExportTools:
             logger.error(f"Failed to set run after export: {e}")
             return format_mcp_response(False, error=str(e))
     
-    async def wait_for_export_completion(self, timeout: int = LONG_RUNNING_TIMEOUT) -> Dict[str, Any]:
+    async def wait_for_export_completion(self, timeout: int = EXPORT_TIMEOUT) -> Dict[str, Any]:
         """
         Wait for export operation to complete
         
