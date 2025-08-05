@@ -52,3 +52,5 @@ runs/
 dnne_config.local.json
 *.config.local.json
 
+# mcp test logs
+mcp-dnne-ui/tests/test_results_comprehensive.json
