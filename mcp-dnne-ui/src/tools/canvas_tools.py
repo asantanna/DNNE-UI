@@ -80,9 +80,9 @@ class CanvasTools:
             logger.error(f"Failed to zoom to fit: {e}")
             return format_mcp_response(False, error=str(e))
     
-    async def toggle_link_visibility(self) -> Dict[str, Any]:
+    async def get_link_visibility(self) -> Dict[str, Any]:
         """
-        Toggle connection line visibility
+        Get current connection line visibility state
         
         Returns:
             MCP response with visibility status
@@ -91,10 +91,10 @@ class CanvasTools:
             if not self.browser:
                 return format_mcp_response(False, error="Browser not initialized")
             
-            logger.info("Toggling link visibility")
+            logger.info("Getting link visibility state")
             
-            # Get current visibility state before toggle
-            visible_before = await self.browser.evaluate("""
+            # Check current visibility state directly from DOM
+            visible = await self.browser.evaluate("""
                 () => {
                     // Check if links are visible
                     const links = document.querySelectorAll('.link, .connection, [class*="link"]');
@@ -107,40 +107,92 @@ class CanvasTools:
                 }
             """)
             
-            # Click the toggle button
-            success = await self.browser.click(TOGGLE_LINKS)
+            return format_mcp_response(
+                True,
+                data={"visible": visible},
+                message=f"Links are currently {'visible' if visible else 'hidden'}"
+            )
+                
+        except Exception as e:
+            logger.error(f"Failed to get link visibility: {e}")
+            return format_mcp_response(False, error=str(e))
+    
+    async def set_link_visibility(self, visible: bool) -> Dict[str, Any]:
+        """
+        Set connection line visibility
+        
+        Args:
+            visible: True to show links, False to hide them
+        
+        Returns:
+            MCP response with visibility status
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
             
-            if success:
-                await asyncio.sleep(ANIMATION_DELAY)
-                
-                # Get new visibility state
-                visible_after = await self.browser.evaluate("""
-                    () => {
-                        const links = document.querySelectorAll('.link, .connection, [class*="link"]');
-                        if (links.length > 0) {
-                            const firstLink = links[0];
-                            const style = window.getComputedStyle(firstLink);
-                            return style.display !== 'none' && style.visibility !== 'hidden';
-                        }
-                        return true; // Default to visible if no links found
+            logger.info(f"Setting link visibility to {visible}")
+            
+            # Get current visibility state from DOM
+            current_visible = await self.browser.evaluate("""
+                () => {
+                    // Check if links are visible
+                    const links = document.querySelectorAll('.link, .connection, [class*="link"]');
+                    if (links.length > 0) {
+                        const firstLink = links[0];
+                        const style = window.getComputedStyle(firstLink);
+                        return style.display !== 'none' && style.visibility !== 'hidden';
                     }
-                """)
+                    return true; // Default to visible if no links found
+                }
+            """)
+            
+            # Only click toggle if state needs to change
+            if current_visible != visible:
+                success = await self.browser.click(TOGGLE_LINKS)
                 
-                self.state["links_visible"] = visible_after
-                
+                if success:
+                    await asyncio.sleep(ANIMATION_DELAY)
+                    
+                    # Verify the new state from DOM
+                    new_visible = await self.browser.evaluate("""
+                        () => {
+                            const links = document.querySelectorAll('.link, .connection, [class*="link"]');
+                            if (links.length > 0) {
+                                const firstLink = links[0];
+                                const style = window.getComputedStyle(firstLink);
+                                return style.display !== 'none' && style.visibility !== 'hidden';
+                            }
+                            return true; // Default to visible if no links found
+                        }
+                    """)
+                    
+                    if new_visible == visible:
+                        return format_mcp_response(
+                            True,
+                            data={"visible": new_visible},
+                            message=f"Links are now {'visible' if new_visible else 'hidden'}"
+                        )
+                    else:
+                        return format_mcp_response(
+                            False,
+                            error=f"Failed to set link visibility to {visible}, current state is {new_visible}"
+                        )
+                else:
+                    return format_mcp_response(
+                        False,
+                        error="Failed to click toggle link visibility button"
+                    )
+            else:
+                # Already in desired state
                 return format_mcp_response(
                     True,
-                    data={"visible": visible_after},
-                    message=f"Links are now {'visible' if visible_after else 'hidden'}"
-                )
-            else:
-                return format_mcp_response(
-                    False,
-                    error="Failed to toggle link visibility"
+                    data={"visible": current_visible},
+                    message=f"Links are already {'visible' if visible else 'hidden'}"
                 )
                 
         except Exception as e:
-            logger.error(f"Failed to toggle link visibility: {e}")
+            logger.error(f"Failed to set link visibility: {e}")
             return format_mcp_response(False, error=str(e))
     
     async def get_node_count(self) -> Dict[str, Any]:

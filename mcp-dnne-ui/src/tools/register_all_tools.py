@@ -168,9 +168,15 @@ def register_all_additional_tools(server: "DNNE_UI_MCPServer"):
     )
     
     register_tool(
-        canvas_tools.toggle_link_visibility,
-        name="toggle_link_visibility",
-        description="Toggle connection line visibility"
+        canvas_tools.get_link_visibility,
+        name="get_link_visibility",
+        description="Get current connection line visibility state"
+    )
+    
+    register_tool(
+        canvas_tools.set_link_visibility,
+        name="set_link_visibility",
+        description="Set connection line visibility (true to show, false to hide)"
     )
     
     register_tool(

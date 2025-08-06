@@ -114,7 +114,8 @@ Add to your Claude Desktop MCP configuration:
 
 #### Canvas Operations
 - `zoom_to_fit()` - Fit workflow to viewport
-- `toggle_link_visibility()` - Show/hide connections
+- `get_link_visibility()` - Get current connection visibility state
+- `set_link_visibility(visible)` - Set connection visibility (true/false)
 - `get_node_count()` - Count nodes in workflow
 - `take_screenshot(name)` - Capture UI screenshot
 

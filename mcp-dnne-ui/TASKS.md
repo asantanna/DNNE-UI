@@ -61,7 +61,7 @@ See test_results_comprehensive.json for complete list
 - [ ] **Fix get_connected_clients** - Should not return "Local" when no clients are connected - FIXED, MUST TEST
 - [ ] **Fix select_client** - Should work without emoji prefix (accept "Tardigrade" not just "🖥️Tardigrade") - FIXED, MUST TEST
 - [x] **Delete open_menu function** - Duplicate of click_menu_item ✅ DONE
-- [ ] **Fix toggle_link_visibility** - Always returns "visible" state regardless of actual visibility
+- [ ] **Fix toggle_link_visibility** - Replaced with get_link_visibility() and set_link_visibility(bool) - FIXED, MUST TEST
 
 ### Medium Priority
 - [ ] **Investigate scope of suppress_browser_messages** - The suppress_browser_messages flag was added to test output but its scope should be reviewed to ensure it suppresses the right messages without hiding important errors
@@ -85,7 +85,7 @@ See test_results_comprehensive.json for complete list
 3. **get_connected_clients** - Returns "Local" even when no clients are connected - FIXED, MUST TEST
 4. **select_client** - Requires emoji prefix (e.g., "🖥️Tardigrade" instead of just "Tardigrade") - FIXED, MUST TEST
 5. ~~**open_menu** - Deleted as duplicate of click_menu_item~~ ✅ DONE
-6. **toggle_link_visibility** - Always returns "visible" state regardless of actual visibility
+6. **toggle_link_visibility** - Replaced with get_link_visibility() and set_link_visibility(bool) - FIXED, MUST TEST
 
 ### Low Priority
 - [ ] Performance optimization
