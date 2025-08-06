@@ -200,6 +200,7 @@ def normalize_ui_text(text: str, strip_emojis: bool = True) -> str:
         # Common UI emojis to remove
         ui_emojis = [
             "📍",  # Location pin (used for Local client)
+            "🖥️",  # Computer/desktop (used for remote clients)
             "📂",  # Folder
             "🔄",  # Refresh/reload
             "✅",  # Checkmark/success

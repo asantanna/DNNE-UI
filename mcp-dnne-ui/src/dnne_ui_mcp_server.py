@@ -114,21 +114,21 @@ class DNNE_UI_MCPServer:
             description="Initialize the browser and navigate to DNNE UI"
         )
         
-        async def cleanup_browser() -> Dict[str, Any]:
-            """Clean up browser resources"""
+        async def shut_down_browser_automation() -> Dict[str, Any]:
+            """Shut down browser automation and free all resources"""
             try:
                 if self.browser_controller:
                     await self.browser_controller.cleanup()
                     self.browser_controller = None
-                return format_mcp_response(True, message="Browser cleaned up")
+                return format_mcp_response(True, message="Browser automation shut down successfully")
             except Exception as e:
-                logger.error(f"Failed to cleanup browser: {e}")
+                logger.error(f"Failed to shut down browser automation: {e}")
                 return format_mcp_response(False, error=str(e))
         
         self.server.add_tool(
-            cleanup_browser,
-            name="cleanup_browser",
-            description="Clean up browser resources"
+            shut_down_browser_automation,
+            name="shut_down_browser_automation",
+            description="Shut down browser automation and free all resources"
         )
         
         async def is_browser_running() -> Dict[str, Any]:
