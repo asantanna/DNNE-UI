@@ -691,40 +691,6 @@ class ComprehensiveMCPTestSuite:
         tools = CanvasTools(self.server)
         return await tools.zoom_to_fit()
     
-    async def test_get_link_visibility(self):
-        """Test getting link visibility state"""
-        if not self.run_browser_tests:
-            return {"success": True, "message": "Skipped - browser tests disabled"}
-        
-        from tools.canvas_tools import CanvasTools
-        tools = CanvasTools(self.server)
-        
-        # Get current visibility state
-        result = await tools.get_link_visibility()
-        return result
-    
-    async def test_set_link_visibility(self):
-        """Test setting link visibility"""
-        if not self.run_browser_tests:
-            return {"success": True, "message": "Skipped - browser tests disabled"}
-        
-        from tools.canvas_tools import CanvasTools
-        tools = CanvasTools(self.server)
-        
-        # Get initial state
-        initial_result = await tools.get_link_visibility()
-        initial_state = initial_result.get("visible", True) if initial_result.get("success") else True
-        
-        # Set to opposite state
-        result = await tools.set_link_visibility(not initial_state)
-        
-        # If successful, restore original state
-        if result.get("success"):
-            await asyncio.sleep(0.5)  # Small delay
-            await tools.set_link_visibility(initial_state)
-        
-        return result
-    
     async def test_get_node_count(self):
         """Test getting node count"""
         if not self.run_browser_tests:
@@ -834,8 +800,6 @@ class ComprehensiveMCPTestSuite:
                 
                 # Canvas Operations
                 ("zoom_to_fit", "Canvas Operations", self.test_zoom_to_fit),
-                ("get_link_visibility", "Canvas Operations", self.test_get_link_visibility),
-                ("set_link_visibility", "Canvas Operations", self.test_set_link_visibility),
                 ("get_node_count", "Canvas Operations", self.test_get_node_count),
                 ("zoom_in", "Canvas Operations", self.test_zoom_in),
                 ("zoom_out", "Canvas Operations", self.test_zoom_out),

@@ -286,18 +286,6 @@ def register_all_tools(server: "DNNE_UI_MCPServer"):
     )
     
     register_tool(
-        canvas_tools.get_link_visibility,
-        name="get_link_visibility",
-        description="Get current connection line visibility state"
-    )
-    
-    register_tool(
-        canvas_tools.set_link_visibility,
-        name="set_link_visibility",
-        description="Set connection line visibility (true to show, false to hide)"
-    )
-    
-    register_tool(
         canvas_tools.get_node_count,
         name="get_node_count",
         description="Get the number of nodes in the current workflow"

@@ -22,7 +22,6 @@ TARGET_DROPDOWN = ".target-dropdown"
 ZOOM_IN = 'button[aria-label="Zoom In"]'
 ZOOM_OUT = 'button[aria-label="Zoom Out"]'
 FIT_VIEW = 'button[aria-label="Fit View"]'
-TOGGLE_LINKS = 'button[data-testid="toggle-link-visibility-button"]'
 SELECT_MODE = 'button[aria-label="Select Mode"]'
 
 # Canvas/Graph elements

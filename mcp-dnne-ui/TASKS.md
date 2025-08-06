@@ -3,10 +3,10 @@
 *Last Updated: 2025-08-06*
 
 ## Quick Stats
-- **Total Tools**: 42 implemented (after refactoring)
-- **Tested**: 39/42 (92.9%)
-- **Working**: 31/39 (79.5%)
-- **Issues Found**: 8 tools not implemented (log management)
+- **Total Tools**: 40 implemented (after removing link visibility functions)
+- **Tested**: 37/40 (92.5%)
+- **Working**: 30/37 (81.1%)
+- **Issues Found**: 7 tools not implemented (log management)
 
 ## ✅ Completed
 
@@ -46,16 +46,16 @@
 - [x] **Cleaned up imports** - Replaced all try/except blocks with sys.path.insert pattern
 - [x] **Reduced main server file** - From 600+ lines to ~200 lines
 - [x] **Created update_tool_permissions.py** - Auto-discovers tools for Claude permissions
+- [x] **Removed link visibility functions** - Deleted get/set_link_visibility as not useful for DNNE
 - [x] **Fixed all identified issues from manual testing**:
   - [x] Renamed cleanup_browser to shut_down_browser_automation
   - [x] Fixed get_connected_clients to exclude "Local"
   - [x] Fixed select_client emoji handling
   - [x] Deleted duplicate open_menu function
-  - [x] Replaced toggle_link_visibility with get/set functions
   - [x] Fixed get_workflow_list to handle sidebar state internally
 
-### Working Tools (31/39 tested)
-See test_results_comprehensive.json for complete list
+### Working Tools (30/37 tested)
+See test_results_comprehensive.json for complete list (outdated - needs rerun after link visibility removal)
 
 ### Documentation
 - [x] README.md - User guide with MCP_PY310 instructions
@@ -68,7 +68,6 @@ See test_results_comprehensive.json for complete list
 
 ### Current Focus
 - [ ] Implement the 7 log management functions
-- [ ] Fix set_link_visibility status reporting issue
 
 ## 📋 TODO
 
@@ -112,7 +111,6 @@ See test_results_comprehensive.json for complete list
 ## 🐛 Known Issues
 
 ### Minor Issues
-- set_link_visibility toggle works but reports wrong status
 - 7 log management functions not yet implemented
 
 ### ComfyUI Remnants in UI
