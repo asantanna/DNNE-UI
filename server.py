@@ -201,6 +201,8 @@ class PromptServer():
         self.agent_clients = {}  # Cache of connected clients
         self.agent_connection_status = "disconnected"
         self.agent_reconnect_task = None
+        self.workflow_log_files = {}  # Track open log files {workflow_id: file_handle}
+        self.workflow_metadata = {}  # Track metadata {workflow_id: {name, client, etc}}
 
         @routes.get('/ws')
         async def websocket_handler(request):
@@ -787,10 +789,17 @@ class PromptServer():
                                     with open(file_path, 'rb') as f:
                                         files_to_deploy[relative_path] = f.read().decode('utf-8')
                             
+                            # Generate content-based workflow ID
+                            import hashlib
+                            import json as json_module
+                            workflow_json = json_module.dumps(prompt, sort_keys=True)
+                            content_hash = hashlib.sha256(workflow_json.encode()).hexdigest()[:12]
+                            workflow_id = f"wf_{content_hash}"
+                            
                             # Send deploy command to agent server
                             deploy_msg = {
                                 "type": "deploy_workflow",
-                                "workflow_id": str(number),
+                                "workflow_id": workflow_id,
                                 "workflow_name": safe_name,
                                 "client_id": export_target,
                                 "files": files_to_deploy,
@@ -1251,23 +1260,163 @@ class PromptServer():
         
         elif msg_type == "workflow_deployed":
             # Workflow deployed to client
-            logging.info(f"[DNNE] Workflow deployed to {message.get('client_id')}")
+            workflow_id = message.get("workflow_id")
+            client_id = message.get("client_id")
+            workflow_name = message.get("workflow_name", "unknown")
+            
+            # Store metadata for this workflow
+            client_info = self.agent_clients.get(client_id, {})
+            hostname = client_info.get("hostname", client_id)
+            
+            self.workflow_metadata[workflow_id] = {
+                "workflow_id": workflow_id,
+                "workflow_name": workflow_name,
+                "client_id": client_id,
+                "client_hostname": hostname
+            }
+            
+            # Create metadata file
+            self._create_workflow_metadata(workflow_id, workflow_name, hostname)
+            
+            logging.info(f"[DNNE] Workflow {workflow_name} ({workflow_id}) deployed to {hostname}")
             self.send_sync("agent_update", {
                 "action": "workflow_deployed",
-                "workflow_id": message.get("workflow_id"),
-                "client_id": message.get("client_id")
+                "workflow_id": workflow_id,
+                "client_id": client_id
             })
             
         elif msg_type == "workflow_status":
             # Workflow status update
             status = message.get("status")
-            logging.info(f"[DNNE] Workflow status: {status}")
+            workflow_id = message.get("workflow_id")
+            client_id = message.get("client_id")
+            logging.info(f"[DNNE] Workflow status: {status} for {workflow_id}")
+            
+            # Handle workflow start - create new log file
+            if status == "started":
+                self._start_workflow_logging(workflow_id, client_id)
+            elif status in ["stopped", "completed", "failed"]:
+                self._stop_workflow_logging(workflow_id)
+            
             self.send_sync("agent_update", {
                 "action": "workflow_status",
-                "workflow_id": message.get("workflow_id"),
-                "client_id": message.get("client_id"),
+                "workflow_id": workflow_id,
+                "client_id": client_id,
                 "status": status
             })
+            
+        elif msg_type == "workflow_log":
+            # Log message from running workflow
+            workflow_id = message.get("workflow_id")
+            log_data = message.get("log", {})
+            self._write_workflow_log(workflow_id, log_data)
+            # Forward to UI
+            self.send_sync("workflow_log", message)
+            
+        else:
+            # Unknown message type - log as error
+            logging.error(f"[DNNE] Unknown agent message type: {msg_type}")
+            logging.error(f"[DNNE] Full message: {message}")
+    
+    def _create_workflow_metadata(self, workflow_id, workflow_name, client_hostname):
+        """Create metadata.json file for a deployed workflow."""
+        import json as json_module
+        from datetime import datetime
+        from pathlib import Path
+        
+        # Create directory structure
+        log_dir = Path("remote_clients") / client_hostname / f"{workflow_name}_{workflow_id}"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create metadata
+        metadata = {
+            "workflow_id": workflow_id,
+            "workflow_name": workflow_name,
+            "export_timestamp": datetime.now().isoformat(),
+            "client_hostname": client_hostname,
+            "deployment_path": f"/tmp/dnne_work_areas/{workflow_id}"
+        }
+        
+        # Write metadata file
+        metadata_file = log_dir / "metadata.json"
+        with open(metadata_file, 'w') as f:
+            json_module.dump(metadata, f, indent=2)
+        
+        logging.info(f"[DNNE] Created metadata for {workflow_name} at {log_dir}")
+    
+    def _start_workflow_logging(self, workflow_id, client_id):
+        """Start logging for a workflow run."""
+        from datetime import datetime
+        from pathlib import Path
+        
+        metadata = self.workflow_metadata.get(workflow_id)
+        if not metadata:
+            logging.warning(f"[DNNE] No metadata for workflow {workflow_id}")
+            return
+        
+        workflow_name = metadata.get("workflow_name", "unknown")
+        client_hostname = metadata.get("client_hostname", "unknown")
+        
+        # Create log directory
+        log_dir = Path("remote_clients") / client_hostname / f"{workflow_name}_{workflow_id}" / "run_logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create log file with timestamp
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        log_file = log_dir / f"run_{timestamp}.log"
+        
+        # Open file for writing (line buffered)
+        try:
+            file_handle = open(log_file, 'w', buffering=1)
+            self.workflow_log_files[workflow_id] = file_handle
+            
+            # Write header
+            file_handle.write(f"# Workflow: {workflow_name}\n")
+            file_handle.write(f"# ID: {workflow_id}\n")
+            file_handle.write(f"# Client: {client_hostname}\n")
+            file_handle.write(f"# Started: {datetime.now().isoformat()}\n")
+            file_handle.write("#" * 60 + "\n\n")
+            
+            logging.info(f"[DNNE] Started logging for {workflow_name} to {log_file}")
+        except Exception as e:
+            logging.error(f"[DNNE] Failed to create log file: {e}")
+    
+    def _write_workflow_log(self, workflow_id, log_data):
+        """Write a log entry to the workflow's log file."""
+        from datetime import datetime
+        
+        file_handle = self.workflow_log_files.get(workflow_id)
+        if not file_handle:
+            return  # No log file open for this workflow
+        
+        try:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            level = log_data.get("level", "info").upper()
+            message = log_data.get("message", "")
+            
+            # Write formatted log entry
+            file_handle.write(f"[{timestamp}] [{level}] {message}\n")
+            file_handle.flush()  # Ensure immediate write
+        except Exception as e:
+            logging.error(f"[DNNE] Failed to write log: {e}")
+    
+    def _stop_workflow_logging(self, workflow_id):
+        """Stop logging for a workflow and close the file."""
+        from datetime import datetime
+        
+        file_handle = self.workflow_log_files.get(workflow_id)
+        if not file_handle:
+            return
+        
+        try:
+            # Write footer
+            file_handle.write(f"\n# Stopped: {datetime.now().isoformat()}\n")
+            file_handle.close()
+            del self.workflow_log_files[workflow_id]
+            
+            logging.info(f"[DNNE] Stopped logging for workflow {workflow_id}")
+        except Exception as e:
+            logging.error(f"[DNNE] Failed to close log file: {e}")
     
     async def setup(self):
         timeout = aiohttp.ClientTimeout(total=None) # no timeout

@@ -291,9 +291,15 @@ class DNNEAgentClient:
             logger.info(f"Deploying workflow {workflow_id}, run_after_deploy={run_after_deploy}")
             
             try:
-                # Create workspace
+                # Clean deployment directory if it exists
                 workspace = self.workspace_base / workflow_id
-                workspace.mkdir(exist_ok=True)
+                if workspace.exists():
+                    import shutil
+                    logger.info(f"Cleaning existing deployment at {workspace}")
+                    shutil.rmtree(workspace)
+                
+                # Create fresh workspace
+                workspace.mkdir(parents=True, exist_ok=True)
                 
                 # Write files
                 for file_path, content in files.items():
