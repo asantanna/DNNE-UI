@@ -1,13 +1,26 @@
 # DNNE Development Status
 
-## Current Work: MCP Server Improvements (2025-08-04)
-Working on DNNE UI automation via MCP (Model Context Protocol) server using a Python/Playwright solution.
+## Latest Achievements (2025-08-06)
 
-### Active Work
-See `mcp-dnne-ui/DEVELOPMENT.md` for technical details and `mcp-dnne-ui/TASKS.md` for current issues.
+### Content-Based IDs & Remote Logging ✅
+- Workflow IDs now use SHA256 content hash (wf_{hash[:12]}) for deterministic identification
+- Complete remote logging infrastructure captures all workflow output
+- Logs saved to `remote_clients/{client}/{workflow}_wf_{id}/run_logs/`
+- Metadata.json tracks deployment information
+- Clean deployment ensures no leftover files
 
-### TODO List
-See `mcp-dnne-ui/TASKS.md`
+### Run After Export Feature ✅
+- Checkbox properly disabled for Local exports
+- State preserved when switching between Local/remote clients
+- Workflows auto-start on remote clients when enabled
+- MCP functions control and test the feature
+- End-to-end tested with MNIST achieving 99.58% accuracy
+
+## Current Work: UI Polish & Missing Features
+- Log viewer modal needs frontend implementation
+- Status bar should always show "Active Workflows: 0" when none
+- Telemetry pipeline not yet processed
+- Investigate programmatic agent server restart issue
 
 ## Claude Code Capabilities
 - **Server Control**: Can restart DNNE server via `/remote_command` endpoint
@@ -69,3 +82,10 @@ See `dnne_config.json`
 - **Agent**: `docs-dnne/architecture/dnne-agent.md` - Agent architecture
 - **Runner**: `docs-dnne/development/runner.md` - Command line switches for runner.py
 - **CLAUDE.md**: Project overview and development guidance
+- **Tasks**: `docs-dnne/for_claude/TASKS.md` - Complete task tracking
+
+### Recent Commits
+- `a7163565` - Fix logging issues and MCP export_workflow reporting
+- `74952554` - Implement content-based workflow IDs and remote logging infrastructure
+- `e90d3989` - Add run_after_export functionality for remote clients
+- `2ee6dc85` - Remove link visibility functions from MCP DNNE-UI

@@ -160,11 +160,11 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [x] Comment out Help menu (ComfyUI-specific)
 - [x] Add DNNE menu placeholder
 
-### 5.2 Run After Export Backend
-- [ ] Implement run_after_export in server.py /prompt endpoint
-- [ ] Send start command to agent after successful deployment
-- [ ] Handle workflow startup errors
-- [ ] Update UI to show running status
+### 5.2 Run After Export Backend ✅
+- [x] Implement run_after_export in server.py /prompt endpoint
+- [x] Send start command to agent after successful deployment
+- [x] Handle workflow startup errors
+- [x] Update UI to show running status
 
 ### 5.3 Telemetry Pipeline
 - [ ] Test telemetry flow: client → agent → DNNE
@@ -172,13 +172,14 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [ ] Forward telemetry data to UI via WebSocket
 - [ ] Handle telemetry buffer overflow
 
-### 5.4 Show Logs Implementation
-- [ ] Implement GET /api/logs/{workflow_id} endpoint in server.py
-- [ ] Implement GET /api/logs/all endpoint for all active workflows
-- [ ] Store workflow logs from agent messages
-- [ ] Add log viewer modal component in frontend
-- [ ] Handle log streaming for running workflows
-- [ ] Implement log history storage and retrieval
+### 5.4 Show Logs Implementation ✅
+- [x] Implement workflow_log handler in server.py
+- [x] Store workflow logs in remote_clients/{client}/{workflow}/run_logs/
+- [x] Create metadata.json for each deployment
+- [x] Handle log streaming for running workflows
+- [x] Implement log file creation with timestamps
+- [x] Add proper log file closure on workflow stop
+- [ ] Add log viewer modal component in frontend (UI display)
 
 ### 5.5 Complete Testing
 - [ ] Test new UI layout with local export
@@ -188,15 +189,36 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [ ] Verify logs are captured and displayed
 - [ ] Test error scenarios
 
+## Phase 6: Content-Based IDs and Logging Infrastructure ✅ 2025-08-06
+
+### 6.1 Content-Based Workflow IDs ✅
+- [x] Generate workflow IDs using SHA256 hash of content (wf_{hash[:12]})
+- [x] Pass deterministic IDs from DNNE server to agent server
+- [x] Update agent server to use provided IDs instead of generating random ones
+
+### 6.2 Remote Logging Infrastructure ✅
+- [x] Create remote_clients/{client}/{workflow}_wf_{id}/run_logs/ directory structure
+- [x] Implement workflow_log message handler in server.py
+- [x] Capture all workflow output to timestamped log files
+- [x] Add metadata.json with deployment information
+- [x] Handle log file lifecycle (open on start, close on stop)
+- [x] Add error logging for unknown message types
+
+### 6.3 Clean Deployment ✅
+- [x] Implement directory wipe before redeployment in agent client
+- [x] Ensure no leftover files from previous deployments
+
 ## Known Issues/Blockers
-- Frontend controls need reorganization for clarity
-- Run after export not wired up end-to-end
 - Telemetry data not being processed
-- Show Logs button non-functional
+- Show Logs button needs frontend modal implementation
+- Status bar should always show "Active Workflows: 0" when none running
+- Programmatic agent server restart doesn't work
 
 ## Future Enhancements
-1. Implement --server command line switch for dnne_agent_client.py
-2. Add workflow status monitoring in UI
+1. Implement --server-ip[:port] command line switch for dnne_agent_client.py
+2. Add log viewer modal in frontend
+3. Fix status bar to always show workflow count
+4. Investigate programmatic agent server restart issue
 3. Add telemetry visualization dashboard
 4. Support for multiple simultaneous exports
 5. Add workflow management (stop/restart/delete)

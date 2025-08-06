@@ -3,9 +3,9 @@
 *Last Updated: 2025-08-06*
 
 ## Quick Stats
-- **Total Tools**: 41 implemented (added set_run_after_export)
-- **Tested**: 38/41 (92.7%)
-- **Working**: 31/38 (81.6%)
+- **Total Tools**: 41 implemented (including set_run_after_export)
+- **Tested**: 41/41 (100%)
+- **Working**: 34/41 (82.9%)
 - **Issues Found**: 7 tools not implemented (log management)
 
 ## ✅ Completed
@@ -18,6 +18,14 @@
 - [x] State management (in-memory only)
 - [x] Error handling framework
 - [x] Claude Desktop integration
+
+### Run After Export Implementation (2025-08-06)
+- [x] **Added set_run_after_export function** - Controls checkbox state
+- [x] **Fixed export_workflow** - Now reports actual checkbox state instead of parameter
+- [x] **Comprehensive state preservation testing** - Checkbox state preserved when switching clients
+- [x] **Frontend integration** - Checkbox disabled for Local, remembers state for remote clients
+- [x] **Backend integration** - Agent server and client handle run_after_deploy flag
+- [x] **End-to-end testing** - Successfully tested complete flow with auto-start on remote client
 
 ### Recent Improvements (2025-08-04 to 2025-08-06)
 - [x] Migrated to MCP_PY310 conda environment
