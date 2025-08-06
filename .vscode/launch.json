@@ -5,16 +5,23 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Debug Cartpole_PPO",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/export_system/exports/Cartpole_PPO/runner.py",
             "console": "integratedTerminal",
-            "cwd":"${workspaceFolder}/export_system/exports/Cartpole_PPO",
+            "cwd": "${workspaceFolder}/export_system/exports/Cartpole_PPO",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}:${env:PYTHONPATH}",
                 "DNNE_ISAAC_GYM": "/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym",
-                "DNNE_ISAAC_GYM_ENVS":"/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs",
+                "DNNE_ISAAC_GYM_ENVS": "/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs",
                 "DNNE_LINUX_SUPPORT": "/home/asantanna/DNNE-LINUX-SUPPORT",
                 "DNNE_RL_GAMES": "/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne",
                 "HYDRA_FULL_ERROR": "1"
@@ -25,7 +32,7 @@
             ],
             "justMyCode": false,
             "subProcess": true,
-            "python":"/home/asantanna/miniconda/envs/DNNE_PY38/bin/python"
+            "python": "/home/asantanna/miniconda/envs/DNNE_PY38/bin/python"
         },
         {
             "name": "Debug Yield_Test (Headless)",
@@ -33,7 +40,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/export_system/exports/Yield_Test/runner.py",
             "console": "integratedTerminal",
-            "cwd":"${workspaceFolder}/export_system/exports/Yield_Test",
+            "cwd": "${workspaceFolder}/export_system/exports/Yield_Test",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}:${env:PYTHONPATH}",
                 "DNNE_ISAAC_GYM": "/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym",
@@ -44,7 +51,8 @@
             },
             "args": [
                 "--headless",
-                "--timeout", "1m"
+                "--timeout",
+                "1m"
             ],
             "justMyCode": false,
             "subProcess": true,
@@ -56,7 +64,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/export_system/exports/Cartpole_PPO/runner.py",
             "console": "integratedTerminal",
-            "cwd":"${workspaceFolder}/export_system/exports/Cartpole_PPO",
+            "cwd": "${workspaceFolder}/export_system/exports/Cartpole_PPO",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}:${env:PYTHONPATH}",
                 "DNNE_ISAAC_GYM": "/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym",
@@ -67,7 +75,8 @@
             },
             "args": [
                 "--headless",
-                "--timeout", "1m"
+                "--timeout",
+                "1m"
             ],
             "justMyCode": false,
             "subProcess": true,
