@@ -109,7 +109,6 @@ Add to your Claude Desktop MCP configuration:
 - `click_droplist(path)` - Open dropdown for testing (e.g., "taskbar/client")
 - `click_droplist_item(path, item)` - Select dropdown item (e.g., path="taskbar/client", item="Local")
 - `run_javascript(code, return_result)` - Execute JavaScript in browser context
-- `open_menu(path)` - Navigate menu items (legacy, use click_menu_item)
 - `dismiss_dialog()` - Close any open dialog
 - `get_error_message()` - Get current error message
 

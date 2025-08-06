@@ -113,12 +113,6 @@ def register_all_additional_tools(server: "DNNE_UI_MCPServer"):
     )
     
     register_tool(
-        ui_tools.open_menu,
-        name="open_menu",
-        description="Open a menu item by path (e.g., 'Workflow/Save As')"
-    )
-    
-    register_tool(
         ui_tools.dismiss_dialog,
         name="dismiss_dialog",
         description="Dismiss any open dialog or error message"
