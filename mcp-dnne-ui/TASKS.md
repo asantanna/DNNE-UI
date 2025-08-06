@@ -3,10 +3,10 @@
 *Last Updated: 2025-08-06*
 
 ## Quick Stats
-- **Total Tools**: 39 implemented
-- **Tested**: 35/39 (89.7%)
-- **Working**: 29/35 (82.9%)
-- **Issues Found**: 6 tools need fixes
+- **Total Tools**: 42 implemented (after refactoring)
+- **Tested**: 39/42 (92.9%)
+- **Working**: 31/39 (79.5%)
+- **Issues Found**: 8 tools not implemented (log management)
 
 ## ✅ Completed
 
@@ -38,7 +38,23 @@
 - [x] Added flag to suppress browser unavailable message
 - [x] Manual testing of all MCP tools through Claude Code interface
 
-### Working Tools (29/35)
+### Major Refactoring (2025-08-06)
+- [x] **Removed StateManager entirely** - MCP server is now truly stateless
+- [x] **Unified tool registration** - Eliminated "builtin" vs "additional" distinction
+- [x] **Created lifecycle_tools.py** - Moved browser lifecycle functions to dedicated module
+- [x] **Created utility_tools.py** - Moved utility functions with util_ prefix
+- [x] **Cleaned up imports** - Replaced all try/except blocks with sys.path.insert pattern
+- [x] **Reduced main server file** - From 600+ lines to ~200 lines
+- [x] **Created update_tool_permissions.py** - Auto-discovers tools for Claude permissions
+- [x] **Fixed all identified issues from manual testing**:
+  - [x] Renamed cleanup_browser to shut_down_browser_automation
+  - [x] Fixed get_connected_clients to exclude "Local"
+  - [x] Fixed select_client emoji handling
+  - [x] Deleted duplicate open_menu function
+  - [x] Replaced toggle_link_visibility with get/set functions
+  - [x] Fixed get_workflow_list to handle sidebar state internally
+
+### Working Tools (31/39 tested)
 See test_results_comprehensive.json for complete list
 
 ### Documentation
@@ -51,24 +67,25 @@ See test_results_comprehensive.json for complete list
 ## 🚧 In Progress
 
 ### Current Focus
-- [ ] Fix issues identified during manual testing
+- [ ] Implement the 7 log management functions
+- [ ] Fix set_link_visibility status reporting issue
 
 ## 📋 TODO
 
 ### High Priority
-- [x] **Fix cleanup_browser naming** - Renamed to "shut_down_browser_automation" (more descriptive) ✅ DONE
-- [ ] **Fix get_workflow_list** - Should handle sidebar state internally, not require it to be open - FIXED, MUST TEST
-- [ ] **Fix get_connected_clients** - Should not return "Local" when no clients are connected - FIXED, MUST TEST
-- [ ] **Fix select_client** - Should work without emoji prefix (accept "Tardigrade" not just "🖥️Tardigrade") - FIXED, MUST TEST
-- [x] **Delete open_menu function** - Duplicate of click_menu_item ✅ DONE
-- [ ] **Fix toggle_link_visibility** - Replaced with get_link_visibility() and set_link_visibility(bool) - FIXED, MUST TEST
-- [ ] **Remove state management** - MCP server should be stateless - FIXED, MUST TEST
+- [x] ~~**Fix cleanup_browser naming**~~ - ✅ Renamed to "shut_down_browser_automation"
+- [x] ~~**Fix get_workflow_list**~~ - ✅ Now handles sidebar state internally
+- [x] ~~**Fix get_connected_clients**~~ - ✅ No longer returns "Local"
+- [x] ~~**Fix select_client**~~ - ✅ Works without emoji prefix
+- [x] ~~**Delete open_menu function**~~ - ✅ Removed duplicate
+- [x] ~~**Fix toggle_link_visibility**~~ - ✅ Replaced with get/set functions
+- [x] ~~**Remove state management**~~ - ✅ MCP server is now stateless
 
 ### Medium Priority
 - [ ] **Investigate scope of suppress_browser_messages** - The suppress_browser_messages flag was added to test output but its scope should be reviewed to ensure it suppresses the right messages without hiding important errors
 
 ### Low Priority
-- [ ] **Test remaining tools after fixes** - Once all high priority fixes are complete, run comprehensive tests to ensure all tools work correctly
+- [x] ~~**Test remaining tools after fixes**~~ - ✅ Comprehensive testing completed (31/39 passing)
 
 ### Missing Implementations
 - [ ] Log analysis tools (7 functions not yet implemented):
@@ -80,19 +97,23 @@ See test_results_comprehensive.json for complete list
   - [ ] get_recent_errors
   - [ ] wait_for_log_pattern
 
-### Issues Found During Manual Testing
-1. ~~**cleanup_browser** - Renamed to "shut_down_browser_automation" (more descriptive)~~ ✅ DONE
-2. **get_workflow_list** - Requires sidebar to be open first (should handle this internally) - FIXED, MUST TEST
-3. **get_connected_clients** - Returns "Local" even when no clients are connected - FIXED, MUST TEST
-4. **select_client** - Requires emoji prefix (e.g., "🖥️Tardigrade" instead of just "Tardigrade") - FIXED, MUST TEST
-5. ~~**open_menu** - Deleted as duplicate of click_menu_item~~ ✅ DONE
-6. **toggle_link_visibility** - Replaced with get_link_visibility() and set_link_visibility(bool) - FIXED, MUST TEST
+### Issues Found During Manual Testing (ALL FIXED ✅)
+1. ~~**cleanup_browser**~~ - ✅ Renamed to "shut_down_browser_automation"
+2. ~~**get_workflow_list**~~ - ✅ Now handles sidebar state internally
+3. ~~**get_connected_clients**~~ - ✅ No longer returns "Local"
+4. ~~**select_client**~~ - ✅ Works without emoji prefix
+5. ~~**open_menu**~~ - ✅ Deleted duplicate function
+6. ~~**toggle_link_visibility**~~ - ✅ Replaced with get/set functions
 
 ### Low Priority
 - [ ] Performance optimization
 - [ ] Additional error recovery strategies
 
 ## 🐛 Known Issues
+
+### Minor Issues
+- set_link_visibility toggle works but reports wrong status
+- 7 log management functions not yet implemented
 
 ### ComfyUI Remnants in UI
 - Browse Templates (non-functional)
@@ -104,9 +125,11 @@ See test_results_comprehensive.json for complete list
 
 ### Important Decisions
 - Use Playwright instead of Puppeteer
-- Stateless architecture (no disk persistence)
+- **Stateless architecture** - Removed StateManager, all tools query DOM directly
 - FastMCP framework for simplicity
 - All screenshots in mcp-dnne-ui/screenshots/
+- **Unified tool architecture** - All 42 tools use same registration pattern
+- **Clean import pattern** - sys.path.insert instead of try/except blocks
 
 ### Lessons Learned
 - Menu navigation requires checking if already open
