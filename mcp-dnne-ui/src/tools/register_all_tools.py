@@ -29,10 +29,10 @@ def register_all_additional_tools(server: "DNNE_UI_MCPServer"):
         from tools.canvas_tools import CanvasTools
     
     # Create tool instances with server reference for dynamic browser access
-    client_tools = ClientTools(server, server.state)
-    log_tools = LogTools(server, server.state)
-    ui_tools = UITools(server, server.state)
-    canvas_tools = CanvasTools(server, server.state)
+    client_tools = ClientTools(server)
+    log_tools = LogTools(server)
+    ui_tools = UITools(server)
+    canvas_tools = CanvasTools(server)
     
     # Track the number of tools registered
     tool_count = 0

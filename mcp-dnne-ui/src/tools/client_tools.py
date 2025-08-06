@@ -20,16 +20,14 @@ logger = logging.getLogger(__name__)
 class ClientTools:
     """Tools for managing clients and agents in DNNE UI"""
     
-    def __init__(self, server, state: Dict[str, Any]):
+    def __init__(self, server):
         """
         Initialize client tools
         
         Args:
             server: DNNE_UI_MCPServer instance for dynamic browser access
-            state: Shared state dictionary
         """
         self.server = server
-        self.state = state
     
     @property
     def browser(self):
@@ -51,7 +49,7 @@ class ClientTools:
             
             # Use UITools to get client list from dropdown
             from .ui_tools import UITools
-            ui_tools = UITools(self.server, self.state)
+            ui_tools = UITools(self.server)
             
             # Try to open client dropdown
             dropdown_result = await ui_tools.click_droplist("taskbar/client")
@@ -126,7 +124,7 @@ class ClientTools:
             
             # Use UITools for dropdown interaction
             from .ui_tools import UITools
-            ui_tools = UITools(self.server, self.state)
+            ui_tools = UITools(self.server)
             
             # Determine dropdown path based on location
             if location == "taskbar":
@@ -173,9 +171,6 @@ class ClientTools:
             # Select the client
             select_result = await ui_tools.click_droplist_item(dropdown_path, name)
             if select_result.get("success"):
-                # Update state with selected client
-                self.state["selected_client"] = name
-                
                 return format_mcp_response(
                     True,
                     data={

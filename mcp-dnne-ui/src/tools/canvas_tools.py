@@ -20,16 +20,14 @@ logger = logging.getLogger(__name__)
 class CanvasTools:
     """Tools for canvas operations in DNNE UI"""
     
-    def __init__(self, server, state: Dict[str, Any]):
+    def __init__(self, server):
         """
         Initialize canvas tools
         
         Args:
             server: DNNE_UI_MCPServer instance for dynamic browser access
-            state: Shared state dictionary
         """
         self.server = server
-        self.state = state
     
     @property
     def browser(self):

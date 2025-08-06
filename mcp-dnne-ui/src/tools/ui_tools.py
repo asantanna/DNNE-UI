@@ -27,16 +27,14 @@ logger = logging.getLogger(__name__)
 class UITools:
     """Tools for UI navigation and interaction in DNNE UI"""
     
-    def __init__(self, server, state: Dict[str, Any]):
+    def __init__(self, server):
         """
         Initialize UI tools
         
         Args:
             server: DNNE_UI_MCPServer instance for dynamic browser access
-            state: Shared state dictionary
         """
         self.server = server
-        self.state = state
     
     @property
     def browser(self):
@@ -75,8 +73,6 @@ class UITools:
             if success:
                 # Wait for sidebar animation
                 await asyncio.sleep(ANIMATION_DELAY)
-                self.state["sidebar_open"] = True
-                self.state["sidebar_tab"] = tab_lower
                 
                 return format_mcp_response(
                     True,

@@ -26,16 +26,14 @@ logger = logging.getLogger(__name__)
 class WorkflowTools:
     """Tools for managing workflows in DNNE UI"""
     
-    def __init__(self, server, state: Dict[str, Any]):
+    def __init__(self, server):
         """
         Initialize workflow tools
         
         Args:
             server: DNNE_UI_MCPServer instance for dynamic browser access
-            state: Shared state dictionary
         """
         self.server = server
-        self.state = state
     
     @property
     def browser(self):
@@ -62,7 +60,7 @@ class WorkflowTools:
                 
                 # Use UI tools to click the menu item
                 from .ui_tools import UITools
-                ui_tools = UITools(self.server, self.state)
+                ui_tools = UITools(self.server)
                 
                 # Click Workflow > Save As
                 result = await ui_tools.click_menu_item("Workflow/Save As")
@@ -90,9 +88,6 @@ class WorkflowTools:
                         }
                     }
                 """)
-                
-                # Update state
-                self.state["current_workflow"] = name
                 
                 return format_mcp_response(
                     True,
@@ -150,10 +145,6 @@ class WorkflowTools:
             await self.browser.click(new_selector)
             await asyncio.sleep(DIALOG_SETTLE_DELAY)
             
-            # Update state
-            self.state["current_workflow"] = None
-            self.state["sidebar_open"] = False
-            
             return format_mcp_response(
                 True,
                 message="New blank workflow created"
@@ -178,7 +169,7 @@ class WorkflowTools:
             
             # Use the UI tools to click the menu item
             from .ui_tools import UITools
-            ui_tools = UITools(self.server, self.state)
+            ui_tools = UITools(self.server)
             
             # Click Edit > Clear Workflow
             result = await ui_tools.click_menu_item("Edit/Clear Workflow")
@@ -192,9 +183,6 @@ class WorkflowTools:
                 confirm_button = f"{DIALOG_FOOTER} button:has-text('Yes'), {DIALOG_FOOTER} button:has-text('Confirm')"
                 await self.browser.click(confirm_button)
                 await asyncio.sleep(ANIMATION_DELAY)
-            
-            # Update state
-            self.state["current_workflow"] = None
             
             return format_mcp_response(
                 True,
@@ -257,11 +245,11 @@ class WorkflowTools:
             
             logger.info("Getting workflow list")
             
-            # Open workflows sidebar if not open
-            if not self.state.get("sidebar_open"):
+            # Check if sidebar is open and open it if needed
+            sidebar_visible = await self.browser.is_visible(WORKFLOWS_LIST)
+            if not sidebar_visible:
                 await self.browser.click(WORKFLOWS_TAB)
                 await asyncio.sleep(DIALOG_SETTLE_DELAY)
-                self.state["sidebar_open"] = True
             
             # Get all workflow items
             workflows = await self.browser.evaluate("""
@@ -342,9 +330,6 @@ class WorkflowTools:
             await self.browser.click(workflow_selector)
             await asyncio.sleep(WORKFLOW_LOAD_DELAY)  # Wait for workflow to load
             
-            # Update state
-            self.state["current_workflow"] = name
-            
             return format_mcp_response(
                 True,
                 data={"workflow": name},
@@ -391,9 +376,6 @@ class WorkflowTools:
                     return 'Unsaved Workflow';
                 }
             """)
-            
-            # Update state
-            self.state["current_workflow"] = workflow_name
             
             return format_mcp_response(
                 True,
@@ -448,12 +430,6 @@ class WorkflowTools:
             # Click export button
             await self.browser.click(EXPORT_BUTTON)
             await asyncio.sleep(WORKFLOW_LOAD_DELAY)  # Wait for export to start
-            
-            # Update state
-            self.state["last_export"] = {
-                "timestamp": asyncio.get_event_loop().time(),
-                "run_after": run_after
-            }
             
             return format_mcp_response(
                 True,

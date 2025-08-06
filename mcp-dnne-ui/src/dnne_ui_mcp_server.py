@@ -28,14 +28,12 @@ try:
     from .browser_controller import BrowserController
     from .utils.helpers import setup_logging, get_env_var, format_mcp_response
     from .utils.js_defs import *
-    from .utils.state_manager import StateManager
     from .utils.error_handler import ErrorDiagnostics, with_error_handling
 except ImportError:
     # For direct script execution
     from browser_controller import BrowserController
     from utils.helpers import setup_logging, get_env_var, format_mcp_response
     from utils.js_defs import *
-    from utils.state_manager import StateManager
     from utils.error_handler import ErrorDiagnostics, with_error_handling
 
 # Load environment variables
@@ -57,10 +55,6 @@ class DNNE_UI_MCPServer:
         self.browser_controller: Optional[BrowserController] = None
         self.dnne_url = get_env_var("DNNE_URL", "http://172.22.160.1:8188")
         self.headless = get_env_var("BROWSER_HEADLESS", "false").lower() == "true"
-        
-        # State management - in-memory only, no disk persistence
-        self.state_manager = StateManager()
-        self.state = self.state_manager.state
         
         # Error diagnostics
         self.error_diagnostics = ErrorDiagnostics()
@@ -202,7 +196,7 @@ class DNNE_UI_MCPServer:
                 from .tools.workflow_tools import WorkflowTools
             except ImportError:
                 from tools.workflow_tools import WorkflowTools
-            tools = WorkflowTools(self, self.state)
+            tools = WorkflowTools(self)
             return await tools.load_workflow(name)
         
         self.server.add_tool(
@@ -222,7 +216,7 @@ class DNNE_UI_MCPServer:
                     from .tools.workflow_tools import WorkflowTools
                 except ImportError:
                     from tools.workflow_tools import WorkflowTools
-                tools = WorkflowTools(self, self.state)
+                tools = WorkflowTools(self)
                 return await tools.get_current_workflow_name()
                 
             except Exception as e:
@@ -251,7 +245,7 @@ class DNNE_UI_MCPServer:
                     from .tools.workflow_tools import WorkflowTools
                 except ImportError:
                     from tools.workflow_tools import WorkflowTools
-                tools = WorkflowTools(self, self.state)
+                tools = WorkflowTools(self)
                 return await tools.export_workflow(run_after)
                 
             except Exception as e:
@@ -390,7 +384,7 @@ class DNNE_UI_MCPServer:
                     from .tools.workflow_tools import WorkflowTools
                 except ImportError:
                     from tools.workflow_tools import WorkflowTools
-                tools = WorkflowTools(self, self.state)
+                tools = WorkflowTools(self)
                 return await tools.save_workflow(name)
                 
             except Exception as e:
@@ -413,7 +407,7 @@ class DNNE_UI_MCPServer:
                     from .tools.workflow_tools import WorkflowTools
                 except ImportError:
                     from tools.workflow_tools import WorkflowTools
-                tools = WorkflowTools(self, self.state)
+                tools = WorkflowTools(self)
                 return await tools.new_blank_workflow()
                 
             except Exception as e:
@@ -436,7 +430,7 @@ class DNNE_UI_MCPServer:
                     from .tools.workflow_tools import WorkflowTools
                 except ImportError:
                     from tools.workflow_tools import WorkflowTools
-                tools = WorkflowTools(self, self.state)
+                tools = WorkflowTools(self)
                 return await tools.clear_workflow()
                 
             except Exception as e:
@@ -459,7 +453,7 @@ class DNNE_UI_MCPServer:
                     from .tools.workflow_tools import WorkflowTools
                 except ImportError:
                     from tools.workflow_tools import WorkflowTools
-                tools = WorkflowTools(self, self.state)
+                tools = WorkflowTools(self)
                 return await tools.get_workflow_list()
                 
             except Exception as e:

@@ -19,16 +19,14 @@ logger = logging.getLogger(__name__)
 class LogTools:
     """Tools for log analysis and management in DNNE UI"""
     
-    def __init__(self, server, state: Dict[str, Any]):
+    def __init__(self, server):
         """
         Initialize log tools
         
         Args:
             server: DNNE_UI_MCPServer instance for dynamic browser access
-            state: Shared state dictionary
         """
         self.server = server
-        self.state = state
     
     @property
     def browser(self):
