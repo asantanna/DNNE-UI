@@ -58,8 +58,8 @@ See test_results_comprehensive.json for complete list
 ### High Priority
 - [x] **Fix cleanup_browser naming** - Renamed to "shut_down_browser_automation" (more descriptive) ✅ DONE
 - [ ] **Fix get_workflow_list** - Should handle sidebar state internally, not require it to be open
-- [ ] **Fix get_connected_clients** - Should not return "Local" when no clients are connected
-- [x] **Fix select_client** - Should work without emoji prefix (accept "Tardigrade" not just "🖥️Tardigrade") ✅ FIXED (pending MCP reload to verify)
+- [ ] **Fix get_connected_clients** - Should not return "Local" when no clients are connected - FIXED, MUST TEST
+- [ ] **Fix select_client** - Should work without emoji prefix (accept "Tardigrade" not just "🖥️Tardigrade") - FIXED, MUST TEST
 - [x] **Delete open_menu function** - Duplicate of click_menu_item ✅ DONE
 - [ ] **Fix toggle_link_visibility** - Always returns "visible" state regardless of actual visibility
 
@@ -82,8 +82,8 @@ See test_results_comprehensive.json for complete list
 ### Issues Found During Manual Testing
 1. ~~**cleanup_browser** - Renamed to "shut_down_browser_automation" (more descriptive)~~ ✅ DONE
 2. **get_workflow_list** - Requires sidebar to be open first (should handle this internally)
-3. **get_connected_clients** - Returns "Local" even when no clients are connected
-4. ~~**select_client** - Fixed: now accepts "Tardigrade" without emoji prefix~~ ✅ FIXED
+3. **get_connected_clients** - Returns "Local" even when no clients are connected - FIXED, MUST TEST
+4. **select_client** - Requires emoji prefix (e.g., "🖥️Tardigrade" instead of just "Tardigrade") - FIXED, MUST TEST
 5. ~~**open_menu** - Deleted as duplicate of click_menu_item~~ ✅ DONE
 6. **toggle_link_visibility** - Always returns "visible" state regardless of actual visibility
 

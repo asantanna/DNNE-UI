@@ -65,6 +65,9 @@ class ClientTools:
                     from utils.helpers import normalize_ui_text
                 clean_clients = [normalize_ui_text(client) for client in clients]
                 
+                # Filter out "Local" as it's not a connected client
+                connected_clients = [client for client in clean_clients if client != "Local"]
+                
                 # Close dropdown if it was opened
                 if dropdown_result.get("toggled"):
                     await ui_tools.click_droplist("taskbar/client")
@@ -72,10 +75,10 @@ class ClientTools:
                 return format_mcp_response(
                     True,
                     data={
-                        "clients": clean_clients,
-                        "count": len(clean_clients)
+                        "clients": connected_clients,
+                        "count": len(connected_clients)
                     },
-                    message=f"Found {len(clean_clients)} connected clients"
+                    message=f"Found {len(connected_clients)} connected clients"
                 )
             else:
                 # No dropdown, check status bar for client count
