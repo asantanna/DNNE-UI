@@ -1,23 +1,26 @@
 """UI navigation and interaction tools for DNNE UI MCP Server"""
 
 import asyncio
+import json
 import logging
 from typing import Dict, Any, Optional
 try:
     from ..utils.helpers import format_mcp_response, parse_menu_path
-    from ..utils.selectors import *
+    from ..utils.js_defs import *
     from ..utils.timing_constants import (
         MENU_TIMEOUT, SELECTOR_TIMEOUT, ANIMATION_DELAY
     )
+    from ..utils.js_snippets import run_js_snippet_in_browser
 except ImportError:
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from utils.helpers import format_mcp_response, parse_menu_path
-    from utils.selectors import *
+    from utils.js_defs import *
     from utils.timing_constants import (
         MENU_TIMEOUT, SELECTOR_TIMEOUT, ANIMATION_DELAY
     )
+    from utils.js_snippets import run_js_snippet_in_browser
 
 logger = logging.getLogger(__name__)
 
@@ -56,23 +59,15 @@ class UITools:
             
             logger.info(f"Opening sidebar tab: {tab}")
             
-            # Map tab names to selectors
-            tab_selectors = {
-                "workflows": WORKFLOWS_TAB,
-                "nodes": NODE_LIBRARY_TAB,
-                "node_library": NODE_LIBRARY_TAB,
-                "models": MODEL_LIBRARY_TAB,  # To be removed
-                "queue": QUEUE_TAB  # To be removed
-            }
-            
+            # Use centralized tab selectors
             tab_lower = tab.lower()
-            if tab_lower not in tab_selectors:
+            if tab_lower not in TAB_SELECTORS:
                 return format_mcp_response(
                     False,
                     error=f"Unknown tab: {tab}. Valid options: workflows, nodes"
                 )
             
-            selector = tab_selectors[tab_lower]
+            selector = TAB_SELECTORS[tab_lower]
             
             # Click the tab
             success = await self.browser.click(selector)
@@ -123,23 +118,15 @@ class UITools:
                     error=f"Invalid menu path: {path}"
                 )
             
-            # Map top-level menu names to indices
-            menu_indices = {
-                "workflow": 1,
-                "edit": 2,
-                "dnne": 3,
-                "help": 4  # If it exists
-            }
-            
-            # Get the top menu index
+            # Get the top menu index from centralized mapping
             top_menu = menu_parts[0].lower()
-            if top_menu not in menu_indices:
+            if top_menu not in MENU_INDICES:
                 return format_mcp_response(
                     False,
                     error=f"Unknown menu: {menu_parts[0]}"
                 )
             
-            menu_index = menu_indices[top_menu]
+            menu_index = MENU_INDICES[top_menu]
             
             # Click the top menu
             menu_selector = get_menu_item_selector(menu_index)
@@ -150,18 +137,7 @@ class UITools:
             # For now, we'll handle single-level submenus
             
             # Find and click the final item
-            success = await self.browser.evaluate(f"""
-                () => {{
-                    const items = document.querySelectorAll('.p-menubar-submenu .p-menubar-item-label');
-                    for (let item of items) {{
-                        if (item.textContent?.trim() === '{final_item}') {{
-                            item.click();
-                            return true;
-                        }}
-                    }}
-                    return false;
-                }}
-            """)
+            success = await run_js_snippet_in_browser(self.browser, "click_menu_item_by_text", {"item_text": final_item})
             
             if success:
                 return format_mcp_response(
@@ -171,7 +147,7 @@ class UITools:
                 )
             else:
                 # Close menu if item not found
-                await self.browser.evaluate("document.body.click()")
+                await run_js_snippet_in_browser(self.browser, "close_menu")
                 return format_mcp_response(
                     False,
                     error=f"Menu item not found: {final_item}"
@@ -278,10 +254,10 @@ class UITools:
             
             if not dialog_visible:
                 # Check for toast notifications
-                toast_visible = await self.browser.is_visible(".p-toast-message-error")
+                toast_visible = await self.browser.is_visible(TOAST_ERROR)
                 
                 if toast_visible:
-                    toast_text = await self.browser.get_text(".p-toast-message-error")
+                    toast_text = await self.browser.get_text(TOAST_ERROR)
                     return format_mcp_response(
                         True,
                         data={
@@ -388,15 +364,8 @@ class UITools:
             
             logger.info(f"Clicking menu header: {menu_name}")
             
-            # Map menu names to indices
-            menu_indices = {
-                "workflow": 1,
-                "edit": 2,
-                "dnne": 3,
-                "help": 4
-            }
-            
-            menu_index = menu_indices.get(menu_name.lower())
+            # Use centralized menu indices
+            menu_index = MENU_INDICES.get(menu_name.lower())
             if not menu_index:
                 return format_mcp_response(
                     False,
@@ -467,23 +436,15 @@ class UITools:
                     error=f"Invalid menu path: {path}"
                 )
             
-            # Map menu names to indices
-            menu_indices = {
-                "workflow": 1,
-                "edit": 2,
-                "dnne": 3,
-                "help": 4
-            }
-            
-            # Get the top menu index
+            # Get the top menu index from centralized mapping
             top_menu = menu_parts[0].lower()
-            if top_menu not in menu_indices:
+            if top_menu not in MENU_INDICES:
                 return format_mcp_response(
                     False,
                     error=f"Unknown menu: {menu_parts[0]}"
                 )
             
-            menu_index = menu_indices[top_menu]
+            menu_index = MENU_INDICES[top_menu]
             
             # Check if submenu is already visible
             submenu_visible = await self.browser.is_visible(MENU_SUBMENU)
@@ -496,26 +457,14 @@ class UITools:
                 await self.browser.wait_for_selector(MENU_SUBMENU, timeout=MENU_TIMEOUT)
                 await asyncio.sleep(ANIMATION_DELAY)  # Short pause for animation
             
-            # Map common menu items to their indices (based on actual UI positions)
-            menu_item_indices = {
-                # Workflow menu (actual positions from debug)
-                "new": 1, "new blank workflow": 1,
-                "open": 3, "open workflow": 3,  # Item 3: "OpenCtrl + o"
-                "browse templates": 4,           # Item 4: "Browse Templates"
-                "save": 6, "save workflow": 6,  # Item 6: "SaveCtrl + s"
-                "save as": 7, "save workflow as": 7,  # Item 7: "Save As"
-                "export": 8, "export workflow": 8,    # Item 8: "Export"
-                "export api": 9, "export (api)": 9,   # Item 9: "Export (API)"
-                # Edit menu (positions include separators)
-                "undo": 1,
-                "redo": 2,
-                # separator at 3
-                "refresh": 4, "refresh node definitions": 4,
-                # separator at 5
-                "clear": 6, "clear workflow": 6,
-                # separator at 7
-                "clipspace": 8, "open clipspace": 8
-            }
+            # Get submenu items for the current menu from centralized mapping
+            if top_menu not in SUBMENU_ITEMS:
+                return format_mcp_response(
+                    False,
+                    error=f"No submenu items defined for menu: {top_menu}"
+                )
+            
+            menu_item_indices = SUBMENU_ITEMS[top_menu]
             
             # Find item by index
             item_index = menu_item_indices.get(final_item.lower())
@@ -574,31 +523,20 @@ class UITools:
             location = parts[0].lower()
             control = parts[1].lower()
             
-            # Selector mapping for different dropdowns
-            dropdown_selectors = {
-                "taskbar": {
-                    "client": CLIENT_DROPDOWN  # #client-dropdown
-                },
-                "log_window": {
-                    "client": ".log-client-dropdown",
-                    "filter": ".log-filter-dropdown"
-                }
-            }
-            
-            # Get the dropdown selector
-            if location not in dropdown_selectors:
+            # Get the dropdown selector from centralized mapping
+            if location not in DROPDOWN_SELECTORS:
                 return format_mcp_response(
                     False,
                     error=f"Invalid location: {location}. Valid locations: {', '.join(dropdown_selectors.keys())}"
                 )
             
-            if control not in dropdown_selectors[location]:
+            if control not in DROPDOWN_SELECTORS[location]:
                 return format_mcp_response(
                     False,
-                    error=f"Invalid control '{control}' for location '{location}'. Valid controls: {', '.join(dropdown_selectors[location].keys())}"
+                    error=f"Invalid control '{control}' for location '{location}'. Valid controls: {', '.join(DROPDOWN_SELECTORS[location].keys())}"
                 )
             
-            dropdown_selector = dropdown_selectors[location][control]
+            dropdown_selector = DROPDOWN_SELECTORS[location][control]
             
             # Check if dropdown exists
             dropdown_exists = await self.browser.is_visible(dropdown_selector)
@@ -608,36 +546,19 @@ class UITools:
                     error=f"Dropdown not found at {location}/{control} with selector: {dropdown_selector}"
                 )
             
+            # Use consistent selectors throughout
+            selectors_js = json.dumps(DROPDOWN_ITEM_SELECTORS)
+            
             # Check if dropdown is already open by looking for dropdown items
-            items_visible_before = await self.browser.evaluate("""
-                () => {
-                    const items = document.querySelectorAll('.p-select-item, .p-dropdown-item, [role="option"]');
-                    return items.length > 0 && items[0].offsetParent !== null;
-                }
-            """)
+            items_visible_before = await run_js_snippet_in_browser(self.browser, "is_dropdown_open", {"selectors": selectors_js})
             
             # Click to toggle dropdown
             logger.debug(f"Clicking dropdown: {dropdown_selector}")
             await self.browser.click(dropdown_selector)
             await asyncio.sleep(ANIMATION_DELAY)  # Wait for animation
             
-            # Check new state and count items
-            dropdown_state = await self.browser.evaluate("""
-                () => {
-                    const items = document.querySelectorAll('.p-select-item, .p-dropdown-item, [role="option"]');
-                    const visible = items.length > 0 && items[0].offsetParent !== null;
-                    
-                    // Get item texts if visible
-                    const itemTexts = visible ? 
-                        Array.from(items).map(el => el.textContent?.trim()).filter(t => t) : [];
-                    
-                    return {
-                        is_open: visible,
-                        item_count: itemTexts.length,
-                        items: itemTexts
-                    };
-                }
-            """)
+            # Check new state and count items using same selectors as click_droplist_item
+            dropdown_state = await run_js_snippet_in_browser(self.browser, "get_dropdown_items", {"selectors": selectors_js})
             
             return format_mcp_response(
                 True,
@@ -686,31 +607,20 @@ class UITools:
             location = parts[0].lower()
             control = parts[1].lower()
             
-            # Selector mapping for different dropdowns
-            dropdown_selectors = {
-                "taskbar": {
-                    "client": CLIENT_DROPDOWN  # #client-dropdown
-                },
-                "log_window": {
-                    "client": ".log-client-dropdown",
-                    "filter": ".log-filter-dropdown"
-                }
-            }
-            
-            # Get the dropdown selector
-            if location not in dropdown_selectors:
+            # Get the dropdown selector from centralized mapping
+            if location not in DROPDOWN_SELECTORS:
                 return format_mcp_response(
                     False,
                     error=f"Invalid location: {location}. Valid locations: {', '.join(dropdown_selectors.keys())}"
                 )
             
-            if control not in dropdown_selectors[location]:
+            if control not in DROPDOWN_SELECTORS[location]:
                 return format_mcp_response(
                     False,
-                    error=f"Invalid control '{control}' for location '{location}'. Valid controls: {', '.join(dropdown_selectors[location].keys())}"
+                    error=f"Invalid control '{control}' for location '{location}'. Valid controls: {', '.join(DROPDOWN_SELECTORS[location].keys())}"
                 )
             
-            dropdown_selector = dropdown_selectors[location][control]
+            dropdown_selector = DROPDOWN_SELECTORS[location][control]
             
             # Check if dropdown exists
             dropdown_exists = await self.browser.is_visible(dropdown_selector)
@@ -720,35 +630,44 @@ class UITools:
                     error=f"Dropdown not found at {location} with selector: {dropdown_selector}"
                 )
             
-            # Open dropdown
-            logger.debug(f"Opening dropdown: {dropdown_selector}")
-            await self.browser.click(dropdown_selector)
-            await asyncio.sleep(ANIMATION_DELAY)  # Wait for dropdown to open
+            # Open dropdown (if not already open)
+            dropdown_open = await run_js_snippet_in_browser(self.browser, "is_dropdown_open", {"selectors": DROPDOWN_ITEM_SELECTORS})
+            if not dropdown_open:
+                logger.debug(f"Opening dropdown: {dropdown_selector}")
+                await self.browser.click(dropdown_selector)
+                await asyncio.sleep(ANIMATION_DELAY)  # Wait for dropdown animation
+
+            # Import normalize function
+            try:
+                from ..utils.helpers import normalize_ui_text
+            except ImportError:
+                from utils.helpers import normalize_ui_text
             
-            # Find and click the specific item
-            success = await self.browser.evaluate(f"""
-                (itemText) => {{
-                    // Look for dropdown items with various selectors
-                    const selectors = [
-                        '.p-select-item',
-                        '.p-dropdown-item',
-                        'option',
-                        '[role="option"]'
-                    ];
-                    
-                    for (const selector of selectors) {{
-                        const options = document.querySelectorAll(selector);
-                        for (const opt of options) {{
-                            const text = opt.textContent?.trim();
-                            if (text === itemText) {{
-                                opt.click();
-                                return true;
-                            }}
-                        }}
-                    }}
-                    return false;
-                }}
-            """, item)
+            # Normalize the search text
+            normalized_search = normalize_ui_text(item)
+            
+            # Get all dropdown items and their indices
+            selectors_js = json.dumps(DROPDOWN_ITEM_SELECTORS)
+            items_data = await run_js_snippet_in_browser(self.browser, "get_dropdown_item_details", {"selectors": selectors_js})
+            
+            # Find matching item using normalized comparison
+            match_found = None
+            logger.debug(f"Looking for normalized: '{normalized_search}' in {len(items_data)} items")
+            for item_data in items_data:
+                normalized_item = normalize_ui_text(item_data["text"])
+                logger.debug(f"  Comparing '{normalized_item}' (from '{item_data['text']}') with '{normalized_search}'")
+                if normalized_item == normalized_search:
+                    match_found = item_data
+                    logger.debug(f"  Match found!")
+                    break
+            
+            # Click the matched item
+            success = False
+            if match_found:
+                success = await run_js_snippet_in_browser(self.browser, "click_dropdown_item_by_index", {
+                    "selector": match_found['selector'],
+                    "index": match_found['index']
+                })
             
             if success:
                 return format_mcp_response(
@@ -788,14 +707,14 @@ class UITools:
             logger.debug(f"Executing JavaScript: {code[:100]}...")
             
             if return_result:
-                result = await self.browser.evaluate(f"() => {{ {code} }}")
+                result = await run_js_snippet_in_browser(self.browser, "execute_custom_code", {"code": code})
                 return format_mcp_response(
                     True,
                     data={"result": result},
                     message="JavaScript executed successfully"
                 )
             else:
-                await self.browser.evaluate(f"() => {{ {code} }}")
+                await run_js_snippet_in_browser(self.browser, "execute_custom_code", {"code": code})
                 return format_mcp_response(
                     True,
                     message="JavaScript executed successfully (no return value)"

@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Any, Optional
 try:
     from ..utils.helpers import format_mcp_response
-    from ..utils.selectors import *
+    from ..utils.js_defs import *
     from ..utils.timing_constants import (
         MENU_TIMEOUT, DIALOG_TIMEOUT, ANIMATION_DELAY, 
         DIALOG_SETTLE_DELAY, WORKFLOW_LOAD_DELAY
@@ -15,7 +15,7 @@ except ImportError:
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from utils.helpers import format_mcp_response
-    from utils.selectors import *
+    from utils.js_defs import *
     from utils.timing_constants import (
         MENU_TIMEOUT, DIALOG_TIMEOUT, ANIMATION_DELAY, 
         DIALOG_SETTLE_DELAY, WORKFLOW_LOAD_DELAY

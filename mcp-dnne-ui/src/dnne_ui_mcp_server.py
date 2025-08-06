@@ -27,14 +27,14 @@ from mcp.server import FastMCP
 try:
     from .browser_controller import BrowserController
     from .utils.helpers import setup_logging, get_env_var, format_mcp_response
-    from .utils.selectors import *
+    from .utils.js_defs import *
     from .utils.state_manager import StateManager
     from .utils.error_handler import ErrorDiagnostics, with_error_handling
 except ImportError:
     # For direct script execution
     from browser_controller import BrowserController
     from utils.helpers import setup_logging, get_env_var, format_mcp_response
-    from utils.selectors import *
+    from utils.js_defs import *
     from utils.state_manager import StateManager
     from utils.error_handler import ErrorDiagnostics, with_error_handling
 
@@ -217,17 +217,13 @@ class DNNE_UI_MCPServer:
                 if not self.browser_controller:
                     return format_mcp_response(False, error="Browser not initialized")
                 
-                # Query browser directly for current workflow
-                workflow_name = await self.browser_controller.get_current_workflow()
-                
-                # Update in-memory state for session tracking
-                if workflow_name:
-                    self.state["current_workflow"] = workflow_name
-                
-                return format_mcp_response(
-                    True,
-                    data={"workflow_name": workflow_name}
-                )
+                # Delegate to WorkflowTools which has more comprehensive browser query
+                try:
+                    from .tools.workflow_tools import WorkflowTools
+                except ImportError:
+                    from tools.workflow_tools import WorkflowTools
+                tools = WorkflowTools(self, self.state)
+                return await tools.get_current_workflow_name()
                 
             except Exception as e:
                 logger.error(f"Failed to get workflow name: {e}")
@@ -250,36 +246,13 @@ class DNNE_UI_MCPServer:
                 if not self.browser_controller:
                     return format_mcp_response(False, error="Browser not initialized")
                 
-                # Check if run_after is requested
-                if run_after:
-                    logger.info("export_workflow called with run_after=True")
-                    return format_mcp_response(
-                        False,
-                        error="Not implemented yet"
-                    )
-                
-                # Click export button
-                success = await self.browser_controller.click(EXPORT_BUTTON)
-                
-                if not success:
-                    return format_mcp_response(False, error="Failed to click export button")
-                
-                # Wait for export to complete (adjust timeout as needed)
-                await asyncio.sleep(3)
-                
-                # Check for errors
-                error_visible = await self.browser_controller.is_visible(DIALOG)
-                if error_visible:
-                    error_text = await self.browser_controller.get_text(DIALOG_CONTENT)
-                    return format_mcp_response(
-                        False,
-                        error=f"Export failed: {error_text}"
-                    )
-                
-                return format_mcp_response(
-                    True,
-                    message="Workflow exported successfully"
-                )
+                # Delegate to WorkflowTools which has the comprehensive implementation
+                try:
+                    from .tools.workflow_tools import WorkflowTools
+                except ImportError:
+                    from tools.workflow_tools import WorkflowTools
+                tools = WorkflowTools(self, self.state)
+                return await tools.export_workflow(run_after)
                 
             except Exception as e:
                 logger.error(f"Failed to export workflow: {e}")
@@ -361,10 +334,10 @@ class DNNE_UI_MCPServer:
                 issues = []
                 
                 # Check for key UI elements
-                if not await self.browser_controller.is_visible(".side-bar-button"):
+                if not await self.browser_controller.is_visible(SIDEBAR_BUTTON):
                     issues.append("Sidebar buttons not visible")
                 
-                if not await self.browser_controller.is_visible(".comfyui-menu"):
+                if not await self.browser_controller.is_visible(COMFYUI_MENU):
                     issues.append("Menu bar not visible")
                 
                 # Check for error dialogs

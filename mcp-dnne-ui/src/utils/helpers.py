@@ -179,6 +179,57 @@ def parse_log_metrics(log_text: str) -> Dict[str, Any]:
     
     return metrics
 
+def normalize_ui_text(text: str, strip_emojis: bool = True) -> str:
+    """
+    Normalize UI text by stripping emojis and normalizing whitespace
+    
+    Args:
+        text: Text to normalize
+        strip_emojis: Whether to strip common UI emojis (default: True)
+    
+    Returns:
+        Normalized text
+    """
+    if not text:
+        return ""
+    
+    # Convert to string if needed
+    text = str(text)
+    
+    if strip_emojis:
+        # Common UI emojis to remove
+        ui_emojis = [
+            "📍",  # Location pin (used for Local client)
+            "📂",  # Folder
+            "🔄",  # Refresh/reload
+            "✅",  # Checkmark/success
+            "❌",  # Error/failure
+            "⚠️",  # Warning
+            "💾",  # Save
+            "📋",  # Clipboard
+            "🗑️",  # Trash/delete
+            "➕",  # Add/plus
+            "➖",  # Remove/minus
+            "🔍",  # Search
+            "📊",  # Chart/graph
+            "🎯",  # Target
+            "🚀",  # Launch/deploy
+            "⏸️",  # Pause
+            "▶️",  # Play
+            "⏹️",  # Stop
+            "🔗",  # Link
+            "📡",  # Connection/network
+        ]
+        
+        for emoji in ui_emojis:
+            text = text.replace(emoji, "")
+    
+    # Normalize whitespace - remove extra spaces and trim
+    text = " ".join(text.split())
+    
+    return text.strip()
+
+
 def format_mcp_response(
     success: bool, 
     data: Optional[Dict[str, Any]] = None,

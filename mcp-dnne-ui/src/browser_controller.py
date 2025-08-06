@@ -147,13 +147,14 @@ class BrowserController:
             logger.error(f"Failed to click {selector}: {e}")
             return False
     
-    async def get_text(self, selector: str, timeout: int = SELECTOR_TIMEOUT) -> Optional[str]:
+    async def get_text(self, selector: str, timeout: int = SELECTOR_TIMEOUT, normalize: bool = True) -> Optional[str]:
         """
         Get text content of an element
         
         Args:
             selector: CSS selector for element
             timeout: Maximum wait time for element
+            normalize: Whether to normalize the text (strip emojis and extra whitespace)
         
         Returns:
             Text content or None if not found
@@ -164,7 +165,11 @@ class BrowserController:
         try:
             element = await self.page.wait_for_selector(selector, timeout=timeout)
             if element:
-                return await element.text_content()
+                text = await element.text_content()
+                if text and normalize:
+                    from utils.helpers import normalize_ui_text
+                    return normalize_ui_text(text)
+                return text
             return None
             
         except Exception as e:

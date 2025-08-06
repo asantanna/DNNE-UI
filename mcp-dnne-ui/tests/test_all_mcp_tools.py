@@ -4,8 +4,10 @@
 import asyncio
 import sys
 import json
+import atexit
+import signal
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import List
 from datetime import datetime
 
 # Add parent directory to path
@@ -86,12 +88,34 @@ class ComprehensiveMCPTestSuite:
     async def teardown(self):
         """Clean up test environment"""
         print("Cleaning up test environment...")
+        
+        # Clean up test workflow files
+        self.cleanup_test_workflows()
+        
         if self.browser:
             await self.browser.cleanup()
         
         # Clear test state
         if self.server and self.server.state_manager:
             self.server.state_manager.clear_session_state()
+    
+    def cleanup_test_workflows(self):
+        """Remove all test workflow files created during testing"""
+        workflow_dir = Path("/home/asantanna/DNNE/DNNE-UI/user/default/workflows")
+        if not workflow_dir.exists():
+            return
+            
+        # Find all test workflow files
+        test_files = list(workflow_dir.glob("__test__*.json"))
+        
+        if test_files:
+            print(f"\nCleaning up {len(test_files)} test workflow file(s)...")
+            for test_file in test_files:
+                try:
+                    test_file.unlink()
+                    print(f"  Removed: {test_file.name}")
+                except Exception as e:
+                    print(f"  Warning: Could not remove {test_file.name}: {e}")
     
     async def restore_ui_to_standard_state(self):
         """
@@ -405,7 +429,7 @@ class ComprehensiveMCPTestSuite:
         
         from tools.workflow_tools import WorkflowTools
         tools = WorkflowTools(self.server, self.server.state)
-        return await tools.save_workflow("test_workflow")
+        return await tools.save_workflow("__test__save_workflow")
     
     async def test_new_blank_workflow(self):
         """Test creating new blank workflow"""
@@ -945,8 +969,24 @@ class ComprehensiveMCPTestSuite:
         
         print(f"\n📄 Detailed results exported to: {output_file}")
 
+# Global suite for cleanup access
+_test_suite = None
+
+def cleanup_on_exit():
+    """Cleanup function for atexit and signal handlers"""
+    global _test_suite
+    if _test_suite:
+        _test_suite.cleanup_test_workflows()
+
+def signal_handler(signum, frame):
+    """Handle interrupt signals"""
+    print("\n\nInterrupted! Cleaning up test files...")
+    cleanup_on_exit()
+    sys.exit(1)
+
 async def main():
     """Main test runner"""
+    global _test_suite
     import argparse
     
     parser = argparse.ArgumentParser(description="Comprehensive test of all DNNE UI MCP tools")
@@ -974,6 +1014,13 @@ async def main():
         run_browser_tests=run_browser_tests,
         suppress_browser_messages=args.suppress_browser_messages
     )
+    _test_suite = suite
+    
+    # Register cleanup handlers
+    atexit.register(cleanup_on_exit)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     success = await suite.run_all_tests()
     
     sys.exit(0 if success else 1)

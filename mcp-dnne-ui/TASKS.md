@@ -1,6 +1,6 @@
 # DNNE UI MCP - Task Tracking
 
-*Last Updated: 2025-08-04*
+*Last Updated: 2025-08-05*
 
 ## Quick Stats
 - **Total Tools**: 39 implemented
@@ -19,7 +19,7 @@
 - [x] Error handling framework
 - [x] Claude Desktop integration
 
-### Recent Improvements (2025-08-04)
+### Recent Improvements (2025-08-04 to 2025-08-05)
 - [x] Migrated to MCP_PY310 conda environment
 - [x] Fixed status bar selector (.agent-status-bar)
 - [x] Fixed dialog close button selector (.p-dialog-close-button)
@@ -28,6 +28,14 @@
 - [x] Fixed canvas tools evaluate() argument error
 - [x] Renamed ensure_healthy() to is_healthy()
 - [x] Bulletproof UI restoration in tests
+- [x] Fixed wrong menu item indices in workflow_tools.py
+- [x] Fixed load_workflow function sidebar toggle issue
+- [x] Passed server to WorkflowTools constructor
+- [x] Fixed save_workflow to click Confirm button with JavaScript
+- [x] Removed code duplication between MCP server and workflow tools
+- [x] Restored link visibility state after toggle test
+- [x] Replaced warning icons with Note: prefix in test output
+- [x] Added flag to suppress browser unavailable message
 
 ### Working Tools (31/39)
 See test_results_comprehensive.json for complete list
@@ -43,20 +51,30 @@ See test_results_comprehensive.json for complete list
 ## 🚧 In Progress
 
 ### Current Focus
-- [ ] Implement missing workflow tools (load_workflow, export_workflow)
-- [ ] Fix remaining selector issues
+- [ ] Fix select_client dropdown selector issue (BrowserController.evaluate() error)
 
 ## 📋 TODO
 
-### Failed Tools (8 to fix)
-1. **load_workflow** - Missing implementation
-2. **get_current_workflow_name** - Missing implementation  
-3. **save_workflow** - Save dialog doesn't appear
-4. **export_workflow** - Missing implementation
-5. **is_ui_healthy** - Method name mismatch
-6. **select_client** - Client dropdown selector not found
-7. **clear_logs** - Clear Logs button not found
-8. **wait_for_log_pattern** - Timeout handling
+### High Priority
+1. **Fix select_client dropdown selector issue** - The select_client function is throwing "BrowserController.evaluate() takes 2 positional arguments but 3 were given" error. Need to debug the UITools integration.
+
+### Medium Priority
+1. **Investigate scope of suppress_browser_messages** - The suppress_browser_messages flag was added to test output but its scope should be reviewed to ensure it suppresses the right messages without hiding important errors.
+2. **Add tests for new menu navigation functions** - The new menu navigation functions (click_menu_header, click_menu_item) need comprehensive test coverage.
+3. **Add tests for enhanced select_client with location parameter** - The select_client function now supports "taskbar" and "log_window" locations that need testing.
+
+### Low Priority
+1. **Test remaining tools after fixes** - Once all high priority fixes are complete, run comprehensive tests to ensure all tools work correctly.
+
+### Previously Failed Tools (Updated Status)
+1. **load_workflow** - ✅ FIXED (sidebar toggle issue resolved)
+2. **get_current_workflow_name** - ✅ FIXED (implemented)
+3. **save_workflow** - ✅ FIXED (Confirm button click issue resolved)
+4. **export_workflow** - ✅ FIXED (implemented)
+5. **is_ui_healthy** - ✅ FIXED (method name corrected)
+6. **select_client** - ⚠️ IN PROGRESS (evaluate() error)
+7. **clear_logs** - Still returns "Not implemented yet"
+8. **wait_for_log_pattern** - Still returns "Not implemented yet"
 
 ### High Priority Selectors to Fix
 - [ ] **Client Dropdown** (.client-dropdown)

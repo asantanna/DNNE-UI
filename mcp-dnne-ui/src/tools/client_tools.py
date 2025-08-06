@@ -5,14 +5,14 @@ import logging
 from typing import Dict, Any, List, Optional
 try:
     from ..utils.helpers import format_mcp_response
-    from ..utils.selectors import *
+    from ..utils.js_defs import *
     from ..utils.timing_constants import ANIMATION_DELAY
 except ImportError:
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from utils.helpers import format_mcp_response
-    from utils.selectors import *
+    from utils.js_defs import *
     from utils.timing_constants import ANIMATION_DELAY
 
 logger = logging.getLogger(__name__)
@@ -58,11 +58,12 @@ class ClientTools:
             
             if dropdown_result.get("success"):
                 clients = dropdown_result.get("items", [])
-                # Clean client names (remove emoji prefixes)
-                clean_clients = []
-                for client in clients:
-                    clean_name = client.lstrip("📍").strip()
-                    clean_clients.append(clean_name)
+                # Normalize client names to remove emojis
+                try:
+                    from ..utils.helpers import normalize_ui_text
+                except ImportError:
+                    from utils.helpers import normalize_ui_text
+                clean_clients = [normalize_ui_text(client) for client in clients]
                 
                 # Close dropdown if it was opened
                 if dropdown_result.get("toggled"):
@@ -78,7 +79,7 @@ class ClientTools:
                 )
             else:
                 # No dropdown, check status bar for client count
-                status_text = await self.browser.get_text(".status-bar")
+                status_text = await self.browser.get_text(STATUS_BAR)
                 if status_text and "Clients:" in status_text:
                     import re
                     match = re.search(r'Clients:\s*(\d+)', status_text)
@@ -145,13 +146,18 @@ class ClientTools:
             
             # Check if client exists in the dropdown
             items = open_result.get("items", [])
-            found = False
-            for item in items:
-                # Remove emoji prefix if present (e.g., "📍Local" -> "Local")
-                clean_item = item.lstrip("📍").strip()
-                if clean_item == name:
-                    found = True
-                    break
+            logger.debug(f"Dropdown items found: {items}")
+            
+            # Normalize items to check for existence
+            try:
+                from ..utils.helpers import normalize_ui_text
+            except ImportError:
+                from utils.helpers import normalize_ui_text
+            normalized_items = [normalize_ui_text(item) for item in items]
+            logger.debug(f"Normalized items: {normalized_items}")
+            logger.debug(f"Looking for: '{name}'")
+            found = name in normalized_items
+            logger.debug(f"Found: {found}")
             
             if not found:
                 # Close dropdown
@@ -199,12 +205,12 @@ class ClientTools:
             logger.info("Getting agent status")
             
             # Look for agent status in the status bar
-            status_text = await self.browser.get_text(STATUS_BAR)
+            status_text = await self.browser.get_text(AGENT_STATUS_BOTTOM)
             
             if not status_text:
                 return format_mcp_response(
                     False, 
-                    error=f"Status bar not found using selector '{STATUS_BAR}'. Status bar may not be visible or selector needs updating."
+                    error=f"Status bar not found using selector '{AGENT_STATUS_BOTTOM}'. Status bar may not be visible or selector needs updating."
                 )
             
             # Parse the status
