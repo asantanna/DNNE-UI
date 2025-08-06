@@ -396,7 +396,13 @@ class WorkflowTools:
             if not self.browser:
                 return format_mcp_response(False, error="Browser not initialized")
             
-            logger.info(f"Exporting workflow (run_after={run_after})")
+            # Get actual checkbox state
+            from utils.js_snippets import run_js_snippet_in_browser
+            actual_run_after = await run_js_snippet_in_browser(self.browser.page, 'get_run_after_export_state')
+            if actual_run_after is None:
+                actual_run_after = False
+            
+            logger.info(f"Exporting workflow (run_after={actual_run_after})")
             
             # Click export button
             export_button_exists = await self.browser.is_visible(EXPORT_BUTTON)
@@ -406,29 +412,13 @@ class WorkflowTools:
                     error="Export button not found"
                 )
             
-            # Check run after export checkbox if needed
-            if run_after:
-                checkbox_exists = await self.browser.is_visible(RUN_AFTER_EXPORT)
-                if checkbox_exists:
-                    # Check if already checked
-                    is_checked = await self.browser.evaluate(f"""
-                        () => {{
-                            const checkbox = document.querySelector('{RUN_AFTER_EXPORT}');
-                            return checkbox ? checkbox.checked : false;
-                        }}
-                    """)
-                    
-                    if not is_checked:
-                        await self.browser.click(RUN_AFTER_EXPORT)
-                        await asyncio.sleep(ANIMATION_DELAY)
-            
             # Click export button
             await self.browser.click(EXPORT_BUTTON)
             await asyncio.sleep(WORKFLOW_LOAD_DELAY)  # Wait for export to start
             
             return format_mcp_response(
                 True,
-                data={"run_after": run_after},
+                data={"run_after": actual_run_after},
                 message="Export initiated"
             )
             

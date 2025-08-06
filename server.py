@@ -1293,7 +1293,7 @@ class PromptServer():
             logging.info(f"[DNNE] Workflow status: {status} for {workflow_id}")
             
             # Handle workflow start - create new log file
-            if status == "started":
+            if status == "running":
                 self._start_workflow_logging(workflow_id, client_id)
             elif status in ["stopped", "completed", "failed"]:
                 self._stop_workflow_logging(workflow_id)
