@@ -2,24 +2,19 @@
 
 import asyncio
 import logging
+import sys
+from pathlib import Path
 from typing import Dict, Any, Optional
-try:
-    from ..utils.helpers import format_mcp_response
-    from ..utils.js_defs import *
-    from ..utils.timing_constants import (
-        MENU_TIMEOUT, DIALOG_TIMEOUT, ANIMATION_DELAY, 
-        DIALOG_SETTLE_DELAY, WORKFLOW_LOAD_DELAY
-    )
-except ImportError:
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from utils.helpers import format_mcp_response
-    from utils.js_defs import *
-    from utils.timing_constants import (
-        MENU_TIMEOUT, DIALOG_TIMEOUT, ANIMATION_DELAY, 
-        DIALOG_SETTLE_DELAY, WORKFLOW_LOAD_DELAY
-    )
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.helpers import format_mcp_response
+from utils.js_defs import *
+from utils.timing_constants import (
+    MENU_TIMEOUT, DIALOG_TIMEOUT, ANIMATION_DELAY, 
+    DIALOG_SETTLE_DELAY, WORKFLOW_LOAD_DELAY
+)
 
 logger = logging.getLogger(__name__)
 
@@ -246,7 +241,7 @@ class WorkflowTools:
             logger.info("Getting workflow list")
             
             # Check if sidebar is open and open it if needed
-            sidebar_visible = await self.browser.is_visible(WORKFLOWS_LIST)
+            sidebar_visible = await self.browser.is_visible(SIDEBAR_CONTENT_CONTAINER)
             if not sidebar_visible:
                 await self.browser.click(WORKFLOWS_TAB)
                 await asyncio.sleep(DIALOG_SETTLE_DELAY)

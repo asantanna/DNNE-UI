@@ -2,18 +2,16 @@
 
 import asyncio
 import logging
+import sys
+from pathlib import Path
 from typing import Dict, Any
-try:
-    from ..utils.helpers import format_mcp_response
-    from ..utils.js_defs import *
-    from ..utils.timing_constants import ANIMATION_DELAY
-except ImportError:
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from utils.helpers import format_mcp_response
-    from utils.js_defs import *
-    from utils.timing_constants import ANIMATION_DELAY
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.helpers import format_mcp_response
+from utils.js_defs import *
+from utils.timing_constants import ANIMATION_DELAY
 
 logger = logging.getLogger(__name__)
 

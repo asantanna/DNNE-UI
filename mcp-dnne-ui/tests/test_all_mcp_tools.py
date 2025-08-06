@@ -16,7 +16,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from dnne_ui_mcp_server import DNNE_UI_MCPServer
 from browser_controller import BrowserController
 from utils.helpers import format_mcp_response
-from utils.state_manager import StateManager
 
 class ToolTestResult:
     """Track individual tool test results"""
@@ -95,9 +94,7 @@ class ComprehensiveMCPTestSuite:
         if self.browser:
             await self.browser.cleanup()
         
-        # Clear test state
-        if self.server and self.server.state_manager:
-            self.server.state_manager.clear_session_state()
+        # No state to clear - MCP is now stateless
     
     def cleanup_test_workflows(self):
         """Remove all test workflow files created during testing"""
@@ -259,7 +256,7 @@ class ComprehensiveMCPTestSuite:
                 # Reset to default/empty workflow
                 try:
                     from tools.workflow_tools import WorkflowTools
-                    tools = WorkflowTools(self.server, self.server.state)
+                    tools = WorkflowTools(self.server)
                     await tools.new_blank_workflow()
                     print("    ✅ Reset to blank workflow")
                 except:
@@ -361,7 +358,7 @@ class ComprehensiveMCPTestSuite:
         else:
             return {"success": False, "error": "Browser initialization failed"}
     
-    async def test_cleanup_browser(self):
+    async def test_shut_down_browser_automation(self):
         """Test browser cleanup"""
         if not self.run_browser_tests:
             return {"success": True, "message": "Skipped - browser tests disabled"}
@@ -410,7 +407,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.server, self.server.state)
+        tools = WorkflowTools(self.server)
         return await tools.load_workflow("MNIST_Test")
     
     async def test_get_current_workflow_name(self):
@@ -419,7 +416,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.server, self.server.state)
+        tools = WorkflowTools(self.server)
         return await tools.get_current_workflow_name()
         
     async def test_save_workflow(self):
@@ -428,7 +425,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.server, self.server.state)
+        tools = WorkflowTools(self.server)
         return await tools.save_workflow("__test__save_workflow")
     
     async def test_new_blank_workflow(self):
@@ -437,7 +434,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.server, self.server.state)
+        tools = WorkflowTools(self.server)
         return await tools.new_blank_workflow()
     
     async def test_clear_workflow(self):
@@ -446,7 +443,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.server, self.server.state)
+        tools = WorkflowTools(self.server)
         return await tools.clear_workflow()
     
     async def test_get_workflow_list(self):
@@ -455,7 +452,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.server, self.server.state)
+        tools = WorkflowTools(self.server)
         return await tools.get_workflow_list()
     
     # Export System Tests
@@ -465,7 +462,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.workflow_tools import WorkflowTools
-        tools = WorkflowTools(self.server, self.server.state)
+        tools = WorkflowTools(self.server)
         return await tools.export_workflow(run_after=False)
     
     # Health & Status Tests
@@ -533,7 +530,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.client_tools import ClientTools
-        tools = ClientTools(self.server, self.server.state)
+        tools = ClientTools(self.server)
         return await tools.get_connected_clients()
     
     async def test_select_client(self):
@@ -542,7 +539,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.client_tools import ClientTools
-        tools = ClientTools(self.server, self.server.state)
+        tools = ClientTools(self.server)
         return await tools.select_client("Local", "taskbar")
     
     async def test_get_agent_status(self):
@@ -551,7 +548,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.client_tools import ClientTools
-        tools = ClientTools(self.server, self.server.state)
+        tools = ClientTools(self.server)
         return await tools.get_agent_status()
     
     async def test_show_all_logs(self):
@@ -560,7 +557,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.client_tools import ClientTools
-        tools = ClientTools(self.server, self.server.state)
+        tools = ClientTools(self.server)
         return await tools.show_all_logs()
     
     async def test_clear_logs(self):
@@ -569,7 +566,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.client_tools import ClientTools
-        tools = ClientTools(self.server, self.server.state)
+        tools = ClientTools(self.server)
         return await tools.clear_logs()
     
     # Log Management Tests
@@ -579,7 +576,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.log_tools import LogTools
-        tools = LogTools(self.server, self.server.state)
+        tools = LogTools(self.server)
         return await tools.get_client_logs()
     
     async def test_get_training_metrics(self):
@@ -588,7 +585,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.log_tools import LogTools
-        tools = LogTools(self.server, self.server.state)
+        tools = LogTools(self.server)
         return await tools.get_training_metrics()
     
     async def test_get_export_errors(self):
@@ -597,7 +594,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.log_tools import LogTools
-        tools = LogTools(self.server, self.server.state)
+        tools = LogTools(self.server)
         return await tools.get_export_errors()
     
     async def test_get_recent_errors(self):
@@ -606,7 +603,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.log_tools import LogTools
-        tools = LogTools(self.server, self.server.state)
+        tools = LogTools(self.server)
         return await tools.get_recent_errors()
     
     async def test_wait_for_log_pattern(self):
@@ -615,7 +612,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.log_tools import LogTools
-        tools = LogTools(self.server, self.server.state)
+        tools = LogTools(self.server)
         # Use a short timeout to avoid hanging the test
         return await tools.wait_for_log_pattern("test_pattern", timeout=1)
     
@@ -626,17 +623,8 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.ui_tools import UITools
-        tools = UITools(self.server, self.server.state)
+        tools = UITools(self.server)
         return await tools.open_sidebar_tab("workflows")
-    
-    async def test_open_menu(self):
-        """Test opening menu"""
-        if not self.run_browser_tests:
-            return {"success": True, "message": "Skipped - browser tests disabled"}
-        
-        from tools.ui_tools import UITools
-        tools = UITools(self.server, self.server.state)
-        return await tools.open_menu("Workflow/Save As")
     
     async def test_dismiss_dialog(self):
         """Test dismissing dialog - opens Browse Templates dialog and dismisses it"""
@@ -644,7 +632,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.ui_tools import UITools
-        tools = UITools(self.server, self.server.state)
+        tools = UITools(self.server)
         
         # First, open the Browse Templates dialog
         print("      Opening Browse Templates dialog...")
@@ -663,7 +651,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.ui_tools import UITools
-        tools = UITools(self.server, self.server.state)
+        tools = UITools(self.server)
         return await tools.get_error_message()
     
     async def test_wait_for_ui_ready(self):
@@ -672,7 +660,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.ui_tools import UITools
-        tools = UITools(self.server, self.server.state)
+        tools = UITools(self.server)
         return await tools.wait_for_ui_ready()
     
     async def test_click_menu_header(self):
@@ -681,7 +669,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.ui_tools import UITools
-        tools = UITools(self.server, self.server.state)
+        tools = UITools(self.server)
         return await tools.click_menu_header("Workflow")
     
     async def test_click_menu_item(self):
@@ -690,7 +678,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.ui_tools import UITools
-        tools = UITools(self.server, self.server.state)
+        tools = UITools(self.server)
         return await tools.click_menu_item("Workflow/New")
     
     # Canvas Operations Tests
@@ -700,27 +688,40 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.canvas_tools import CanvasTools
-        tools = CanvasTools(self.server, self.server.state)
+        tools = CanvasTools(self.server)
         return await tools.zoom_to_fit()
     
-    async def test_toggle_link_visibility(self):
-        """Test toggling link visibility"""
+    async def test_get_link_visibility(self):
+        """Test getting link visibility state"""
         if not self.run_browser_tests:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.canvas_tools import CanvasTools
-        tools = CanvasTools(self.server, self.server.state)
+        tools = CanvasTools(self.server)
+        
+        # Get current visibility state
+        result = await tools.get_link_visibility()
+        return result
+    
+    async def test_set_link_visibility(self):
+        """Test setting link visibility"""
+        if not self.run_browser_tests:
+            return {"success": True, "message": "Skipped - browser tests disabled"}
+        
+        from tools.canvas_tools import CanvasTools
+        tools = CanvasTools(self.server)
         
         # Get initial state
-        initial_state = self.server.state.get("links_visible", True)
+        initial_result = await tools.get_link_visibility()
+        initial_state = initial_result.get("visible", True) if initial_result.get("success") else True
         
-        # Toggle visibility
-        result = await tools.toggle_link_visibility()
+        # Set to opposite state
+        result = await tools.set_link_visibility(not initial_state)
         
-        # If successful, toggle back to restore original state
+        # If successful, restore original state
         if result.get("success"):
-            await asyncio.sleep(0.5)  # Small delay before toggling back
-            await tools.toggle_link_visibility()
+            await asyncio.sleep(0.5)  # Small delay
+            await tools.set_link_visibility(initial_state)
         
         return result
     
@@ -730,7 +731,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.canvas_tools import CanvasTools
-        tools = CanvasTools(self.server, self.server.state)
+        tools = CanvasTools(self.server)
         return await tools.get_node_count()
     
     async def test_zoom_in(self):
@@ -739,7 +740,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.canvas_tools import CanvasTools
-        tools = CanvasTools(self.server, self.server.state)
+        tools = CanvasTools(self.server)
         return await tools.zoom_in()
     
     async def test_zoom_out(self):
@@ -748,7 +749,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.canvas_tools import CanvasTools
-        tools = CanvasTools(self.server, self.server.state)
+        tools = CanvasTools(self.server)
         return await tools.zoom_out()
     
     async def test_get_canvas_state(self):
@@ -757,7 +758,7 @@ class ComprehensiveMCPTestSuite:
             return {"success": True, "message": "Skipped - browser tests disabled"}
         
         from tools.canvas_tools import CanvasTools
-        tools = CanvasTools(self.server, self.server.state)
+        tools = CanvasTools(self.server)
         return await tools.get_canvas_state()
     
     # Utility Tools Tests
@@ -788,7 +789,7 @@ class ComprehensiveMCPTestSuite:
             test_plan = [
                 # Browser Lifecycle
                 ("initialize_browser", "Browser Lifecycle", self.test_initialize_browser),
-                ("cleanup_browser", "Browser Lifecycle", self.test_cleanup_browser),
+                ("shut_down_browser_automation", "Browser Lifecycle", self.test_shut_down_browser_automation),
                 ("restart_browser", "Browser Lifecycle", self.test_restart_browser),
                 ("is_browser_running", "Browser Lifecycle", self.test_is_browser_running),
                 
@@ -825,7 +826,6 @@ class ComprehensiveMCPTestSuite:
                 
                 # UI Navigation
                 ("open_sidebar_tab", "UI Navigation", self.test_open_sidebar_tab),
-                ("open_menu", "UI Navigation", self.test_open_menu),
                 ("dismiss_dialog", "UI Navigation", self.test_dismiss_dialog),
                 ("get_error_message", "UI Navigation", self.test_get_error_message),
                 ("wait_for_ui_ready", "UI Navigation", self.test_wait_for_ui_ready),
@@ -834,7 +834,8 @@ class ComprehensiveMCPTestSuite:
                 
                 # Canvas Operations
                 ("zoom_to_fit", "Canvas Operations", self.test_zoom_to_fit),
-                ("toggle_link_visibility", "Canvas Operations", self.test_toggle_link_visibility),
+                ("get_link_visibility", "Canvas Operations", self.test_get_link_visibility),
+                ("set_link_visibility", "Canvas Operations", self.test_set_link_visibility),
                 ("get_node_count", "Canvas Operations", self.test_get_node_count),
                 ("zoom_in", "Canvas Operations", self.test_zoom_in),
                 ("zoom_out", "Canvas Operations", self.test_zoom_out),

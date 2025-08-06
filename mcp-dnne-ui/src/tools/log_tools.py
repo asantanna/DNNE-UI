@@ -3,16 +3,15 @@
 import asyncio
 import logging
 import re
+import sys
+from pathlib import Path
 from typing import Dict, Any, List, Optional
-try:
-    from ..utils.helpers import format_mcp_response, parse_log_metrics
-    from ..utils.js_defs import *
-except ImportError:
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from utils.helpers import format_mcp_response, parse_log_metrics
-    from utils.js_defs import *
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.helpers import format_mcp_response, parse_log_metrics
+from utils.js_defs import *
 
 logger = logging.getLogger(__name__)
 

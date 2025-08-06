@@ -2,34 +2,64 @@
 
 import asyncio
 import logging
+import sys
+from pathlib import Path
 from typing import Dict, Any
-try:
-    from ..utils.helpers import format_mcp_response
-    from ..utils.js_defs import *
-    from ..utils.timing_constants import ANIMATION_DELAY, EXPORT_TIMEOUT
-except ImportError:
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from utils.helpers import format_mcp_response
-    from utils.js_defs import *
-    from utils.timing_constants import ANIMATION_DELAY, EXPORT_TIMEOUT
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.helpers import format_mcp_response
+from utils.js_defs import *
+from utils.timing_constants import ANIMATION_DELAY, EXPORT_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
 class ExportTools:
     """Tools for export operations in DNNE UI"""
     
-    def __init__(self, browser_controller, state: Dict[str, Any]):
+    def __init__(self, server):
         """
         Initialize export tools
         
         Args:
-            browser_controller: BrowserController instance
-            state: Shared state dictionary
+            server: DNNE_UI_MCPServer instance for dynamic browser access
         """
-        self.browser = browser_controller
-        self.state = state
+        self.server = server
+    
+    @property
+    def browser(self):
+        """Get browser controller dynamically from server"""
+        return self.server.browser_controller
+    
+    async def take_screenshot(self, name: str = "dnne_ui") -> Dict[str, Any]:
+        """
+        Take a screenshot of the DNNE UI
+        
+        Args:
+            name: Name for the screenshot file
+        
+        Returns:
+            MCP response with screenshot path
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            path = await self.browser.take_screenshot(name)
+            
+            if path:
+                return format_mcp_response(
+                    True,
+                    data={"path": path},
+                    message=f"Screenshot saved to {path}"
+                )
+            else:
+                return format_mcp_response(False, error="Failed to take screenshot")
+                
+        except Exception as e:
+            logger.error(f"Failed to take screenshot: {e}")
+            return format_mcp_response(False, error=str(e))
     
     async def get_export_status(self) -> Dict[str, Any]:
         """

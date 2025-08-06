@@ -3,24 +3,19 @@
 import asyncio
 import json
 import logging
+import sys
+from pathlib import Path
 from typing import Dict, Any, Optional
-try:
-    from ..utils.helpers import format_mcp_response, parse_menu_path
-    from ..utils.js_defs import *
-    from ..utils.timing_constants import (
-        MENU_TIMEOUT, SELECTOR_TIMEOUT, ANIMATION_DELAY
-    )
-    from ..utils.js_snippets import run_js_snippet_in_browser
-except ImportError:
-    import sys
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from utils.helpers import format_mcp_response, parse_menu_path
-    from utils.js_defs import *
-    from utils.timing_constants import (
-        MENU_TIMEOUT, SELECTOR_TIMEOUT, ANIMATION_DELAY
-    )
-    from utils.js_snippets import run_js_snippet_in_browser
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from utils.helpers import format_mcp_response, parse_menu_path
+from utils.js_defs import *
+from utils.timing_constants import (
+    MENU_TIMEOUT, SELECTOR_TIMEOUT, ANIMATION_DELAY
+)
+from utils.js_snippets import run_js_snippet_in_browser
 
 logger = logging.getLogger(__name__)
 
