@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.helpers import format_mcp_response
 from utils.js_defs import *
 from utils.timing_constants import ANIMATION_DELAY, EXPORT_TIMEOUT
+from utils.js_snippets import run_js_snippet_in_browser
 
 logger = logging.getLogger(__name__)
 
@@ -147,41 +148,35 @@ class ExportTools:
             
             logger.info(f"Setting run after export to: {enabled}")
             
-            # Find the run after export checkbox
-            # This selector needs to be determined from actual UI
-            checkbox_selector = "#run-after-export, input[type='checkbox'][name*='run']"
+            # Use the defined selector for the run after export checkbox
+            checkbox_selector = RUN_AFTER_EXPORT
             
             checkbox_exists = await self.browser.is_visible(checkbox_selector)
             if not checkbox_exists:
-                # Try to find it by label
-                checkbox_selector = "input[type='checkbox']"
-                checkboxes = await self.browser.evaluate(f"""
-                    () => {{
-                        const checkboxes = document.querySelectorAll('{checkbox_selector}');
-                        for (let cb of checkboxes) {{
-                            const label = cb.parentElement?.textContent || '';
-                            if (label.toLowerCase().includes('run') && 
-                                label.toLowerCase().includes('after')) {{
-                                return cb.id || cb.name || 'found';
-                            }}
-                        }}
-                        return null;
-                    }}
-                """)
-                
-                if not checkboxes:
-                    return format_mcp_response(
-                        False,
-                        error="Run after export checkbox not found"
-                    )
+                return format_mcp_response(
+                    False,
+                    error="Run after export checkbox not found"
+                )
+            
+            # Check if checkbox is disabled
+            is_disabled = await run_js_snippet_in_browser(
+                self.browser, 
+                "is_checkbox_disabled", 
+                {"selector": checkbox_selector}
+            )
+            
+            if is_disabled:
+                return format_mcp_response(
+                    False,
+                    error="Cannot set run after export - checkbox is disabled (Local export selected)"
+                )
             
             # Get current state
-            is_checked = await self.browser.evaluate(f"""
-                () => {{
-                    const cb = document.querySelector('{checkbox_selector}');
-                    return cb ? cb.checked : false;
-                }}
-            """)
+            is_checked = await run_js_snippet_in_browser(
+                self.browser,
+                "is_checkbox_checked",
+                {"selector": checkbox_selector}
+            )
             
             # Toggle if needed
             if is_checked != enabled:

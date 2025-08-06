@@ -373,11 +373,15 @@ class DNNEAgentServer:
                 files=data.get("files", {})
             )
             
-            # Send to client
+            # Extract run_after_deploy flag
+            run_after_deploy = data.get("run_after_deploy", False)
+            
+            # Send to client with run_after_deploy flag
             await self.clients[client_id].send(json.dumps({
                 "type": "deploy",
                 "workflow_id": workflow_id,
-                "files": data.get("files", {})
+                "files": data.get("files", {}),
+                "run_after_deploy": run_after_deploy
             }))
             
             # Acknowledge to UI
@@ -387,7 +391,7 @@ class DNNEAgentServer:
                 "client_id": client_id
             }))
             
-            logger.info(f"Deployed workflow {workflow_id} to client {client_id}")
+            logger.info(f"Deployed workflow {workflow_id} to client {client_id}, run_after_deploy={run_after_deploy}")
             
         elif msg_type == "start_workflow":
             # Start workflow execution

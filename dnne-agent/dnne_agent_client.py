@@ -286,8 +286,9 @@ class DNNEAgentClient:
             # Deploy workflow
             workflow_id = data.get("workflow_id")
             files = data.get("files", {})
+            run_after_deploy = data.get("run_after_deploy", False)
             
-            logger.info(f"Deploying workflow {workflow_id}")
+            logger.info(f"Deploying workflow {workflow_id}, run_after_deploy={run_after_deploy}")
             
             try:
                 # Create workspace
@@ -310,6 +311,11 @@ class DNNEAgentClient:
                     "workflow_id": workflow_id,
                     "status": "deployed"
                 }))
+                
+                # Auto-start if requested
+                if run_after_deploy:
+                    logger.info(f"Auto-starting workflow {workflow_id}")
+                    await self.start_workflow(workflow_id, [])
                 
             except Exception as e:
                 logger.error(f"Deployment failed: {e}")

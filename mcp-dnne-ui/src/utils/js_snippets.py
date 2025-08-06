@@ -277,6 +277,13 @@ JS_SNIPPETS = {
         }}
     """,
     
+    "is_checkbox_disabled": """
+        () => {{
+            const cb = document.querySelector('{selector}');
+            return cb ? cb.disabled : false;
+        }}
+    """,
+    
     "set_checkbox": """
         () => {{
             const checkboxes = document.querySelectorAll('{selector}');

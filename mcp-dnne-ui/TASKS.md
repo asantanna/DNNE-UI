@@ -3,9 +3,9 @@
 *Last Updated: 2025-08-06*
 
 ## Quick Stats
-- **Total Tools**: 40 implemented (after removing link visibility functions)
-- **Tested**: 37/40 (92.5%)
-- **Working**: 30/37 (81.1%)
+- **Total Tools**: 41 implemented (added set_run_after_export)
+- **Tested**: 38/41 (92.7%)
+- **Working**: 31/38 (81.6%)
 - **Issues Found**: 7 tools not implemented (log management)
 
 ## ✅ Completed

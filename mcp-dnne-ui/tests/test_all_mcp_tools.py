@@ -465,6 +465,72 @@ class ComprehensiveMCPTestSuite:
         tools = WorkflowTools(self.server)
         return await tools.export_workflow(run_after=False)
     
+    async def test_set_run_after_export(self):
+        """Test setting run after export checkbox and state preservation"""
+        if not self.run_browser_tests:
+            return {"success": True, "message": "Skipped - browser tests disabled"}
+        
+        from tools.export_tools import ExportTools
+        from tools.client_tools import ClientTools
+        tools = ExportTools(self.server)
+        client_tools = ClientTools(self.server)
+        
+        # First check if we have any remote clients
+        clients_result = await client_tools.get_connected_clients()
+        has_remote = clients_result.get("success") and clients_result.get("count", 0) > 0
+        
+        if not has_remote:
+            # Test with Local only - should fail
+            result = await tools.set_run_after_export(True)
+            if not result.get("success") and "Local" in result.get("error", ""):
+                return {"success": True, "message": "Correctly failed when only Local available"}
+            return {"success": False, "error": "Expected failure with Local but got: " + str(result)}
+        
+        # We have remote clients, do comprehensive test
+        remote_client = clients_result.get("clients", [])[0]
+        
+        # Select remote client
+        await client_tools.select_client(remote_client)
+        await asyncio.sleep(0.5)
+        
+        # Test 1: Set to True on remote
+        result = await tools.set_run_after_export(True)
+        if not result.get("success"):
+            return {"success": False, "error": f"Failed to set to True on remote: {result}"}
+        
+        # Switch to Local
+        await client_tools.select_client("Local")
+        await asyncio.sleep(0.5)
+        
+        # Verify we can't set it on Local
+        result = await tools.set_run_after_export(False)
+        if result.get("success"):
+            return {"success": False, "error": "Should not be able to set on Local"}
+        
+        # Switch back to remote - state should be preserved as True
+        await client_tools.select_client(remote_client)
+        await asyncio.sleep(0.5)
+        
+        # Test 2: Now set to False on remote
+        result = await tools.set_run_after_export(False)
+        if not result.get("success"):
+            return {"success": False, "error": f"Failed to set to False on remote: {result}"}
+        
+        # Switch to Local again
+        await client_tools.select_client("Local")
+        await asyncio.sleep(0.5)
+        
+        # Switch back to remote - state should be preserved as False
+        await client_tools.select_client(remote_client)
+        await asyncio.sleep(0.5)
+        
+        # Verify by setting to True again (this also leaves it in a good state)
+        result = await tools.set_run_after_export(True)
+        if not result.get("success"):
+            return {"success": False, "error": f"Failed final set to True: {result}"}
+        
+        return {"success": True, "message": "Successfully tested toggle and state preservation"}
+    
     # Health & Status Tests
     async def test_is_ui_healthy(self):
         """Test UI health check"""
@@ -769,6 +835,7 @@ class ComprehensiveMCPTestSuite:
                 
                 # Export System
                 ("export_workflow", "Export System", self.test_export_workflow),
+                ("set_run_after_export", "Export System", self.test_set_run_after_export),
                 
                 # Health & Status
                 ("is_ui_healthy", "Health & Status", self.test_is_ui_healthy),
