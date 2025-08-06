@@ -50,7 +50,7 @@ cp .env.example .env
 
 ## Usage
 
-### Starting the MCP Server
+### Starting the MCP Server (Claude Code does this automatically)
 
 ```bash
 source /home/asantanna/miniconda/bin/activate MCP_PY310
@@ -142,20 +142,10 @@ ruff check src/
 - Verify the URL in `.env` file
 - Test with: `curl http://172.22.160.1:8188`
 
-### Status bar not visible in screenshots
-- The browser must be launched with `--start-maximized`
-- Don't use zoom as it breaks the maximized state
-
-### Workflow won't load
-- Check that the workflow exists in the sidebar
-- Ensure no dialogs are blocking the UI
-- Verify the workflow name matches exactly
-
 ## Documentation
 
 - [Development Guide](DEVELOPMENT.md) - Architecture, testing, and technical details
 - [Task Tracking](TASKS.md) - Current status and TODO list
-- [UI Selectors](SELECTORS.md) - Complete selector and navigation reference
 
 ## License
 
