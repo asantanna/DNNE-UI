@@ -1,6 +1,8 @@
 
 # DNNE Development Status
 
+**📋 TASK TRACKING**: See `docs-dnne/for_claude/tasks/INDEX.md` for current task status and priorities across all components.
+
 ## Latest Achievements (2025-08-06)
 
 ### Content-Based IDs & Remote Logging ✅
@@ -80,10 +82,10 @@ See `mcp-dnne-ui/README.md`
 See `dnne_config.json`
 
 ### Key Documentation
+- **Task Index**: `docs-dnne/for_claude/tasks/INDEX.md` - Quick overview of all component tasks
 - **Agent**: `docs-dnne/architecture/dnne-agent.md` - Agent architecture
 - **Runner**: `docs-dnne/development/runner.md` - Command line switches for runner.py
 - **CLAUDE.md**: Project overview and development guidance
-- **Tasks**: `docs-dnne/for_claude/TASKS.md` - Complete task tracking
 
 ### Recent Commits
 - `a7163565` - Fix logging issues and MCP export_workflow reporting
