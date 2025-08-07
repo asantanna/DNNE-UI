@@ -46,8 +46,9 @@ logging.getLogger('websockets.protocol').setLevel(logging.WARNING)
 
 class WorkflowInfo:
     """Information about a deployed workflow"""
-    def __init__(self, workflow_id: str, client_id: str, files: Dict[str, str]):
+    def __init__(self, workflow_id: str, client_id: str, files: Dict[str, str], workflow_name: str = None):
         self.workflow_id = workflow_id
+        self.workflow_name = workflow_name or workflow_id
         self.client_id = client_id
         self.files = files
         self.deployed_at = datetime.now()
@@ -233,18 +234,23 @@ class DNNEAgentServer:
             # Workflow status update
             workflow_id = data.get("workflow_id")
             status = data.get("status")
+            workflow_name = data.get("workflow_name")
             
             if workflow_id in self.workflows:
                 self.workflows[workflow_id].status = status
+                # Update workflow name if provided (in case it wasn't known during deployment)
+                if workflow_name:
+                    self.workflows[workflow_id].workflow_name = workflow_name
                 if status == "running":
                     self.workflows[workflow_id].start_time = time.time()
                 elif status in ["completed", "failed", "stopped"]:
                     self.workflows[workflow_id].end_time = time.time()
                     
-                # Notify UIs and test connections
+                # Notify UIs and test connections with workflow name
                 message = {
                     "type": "workflow_status",
                     "workflow_id": workflow_id,
+                    "workflow_name": self.workflows[workflow_id].workflow_name,
                     "status": status,
                     "details": data.get("details")
                 }
@@ -373,11 +379,12 @@ class DNNEAgentServer:
                 workflow_id = f"wf_{uuid.uuid4().hex[:8]}"
                 logger.warning(f"No workflow_id provided, generated: {workflow_id}")
             
-            # Store workflow info
+            # Store workflow info with name
             self.workflows[workflow_id] = WorkflowInfo(
                 workflow_id=workflow_id,
                 client_id=client_id,
-                files=data.get("files", {})
+                files=data.get("files", {}),
+                workflow_name=workflow_name
             )
             
             # Extract run_after_deploy flag

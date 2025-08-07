@@ -36,8 +36,9 @@ logger = logging.getLogger('dnne_agent_client')
 
 class WorkflowProcess:
     """Manages a running workflow process"""
-    def __init__(self, workflow_id: str, process: asyncio.subprocess.Process, workspace: Path):
+    def __init__(self, workflow_id: str, process: asyncio.subprocess.Process, workspace: Path, workflow_name: str = None):
         self.workflow_id = workflow_id
+        self.workflow_name = workflow_name or workflow_id  # Fallback to ID if name not available
         self.process = process
         self.workspace = workspace
         self.start_time = time.time()
@@ -311,10 +312,23 @@ class DNNEAgentClient:
                     
                 logger.info(f"Deployed {len(files)} files to {workspace}")
                 
-                # Notify server
+                # Load metadata to get workflow name
+                workflow_name = workflow_id  # Default to ID
+                metadata_path = workspace / "metadata.json"
+                if metadata_path.exists():
+                    try:
+                        with open(metadata_path, 'r') as f:
+                            metadata = json.load(f)
+                            workflow_name = metadata.get("workflow_name", workflow_id)
+                            logger.info(f"Loaded workflow metadata: name={workflow_name}")
+                    except Exception as e:
+                        logger.warning(f"Failed to load metadata.json: {e}")
+                
+                # Notify server with workflow name
                 await self.websocket.send(json.dumps({
                     "type": "workflow_status",
                     "workflow_id": workflow_id,
+                    "workflow_name": workflow_name,
                     "status": "deployed"
                 }))
                 
@@ -353,11 +367,23 @@ class DNNEAgentClient:
         workspace = self.workspace_base / workflow_id
         runner_path = workspace / "runner.py"
         
+        # Load workflow name from metadata if available
+        workflow_name = workflow_id  # Default to ID
+        metadata_path = workspace / "metadata.json"
+        if metadata_path.exists():
+            try:
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+                    workflow_name = metadata.get("workflow_name", workflow_id)
+            except Exception as e:
+                logger.warning(f"Failed to load metadata.json: {e}")
+        
         if not runner_path.exists():
             logger.error(f"Runner not found: {runner_path}")
             await self.websocket.send(json.dumps({
                 "type": "workflow_status",
                 "workflow_id": workflow_id,
+                "workflow_name": workflow_name,
                 "status": "start_failed",
                 "details": "runner.py not found"
             }))
@@ -374,20 +400,21 @@ class DNNEAgentClient:
                 stderr=asyncio.subprocess.STDOUT
             )
             
-            # Store process info
-            self.workflows[workflow_id] = WorkflowProcess(workflow_id, process, workspace)
+            # Store process info with workflow name
+            self.workflows[workflow_id] = WorkflowProcess(workflow_id, process, workspace, workflow_name)
             
             # Start log reader
             self.workflows[workflow_id].log_reader_task = asyncio.create_task(
                 self.read_process_logs(workflow_id)
             )
             
-            logger.info(f"Started workflow {workflow_id} (PID: {process.pid})")
+            logger.info(f"Started workflow {workflow_name} ({workflow_id}) (PID: {process.pid})")
             
-            # Notify server
+            # Notify server with workflow name
             await self.websocket.send(json.dumps({
                 "type": "workflow_status",
                 "workflow_id": workflow_id,
+                "workflow_name": workflow_name,
                 "status": "running",
                 "details": {"pid": process.pid}
             }))
@@ -397,6 +424,7 @@ class DNNEAgentClient:
             await self.websocket.send(json.dumps({
                 "type": "workflow_status",
                 "workflow_id": workflow_id,
+                "workflow_name": workflow_name,
                 "status": "start_failed",
                 "details": str(e)
             }))
@@ -435,6 +463,7 @@ class DNNEAgentClient:
             await self.websocket.send(json.dumps({
                 "type": "workflow_status",
                 "workflow_id": workflow_id,
+                "workflow_name": workflow.workflow_name,
                 "status": "stopped"
             }))
             
@@ -479,6 +508,7 @@ class DNNEAgentClient:
                 await self.websocket.send(json.dumps({
                     "type": "workflow_status",
                     "workflow_id": workflow_id,
+                    "workflow_name": workflow.workflow_name,
                     "status": status,
                     "details": {"exit_code": exit_code}
                 }))

@@ -369,6 +369,34 @@ class GraphExporter:
         # Create package structure
         framework_dir, nodes_dir = self._create_package_structure(output_path)
         
+        # Create metadata.json with workflow information
+        import hashlib
+        from datetime import datetime
+        
+        # Generate workflow ID from content hash
+        workflow_json = json.dumps(workflow, sort_keys=True)
+        content_hash = hashlib.sha256(workflow_json.encode()).hexdigest()[:12]
+        workflow_id = f"wf_{content_hash}"
+        
+        # Extract workflow name (from path or metadata)
+        workflow_name = output_path.name if output_path.name else metadata.get("workflow_name", "unnamed")
+        
+        metadata_content = {
+            "workflow_id": workflow_id,
+            "workflow_name": workflow_name,
+            "export_timestamp": datetime.now().isoformat(),
+            "node_count": len(nodes),
+            "link_count": len(links),
+            "framework_version": "1.0.0",
+            "exported_by": "DNNE Export System"
+        }
+        
+        metadata_path = output_path / "metadata.json"
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata_content, f, indent=2)
+        
+        self.logger.info(f"Created metadata.json with workflow_id: {workflow_id}, name: {workflow_name}")
+        
         # Export framework
         self._export_framework(framework_dir)
         
