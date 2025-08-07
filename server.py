@@ -3,6 +3,7 @@ import sys
 import asyncio
 import traceback
 import time
+from datetime import datetime
 from pathlib import Path
 
 import nodes
@@ -698,7 +699,6 @@ class PromptServer():
                 try:
                     # Import the export system
                     import os
-                    from datetime import datetime
                     from export_system.graph_exporter import GraphExporter
                     from export_system.node_exporters import register_all_exporters
                     
@@ -1355,7 +1355,7 @@ class PromptServer():
                     for wf in self.client_workflows[client_id].values()
                 ]
                 
-                self.send_sync("client_status_update", {
+                update_msg = {
                     "msg_type": "workflow_started",
                     "client_id": client_id,
                     "client_hostname": hostname,
@@ -1365,7 +1365,8 @@ class PromptServer():
                     "active_workflows": len(self.client_workflows[client_id]),
                     "active_workflow_details": active_details,
                     "timestamp": datetime.now().isoformat()
-                })
+                }
+                self.send_sync("client_status_update", update_msg)
                 
             elif status in ["stopped", "completed", "failed"]:
                 # Stop logging and remove from tracking

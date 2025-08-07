@@ -144,13 +144,10 @@ class DNNEAgentClient:
                 self.config = {}
                 return
         
-        try:
-            with open(config_path, 'r') as f:
-                self.config = json.load(f)
-            logger.info(f"Loaded configuration from {config_path}")
-        except Exception as e:
-            logger.error(f"Failed to load config: {e}")
-            self.config = {}
+        # FAIL-FAST: Config must load successfully
+        with open(config_path, 'r') as f:
+            self.config = json.load(f)
+        logger.info(f"Loaded configuration from {config_path}")
     
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value using dot notation"""
@@ -224,17 +221,14 @@ class DNNEAgentClient:
     
     def _check_gpu(self) -> Dict[str, Any]:
         """Check GPU availability"""
-        try:
-            import torch
-            if torch.cuda.is_available():
-                return {
-                    "available": True,
-                    "count": torch.cuda.device_count(),
-                    "device_name": torch.cuda.get_device_name(0)
-                }
-        except ImportError:
-            pass
-            
+        # FAIL-FAST: If torch is expected, it must be available
+        import torch
+        if torch.cuda.is_available():
+            return {
+                "available": True,
+                "count": torch.cuda.device_count(),
+                "device_name": torch.cuda.get_device_name(0)
+            }
         return {"available": False}
     
     async def start_telemetry_listener(self):
@@ -271,13 +265,11 @@ class DNNEAgentClient:
                 batch = list(self.telemetry_buffer)
                 self.telemetry_buffer.clear()
                 
-                try:
-                    await self.websocket.send(json.dumps({
-                        "type": "telemetry",
-                        "metrics": batch
-                    }))
-                except Exception as e:
-                    logger.error(f"Failed to forward telemetry: {e}")
+                # FAIL-FAST: If websocket is broken, we should know
+                await self.websocket.send(json.dumps({
+                    "type": "telemetry",
+                    "metrics": batch
+                }))
     
     async def handle_server_message(self, data: Dict[str, Any]):
         """Handle messages from dnne_server"""
@@ -316,13 +308,11 @@ class DNNEAgentClient:
                 workflow_name = workflow_id  # Default to ID
                 metadata_path = workspace / "metadata.json"
                 if metadata_path.exists():
-                    try:
-                        with open(metadata_path, 'r') as f:
-                            metadata = json.load(f)
-                            workflow_name = metadata.get("workflow_name", workflow_id)
-                            logger.info(f"Loaded workflow metadata: name={workflow_name}")
-                    except Exception as e:
-                        logger.warning(f"Failed to load metadata.json: {e}")
+                    # FAIL-FAST: Metadata must be valid JSON if it exists
+                    with open(metadata_path, 'r') as f:
+                        metadata = json.load(f)
+                        workflow_name = metadata.get("workflow_name", workflow_id)
+                        logger.info(f"Loaded workflow metadata: name={workflow_name}")
                 
                 # Notify server with workflow name
                 await self.websocket.send(json.dumps({
@@ -371,12 +361,10 @@ class DNNEAgentClient:
         workflow_name = workflow_id  # Default to ID
         metadata_path = workspace / "metadata.json"
         if metadata_path.exists():
-            try:
-                with open(metadata_path, 'r') as f:
-                    metadata = json.load(f)
-                    workflow_name = metadata.get("workflow_name", workflow_id)
-            except Exception as e:
-                logger.warning(f"Failed to load metadata.json: {e}")
+            # FAIL-FAST: Metadata must be valid JSON if it exists
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+                workflow_name = metadata.get("workflow_name", workflow_id)
         
         if not runner_path.exists():
             logger.error(f"Runner not found: {runner_path}")

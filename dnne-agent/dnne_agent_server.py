@@ -237,20 +237,26 @@ class DNNEAgentServer:
             workflow_name = data.get("workflow_name")
             
             if workflow_id in self.workflows:
-                self.workflows[workflow_id].status = status
+                workflow_info = self.workflows[workflow_id]
+                workflow_info.status = status
                 # Update workflow name if provided (in case it wasn't known during deployment)
                 if workflow_name:
-                    self.workflows[workflow_id].workflow_name = workflow_name
+                    workflow_info.workflow_name = workflow_name
                 if status == "running":
-                    self.workflows[workflow_id].start_time = time.time()
+                    workflow_info.start_time = time.time()
                 elif status in ["completed", "failed", "stopped"]:
-                    self.workflows[workflow_id].end_time = time.time()
+                    workflow_info.end_time = time.time()
                     
+                # FAIL-FAST: Critical fields must exist
+                assert workflow_info.client_id is not None, f"workflow {workflow_id} missing client_id"
+                assert workflow_info.workflow_name is not None, f"workflow {workflow_id} missing workflow_name"
+                
                 # Notify UIs and test connections with workflow name
                 message = {
                     "type": "workflow_status",
                     "workflow_id": workflow_id,
-                    "workflow_name": self.workflows[workflow_id].workflow_name,
+                    "workflow_name": workflow_info.workflow_name,
+                    "client_id": workflow_info.client_id,
                     "status": status,
                     "details": data.get("details")
                 }
