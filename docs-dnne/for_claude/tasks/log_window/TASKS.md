@@ -38,12 +38,12 @@ The log window functionality is implemented and in testing phase. Core features 
 
 ## 🚧 In Progress - Testing Phase
 
-### Critical Bug: Status Bar Updates
-- [ ] **Debug status bar workflow count updates** - Messages arrive but counts don't update
-- [ ] Trace message flow from agent → server → UI → agentStore → status bar
-- [ ] Verify workflow_started/workflow_stopped message handling
-- [ ] Check clientWorkflows Map updates in agentStore
-- [ ] Ensure AgentStatusBar computed properties are reactive
+### ✅ FIXED: Status Bar Updates (2025-08-07)
+- [x] **Debug status bar workflow count updates** - Fixed missing client_id in messages
+- [x] Trace message flow from agent → server → UI → agentStore → status bar
+- [x] Verify workflow_started/workflow_stopped message handling
+- [x] Check clientWorkflows Map updates in agentStore
+- [x] Ensure AgentStatusBar computed properties are reactive
 
 ### UI Component Testing
 - [ ] **Test auto-scroll functionality** - Verify it follows new log entries properly
@@ -60,7 +60,7 @@ The log window functionality is implemented and in testing phase. Core features 
 ## 📋 TODO
 
 ### Bug Fixes (After Testing)
-- [ ] Fix status bar workflow count update issue
+- [x] ~~Fix status bar workflow count update issue~~ - FIXED 2025-08-07
 - [ ] Address any auto-scroll issues found in testing
 - [ ] Fix dropdown filtering issues if any
 - [ ] Resolve visual indicator update problems
@@ -79,11 +79,14 @@ The log window functionality is implemented and in testing phase. Core features 
 
 ## 🐛 Known Issues
 
-### Status Bar Not Updating
-- **Problem**: When workflows are exported to remote agents and executed, notification messages arrive at the UI but the status bar doesn't update workflow counts
-- **Impact**: Users can't see active workflow counts in status bar
-- **Workaround**: Check logs directly for workflow status
-- **Investigation**: Need to trace message flow through the system
+### ~~Status Bar Not Updating~~ - FIXED 2025-08-07
+- **Problem**: When workflows were exported to remote agents and executed, notification messages arrived at the UI but the status bar didn't update workflow counts
+- **Root Cause**: Agent server wasn't including `client_id` in workflow_status messages
+- **Solution**: Added `client_id` field to workflow_status messages in agent server
+- **Additional Fixes**: 
+  - Added datetime import to server.py
+  - Added WebSocket handlers for workflow_status and client_status_update in frontend
+  - Updated AgentStatusBar to always show workflow counts (including 0)
 
 ### Testing Needed
 - Auto-scroll behavior not fully verified
