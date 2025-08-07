@@ -325,6 +325,10 @@ class WorkflowTools:
             await self.browser.click(workflow_selector)
             await asyncio.sleep(WORKFLOW_LOAD_DELAY)  # Wait for workflow to load
             
+            # Close the sidebar after successfully loading the workflow
+            await self.browser.click(WORKFLOWS_TAB)
+            await asyncio.sleep(ANIMATION_DELAY)
+            
             return format_mcp_response(
                 True,
                 data={"workflow": name},
@@ -398,7 +402,12 @@ class WorkflowTools:
             
             # Get actual checkbox state
             from utils.js_snippets import run_js_snippet_in_browser
-            actual_run_after = await run_js_snippet_in_browser(self.browser.page, 'get_run_after_export_state')
+            from utils.js_defs import RUN_AFTER_EXPORT
+            actual_run_after = await run_js_snippet_in_browser(
+                self.browser.page, 
+                'is_checkbox_checked',
+                {"selector": RUN_AFTER_EXPORT}
+            )
             if actual_run_after is None:
                 actual_run_after = False
             
