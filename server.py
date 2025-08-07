@@ -669,6 +669,141 @@ class PromptServer():
                 "connection_status": self.agent_connection_status
             })
         
+        @routes.get("/api/remote/logs/{client_id}/{log_type}")
+        async def get_remote_logs(request):
+            """Fetch logs for a specific remote client and log type."""
+            from pathlib import Path
+            import os
+            
+            client_id = request.match_info['client_id']
+            log_type = request.match_info['log_type']
+            
+            # Validate log type
+            if log_type not in ['execution', 'telemetry']:
+                return web.json_response({
+                    "error": f"Invalid log type: {log_type}",
+                    "logs": ""
+                }, status=400)
+            
+            # Get client info
+            client_info = self.agent_clients.get(client_id)
+            if not client_info:
+                return web.json_response({
+                    "error": f"Client not found: {client_id}",
+                    "logs": ""
+                }, status=404)
+            
+            client_hostname = client_info.get("hostname", "unknown")
+            
+            # Find the most recent workflow directory for this client
+            remote_clients_dir = Path("remote_clients") / client_hostname
+            if not remote_clients_dir.exists():
+                return web.json_response({
+                    "logs": "",
+                    "message": "No logs available for this client"
+                })
+            
+            # Get all workflow directories for this client
+            workflow_dirs = [d for d in remote_clients_dir.iterdir() if d.is_dir()]
+            if not workflow_dirs:
+                return web.json_response({
+                    "logs": "",
+                    "message": "No workflows found for this client"
+                })
+            
+            # Sort by modification time to get the most recent
+            workflow_dirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+            
+            # Try to find logs in the most recent workflows
+            log_content = []
+            for workflow_dir in workflow_dirs[:5]:  # Check up to 5 most recent workflows
+                log_dir = workflow_dir / "run_logs"
+                if not log_dir.exists():
+                    continue
+                
+                # Find log files based on type
+                if log_type == "execution":
+                    # Look for execution log files
+                    log_files = list(log_dir.glob("run_*.log"))
+                elif log_type == "telemetry":
+                    # Look for telemetry log files
+                    log_files = list(log_dir.glob("telemetry_*.log"))
+                
+                if log_files:
+                    # Get the most recent log file
+                    log_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+                    latest_log = log_files[0]
+                    
+                    try:
+                        with open(latest_log, 'r') as f:
+                            content = f.read()
+                            if content:
+                                log_content.append(f"=== {workflow_dir.name} - {latest_log.name} ===\n{content}")
+                    except Exception as e:
+                        logging.error(f"Error reading log file {latest_log}: {e}")
+            
+            # Combine all log content
+            combined_logs = "\n\n".join(log_content) if log_content else ""
+            
+            return web.json_response({
+                "logs": combined_logs,
+                "client": client_hostname,
+                "log_type": log_type
+            })
+        
+        @routes.get("/api/remote/logs/list/{client_id}")
+        async def list_remote_logs(request):
+            """List available log files for a specific remote client."""
+            from pathlib import Path
+            
+            client_id = request.match_info['client_id']
+            
+            # Get client info
+            client_info = self.agent_clients.get(client_id)
+            if not client_info:
+                return web.json_response({
+                    "error": f"Client not found: {client_id}",
+                    "workflows": []
+                }, status=404)
+            
+            client_hostname = client_info.get("hostname", "unknown")
+            
+            # Find all workflow directories for this client
+            remote_clients_dir = Path("remote_clients") / client_hostname
+            if not remote_clients_dir.exists():
+                return web.json_response({
+                    "workflows": []
+                })
+            
+            workflows = []
+            for workflow_dir in remote_clients_dir.iterdir():
+                if not workflow_dir.is_dir():
+                    continue
+                
+                log_dir = workflow_dir / "run_logs"
+                if not log_dir.exists():
+                    continue
+                
+                # Get available log types for this workflow
+                has_execution = bool(list(log_dir.glob("run_*.log")))
+                has_telemetry = bool(list(log_dir.glob("telemetry_*.log")))
+                
+                if has_execution or has_telemetry:
+                    workflows.append({
+                        "name": workflow_dir.name,
+                        "has_execution": has_execution,
+                        "has_telemetry": has_telemetry,
+                        "modified": workflow_dir.stat().st_mtime
+                    })
+            
+            # Sort by modification time
+            workflows.sort(key=lambda w: w["modified"], reverse=True)
+            
+            return web.json_response({
+                "client": client_hostname,
+                "workflows": workflows
+            })
+        
         @routes.post("/prompt")
         async def post_prompt(request):
             logging.info("got prompt - exporting workflow")
