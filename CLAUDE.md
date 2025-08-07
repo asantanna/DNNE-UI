@@ -79,7 +79,7 @@ Note: Ensure the conda environment is activated before running exported scripts.
 
 ### Common Development Tasks
 - **Export workflows to Python**: Use the export system via the UI or programmatically through `claude_scripts/programmatic_export.py`
-- **Add new node types**: Implement in `custom_nodes/ml_nodes/` or `custom_nodes/robotics_nodes/`
+- **Add new node types**: Implement in `custom_nodes/` directory with `*_visnode.py` naming pattern
 
 ## Architecture Overview
 
@@ -90,17 +90,26 @@ Note: Ensure the conda environment is activated before running exported scripts.
 
 ### Custom Node Categories
 
-#### ML Nodes (`custom_nodes/ml_nodes/`)
-- **Data Nodes**: MNIST dataset, batch sampling, data loading
-- **Layer Nodes**: Linear layers, Conv2D, activation functions, dropout, batch normalization
+All nodes are implemented in `custom_nodes/` directory with `*_visnode.py` naming pattern and organized by category:
+
+#### ML Nodes (Category: "ml")
+- **Data Nodes**: MNIST dataset, CIFAR-10 dataset, batch sampling, data loading
+- **Layer Nodes**: Linear layers, Conv2D, activation functions, dropout, batch normalization, flatten
 - **Training Nodes**: Cross-entropy loss, accuracy metrics, SGD optimizer, training steps
-- **Control Nodes**: Context management, mode setting
+- **Control Nodes**: Context management, mode setting, epoch tracker
 - **Visualization Nodes**: Tensor visualization
 
-#### Robotics Nodes (`custom_nodes/robotics_nodes/`)
-- **Sensor Nodes**: IMU, camera, and other sensor integrations
-- **Control Nodes**: Robot controller and manipulation systems
-- **Network Nodes**: Decision, vision, and sound processing networks
+#### RL Nodes (Category: "rl")
+- **PPO Agent**: Proximal Policy Optimization implementation
+- **PPO Config**: Configuration for PPO hyperparameters
+
+#### Robotics Nodes (Category: "robotics")
+- **Isaac Gym Sim**: Core physics simulator integration
+- **Isaac Gym Envs**: Pre-built RL environments
+
+#### Utility Nodes (Category: "utility")
+- **Logic Nodes**: OR node for conditional logic
+- **Configuration**: Balancing config and control nodes
 
 ### Export System Architecture (`export_system/`)
 
@@ -184,7 +193,8 @@ The system has three main components:
 
 ### File Structure Conventions
 - Queue templates end with `_queue.py` for async execution
-- Node exporters mirror the custom_nodes directory structure
+- Node implementations use `*_visnode.py` naming pattern in `custom_nodes/`
+- Node exporters are categorized in `node_exporters/` by type (ml_nodes.py, rl_nodes.py, etc.)
 - Generated code follows consistent naming and structure patterns
 
 ## Key Dependencies
