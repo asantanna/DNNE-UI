@@ -41,11 +41,14 @@ export_system/exports/*
 export_system/exports/*/data/
 
 claude_scripts/ppo_agent_profile.stats
-ppo_agent_profile.stats
+
 .coverage*
 
 # Training runs output
 runs/
+
+# execution and telemetry logs
+remote_clients/
 
 # User-specific configuration files
 .dnne/
