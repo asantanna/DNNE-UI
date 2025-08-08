@@ -101,6 +101,32 @@ DROPDOWN_SELECTORS = {
     }
 }
 
+# Button selector mapping for different UI locations
+BUTTON_SELECTORS = {
+    "taskbar": {
+        "export": EXPORT_BUTTON,          # [data-testid="export-button"]
+        "stop": STOP_BUTTON,              # button[aria-label="Stop"]
+        "show_logs": SHOW_LOGS_BUTTON     # button[aria-label="Show Logs"]
+    },
+    "canvas": {
+        "zoom_in": ZOOM_IN,               # button[aria-label="Zoom In"]
+        "zoom_out": ZOOM_OUT,             # button[aria-label="Zoom Out"]
+        "fit_view": FIT_VIEW,             # button[aria-label="Fit View"]
+        "select_mode": SELECT_MODE        # button[aria-label="Select Mode"]
+    },
+    "dialog": {
+        "close": DIALOG_CLOSE,            # .p-dialog-close-button
+        "confirm": f"{DIALOG_FOOTER} button:has-text('Yes'), {DIALOG_FOOTER} button:has-text('Confirm')",
+        "cancel": f"{DIALOG_FOOTER} button:has-text('No'), {DIALOG_FOOTER} button:has-text('Cancel')"
+    },
+    "sidebar": {
+        "close_workflow": CLOSE_WORKFLOW  # .close-workflow-button
+    },
+    "log_window": {
+        "clear": CLEAR_LOGS               # .clear-logs (if it exists)
+    }
+}
+
 # Tab selector mapping
 TAB_SELECTORS = {
     "workflows": WORKFLOWS_TAB,

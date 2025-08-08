@@ -250,6 +250,12 @@ def register_all_tools(server: "DNNE_UI_MCPServer"):
     )
     
     register_tool(
+        ui_tools.click_button,
+        name="click_button",
+        description="Click a button (e.g., 'taskbar/export', 'canvas/zoom_in', 'dialog/confirm')"
+    )
+    
+    register_tool(
         ui_tools.run_javascript,
         name="run_javascript",
         description="Execute JavaScript code in the current browser context"

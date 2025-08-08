@@ -15,7 +15,14 @@ from utils.js_defs import *
 from utils.timing_constants import (
     MENU_TIMEOUT, SELECTOR_TIMEOUT, ANIMATION_DELAY
 )
-from utils.js_snippets import run_js_snippet_in_browser
+from utils.js_snippets import (
+    js_is_dropdown_open,
+    js_get_dropdown_items,
+    js_get_dropdown_item_details,
+    js_click_dropdown_item_by_index,
+    js_get_button_state,
+    js_execute_custom_code
+)
 
 logger = logging.getLogger(__name__)
 
@@ -407,11 +414,8 @@ class UITools:
                     error=f"Dropdown not found at {location}/{control} with selector: {dropdown_selector}"
                 )
             
-            # Use consistent selectors throughout
-            selectors_js = json.dumps(DROPDOWN_ITEM_SELECTORS)
-            
             # Check if dropdown is already open by looking for dropdown items
-            items_visible_before = await run_js_snippet_in_browser(self.browser, "is_dropdown_open", {"selectors": selectors_js})
+            items_visible_before = await js_is_dropdown_open(self.browser, DROPDOWN_ITEM_SELECTORS)
             
             # Click to toggle dropdown
             logger.debug(f"Clicking dropdown: {dropdown_selector}")
@@ -419,7 +423,7 @@ class UITools:
             await asyncio.sleep(ANIMATION_DELAY)  # Wait for animation
             
             # Check new state and count items using same selectors as click_droplist_item
-            dropdown_state = await run_js_snippet_in_browser(self.browser, "get_dropdown_items", {"selectors": selectors_js})
+            dropdown_state = await js_get_dropdown_items(self.browser, DROPDOWN_ITEM_SELECTORS)
             
             return format_mcp_response(
                 True,
@@ -492,7 +496,7 @@ class UITools:
                 )
             
             # Open dropdown (if not already open)
-            dropdown_open = await run_js_snippet_in_browser(self.browser, "is_dropdown_open", {"selectors": DROPDOWN_ITEM_SELECTORS})
+            dropdown_open = await js_is_dropdown_open(self.browser, DROPDOWN_ITEM_SELECTORS)
             if not dropdown_open:
                 logger.debug(f"Opening dropdown: {dropdown_selector}")
                 await self.browser.click(dropdown_selector)
@@ -508,8 +512,7 @@ class UITools:
             normalized_search = normalize_ui_text(item)
             
             # Get all dropdown items and their indices
-            selectors_js = json.dumps(DROPDOWN_ITEM_SELECTORS)
-            items_data = await run_js_snippet_in_browser(self.browser, "get_dropdown_item_details", {"selectors": selectors_js})
+            items_data = await js_get_dropdown_item_details(self.browser, DROPDOWN_ITEM_SELECTORS)
             
             # Find matching item using normalized comparison
             match_found = None
@@ -525,10 +528,11 @@ class UITools:
             # Click the matched item
             success = False
             if match_found:
-                success = await run_js_snippet_in_browser(self.browser, "click_dropdown_item_by_index", {
-                    "selector": match_found['selector'],
-                    "index": match_found['index']
-                })
+                success = await js_click_dropdown_item_by_index(
+                    self.browser,
+                    match_found['selector'],
+                    match_found['index']
+                )
             
             if success:
                 return format_mcp_response(
@@ -551,6 +555,104 @@ class UITools:
             logger.error(f"Failed to click droplist item: {e}")
             return format_mcp_response(False, error=str(e))
     
+    async def click_button(self, location: str) -> Dict[str, Any]:
+        """
+        Click a button using location/control convention
+        
+        Args:
+            location: Button location path like "taskbar/export", "canvas/zoom_in", "dialog/confirm"
+                     Format: location/control
+                     Available locations: taskbar, canvas, dialog, sidebar, log_window
+        
+        Returns:
+            MCP response with success status
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info(f"Clicking button: {location}")
+            
+            # Parse the location path
+            parts = location.split('/')
+            if len(parts) != 2:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid button location: {location}. Use format 'location/control' (e.g., 'taskbar/export')"
+                )
+            
+            location_part = parts[0].lower()
+            control = parts[1].lower()
+            
+            # Get the button selector from centralized mapping
+            if location_part not in BUTTON_SELECTORS:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid location: {location_part}. Valid locations: {', '.join(BUTTON_SELECTORS.keys())}"
+                )
+            
+            if control not in BUTTON_SELECTORS[location_part]:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid control '{control}' for location '{location_part}'. Valid controls: {', '.join(BUTTON_SELECTORS[location_part].keys())}"
+                )
+            
+            button_selector = BUTTON_SELECTORS[location_part][control]
+            
+            # Get button state using the js_get_button_state function
+            button_state = await js_get_button_state(self.browser, button_selector)
+            
+            if not button_state.get('exists'):
+                return format_mcp_response(
+                    False,
+                    error=f"Button not found at {location_part}/{control} with selector: {button_selector}"
+                )
+            
+            if not button_state.get('visible'):
+                return format_mcp_response(
+                    False,
+                    error=f"Button at {location_part}/{control} exists but is not visible"
+                )
+            
+            if button_state.get('disabled'):
+                return format_mcp_response(
+                    False,
+                    data={
+                        "location": location_part,
+                        "control": control,
+                        "disabled": True,
+                        "text": button_state.get('text')
+                    },
+                    error=f"Button '{control}' at '{location_part}' is disabled"
+                )
+            
+            # Click the button
+            success = await self.browser.click(button_selector)
+            
+            if success:
+                # Wait for any animation or action to complete
+                await asyncio.sleep(ANIMATION_DELAY)
+                
+                return format_mcp_response(
+                    True,
+                    data={
+                        "location": location_part,
+                        "control": control,
+                        "clicked": True,
+                        "text": button_state.get('text')
+                    },
+                    message=f"Clicked '{control}' button at '{location_part}'"
+                )
+            else:
+                return format_mcp_response(
+                    False,
+                    error=f"Failed to click button at {location_part}/{control}"
+                )
+                
+        except Exception as e:
+            logger.error(f"Failed to click button: {e}")
+            return format_mcp_response(False, error=str(e))
+    
     async def run_javascript(self, code: str, return_result: bool = True) -> Dict[str, Any]:
         """Execute JavaScript code in the current browser context
         
@@ -568,14 +670,14 @@ class UITools:
             logger.debug(f"Executing JavaScript: {code[:100]}...")
             
             if return_result:
-                result = await run_js_snippet_in_browser(self.browser, "execute_custom_code", {"code": code})
+                result = await js_execute_custom_code(self.browser, code)
                 return format_mcp_response(
                     True,
                     data={"result": result},
                     message="JavaScript executed successfully"
                 )
             else:
-                await run_js_snippet_in_browser(self.browser, "execute_custom_code", {"code": code})
+                await js_execute_custom_code(self.browser, code)
                 return format_mcp_response(
                     True,
                     message="JavaScript executed successfully (no return value)"
