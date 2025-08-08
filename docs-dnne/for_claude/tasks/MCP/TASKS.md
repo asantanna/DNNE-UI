@@ -112,6 +112,11 @@ See test_results_comprehensive.json for complete list (outdated - needs rerun af
 5. ~~**open_menu**~~ - ✅ Deleted duplicate function
 6. ~~**toggle_link_visibility**~~ - ✅ Replaced with get/set functions
 
+### MCP Enhancements
+- [ ] Add new MCP function util_restart_DNNE with restart_agent_server option
+- [ ] Add optional 'switches' parameter to MCP export function to pass runner.py arguments
+- [ ] Refactor browser_controller JavaScript into reusable snippets in js_snippets
+
 ### Low Priority
 - [ ] Performance optimization
 - [ ] Additional error recovery strategies

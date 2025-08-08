@@ -219,13 +219,15 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 2. Add log viewer modal in frontend
 3. Fix status bar to always show workflow count
 4. Investigate programmatic agent server restart issue
-3. Add telemetry visualization dashboard
-4. Support for multiple simultaneous exports
-5. Add workflow management (stop/restart/delete)
-6. Implement "All" option in log viewer (needs design for interleaving/sectioning logs)
-7. Add log export functionality
-8. Add log search/filter capabilities
-9. Implement log history storage and retrieval
+5. Add telemetry visualization dashboard
+6. Support for multiple simultaneous exports (NOTE: Currently only single active workflow per client supported)
+7. Add workflow management (stop/restart/delete)
+8. Implement "All" option in log viewer (needs design for interleaving/sectioning logs)
+9. Add log export functionality
+10. Add log search/filter capabilities
+11. Implement log history storage and retrieval
+12. Add file logging to agent client in addition to console logging
+13. Make agent client robust - reconnect to server on disconnect, cache messages during disconnection
 
 ## Summary
 The DNNE Agent Integration is now complete and fully functional! The system supports:

@@ -134,6 +134,8 @@ python dnne-agent/dnne_agent_client.py
 6. Automated error detection and alerting
 7. Log search functionality with regex support
 8. Implement "All" option in log viewer for multiple agents
+9. Add dialog for runner.py switches when run_after_export is selected
+10. Historical log retrieval and display (currently only shows logs while viewer is open)
 
 ---
 *Focus: Debug status bar updates and complete UI testing*
