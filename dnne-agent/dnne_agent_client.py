@@ -20,6 +20,7 @@ import os
 import subprocess
 import signal
 import argparse
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Any, Tuple
 from collections import deque
@@ -27,11 +28,7 @@ import tempfile
 import shutil
 import psutil
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Configure logging - will be set up properly in main()
 logger = logging.getLogger('dnne_agent_client')
 
 
@@ -617,6 +614,49 @@ class DNNEAgentClient:
                 self.telemetry_transport.close()
 
 
+def setup_logging(log_dir: Optional[str] = None):
+    """
+    Set up logging to both console and file
+    
+    Args:
+        log_dir: Directory for log files (default: ./logs)
+    """
+    # Create logs directory
+    if log_dir is None:
+        log_dir = Path(__file__).parent / "logs"
+    else:
+        log_dir = Path(log_dir)
+    
+    log_dir.mkdir(exist_ok=True)
+    
+    # Create log filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = log_dir / f"dnne_agent_client_{timestamp}.log"
+    
+    # Set up formatters
+    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    
+    # Configure root logger
+    logging.basicConfig(
+        level=logging.INFO,
+        format=log_format,
+        handlers=[
+            # Console handler
+            logging.StreamHandler(sys.stdout),
+            # File handler
+            logging.FileHandler(log_file, encoding='utf-8')
+        ]
+    )
+    
+    # Log the startup message
+    logger.info(f"=== DNNE Agent Client Started ===")
+    logger.info(f"Log file: {log_file}")
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Platform: {sys.platform}")
+    
+    return log_file
+
+
 async def main():
     """Main entry point"""
     # Parse command-line arguments
@@ -631,8 +671,16 @@ async def main():
         help='Path to dnne_config.json file',
         default=None
     )
+    parser.add_argument(
+        '--log-dir',
+        help='Directory for log files (default: ./logs)',
+        default=None
+    )
     
     args = parser.parse_args()
+    
+    # Set up logging
+    log_file = setup_logging(args.log_dir)
     
     # Create and run client
     client = DNNEAgentClient(config_path=args.config, server_ip=args.server_ip)
@@ -644,6 +692,8 @@ async def main():
     except Exception as e:
         logger.error(f"Client error: {e}")
         raise
+    finally:
+        logger.info("=== DNNE Agent Client Stopped ===")
 
 
 if __name__ == "__main__":
@@ -651,4 +701,9 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Client stopped")
+        # Logger isn't available here since setup_logging() is called inside main()
+        # This is fine - the KeyboardInterrupt inside main() will log properly
+        pass
+    except Exception as e:
+        print(f"Fatal error: {e}")
+        sys.exit(1)
