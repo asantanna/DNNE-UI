@@ -202,8 +202,8 @@ class PromptServer():
         self.agent_clients = {}  # Cache of connected clients
         self.agent_connection_status = "disconnected"
         self.agent_reconnect_task = None
-        self.workflow_log_files = {}  # Track open log files {workflow_id: file_handle}
-        self.workflow_metadata = {}  # Track metadata {workflow_id: {name, client, etc}}
+        # Combined workflow tracking - single source of truth
+        self.active_workflows = {}  # {workflow_id: {file_handle, sequence, name, client_id, client_hostname, start_time}}
 
         @routes.get('/ws')
         async def websocket_handler(request):
@@ -226,7 +226,22 @@ class PromptServer():
                     await self.send("executing", { "node": self.last_node_id }, sid)
 
                 async for msg in ws:
-                    if msg.type == aiohttp.WSMsgType.ERROR:
+                    if msg.type == aiohttp.WSMsgType.TEXT:
+                        # Handle incoming messages from frontend
+                        try:
+                            data = json.loads(msg.data)
+                            msg_type = data.get('type')
+                            
+                            if msg_type == 'request_logs':
+                                # Handle request for historical logs
+                                workflow_id = data.get('workflow_id')
+                                if workflow_id:
+                                    await self.send_workflow_history(ws, workflow_id)
+                        except json.JSONDecodeError:
+                            logging.warning(f'Invalid JSON from client: {msg.data}')
+                        except Exception as e:
+                            logging.error(f'Error handling client message: {e}')
+                    elif msg.type == aiohttp.WSMsgType.ERROR:
                         logging.warning('ws connection closed with exception %s' % ws.exception())
             finally:
                 self.sockets.pop(sid, None)
@@ -778,7 +793,16 @@ class PromptServer():
                     logging.info(f"Export saved to: {workflow_export_dir}")
                     
                     # Handle remote export if target is not local
-                    if export_target != "local" and self.agent_connected:
+                    if export_target != "local":
+                        # FAIL FAST: Remote export requires agent connection
+                        if not self.agent_connected:
+                            error_msg = f"Cannot export to remote target '{export_target}': Agent server not connected"
+                            logging.error(f"[EXPORT FAILED] {error_msg}")
+                            return web.json_response({
+                                "error": error_msg,
+                                "node_errors": {}
+                            }, status=400)
+                        
                         try:
                             logging.info(f"Deploying to remote client: {export_target}")
                             
@@ -820,15 +844,15 @@ class PromptServer():
                             })
                             
                         except Exception as e:
-                            logging.error(f"Remote deployment failed: {e}")
-                            # Still return success for local export
+                            error_msg = f"Remote deployment to '{export_target}' failed: {e}"
+                            logging.error(f"[EXPORT FAILED] {error_msg}")
+                            # Return error - remote deployment was requested but failed
                             return web.json_response({
-                                "success": True,
+                                "error": error_msg,
+                                "node_errors": {},
                                 "export_path": workflow_export_dir,
-                                "files": ["runner.py"],
-                                "message": f"Workflow exported locally. Remote deployment failed: {str(e)}",
-                                "remote_deployment": "failed"
-                            })
+                                "message": f"Workflow exported locally but remote deployment failed"
+                            }, status=400)
                     
                     # Return success for local export
                     return web.json_response({
@@ -1301,18 +1325,16 @@ class PromptServer():
             # Workflow deployed to client
             workflow_id = message.get("workflow_id")
             client_id = message.get("client_id")
-            workflow_name = message.get("workflow_name", "unknown")
+            workflow_name = message.get("workflow_name")
             
-            # Store metadata for this workflow
+            # FAIL FAST: workflow_name is required
+            if not workflow_name:
+                logging.error(f"[DNNE] workflow_deployed message missing workflow_name for {workflow_id}")
+                return
+            
+            # Store metadata for this workflow (will be moved to active_workflows when logging starts)
             client_info = self.agent_clients.get(client_id, {})
             hostname = client_info.get("hostname", client_id)
-            
-            self.workflow_metadata[workflow_id] = {
-                "workflow_id": workflow_id,
-                "workflow_name": workflow_name,
-                "client_id": client_id,
-                "client_hostname": hostname
-            }
             
             # Create metadata file
             self._create_workflow_metadata(workflow_id, workflow_name, hostname)
@@ -1329,7 +1351,12 @@ class PromptServer():
             status = message.get("status")
             workflow_id = message.get("workflow_id")
             client_id = message.get("client_id")
-            workflow_name = message.get("workflow_name", self.workflow_metadata.get(workflow_id, {}).get("workflow_name", "unknown"))
+            workflow_name = message.get("workflow_name")
+            
+            # FAIL FAST: workflow_name is required
+            if not workflow_name:
+                logging.error(f"[DNNE] workflow_status message missing workflow_name for {workflow_id}, status={status}")
+                return
             
             logging.info(f"[DNNE] Workflow status: {status} for {workflow_name} ({workflow_id})")
             
@@ -1395,9 +1422,8 @@ class PromptServer():
             # Log message from running workflow
             workflow_id = message.get("workflow_id")
             log_data = message.get("log", {})
+            # _write_workflow_log now handles both file writing and WebSocket forwarding
             self._write_workflow_log(workflow_id, log_data)
-            # Forward to UI
-            self.send_sync("workflow_log", message)
             
         else:
             # Unknown message type - log as error
@@ -1435,13 +1461,23 @@ class PromptServer():
         from datetime import datetime
         from pathlib import Path
         
-        metadata = self.workflow_metadata.get(workflow_id)
-        if not metadata:
-            logging.warning(f"[DNNE] No metadata for workflow {workflow_id}")
-            return
+        # Get workflow info from agent clients (temporary until fully migrated)
+        client_info = self.agent_clients.get(client_id, {})
+        client_hostname = client_info.get("hostname", client_id)
         
-        workflow_name = metadata.get("workflow_name", "unknown")
-        client_hostname = metadata.get("client_hostname", "unknown")
+        # Get workflow name from client_workflows
+        if not hasattr(self, 'client_workflows') or client_id not in self.client_workflows:
+            logging.error(f"[DNNE] Cannot start logging: client {client_id} not in client_workflows")
+            return
+            
+        if workflow_id not in self.client_workflows[client_id]:
+            logging.error(f"[DNNE] Cannot start logging: workflow {workflow_id} not tracked for client {client_id}")
+            return
+            
+        workflow_name = self.client_workflows[client_id][workflow_id].get("name")
+        if not workflow_name:
+            logging.error(f"[DNNE] Cannot start logging: workflow {workflow_id} missing name")
+            return
         
         # Create log directory
         log_dir = Path("remote_clients") / client_hostname / f"{workflow_name}_{workflow_id}" / "run_logs"
@@ -1454,13 +1490,23 @@ class PromptServer():
         # Open file for writing (line buffered)
         try:
             file_handle = open(log_file, 'w', buffering=1)
-            self.workflow_log_files[workflow_id] = file_handle
+            
+            # Store all workflow info in one place
+            self.active_workflows[workflow_id] = {
+                'file_handle': file_handle,
+                'sequence': 0,  # Initialize sequence counter
+                'name': workflow_name,
+                'client_id': client_id,
+                'client_hostname': client_hostname,
+                'start_time': datetime.now().isoformat(),
+                'log_file': str(log_file)  # Store path for later reading
+            }
             
             # Write header
             file_handle.write(f"# Workflow: {workflow_name}\n")
             file_handle.write(f"# ID: {workflow_id}\n")
             file_handle.write(f"# Client: {client_hostname}\n")
-            file_handle.write(f"# Started: {datetime.now().isoformat()}\n")
+            file_handle.write(f"# Started: {self.active_workflows[workflow_id]['start_time']}\n")
             file_handle.write("#" * 60 + "\n\n")
             
             logging.info(f"[DNNE] Started logging for {workflow_name} to {log_file}")
@@ -1471,18 +1517,33 @@ class PromptServer():
         """Write a log entry to the workflow's log file."""
         from datetime import datetime
         
-        file_handle = self.workflow_log_files.get(workflow_id)
-        if not file_handle:
-            return  # No log file open for this workflow
+        workflow = self.active_workflows.get(workflow_id)
+        if not workflow:
+            return  # No active workflow
         
         try:
+            # Get and increment sequence number
+            sequence = workflow['sequence']
+            workflow['sequence'] = sequence + 1
+            
+            # Add sequence to log data for WebSocket (not for file!)
+            log_data_with_seq = {**log_data, 'sequence': sequence}
+            
+            # Write to file WITHOUT sequence number (keep logs clean)
+            file_handle = workflow['file_handle']
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
             level = log_data.get("level", "info").upper()
             message = log_data.get("message", "")
             
-            # Write formatted log entry
+            # Write formatted log entry (no sequence in file)
             file_handle.write(f"[{timestamp}] [{level}] {message}\n")
             file_handle.flush()  # Ensure immediate write
+            
+            # Send via WebSocket WITH sequence for deduplication
+            self.send_sync("workflow_log", {
+                "workflow_id": workflow_id,
+                "log": log_data_with_seq
+            })
         except Exception as e:
             logging.error(f"[DNNE] Failed to write log: {e}")
     
@@ -1490,19 +1551,67 @@ class PromptServer():
         """Stop logging for a workflow and close the file."""
         from datetime import datetime
         
-        file_handle = self.workflow_log_files.get(workflow_id)
-        if not file_handle:
+        workflow = self.active_workflows.get(workflow_id)
+        if not workflow:
+            logging.warning(f"[DNNE] Attempted to stop logging for unknown workflow {workflow_id}")
             return
         
         try:
             # Write footer
+            file_handle = workflow['file_handle']
             file_handle.write(f"\n# Stopped: {datetime.now().isoformat()}\n")
             file_handle.close()
-            del self.workflow_log_files[workflow_id]
+            
+            # Remove from active workflows
+            del self.active_workflows[workflow_id]
             
             logging.info(f"[DNNE] Stopped logging for workflow {workflow_id}")
         except Exception as e:
             logging.error(f"[DNNE] Failed to close log file: {e}")
+    
+    async def send_workflow_history(self, ws, workflow_id):
+        """Send historical logs for a workflow to the client."""
+        try:
+            workflow = self.active_workflows.get(workflow_id)
+            
+            if workflow:
+                # Active workflow - read the log file
+                log_file = workflow['log_file']
+                last_sequence = workflow['sequence'] - 1  # -1 because we increment before use
+                
+                # Read the log file
+                try:
+                    with open(log_file, 'r') as f:
+                        log_content = f.read()
+                except Exception as e:
+                    logging.error(f"[DNNE] Failed to read log file {log_file}: {e}")
+                    log_content = ""
+                
+                # Send the historical logs
+                await ws.send_json({
+                    "type": "workflow_log_history",
+                    "data": {
+                        "workflow_id": workflow_id,
+                        "logs": log_content,
+                        "last_sequence": last_sequence
+                    }
+                })
+                
+                logging.info(f"[DNNE] Sent historical logs for workflow {workflow_id} (last_seq: {last_sequence})")
+            else:
+                # Workflow not active - send empty response
+                await ws.send_json({
+                    "type": "workflow_log_history",
+                    "data": {
+                        "workflow_id": workflow_id,
+                        "logs": "",
+                        "last_sequence": -1
+                    }
+                })
+                logging.info(f"[DNNE] No active workflow {workflow_id} - sent empty history")
+                
+        except Exception as e:
+            logging.error(f"[DNNE] Failed to send workflow history: {e}")
     
     async def setup(self):
         timeout = aiohttp.ClientTimeout(total=None) # no timeout
