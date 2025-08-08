@@ -582,7 +582,6 @@ class PromptServer():
         async def health_check(request):
             """Health check endpoint for uniform server health monitoring."""
             import time
-            from comfy import __version__
             
             # Calculate uptime
             uptime = time.time() - self.start_time if hasattr(self, 'start_time') else 0
@@ -593,7 +592,7 @@ class PromptServer():
             health_status = {
                 "status": "healthy",
                 "uptime": uptime,
-                "version": __version__,
+                "version": __version__,  # This is already imported at the top of the file
                 "agent_connected": agent_connected,
                 "agent_clients": len(self.agent_clients) if hasattr(self, 'agent_clients') else 0,
                 "active_workflows": len(self.active_workflows) if hasattr(self, 'active_workflows') else 0
