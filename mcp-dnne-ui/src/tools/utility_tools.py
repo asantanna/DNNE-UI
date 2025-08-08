@@ -187,13 +187,14 @@ class UtilityTools:
                 message="DNNE server not reachable"
             )
     
-    async def util_restart_dnne(self, restart_agent_server: bool = False) -> Dict[str, Any]:
+    async def util_restart_dnne(self, restart_agent_server: bool = False, extra_args: str = None) -> Dict[str, Any]:
         """
         Utility: Restart DNNE server (and optionally agent server)
         Uses /remote_command endpoint to trigger restart
         
         Args:
             restart_agent_server: If True, also restart the agent server
+            extra_args: Additional command line arguments to pass (e.g., "--verbose DEBUG")
         
         Returns:
             MCP response with restart status
@@ -208,6 +209,10 @@ class UtilityTools:
                         "restart_agent_server": restart_agent_server
                     }
                 }
+                
+                # Add extra arguments if provided
+                if extra_args:
+                    payload["args"]["extra_args"] = extra_args
                 
                 async with session.post(
                     'http://172.22.160.1:8188/remote_command',

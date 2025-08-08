@@ -235,8 +235,9 @@ class PromptServer():
                             if msg_type == 'request_logs':
                                 # Handle request for historical logs
                                 workflow_id = data.get('workflow_id')
-                                if workflow_id:
-                                    await self.send_workflow_history(ws, workflow_id)
+                                client_id = data.get('client_id')  # For requesting latest logs when no workflow_id
+                                logging.debug(f"🔍 Received request_logs for workflow_id: {workflow_id}, client_id: {client_id}")
+                                await self.send_workflow_history(ws, workflow_id, client_id)
                         except json.JSONDecodeError:
                             logging.warning(f'Invalid JSON from client: {msg.data}')
                         except Exception as e:
@@ -1011,6 +1012,16 @@ class PromptServer():
                                 cmd.append("--restart-agent-server")
                                 logging.info(f"[Remote Command] Will restart agent server too")
                             
+                            # Add any additional command line arguments
+                            extra_args = args.get("extra_args", [])
+                            if extra_args:
+                                if isinstance(extra_args, str):
+                                    # Split the string into individual arguments
+                                    cmd.extend(extra_args.split())
+                                else:
+                                    cmd.extend(extra_args)
+                                logging.info(f"[Remote Command] Adding extra args: {extra_args}")
+                            
                             logging.info(f"[Remote Command] Starting new server with: {' '.join(cmd)}")
                             logging.info(f"[Remote Command] Working directory: {server_dir}")
                             
@@ -1528,9 +1539,9 @@ class PromptServer():
         log_file = log_dir / f"run_{timestamp}.log"
         logging.debug(f"Creating log file: {log_file}")
         
-        # Open file for writing (line buffered)
+        # Open file for writing (line buffered) with UTF-8 encoding for emoji support
         try:
-            file_handle = open(log_file, 'w', buffering=1)
+            file_handle = open(log_file, 'w', encoding='utf-8', buffering=1)
             
             # Store all workflow info in one place
             self.active_workflows[workflow_id] = {
@@ -1610,10 +1621,33 @@ class PromptServer():
         except Exception as e:
             logging.error(f" Failed to close log file: {e}")
     
-    async def send_workflow_history(self, ws, workflow_id):
-        """Send historical logs for a workflow to the client."""
+    async def send_workflow_history(self, ws, workflow_id, client_id=None):
+        """Send historical logs for a workflow to the client.
+        If workflow_id is None, sends the most recent workflow logs for the given client.
+        """
+        logging.debug(f"📜 send_workflow_history called for workflow_id: {workflow_id}, client_id: {client_id}")
+        
+        # If no workflow_id provided, find the latest one for the client
+        if not workflow_id and client_id:
+            workflow_id = self._get_latest_workflow_id(client_id)
+            if workflow_id:
+                logging.debug(f"  Found latest workflow_id: {workflow_id} for client: {client_id}")
+            else:
+                logging.debug(f"  No workflows found for client: {client_id}")
+                # Send empty response if no workflows found
+                await ws.send_json({
+                    "type": "workflow_log_history",
+                    "data": {
+                        "workflow_id": None,
+                        "logs": "",
+                        "last_sequence": -1
+                    }
+                })
+                return
+        
         try:
-            workflow = self.active_workflows.get(workflow_id)
+            workflow = self.active_workflows.get(workflow_id) if workflow_id else None
+            logging.debug(f"  Active workflow found: {workflow is not None}")
             
             if workflow:
                 # Active workflow - read the log file
@@ -1622,7 +1656,7 @@ class PromptServer():
                 
                 # Read the log file
                 try:
-                    with open(log_file, 'r') as f:
+                    with open(log_file, 'r', encoding='utf-8') as f:
                         log_content = f.read()
                 except Exception as e:
                     logging.error(f" Failed to read log file {log_file}: {e}")
@@ -1638,9 +1672,10 @@ class PromptServer():
                     }
                 })
                 
-                logging.info(f" Sent historical logs for workflow {workflow_id} (last_seq: {last_sequence})")
+                logging.debug(f" ✅ Sent historical logs for workflow {workflow_id} (last_seq: {last_sequence})")
             else:
                 # Workflow not active - try to find historical logs
+                logging.debug(f"  Searching for historical logs for workflow {workflow_id}")
                 from pathlib import Path
                 import glob
                 
@@ -1650,20 +1685,24 @@ class PromptServer():
                 # Look for log files in remote_clients directory
                 # Pattern: remote_clients/{client}/{workflow_name}_{workflow_id}/run_logs/*.log
                 log_pattern = f"remote_clients/*/*_{workflow_id}/run_logs/*.log"
+                logging.debug(f"  Using pattern: {log_pattern}")
                 log_files = glob.glob(log_pattern)
+                logging.debug(f"  Found {len(log_files)} log file(s): {log_files}")
                 
                 if log_files:
                     # Get the most recent log file (by modification time)
                     latest_log = max(log_files, key=lambda f: Path(f).stat().st_mtime)
                     
                     try:
-                        with open(latest_log, 'r') as f:
+                        with open(latest_log, 'r', encoding='utf-8') as f:
                             log_content = f.read()
-                        logging.info(f" Found historical log for workflow {workflow_id}: {latest_log}")
+                        logging.debug(f" 📁 Found historical log for workflow {workflow_id}: {latest_log}")
+                        logging.debug(f"  Log content length: {len(log_content)} characters")
                     except Exception as e:
                         logging.error(f" Failed to read historical log file {latest_log}: {e}")
                 
                 # Send the historical logs (empty if not found)
+                logging.debug(f"  Sending historical logs: {len(log_content)} characters")
                 await ws.send_json({
                     "type": "workflow_log_history",
                     "data": {
@@ -1674,12 +1713,67 @@ class PromptServer():
                 })
                 
                 if log_content:
-                    logging.info(f" Sent historical logs for workflow {workflow_id}")
+                    logging.debug(f" ✅ Sent historical logs for workflow {workflow_id} (no sequence)")
                 else:
-                    logging.info(f" No historical logs found for workflow {workflow_id}")
+                    logging.debug(f" ❌ No historical logs found for workflow {workflow_id}")
                 
         except Exception as e:
             logging.error(f" Failed to send workflow history: {e}")
+    
+    def _get_latest_workflow_id(self, client_id):
+        """Get the workflow_id of the most recent workflow for a client."""
+        logging.debug(f"📂 _get_latest_workflow_id called for client_id: {client_id}")
+        try:
+            from pathlib import Path
+            import glob
+            
+            # If no client_id provided, we can't find logs
+            if not client_id:
+                logging.debug("  ❌ No client_id provided, cannot find latest logs")
+                return None
+            
+            # Map client_id to hostname for directory lookup
+            # client_id might be the hostname already or need lookup
+            client_hostname = None
+            for cid, client_info in self.agent_clients.items():
+                if cid == client_id or client_info.get('hostname') == client_id:
+                    client_hostname = client_info.get('hostname')
+                    break
+            
+            if not client_hostname:
+                logging.debug(f"  ❌ Could not find hostname for client_id: {client_id}")
+                return None
+            
+            # Look for workflow directories for this client
+            # Pattern: remote_clients/{client_hostname}/*_wf_*/
+            client_dir = Path("remote_clients") / client_hostname
+            if not client_dir.exists():
+                logging.debug(f"  ❌ Client directory does not exist: {client_dir}")
+                return None
+            
+            # Find all workflow directories for this client
+            workflow_dirs = sorted(
+                [d for d in client_dir.iterdir() if d.is_dir() and "_wf_" in d.name],
+                key=lambda d: d.stat().st_mtime,
+                reverse=True  # Most recent first
+            )
+            
+            if not workflow_dirs:
+                logging.debug(f"  ❌ No workflow directories found for client: {client_hostname}")
+                return None
+            
+            # Get the most recent workflow directory
+            latest_workflow_dir = workflow_dirs[0]
+            workflow_name = latest_workflow_dir.name
+            # Extract workflow_id from directory name (format: {name}_wf_{id})
+            workflow_id = workflow_name.split("_wf_")[-1] if "_wf_" in workflow_name else None
+            
+            logging.debug(f"  📁 Found latest workflow: {workflow_name}")
+            return workflow_id
+            
+        except Exception as e:
+            logging.error(f" Failed to get latest workflow id: {e}")
+            return None
     
     async def setup(self):
         timeout = aiohttp.ClientTimeout(total=None) # no timeout
