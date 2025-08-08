@@ -400,18 +400,50 @@ class WorkflowTools:
             if not self.browser:
                 return format_mcp_response(False, error="Browser not initialized")
             
-            # Get actual checkbox state
             from utils.js_snippets import run_js_snippet_in_browser
             from utils.js_defs import RUN_AFTER_EXPORT
-            actual_run_after = await run_js_snippet_in_browser(
-                self.browser.page, 
+            
+            # FAIL FAST: Check if checkbox is disabled (Local selected)
+            is_disabled = await run_js_snippet_in_browser(
+                self.browser,
+                'is_checkbox_disabled',
+                {"selector": RUN_AFTER_EXPORT}
+            )
+            
+            if is_disabled:
+                # Cannot export with run_after when Local is selected
+                return format_mcp_response(
+                    False,
+                    error="Cannot use 'run after export' with Local client selected. Please select a remote client (e.g., Tardigrade) first."
+                )
+            
+            # Get original checkbox state
+            orig_checkbox_state = await run_js_snippet_in_browser(
+                self.browser, 
                 'is_checkbox_checked',
                 {"selector": RUN_AFTER_EXPORT}
             )
-            if actual_run_after is None:
-                actual_run_after = False
             
-            logger.info(f"Exporting workflow (run_after={actual_run_after})")
+            # FAIL FAST: If we can't read the checkbox state, something is wrong
+            if orig_checkbox_state is None:
+                return format_mcp_response(
+                    False,
+                    error="Failed to read run_after_export checkbox state"
+                )
+            
+            # Determine if we need to temporarily change the checkbox
+            must_change_checkbox = (
+                (run_after == True and orig_checkbox_state == False) or 
+                (run_after == False and orig_checkbox_state == True)
+            )
+            
+            # Temporarily change checkbox if needed
+            if must_change_checkbox:
+                logger.info(f"Temporarily changing checkbox from {orig_checkbox_state} to {run_after}")
+                await self.browser.click(RUN_AFTER_EXPORT)
+                await asyncio.sleep(ANIMATION_DELAY)
+            
+            logger.info(f"Exporting workflow (run_after={run_after})")
             
             # Click export button
             export_button_exists = await self.browser.is_visible(EXPORT_BUTTON)
@@ -421,13 +453,18 @@ class WorkflowTools:
                     error="Export button not found"
                 )
             
-            # Click export button
             await self.browser.click(EXPORT_BUTTON)
             await asyncio.sleep(WORKFLOW_LOAD_DELAY)  # Wait for export to start
             
+            # Restore checkbox to original state if we changed it
+            if must_change_checkbox:
+                logger.info(f"Restoring checkbox to original state: {orig_checkbox_state}")
+                await self.browser.click(RUN_AFTER_EXPORT)
+                await asyncio.sleep(ANIMATION_DELAY)
+            
             return format_mcp_response(
                 True,
-                data={"run_after": actual_run_after},
+                data={"run_after": orig_checkbox_state},
                 message="Export initiated"
             )
             

@@ -187,6 +187,58 @@ class ClientTools:
             logger.error(f"Failed to select client: {e}")
             return format_mcp_response(False, error=str(e))
     
+    async def get_selected_client(self) -> Dict[str, Any]:
+        """
+        Get the currently selected client from the taskbar dropdown
+        
+        Returns:
+            MCP response with selected client name
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info("Getting selected client")
+            
+            # Get the dropdown selector from centralized mapping (same as click_droplist)
+            from utils.js_defs import DROPDOWN_SELECTORS
+            dropdown_selector = DROPDOWN_SELECTORS["taskbar"]["client"]
+            
+            # Get the text content of the dropdown (which shows the selected value)
+            selected_text = await self.browser.get_text(dropdown_selector)
+            
+            if not selected_text:
+                # Fallback to evaluating JavaScript directly
+                selected_text = await self.browser.evaluate(f"""
+                    () => {{
+                        const dropdown = document.querySelector('{dropdown_selector}');
+                        if (dropdown) {{
+                            return dropdown.value || dropdown.textContent?.trim() || 'Local';
+                        }}
+                        return null;
+                    }}
+                """)
+            
+            if not selected_text:
+                return format_mcp_response(
+                    False,
+                    error="Could not read selected client from dropdown"
+                )
+            
+            # The selected text should be the client name
+            selected_client = selected_text.strip()
+            logger.info(f"Currently selected client: {selected_client}")
+            
+            return format_mcp_response(
+                True,
+                data={"selected_client": selected_client},
+                message=f"Selected client: {selected_client}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to get selected client: {e}")
+            return format_mcp_response(False, error=str(e))
+    
     async def get_agent_status(self) -> Dict[str, Any]:
         """
         Get the agent connection status from the status bar
