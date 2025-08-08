@@ -937,7 +937,7 @@ class PromptServer():
                 args = json_data.get("args", {})
                 request_id = json_data.get("request_id")
                 
-                logging.info(f"[Remote Command] Received: {command} with args: {args}")
+                logging.debug(f"[Remote Command] Received: {command} with args: {args}")
                 
                 # Command dispatch
                 if command == "restart":
@@ -1128,10 +1128,10 @@ class PromptServer():
             """Get environment-specific configuration for connected nodes"""
             task_name = request.match_info.get("task_name", None)
             requesting_node_type = request.rel_url.query.get("node_type", None)
-            logging.info(f"[DNNE] get_env_config called with task_name: {task_name}, requesting_node: {requesting_node_type}")
+            logging.info(f" get_env_config called with task_name: {task_name}, requesting_node: {requesting_node_type}")
             
             if not task_name or task_name == "none":
-                logging.warning(f"[DNNE] Invalid task name: {task_name}")
+                logging.warning(f" Invalid task name: {task_name}")
                 return web.json_response({"error": "Invalid task name"}, status=400)
             
             try:
@@ -1140,14 +1140,14 @@ class PromptServer():
                 
                 # Get singleton instance
                 loader = IsaacGymEnvConfigLoader.get_instance()
-                logging.info(f"[DNNE] Got config loader instance")
+                logging.info(f" Got config loader instance")
                 
                 # Get configuration for the task
                 config = loader.get_task_config(task_name)
-                logging.info(f"[DNNE] Retrieved config for {task_name}: {config is not None}")
+                logging.info(f" Retrieved config for {task_name}: {config is not None}")
                 
                 if not config:
-                    logging.warning(f"[DNNE] No configuration found for task: {task_name}")
+                    logging.warning(f" No configuration found for task: {task_name}")
                     return web.json_response({"error": f"No configuration found for task: {task_name}"}, status=404)
                 
                 # Return configuration based on requesting node type
@@ -1173,11 +1173,11 @@ class PromptServer():
                     response_data["ppo_config"] = config.get("ppo_config_node", {})
                     response_data["ppo_agent"] = config.get("ppo_agent_node", {})
                 
-                logging.info(f"[DNNE] Returning config for {requesting_node_type or 'all nodes'}")
+                logging.info(f" Returning config for {requesting_node_type or 'all nodes'}")
                 return web.json_response(response_data)
                 
             except Exception as e:
-                logging.error(f"[DNNE] Error loading config for task {task_name}: {e}")
+                logging.error(f" Error loading config for task {task_name}: {e}")
                 import traceback
                 logging.error(traceback.format_exc())
                 return web.json_response({"error": str(e)}, status=500)
@@ -1189,20 +1189,22 @@ class PromptServer():
         agent_port = config.get('dnne.agent_server.ui_port', 8767)
         agent_url = f"ws://localhost:{agent_port}/ws"
         
+        logging.info(f"Starting connection to agent server at {agent_url}")
+        
         try:
             self.agent_connection_status = "connecting"
-            logging.info(f"[DNNE] Connecting to agent server at localhost:{agent_port}...")
+            logging.info(f"Connecting to agent server at localhost:{agent_port}...")
             
             self.agent_ws = await self.client_session.ws_connect(agent_url)
             self.agent_connected = True
             self.agent_connection_status = "connected"
-            logging.info("[DNNE] Connected to agent server")
+            logging.info("Connected to agent server successfully")
             
             # Start listening for messages
             asyncio.create_task(self.agent_message_loop())
             
         except Exception as e:
-            logging.error(f"[DNNE] Failed to connect to agent server: {e}")
+            logging.error(f" Failed to connect to agent server: {e}")
             self.agent_connected = False
             self.agent_connection_status = "error"
             # Schedule reconnection
@@ -1225,10 +1227,10 @@ class PromptServer():
                     data = json.loads(msg.data)
                     await self.handle_agent_message(data)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
-                    logging.error(f'[DNNE] Agent ws error: {self.agent_ws.exception()}')
+                    logging.error(f' Agent ws error: {self.agent_ws.exception()}')
                     break
         except Exception as e:
-            logging.error(f"[DNNE] Agent message loop error: {e}")
+            logging.error(f" Agent message loop error: {e}")
         finally:
             self.agent_connected = False
             self.agent_connection_status = "disconnected"
@@ -1239,6 +1241,7 @@ class PromptServer():
     async def handle_agent_message(self, message):
         """Handle messages from the agent server."""
         msg_type = message.get("type")
+        logging.debug(f"Received agent message type: {msg_type}")
         
         # Track active workflows per client
         if not hasattr(self, 'client_workflows'):
@@ -1270,7 +1273,7 @@ class PromptServer():
                         "start_time": wf_info.get("start_time")
                     }
             
-            logging.info(f"[DNNE] Received agent state: {len(self.agent_clients)} clients connected")
+            logging.debug(f" Received agent state: {len(self.agent_clients)} clients connected")
             
         elif msg_type == "client_connected":
             # New client connected
@@ -1286,7 +1289,7 @@ class PromptServer():
             # Initialize empty workflow list for new client
             self.client_workflows[client_id] = {}
             
-            logging.info(f"[DNNE] Agent client connected: {info.get('hostname')}")
+            logging.info(f" Agent client connected: {info.get('hostname')}")
             
             # Send unified status update
             self.send_sync("client_status_update", {
@@ -1309,7 +1312,7 @@ class PromptServer():
                 if client_id in self.client_workflows:
                     del self.client_workflows[client_id]
                 
-                logging.info(f"[DNNE] Agent client disconnected: {hostname}")
+                logging.info(f" Agent client disconnected: {hostname}")
                 
                 # Send unified status update
                 self.send_sync("client_status_update", {
@@ -1329,7 +1332,7 @@ class PromptServer():
             
             # FAIL FAST: workflow_name is required
             if not workflow_name:
-                logging.error(f"[DNNE] workflow_deployed message missing workflow_name for {workflow_id}")
+                logging.error(f" workflow_deployed message missing workflow_name for {workflow_id}")
                 return
             
             # Store metadata for this workflow (will be moved to active_workflows when logging starts)
@@ -1339,7 +1342,7 @@ class PromptServer():
             # Create metadata file
             self._create_workflow_metadata(workflow_id, workflow_name, hostname)
             
-            logging.info(f"[DNNE] Workflow {workflow_name} ({workflow_id}) deployed to {hostname}")
+            logging.info(f" Workflow {workflow_name} ({workflow_id}) deployed to {hostname}")
             self.send_sync("agent_update", {
                 "action": "workflow_deployed",
                 "workflow_id": workflow_id,
@@ -1353,12 +1356,14 @@ class PromptServer():
             client_id = message.get("client_id")
             workflow_name = message.get("workflow_name")
             
+            logging.debug(f"Processing workflow_status: workflow_id={workflow_id}, status={status}, client_id={client_id}, workflow_name={workflow_name}")
+            
             # FAIL FAST: workflow_name is required
             if not workflow_name:
-                logging.error(f"[DNNE] workflow_status message missing workflow_name for {workflow_id}, status={status}")
+                logging.error(f"workflow_status message missing workflow_name for {workflow_id}, status={status}")
                 return
             
-            logging.info(f"[DNNE] Workflow status: {status} for {workflow_name} ({workflow_id})")
+            logging.info(f"Workflow status: {status} for {workflow_name} ({workflow_id})")
             
             # Get client info
             client_info = self.agent_clients.get(client_id, {})
@@ -1369,12 +1374,13 @@ class PromptServer():
                 self.client_workflows[client_id] = {}
             
             if status == "running":
-                # Start logging and track workflow
-                self._start_workflow_logging(workflow_id, client_id)
+                # Track workflow first, then start logging
                 self.client_workflows[client_id][workflow_id] = {
                     "name": workflow_name,
                     "start_time": datetime.now().isoformat()
                 }
+                logging.debug(f"Status is 'running', calling _start_workflow_logging for {workflow_id}")
+                self._start_workflow_logging(workflow_id, client_id)
                 
                 # Send workflow_started update
                 active_details = [
@@ -1427,8 +1433,8 @@ class PromptServer():
             
         else:
             # Unknown message type - log as error
-            logging.error(f"[DNNE] Unknown agent message type: {msg_type}")
-            logging.error(f"[DNNE] Full message: {message}")
+            logging.error(f" Unknown agent message type: {msg_type}")
+            logging.error(f" Full message: {message}")
     
     def _create_workflow_metadata(self, workflow_id, workflow_name, client_hostname):
         """Create metadata.json file for a deployed workflow."""
@@ -1454,38 +1460,44 @@ class PromptServer():
         with open(metadata_file, 'w') as f:
             json_module.dump(metadata, f, indent=2)
         
-        logging.info(f"[DNNE] Created metadata for {workflow_name} at {log_dir}")
+        logging.info(f" Created metadata for {workflow_name} at {log_dir}")
     
     def _start_workflow_logging(self, workflow_id, client_id):
         """Start logging for a workflow run."""
         from datetime import datetime
         from pathlib import Path
         
+        logging.debug(f"_start_workflow_logging called: workflow_id={workflow_id}, client_id={client_id}")
+        
         # Get workflow info from agent clients (temporary until fully migrated)
         client_info = self.agent_clients.get(client_id, {})
         client_hostname = client_info.get("hostname", client_id)
+        logging.debug(f"Client hostname: {client_hostname}")
         
         # Get workflow name from client_workflows
         if not hasattr(self, 'client_workflows') or client_id not in self.client_workflows:
-            logging.error(f"[DNNE] Cannot start logging: client {client_id} not in client_workflows")
+            logging.error(f"Cannot start logging: client {client_id} not in client_workflows")
             return
             
         if workflow_id not in self.client_workflows[client_id]:
-            logging.error(f"[DNNE] Cannot start logging: workflow {workflow_id} not tracked for client {client_id}")
+            logging.error(f"Cannot start logging: workflow {workflow_id} not tracked for client {client_id}")
             return
             
         workflow_name = self.client_workflows[client_id][workflow_id].get("name")
         if not workflow_name:
-            logging.error(f"[DNNE] Cannot start logging: workflow {workflow_id} missing name")
+            logging.error(f"Cannot start logging: workflow {workflow_id} missing name")
             return
         
         # Create log directory
         log_dir = Path("remote_clients") / client_hostname / f"{workflow_name}_{workflow_id}" / "run_logs"
+        logging.debug(f"Creating log directory: {log_dir}")
         log_dir.mkdir(parents=True, exist_ok=True)
+        logging.debug(f"Log directory created successfully: {log_dir.exists()}")
         
         # Create log file with timestamp
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         log_file = log_dir / f"run_{timestamp}.log"
+        logging.debug(f"Creating log file: {log_file}")
         
         # Open file for writing (line buffered)
         try:
@@ -1509,9 +1521,9 @@ class PromptServer():
             file_handle.write(f"# Started: {self.active_workflows[workflow_id]['start_time']}\n")
             file_handle.write("#" * 60 + "\n\n")
             
-            logging.info(f"[DNNE] Started logging for {workflow_name} to {log_file}")
+            logging.info(f"Started logging for {workflow_name} to {log_file}")
         except Exception as e:
-            logging.error(f"[DNNE] Failed to create log file: {e}")
+            logging.error(f" Failed to create log file: {e}")
     
     def _write_workflow_log(self, workflow_id, log_data):
         """Write a log entry to the workflow's log file."""
@@ -1545,7 +1557,7 @@ class PromptServer():
                 "log": log_data_with_seq
             })
         except Exception as e:
-            logging.error(f"[DNNE] Failed to write log: {e}")
+            logging.error(f" Failed to write log: {e}")
     
     def _stop_workflow_logging(self, workflow_id):
         """Stop logging for a workflow and close the file."""
@@ -1553,7 +1565,7 @@ class PromptServer():
         
         workflow = self.active_workflows.get(workflow_id)
         if not workflow:
-            logging.warning(f"[DNNE] Attempted to stop logging for unknown workflow {workflow_id}")
+            logging.warning(f" Attempted to stop logging for unknown workflow {workflow_id}")
             return
         
         try:
@@ -1565,9 +1577,9 @@ class PromptServer():
             # Remove from active workflows
             del self.active_workflows[workflow_id]
             
-            logging.info(f"[DNNE] Stopped logging for workflow {workflow_id}")
+            logging.info(f" Stopped logging for workflow {workflow_id}")
         except Exception as e:
-            logging.error(f"[DNNE] Failed to close log file: {e}")
+            logging.error(f" Failed to close log file: {e}")
     
     async def send_workflow_history(self, ws, workflow_id):
         """Send historical logs for a workflow to the client."""
@@ -1584,7 +1596,7 @@ class PromptServer():
                     with open(log_file, 'r') as f:
                         log_content = f.read()
                 except Exception as e:
-                    logging.error(f"[DNNE] Failed to read log file {log_file}: {e}")
+                    logging.error(f" Failed to read log file {log_file}: {e}")
                     log_content = ""
                 
                 # Send the historical logs
@@ -1597,7 +1609,7 @@ class PromptServer():
                     }
                 })
                 
-                logging.info(f"[DNNE] Sent historical logs for workflow {workflow_id} (last_seq: {last_sequence})")
+                logging.info(f" Sent historical logs for workflow {workflow_id} (last_seq: {last_sequence})")
             else:
                 # Workflow not active - send empty response
                 await ws.send_json({
@@ -1608,10 +1620,10 @@ class PromptServer():
                         "last_sequence": -1
                     }
                 })
-                logging.info(f"[DNNE] No active workflow {workflow_id} - sent empty history")
+                logging.info(f" No active workflow {workflow_id} - sent empty history")
                 
         except Exception as e:
-            logging.error(f"[DNNE] Failed to send workflow history: {e}")
+            logging.error(f" Failed to send workflow history: {e}")
     
     async def setup(self):
         timeout = aiohttp.ClientTimeout(total=None) # no timeout

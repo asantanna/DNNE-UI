@@ -52,7 +52,7 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
     
     def connection_made(self, transport):
         self.transport = transport
-        logger.info(f"Telemetry UDP listener ready on {transport.get_extra_info('sockname')}")
+        logger.debug(f"Telemetry UDP listener ready on {transport.get_extra_info('sockname')}")
     
     def datagram_received(self, data: bytes, addr: Tuple[str, int]):
         """Handle incoming telemetry packet"""
@@ -96,7 +96,7 @@ class DNNEAgentClient:
         
         # Resolve server URL
         self.server_url = self._resolve_server_url(server_ip)
-        logger.info(f"Server URL resolved to: {self.server_url}")
+        logger.debug(f"Server URL resolved to: {self.server_url}")
         
         self.websocket = None
         self.client_id = None
@@ -136,7 +136,7 @@ class DNNEAgentClient:
         try:
             with open(config_path, 'r') as f:
                 self.config = json.load(f)
-            logger.info(f"Loaded configuration from {config_path}")
+            logger.debug(f"Loaded configuration from {config_path}")
         except Exception as e:
             logger.error(f"Failed to load config from {config_path}: {e}")
             sys.exit(1)
@@ -198,7 +198,7 @@ class DNNEAgentClient:
                     sys.exit(1)
                 host = self._get_wsl_host_ip()
                 port = self.get('dnne.agent_server.client_port', default_port)
-                logger.info(f"Auto-detected WSL host IP: {host}")
+                logger.debug(f"Auto-detected WSL host IP: {host}")
             else:
                 # Parse IP:port or just IP
                 if ':' in server_ip:
@@ -221,7 +221,7 @@ class DNNEAgentClient:
                 if self._is_wsl():
                     logger.info("No server IP in config, trying auto-detection for WSL...")
                     host = self._get_wsl_host_ip()
-                    logger.info(f"Auto-detected WSL host IP: {host}")
+                    logger.debug(f"Auto-detected WSL host IP: {host}")
                 else:
                     logger.error("Error: Server IP not specified and not found in dnne_config.json")
                     sys.exit(1)
@@ -292,7 +292,7 @@ class DNNEAgentClient:
             self.telemetry_transport = transport
             self.telemetry_protocol = protocol
             
-            logger.info(f"Telemetry listener started on localhost:{self.telemetry_port}")
+            logger.debug(f"Telemetry listener started on localhost:{self.telemetry_port}")
             
             # Keep the listener running
             await asyncio.Future()  # Run forever
@@ -335,7 +335,7 @@ class DNNEAgentClient:
                 workspace = self.workspace_base / workflow_id
                 if workspace.exists():
                     import shutil
-                    logger.info(f"Cleaning existing deployment at {workspace}")
+                    logger.debug(f"Cleaning existing deployment at {workspace}")
                     shutil.rmtree(workspace)
                 
                 # Create fresh workspace
@@ -349,7 +349,7 @@ class DNNEAgentClient:
                     full_path.parent.mkdir(parents=True, exist_ok=True)
                     full_path.write_text(content)
                     
-                logger.info(f"Deployed {len(files)} files to {workspace}")
+                logger.debug(f"Deployed {len(files)} files to {workspace}")
                 
                 # Load metadata to get workflow name
                 workflow_name = workflow_id  # Default to ID
@@ -359,7 +359,7 @@ class DNNEAgentClient:
                     with open(metadata_path, 'r') as f:
                         metadata = json.load(f)
                         workflow_name = metadata.get("workflow_name", workflow_id)
-                        logger.info(f"Loaded workflow metadata: name={workflow_name}")
+                        logger.debug(f"Loaded workflow metadata: name={workflow_name}")
                 
                 # Log deployment status
                 logger.info(f"Workflow {workflow_id} ({workflow_name}) deployed successfully")
@@ -374,7 +374,7 @@ class DNNEAgentClient:
                 
                 # Auto-start if requested
                 if run_after_deploy:
-                    logger.info(f"Auto-starting workflow {workflow_id}")
+                    logger.debug(f"Auto-starting workflow {workflow_id}")
                     await self.start_workflow(workflow_id, [])
                 
             except Exception as e:
@@ -651,8 +651,8 @@ def setup_logging(log_dir: Optional[str] = None):
     # Log the startup message
     logger.info(f"=== DNNE Agent Client Started ===")
     logger.info(f"Log file: {log_file}")
-    logger.info(f"Python version: {sys.version}")
-    logger.info(f"Platform: {sys.platform}")
+    logger.debug(f"Python version: {sys.version}")
+    logger.debug(f"Platform: {sys.platform}")
     
     return log_file
 

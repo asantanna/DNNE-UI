@@ -8,6 +8,7 @@ import json
 import sys
 import importlib
 import importlib.util
+import logging
 import traceback
 import numpy as np
 from typing import Any, Dict, List, Tuple, Optional
@@ -174,14 +175,14 @@ def load_custom_nodes():
             load_custom_node_package(custom_nodes_dir, "custom_nodes")
             return
         except Exception as e:
-            print(f"Failed to load custom_nodes package: {e}")
-            traceback.print_exc()
-            print("Falling back to individual file loading...")
+            logging.error(f"Failed to load custom_nodes package: {e}")
+            logging.error(traceback.format_exc())
+            logging.info("Falling back to individual file loading...")
     
     # Fallback: scan and load individual files/packages
-    print(f"Scanning directory: {custom_nodes_dir}")
+    logging.debug(f"Scanning directory: {custom_nodes_dir}")
     items = os.listdir(custom_nodes_dir)
-    print(f"Found {len(items)} items in custom_nodes")
+    logging.debug(f"Found {len(items)} items in custom_nodes")
     
     # Look for Python files and packages in custom_nodes
     for item in sorted(items):
@@ -203,7 +204,7 @@ def load_custom_nodes():
                 pass
                 
         except Exception as e:
-            print(f"Failed to load custom node {item}: {e}")
+            logging.error(f"Failed to load custom node {item}: {e}")
             traceback.print_exc()
 
 def load_custom_node_file(file_path, module_name):
@@ -289,7 +290,7 @@ def get_object_info():
             }
             object_info[name] = info
         except Exception as e:
-            print(f"Error getting info for node {name}: {e}")
+            logging.error(f"Error getting info for node {name}: {e}")
     
     return object_info
 

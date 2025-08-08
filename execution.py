@@ -5,6 +5,7 @@ Minimal execution system for robotics workflows.
 
 import json
 import gc
+import logging
 import threading
 import time
 import uuid
@@ -171,7 +172,7 @@ class PromptExecutor:
             }
             
         except Exception as e:
-            print(f"Execution error: {e}")
+            logging.error(f"Execution error: {e}")
             return {
                 "success": False, 
                 "error": str(e),

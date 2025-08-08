@@ -43,6 +43,13 @@ This document describes the integration between DNNE UI, DNNE Server, and the DN
 │   (Linux/WSL)       │ Multiple instances possible
 └─────────────────────┘
 ```
+### Connection Establishment
+- On startup, DNNE starts Agent Server if it isn't already started
+- DNNE starts a websocket port for the browser UI (default: 8188)
+- DNNE connects to the Agent Server's UI port (default: 8767)
+- Agent Client connects to Agent Server's Client port (default: 8766)
+- Exported code sends telemetry locally to Agent Client's UDP port (default: 9999)
+- Some test programs impersonate the UI by connecting to Server Agent's Test port (default: 8768)
 
 ### Port Assignments
 - **8188**: DNNE Server HTTP/WebSocket (UI connections)

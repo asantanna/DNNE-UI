@@ -68,6 +68,12 @@ def setup_logger(log_level: str = 'INFO', capacity: int = 300, use_stdout: bool 
     logger = logging.getLogger()
     logger.setLevel(log_level)
 
+    # Add file handler for DNNE.log
+    file_handler = logging.FileHandler('DNNE.log', encoding='utf-8')
+    file_handler.setLevel(log_level)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logger.addHandler(file_handler)
+
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(logging.Formatter("%(message)s"))
 

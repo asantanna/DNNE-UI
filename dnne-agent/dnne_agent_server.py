@@ -34,7 +34,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('dnne_server.log')
+        logging.FileHandler('dnne_agent_server.log')
     ]
 )
 logger = logging.getLogger('dnne_server')
@@ -174,7 +174,7 @@ class DNNEAgentServer:
         self.clients[client_id] = websocket
         
         logger.info(f"Client {client_id} connected from {websocket.remote_address}")
-        logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
+        logger.debug(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
         
         try:
             async for message in websocket:
@@ -183,7 +183,7 @@ class DNNEAgentServer:
                 
         except websockets.exceptions.ConnectionClosed:
             logger.info(f"Client {client_id} disconnected")
-            logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients) - 1}, test: {len(self.test_connections)}")
+            logger.debug(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients) - 1}, test: {len(self.test_connections)}")
         except Exception as e:
             logger.error(f"Error handling client {client_id}: {e}")
         finally:
@@ -240,7 +240,7 @@ class DNNEAgentServer:
             workflow_name = data.get("workflow_name")
             
             # Log the received status message
-            logger.info(f"[WORKFLOW_STATUS] Received from client {client_id}: workflow={workflow_id}, status={status}, name={workflow_name}")
+            logger.debug(f"[WORKFLOW_STATUS] Received from client {client_id}: workflow={workflow_id}, status={status}, name={workflow_name}")
             
             if workflow_id in self.workflows:
                 workflow_info = self.workflows[workflow_id]
@@ -266,7 +266,7 @@ class DNNEAgentServer:
                     "status": status,
                     "details": data.get("details")
                 }
-                logger.info(f"[WORKFLOW_STATUS] Broadcasting to UIs: workflow={workflow_id}, status={status}, client_id={workflow_info.client_id}")
+                logger.debug(f"[WORKFLOW_STATUS] Broadcasting to UIs: workflow={workflow_id}, status={status}, client_id={workflow_info.client_id}")
                 await self.broadcast_to_ui(message)
             else:
                 # FAIL FAST: This should never happen - workflows must be tracked before status updates
@@ -316,7 +316,7 @@ class DNNEAgentServer:
         self.ui_connections.add(websocket)
         connection_time = time.time()
         logger.info(f"UI connected from {websocket.remote_address}")
-        logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
+        logger.debug(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
         
         connection_was_brief = False
         try:
@@ -353,7 +353,7 @@ class DNNEAgentServer:
                 connection_was_brief = True
             else:
                 logger.info(f"UI disconnected")
-                logger.info(f"Open connections: UI: {len(self.ui_connections) - 1}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
+                logger.debug(f"Open connections: UI: {len(self.ui_connections) - 1}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
         except Exception as e:
             logger.error(f"Error handling UI connection: {e}")
         finally:
@@ -361,7 +361,7 @@ class DNNEAgentServer:
             # Log disconnection only for non-brief connections
             if not connection_was_brief and time.time() - connection_time >= 0.5:
                 logger.info(f"UI connection closed")
-                logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
+                logger.debug(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
     
     async def handle_ui_message(self, websocket, data: Dict[str, Any]):
         """Process messages from UI"""
@@ -521,7 +521,7 @@ class DNNEAgentServer:
         """Handle test control connections (test harness only)"""
         self.test_connections.add(websocket)
         logger.warning(f"Test control connection from {websocket.remote_address}")
-        logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
+        logger.debug(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections)}")
         
         try:
             # Send current state to test client
@@ -552,7 +552,7 @@ class DNNEAgentServer:
                 
         except websockets.exceptions.ConnectionClosed:
             logger.info(f"Test control connection closed")
-            logger.info(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections) - 1})")
+            logger.debug(f"Open connections: UI: {len(self.ui_connections)}, agent: {len(self.clients)}, test: {len(self.test_connections) - 1})")
         except Exception as e:
             logger.error(f"Error handling test control connection: {e}")
         finally:
@@ -561,7 +561,7 @@ class DNNEAgentServer:
     async def broadcast_to_ui(self, data: Dict[str, Any]):
         """Broadcast message to all connected UIs"""
         if self.ui_connections:
-            logger.info(f"[BROADCAST] Sending to {len(self.ui_connections)} UI(s): type={data.get('type')}, data={data}")
+            logger.debug(f"[BROADCAST] Sending to {len(self.ui_connections)} UI(s): type={data.get('type')}, data={data}")
             message = json.dumps(data)
             results = await asyncio.gather(
                 *[ui.send(message) for ui in self.ui_connections],
