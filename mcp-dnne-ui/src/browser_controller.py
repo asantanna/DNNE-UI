@@ -575,7 +575,7 @@ class BrowserController:
             logger.error(f"Failed to get canvas info: {e}")
             return {"node_count": 0, "zoom_level": 1.0, "links_visible": True}
     
-    async def get_agent_status(self) -> Dict[str, Any]:
+    async def get_status_bar_info(self) -> Dict[str, Any]:
         """
         Get agent and client status from status bar
         

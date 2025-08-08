@@ -85,7 +85,7 @@ class UtilityTools:
                 issues.append("Error dialog is open")
             
             # Get agent status from browser
-            agent_status = await self.browser.get_agent_status()
+            agent_status = await self.browser.get_status_bar_info()
             if not agent_status["agent_connected"]:
                 issues.append("Agent is disconnected")
             

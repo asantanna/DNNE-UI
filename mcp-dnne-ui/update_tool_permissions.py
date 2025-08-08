@@ -48,10 +48,18 @@ def update_claude_settings():
     if "deny" not in settings["permissions"]:
         settings["permissions"]["deny"] = []
     
-    # Get existing allowed tools (to avoid duplicates)
-    existing_allow = set(settings["permissions"]["allow"])
+    # Get existing allowed tools and filter out old MCP entries
+    existing_allow = set()
+    for tool in settings["permissions"]["allow"]:
+        # Keep non-MCP tools (like Bash, Read, etc.)
+        if not tool.startswith("mcp__dnne-ui__"):
+            existing_allow.add(tool)
     
-    # Add all MCP tools to the allow list
+    print(f"\nRemoving old MCP tool entries...")
+    old_mcp_count = len([t for t in settings["permissions"]["allow"] if t.startswith("mcp__dnne-ui__")])
+    print(f"  - Removed {old_mcp_count} obsolete MCP tool entries")
+    
+    # Add all current MCP tools to the allow list
     # Format: "mcp__dnne-ui__<tool_name>"
     for tool_name in tool_names:
         mcp_tool_name = f"mcp__dnne-ui__{tool_name}"

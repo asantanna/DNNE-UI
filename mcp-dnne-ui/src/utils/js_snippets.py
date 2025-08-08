@@ -363,7 +363,7 @@ JS_SNIPPETS = {
         }}
     """,
     
-    "get_agent_status": """
+    "get_status_bar_info": """
         () => {{
             const statusBar = document.querySelector('.agent-status-bar');
             if (!statusBar) {{
