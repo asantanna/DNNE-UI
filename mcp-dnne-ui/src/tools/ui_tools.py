@@ -162,73 +162,7 @@ class UITools:
         except Exception as e:
             logger.error(f"Failed to dismiss dialog: {e}")
             return format_mcp_response(False, error=str(e))
-    
-    async def get_error_message(self) -> Dict[str, Any]:
-        """
-        Get the current error dialog message if any
-        
-        Returns:
-            MCP response with error details
-        """
-        try:
-            if not self.browser:
-                return format_mcp_response(False, error="Browser not initialized")
-            
-            logger.info("Getting error message")
-            
-            # Check for dialog
-            dialog_visible = await self.browser.is_visible(DIALOG)
-            
-            if not dialog_visible:
-                # Check for toast notifications
-                toast_visible = await self.browser.is_visible(TOAST_ERROR)
-                
-                if toast_visible:
-                    toast_text = await self.browser.get_text(TOAST_ERROR)
-                    return format_mcp_response(
-                        True,
-                        data={
-                            "has_error": True,
-                            "title": "Toast Error",
-                            "message": toast_text,
-                            "type": "toast"
-                        }
-                    )
-                
-                return format_mcp_response(
-                    True,
-                    data={
-                        "has_error": False,
-                        "title": None,
-                        "message": None
-                    },
-                    message="No error dialog present"
-                )
-            
-            # Get dialog details
-            title = await self.browser.get_text(f"{DIALOG} .p-dialog-title")
-            message = await self.browser.get_text(DIALOG_CONTENT)
-            
-            # Determine if it's an error
-            is_error = False
-            if title and "error" in title.lower():
-                is_error = True
-            elif message and any(word in message.lower() for word in ["error", "failed", "exception"]):
-                is_error = True
-            
-            return format_mcp_response(
-                True,
-                data={
-                    "has_error": is_error,
-                    "title": title,
-                    "message": message,
-                    "type": "dialog"
-                }
-            )
-            
-        except Exception as e:
-            logger.error(f"Failed to get error message: {e}")
-            return format_mcp_response(False, error=str(e))
+    # get_error_message has been removed - use take_screenshot to view error dialogs
     
     async def wait_for_ui_ready(self, timeout: int = 10) -> Dict[str, Any]:
         """

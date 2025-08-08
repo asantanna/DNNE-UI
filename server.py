@@ -578,6 +578,29 @@ class PromptServer():
             }
             return web.json_response(system_stats)
 
+        @routes.get("/health")
+        async def health_check(request):
+            """Health check endpoint for uniform server health monitoring."""
+            import time
+            from comfy import __version__
+            
+            # Calculate uptime
+            uptime = time.time() - self.start_time if hasattr(self, 'start_time') else 0
+            
+            # Check agent server connection
+            agent_connected = hasattr(self, 'agent_ws') and self.agent_ws and not self.agent_ws.closed
+            
+            health_status = {
+                "status": "healthy",
+                "uptime": uptime,
+                "version": __version__,
+                "agent_connected": agent_connected,
+                "agent_clients": len(self.agent_clients) if hasattr(self, 'agent_clients') else 0,
+                "active_workflows": len(self.active_workflows) if hasattr(self, 'active_workflows') else 0
+            }
+            
+            return web.json_response(health_status)
+
         @routes.get("/prompt")
         async def get_prompt(request):
             return web.json_response(self.get_queue_info())
@@ -982,13 +1005,20 @@ class PromptServer():
                                     logging.error(f"[Remote Command] Cannot find dnne.bat at {dnne_bat} or {cwd_dnne_bat}")
                                     return
                             
-                            logging.info(f"[Remote Command] Starting new server with: {dnne_bat}")
+                            # Check if we should restart agent server too
+                            restart_agent = args.get("restart_agent_server", False)
+                            cmd = [dnne_bat]
+                            if restart_agent:
+                                cmd.append("--restart-agent-server")
+                                logging.info(f"[Remote Command] Will restart agent server too")
+                            
+                            logging.info(f"[Remote Command] Starting new server with: {' '.join(cmd)}")
                             logging.info(f"[Remote Command] Working directory: {server_dir}")
                             
                             # Start dnne.bat in a new window
                             # Just call dnne.bat directly - it will handle opening its own window
                             subprocess.Popen(
-                                [dnne_bat],
+                                cmd,
                                 cwd=server_dir,
                                 shell=False,
                                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
@@ -1611,16 +1641,43 @@ class PromptServer():
                 
                 logging.info(f" Sent historical logs for workflow {workflow_id} (last_seq: {last_sequence})")
             else:
-                # Workflow not active - send empty response
+                # Workflow not active - try to find historical logs
+                from pathlib import Path
+                import glob
+                
+                log_content = ""
+                last_sequence = -1
+                
+                # Look for log files in remote_clients directory
+                # Pattern: remote_clients/{client}/{workflow_name}_{workflow_id}/run_logs/*.log
+                log_pattern = f"remote_clients/*/*_{workflow_id}/run_logs/*.log"
+                log_files = glob.glob(log_pattern)
+                
+                if log_files:
+                    # Get the most recent log file (by modification time)
+                    latest_log = max(log_files, key=lambda f: Path(f).stat().st_mtime)
+                    
+                    try:
+                        with open(latest_log, 'r') as f:
+                            log_content = f.read()
+                        logging.info(f" Found historical log for workflow {workflow_id}: {latest_log}")
+                    except Exception as e:
+                        logging.error(f" Failed to read historical log file {latest_log}: {e}")
+                
+                # Send the historical logs (empty if not found)
                 await ws.send_json({
                     "type": "workflow_log_history",
                     "data": {
                         "workflow_id": workflow_id,
-                        "logs": "",
-                        "last_sequence": -1
+                        "logs": log_content,
+                        "last_sequence": last_sequence
                     }
                 })
-                logging.info(f" No active workflow {workflow_id} - sent empty history")
+                
+                if log_content:
+                    logging.info(f" Sent historical logs for workflow {workflow_id}")
+                else:
+                    logging.info(f" No historical logs found for workflow {workflow_id}")
                 
         except Exception as e:
             logging.error(f" Failed to send workflow history: {e}")

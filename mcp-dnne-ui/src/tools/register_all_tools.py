@@ -139,7 +139,7 @@ def register_all_tools(server: "DNNE_UI_MCPServer"):
     register_tool(
         export_tools.set_run_after_export,
         name="set_run_after_export",
-        description="Set whether to run the workflow after export (true/false)"
+        description="Set whether to run the workflow after export (for testing only - export_workflow overrides this)"
     )
     
     # Register utility tools
@@ -167,6 +167,18 @@ def register_all_tools(server: "DNNE_UI_MCPServer"):
         description="Utility: Find DOM elements by text content for debugging"
     )
     
+    register_tool(
+        utility_tools.util_restart_dnne,
+        name="util_restart_dnne",
+        description="Utility: Restart DNNE server (and optionally agent server)"
+    )
+    
+    register_tool(
+        utility_tools.util_is_DNNE_running,
+        name="util_is_DNNE_running",
+        description="Utility: Check if DNNE server is running using health endpoint"
+    )
+    
     # Register client management tools
     register_tool(
         client_tools.get_connected_clients,
@@ -181,53 +193,18 @@ def register_all_tools(server: "DNNE_UI_MCPServer"):
     )
     
     register_tool(
-        client_tools.get_agent_status,
-        name="get_agent_status",
-        description="Get the agent connection status"
+        client_tools.get_status_bar_info,
+        name="get_status_bar_info",
+        description="Get information from the status bar including agent connection and workflow counts"
     )
     
     register_tool(
-        client_tools.show_all_logs,
-        name="show_all_logs",
-        description="Show logs from all clients"
+        client_tools.get_viewer_client_log,
+        name="get_viewer_client_log",
+        description="Get currently displayed log content from the log viewer"
     )
     
-    register_tool(
-        client_tools.clear_logs,
-        name="clear_logs",
-        description="Clear the log window"
-    )
-    
-    # Register log analysis tools
-    register_tool(
-        log_tools.get_client_logs,
-        name="get_client_logs",
-        description="Get logs for a specific client or current selection"
-    )
-    
-    register_tool(
-        log_tools.get_training_metrics,
-        name="get_training_metrics",
-        description="Extract training metrics from logs"
-    )
-    
-    register_tool(
-        log_tools.get_export_errors,
-        name="get_export_errors",
-        description="Find export-related errors in logs"
-    )
-    
-    register_tool(
-        log_tools.get_recent_errors,
-        name="get_recent_errors",
-        description="Get the most recent error messages"
-    )
-    
-    register_tool(
-        log_tools.wait_for_log_pattern,
-        name="wait_for_log_pattern",
-        description="Wait for a specific pattern to appear in logs"
-    )
+    # Log analysis tools have been removed - use take_screenshot to view logs
     
     # Register UI navigation tools
     register_tool(
@@ -240,12 +217,6 @@ def register_all_tools(server: "DNNE_UI_MCPServer"):
         ui_tools.dismiss_dialog,
         name="dismiss_dialog",
         description="Dismiss any open dialog or error message"
-    )
-    
-    register_tool(
-        ui_tools.get_error_message,
-        name="get_error_message",
-        description="Get the current error dialog message if any"
     )
     
     register_tool(

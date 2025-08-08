@@ -239,18 +239,18 @@ class ClientTools:
             logger.error(f"Failed to get selected client: {e}")
             return format_mcp_response(False, error=str(e))
     
-    async def get_agent_status(self) -> Dict[str, Any]:
+    async def get_status_bar_info(self) -> Dict[str, Any]:
         """
-        Get the agent connection status from the status bar
+        Get information from the status bar including agent connection and workflow counts
         
         Returns:
-            MCP response with agent status
+            MCP response with status bar information
         """
         try:
             if not self.browser:
                 return format_mcp_response(False, error="Browser not initialized")
             
-            logger.info("Getting agent status")
+            logger.info("Getting status bar info")
             
             # Look for agent status in the status bar
             status_text = await self.browser.get_text(AGENT_STATUS_BOTTOM)
@@ -294,31 +294,85 @@ class ClientTools:
             )
                 
         except Exception as e:
-            logger.error(f"Failed to get agent status: {e}")
+            logger.error(f"Failed to get status bar info: {e}")
             return format_mcp_response(False, error=str(e))
     
-    async def show_all_logs(self) -> Dict[str, Any]:
+    async def get_viewer_client_log(self) -> Dict[str, Any]:
         """
-        Click the Show All Logs button to display logs from all clients
+        Get the currently displayed log content from the log viewer
+        
+        Note: Use click_droplist_item() to select different client/log type first
         
         Returns:
-            MCP response with success status
+            MCP response with log content
         """
-        logger.info("show_all_logs called")
-        return format_mcp_response(
-            False,
-            error="Not implemented yet"
-        )
-    
-    async def clear_logs(self) -> Dict[str, Any]:
-        """
-        Clear the log window
-        
-        Returns:
-            MCP response with success status
-        """
-        logger.info("clear_logs called")
-        return format_mcp_response(
-            False,
-            error="Not implemented yet"
-        )
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info("Getting log viewer content")
+            
+            # Look for the log viewer dialog first
+            dialog_visible = await self.browser.is_visible(".dnne-log-viewer-dialog")
+            
+            if not dialog_visible:
+                # Try the bottom panel logs terminal
+                terminal_visible = await self.browser.is_visible(".logs-terminal")
+                
+                if not terminal_visible:
+                    return format_mcp_response(
+                        False,
+                        error="Log viewer not visible. Open log viewer first using UI tools."
+                    )
+                
+                # Get content from bottom panel terminal (if implemented)
+                # Note: Terminal content may need special handling
+                return format_mcp_response(
+                    False,
+                    error="Bottom panel log terminal reading not yet implemented"
+                )
+            
+            # Get content from the log viewer dialog's pre element
+            log_content = await self.browser.get_text(".dnne-log-viewer-dialog pre.log-text")
+            
+            if not log_content:
+                # Try alternative selector
+                log_content = await self.browser.evaluate("""
+                    () => {
+                        const logPre = document.querySelector('.dnne-log-viewer-dialog pre.log-text');
+                        if (logPre) {
+                            return logPre.textContent || '';
+                        }
+                        // Fallback to any pre in the dialog
+                        const dialogPre = document.querySelector('.dnne-log-viewer-dialog pre');
+                        if (dialogPre) {
+                            return dialogPre.textContent || '';
+                        }
+                        return null;
+                    }
+                """)
+            
+            if log_content is None:
+                return format_mcp_response(
+                    False,
+                    error="Could not read log content from viewer"
+                )
+            
+            # Get selected client and log type from dropdowns
+            selected_client = await self.browser.get_text(".log-client-dropdown .p-dropdown-label")
+            selected_log_type = await self.browser.get_text(".log-type-dropdown .p-dropdown-label")
+            
+            return format_mcp_response(
+                True,
+                data={
+                    "log_content": log_content,
+                    "client": selected_client or "Unknown",
+                    "log_type": selected_log_type or "execution",
+                    "length": len(log_content)
+                },
+                message=f"Retrieved {len(log_content)} characters of log content"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to get log viewer content: {e}")
+            return format_mcp_response(False, error=str(e))

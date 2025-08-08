@@ -83,6 +83,13 @@ Note: Ensure the conda environment is activated before running exported scripts.
 
 ## Architecture Overview
 
+### ⚠️ CRITICAL: WebSocket Communication Architecture ⚠️
+**DNNE uses WebSocket for ALL client-server communication. NEVER create REST API endpoints for dynamic features.**
+- All UI updates go through WebSocket
+- All data requests use WebSocket messages (e.g., `request_logs`, not `/api/logs`)
+- REST is ONLY for static resources and initial page load
+- See `docs-dnne/architecture/websocket-not-rest.md` for details
+
 ### Core System Structure
 - **Entry Point**: `main.py` - Initializes DNNE server with ML/robotics extensions
 - **Node System**: `nodes.py` - Base DNNE node classes and robotics type integration

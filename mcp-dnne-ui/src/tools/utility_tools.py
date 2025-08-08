@@ -187,6 +187,105 @@ class UtilityTools:
                 message="DNNE server not reachable"
             )
     
+    async def util_restart_dnne(self, restart_agent_server: bool = False) -> Dict[str, Any]:
+        """
+        Utility: Restart DNNE server (and optionally agent server)
+        Uses /remote_command endpoint to trigger restart
+        
+        Args:
+            restart_agent_server: If True, also restart the agent server
+        
+        Returns:
+            MCP response with restart status
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                payload = {
+                    "command": "restart",
+                    "args": {
+                        "delay": 3,
+                        "reason": "MCP requested restart",
+                        "restart_agent_server": restart_agent_server
+                    }
+                }
+                
+                async with session.post(
+                    'http://172.22.160.1:8188/remote_command',
+                    json=payload,
+                    timeout=10
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return format_mcp_response(
+                            True,
+                            data=data,
+                            message=f"Server restart initiated{' (including agent server)' if restart_agent_server else ''}"
+                        )
+                    else:
+                        return format_mcp_response(
+                            False,
+                            error=f"HTTP {resp.status}",
+                            message="Failed to restart server"
+                        )
+        except asyncio.TimeoutError:
+            return format_mcp_response(
+                False,
+                error="Connection timeout",
+                message="Failed to restart server"
+            )
+        except Exception as e:
+            return format_mcp_response(
+                False,
+                error=str(e),
+                message="Failed to restart server"
+            )
+    
+    async def util_is_DNNE_running(self) -> Dict[str, Any]:
+        """
+        Utility: Check if DNNE server is running using health endpoint
+        Queries http://172.22.160.1:8188/health
+        
+        Returns:
+            MCP response with server health status
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get('http://172.22.160.1:8188/health', timeout=5) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return format_mcp_response(
+                            True,
+                            data={
+                                "running": True,
+                                "healthy": data.get("status") == "healthy",
+                                "uptime": data.get("uptime"),
+                                "version": data.get("version"),
+                                "agent_connected": data.get("agent_connected"),
+                                "agent_clients": data.get("agent_clients"),
+                                "active_workflows": data.get("active_workflows"),
+                                "raw_data": data
+                            },
+                            message="DNNE server is running"
+                        )
+                    else:
+                        return format_mcp_response(
+                            False,
+                            error=f"HTTP {resp.status}",
+                            message="DNNE server not reachable"
+                        )
+        except asyncio.TimeoutError:
+            return format_mcp_response(
+                False,
+                error="Connection timeout",
+                message="DNNE server not reachable"
+            )
+        except Exception as e:
+            return format_mcp_response(
+                False,
+                error=str(e),
+                message="DNNE server not reachable"
+            )
+    
     async def util_find_elements_by_text(self, text: str, limit: int = 10) -> Dict[str, Any]:
         """
         Utility: Find DOM elements containing specific text (bypasses normal selectors)

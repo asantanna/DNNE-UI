@@ -1,16 +1,16 @@
 # Log Window Tasks
 
-*Last Updated: 2025-08-07*
+*Last Updated: 2025-08-08*
 
 ## Quick Stats
-- **Status**: Testing Phase
+- **Status**: Working - Needs UI Testing
 - **Priority**: High
-- **Completion**: ~80%
+- **Completion**: ~90%
 - **Dependencies**: DNNE Agent integration ✅
 
 ## Current Status
 
-The log window functionality is implemented and in testing phase. Core features are working but several UI elements need testing and debugging, particularly the status bar workflow count updates when workflows are exported to remote agents.
+The log window functionality is fully implemented and working. The critical workflow tracking issue has been fixed. The system now properly creates log directories and captures workflow output. UI components need testing for edge cases.
 
 ## ✅ Completed
 
@@ -44,6 +44,13 @@ The log window functionality is implemented and in testing phase. Core features 
 - [x] Verify workflow_started/workflow_stopped message handling
 - [x] Check clientWorkflows Map updates in agentStore
 - [x] Ensure AgentStatusBar computed properties are reactive
+
+### ✅ FIXED: Log Directory Creation (2025-08-08)
+- [x] **Fixed workflow tracking order issue** - Workflow must be added to client_workflows BEFORE calling _start_workflow_logging
+- [x] **Added DNNE.log file** - Server now logs to both console and file for debugging
+- [x] **Fixed agent server log filename** - Changed from dnne_server.log to dnne_agent_server.log
+- [x] **Improved logging levels** - Changed verbose messages from INFO to DEBUG level
+- [x] **Replaced print statements** - Now using proper logging functions in execution.py and nodes.py
 
 ### UI Component Testing
 - [ ] **Test auto-scroll functionality** - Verify it follows new log entries properly
@@ -87,6 +94,16 @@ The log window functionality is implemented and in testing phase. Core features 
   - Added datetime import to server.py
   - Added WebSocket handlers for workflow_status and client_status_update in frontend
   - Updated AgentStatusBar to always show workflow counts (including 0)
+
+### ~~Log Directory Not Created~~ - FIXED 2025-08-08
+- **Problem**: run_logs directories weren't being created when workflows ran on remote agents
+- **Root Cause**: Workflow tracking order issue - _start_workflow_logging was called before workflow was added to client_workflows dictionary
+- **Solution**: Fixed order in server.py - now adds workflow to tracking dictionary first
+- **Additional Improvements**:
+  - Added DNNE.log file logging for easier debugging
+  - Fixed agent server log filename  
+  - Improved logging levels (verbose messages now use DEBUG)
+  - Replaced print statements with proper logging functions
 
 ### Testing Needed
 - Auto-scroll behavior not fully verified

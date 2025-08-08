@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-07*
+*Last Updated: 2025-08-08*
 
 This index provides a quick overview of all active task tracking documents for the DNNE project. Each component has its own detailed task file in the corresponding subdirectory.
 
@@ -10,7 +10,7 @@ This index provides a quick overview of all active task tracking documents for t
 |-----------|--------|----------|----------|--------------|
 | **MCP Integration** | 🟢 Active | 41/41 tools (100%) | High | 2025-08-06 |
 | **DNNE Agent** | 🟢 Complete | Phase 6 Complete | High | 2025-08-06 |
-| **Log Window** | 🟡 Testing | ~80% - Testing Phase | High | 2025-08-07 |
+| **Log Window** | 🟢 Working | ~90% - UI Testing Needed | Medium | 2025-08-08 |
 
 ## Legend
 - 🟢 **Active/Complete** - Actively worked on or completed
@@ -34,10 +34,10 @@ This index provides a quick overview of all active task tracking documents for t
 
 ### Log Window (`log_window/TASKS.md`)
 **Summary**: UI for viewing workflow execution logs
-- **Status**: Testing phase - core features implemented, debugging UI updates
-- **Current Issue**: Status bar not updating workflow counts when remote agents run workflows
-- **Testing Focus**: Auto-scroll, agent/log type dropdowns, visual indicators
-- **Priority**: High - critical bug affecting user experience
+- **Status**: Working - core functionality complete, UI components need testing
+- **Recent Fixes**: Log directory creation fixed, workflow tracking order corrected
+- **Testing Needed**: Auto-scroll, agent/log type dropdowns, visual indicators
+- **Priority**: Medium - core features working, polish needed
 
 ## Quick Links
 
@@ -64,9 +64,9 @@ This index provides a quick overview of all active task tracking documents for t
 
 Based on current task statuses, the recommended priorities are:
 
-1. **Log Window Testing**: Debug status bar update issue and test UI components
-2. **MCP Log Functions**: Implement the 7 missing log management tools
-3. **Documentation**: Keep task files updated as work progresses
+1. **Log Window UI Testing**: Test auto-scroll, dropdowns, and visual indicators
+2. **MCP Log Functions**: Implement the 7 missing log management tools  
+3. **Performance & Polish**: Optimize for large log files, add log rotation
 
 ---
 *This index is maintained to help Claude Code quickly understand the state of various DNNE components*
