@@ -19,6 +19,7 @@ import sys
 import os
 import subprocess
 import signal
+import argparse
 from pathlib import Path
 from typing import Dict, Optional, Any, Tuple
 from collections import deque
@@ -92,21 +93,16 @@ class DNNEAgentClient:
     - Process management
     """
     
-    def __init__(self, config_path: Optional[str] = None, server_url: Optional[str] = None):
+    def __init__(self, config_path: Optional[str] = None, server_ip: Optional[str] = None):
         # Load configuration
         self._load_config(config_path)
-        # Set server URL (parameter overrides config)
-        if server_url:
-            self.server_url = server_url
-        else:
-            server_port = self.get('dnne.agent_server.client_port', 8766)
-            self.server_url = f"ws://localhost:{server_port}"
+        
+        # Resolve server URL
+        self.server_url = self._resolve_server_url(server_ip)
+        logger.info(f"Server URL resolved to: {self.server_url}")
         
         self.websocket = None
         self.client_id = None
-        
-        # Check conda environment
-        self._check_conda_environment()
         
         # Workflow management
         self.workflows: Dict[str, WorkflowProcess] = {}
@@ -125,29 +121,28 @@ class DNNEAgentClient:
         self.node_connections = set()
     
     def _load_config(self, config_path: Optional[str]):
-        """Load configuration from exported_config.json"""
+        """Load configuration from dnne_config.json"""
         if config_path is None:
-            # Look for exported_config.json in standard locations
-            possible_paths = [
-                Path("exported_config.json"),
-                Path(__file__).parent / "exported_config.json",
-                Path.home() / ".dnne" / "exported_config.json"
-            ]
-            
-            for path in possible_paths:
-                if path.exists():
-                    config_path = str(path)
-                    break
-            else:
-                # Use empty config if not found
-                logger.warning("No exported_config.json found, using defaults")
+            # Look for dnne_config.json in script directory
+            config_path = Path(__file__).parent / "dnne_config.json"
+            if not config_path.exists():
+                logger.warning("No dnne_config.json found, using empty config")
                 self.config = {}
                 return
+        else:
+            config_path = Path(config_path)
+            if not config_path.exists():
+                logger.error(f"Config file not found: {config_path}")
+                sys.exit(1)
         
-        # FAIL-FAST: Config must load successfully
-        with open(config_path, 'r') as f:
-            self.config = json.load(f)
-        logger.info(f"Loaded configuration from {config_path}")
+        # Load config file
+        try:
+            with open(config_path, 'r') as f:
+                self.config = json.load(f)
+            logger.info(f"Loaded configuration from {config_path}")
+        except Exception as e:
+            logger.error(f"Failed to load config from {config_path}: {e}")
+            sys.exit(1)
     
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value using dot notation"""
@@ -162,24 +157,79 @@ class DNNEAgentClient:
         
         return value
     
-    def _check_conda_environment(self):
-        """Check that required conda environment is activated"""
-        required_env = self.get('conda.conda_env', 'DNNE_PY38')
-        conda_env = os.environ.get('CONDA_DEFAULT_ENV', '')
-        
-        if conda_env != required_env:
-            logger.error(f"❌ {required_env} conda environment is not activated!")
-            logger.error(f"   Current environment: {conda_env or 'None'}")
-            logger.error("   Please activate the environment:")
-            
-            conda_path = self.get('conda.conda_path', '~/miniconda')
-            conda_path = os.path.expanduser(conda_path)
-            logger.error(f"   $ conda activate {required_env}")
-            logger.error("   or")
-            logger.error(f"   $ source {conda_path}/bin/activate {required_env}")
+    def _is_wsl(self) -> bool:
+        """Check if running in WSL"""
+        try:
+            with open('/proc/version', 'r') as f:
+                version = f.read().lower()
+                return 'microsoft' in version or 'wsl' in version
+        except:
+            return False
+    
+    def _get_wsl_host_ip(self) -> str:
+        """Get Windows host IP address when running in WSL"""
+        try:
+            result = subprocess.run(
+                ['ip', 'route', 'show', 'default'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            # Parse the output to get the gateway IP
+            # Format: "default via 172.22.160.1 dev eth0"
+            lines = result.stdout.strip().split('\n')
+            for line in lines:
+                if line.startswith('default via'):
+                    parts = line.split()
+                    if len(parts) >= 3:
+                        return parts[2]
+            raise Exception("Could not parse gateway IP from ip route output")
+        except Exception as e:
+            logger.error(f"Failed to get WSL host IP: {e}")
             sys.exit(1)
+    
+    def _resolve_server_url(self, server_ip: Optional[str]) -> str:
+        """Resolve the server URL from config or command-line argument"""
+        default_port = 8766
         
-        logger.info(f"✅ {required_env} conda environment is active")
+        if server_ip:
+            # Server IP was provided via command line
+            if server_ip.lower() == 'auto':
+                # Auto mode - must be in WSL
+                if not self._is_wsl():
+                    logger.error("Error: --server_ip is 'auto' but not running in WSL")
+                    sys.exit(1)
+                host = self._get_wsl_host_ip()
+                port = self.get('dnne.agent_server.client_port', default_port)
+                logger.info(f"Auto-detected WSL host IP: {host}")
+            else:
+                # Parse IP:port or just IP
+                if ':' in server_ip:
+                    host, port_str = server_ip.rsplit(':', 1)
+                    try:
+                        port = int(port_str)
+                    except ValueError:
+                        logger.error(f"Invalid port in server_ip: {port_str}")
+                        sys.exit(1)
+                else:
+                    host = server_ip
+                    port = self.get('dnne.agent_server.client_port', default_port)
+        else:
+            # No server IP provided - try config first
+            host = self.get('dnne.agent_server.host')
+            port = self.get('dnne.agent_server.client_port', default_port)
+            
+            if not host:
+                # Not in config - try auto if in WSL
+                if self._is_wsl():
+                    logger.info("No server IP in config, trying auto-detection for WSL...")
+                    host = self._get_wsl_host_ip()
+                    logger.info(f"Auto-detected WSL host IP: {host}")
+                else:
+                    logger.error("Error: Server IP not specified and not found in dnne_config.json")
+                    sys.exit(1)
+        
+        return f"ws://{host}:{port}"
         
     async def connect_to_server(self):
         """Connect to dnne_server"""
@@ -314,6 +364,9 @@ class DNNEAgentClient:
                         workflow_name = metadata.get("workflow_name", workflow_id)
                         logger.info(f"Loaded workflow metadata: name={workflow_name}")
                 
+                # Log deployment status
+                logger.info(f"Workflow {workflow_id} ({workflow_name}) deployed successfully")
+                
                 # Notify server with workflow name
                 await self.websocket.send(json.dumps({
                     "type": "workflow_status",
@@ -332,6 +385,7 @@ class DNNEAgentClient:
                 await self.websocket.send(json.dumps({
                     "type": "workflow_status",
                     "workflow_id": workflow_id,
+                    "workflow_name": workflow_name,  # Include workflow_name in failure message
                     "status": "deploy_failed",
                     "details": str(e)
                 }))
@@ -353,6 +407,27 @@ class DNNEAgentClient:
         if workflow_id in self.workflows:
             logger.warning(f"Workflow {workflow_id} already running")
             return
+            
+        # Check conda environment before starting workflow (if specified in config)
+        required_env = self.get('conda.conda_env', '')
+        
+        if required_env:  # Only check if a conda environment is specified
+            conda_env = os.environ.get('CONDA_DEFAULT_ENV', '')
+            
+            if conda_env != required_env:
+                error_msg = f"Cannot start workflow: {required_env} conda environment is not activated (current: {conda_env or 'None'})"
+                logger.error(error_msg)
+                
+                # Send failure status to server
+                await self.websocket.send(json.dumps({
+                    "type": "workflow_status",
+                    "workflow_id": workflow_id,
+                    "status": "start_failed",
+                    "details": error_msg
+                }))
+                return
+            else:
+                logger.info(f"✅ {required_env} conda environment is active")
             
         workspace = self.workspace_base / workflow_id
         runner_path = workspace / "runner.py"
@@ -445,7 +520,7 @@ class DNNEAgentClient:
             # Cleanup
             del self.workflows[workflow_id]
             
-            logger.info(f"Stopped workflow {workflow_id}")
+            logger.info(f"Stopped workflow {workflow_id} ({workflow.workflow_name})")
             
             # Notify server
             await self.websocket.send(json.dumps({
@@ -491,6 +566,9 @@ class DNNEAgentClient:
             # Wait for process to complete and get exit code
             exit_code = await workflow.process.wait()
             status = "completed" if exit_code == 0 else "failed"
+            
+            # Log the workflow completion status
+            logger.info(f"Workflow {workflow_id} ({workflow.workflow_name}) {status} with exit code {exit_code}")
             
             if self.websocket:
                 await self.websocket.send(json.dumps({
@@ -541,13 +619,23 @@ class DNNEAgentClient:
 
 async def main():
     """Main entry point"""
-    # Get config path from environment or use default
-    config_path = os.environ.get('DNNE_CONFIG_PATH')
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='DNNE Agent Client - Executes workflows and forwards telemetry')
+    parser.add_argument(
+        '--server_ip',
+        help='Server IP address (can be IP, IP:port, or "auto" for WSL auto-detection)',
+        default=None
+    )
+    parser.add_argument(
+        '--config',
+        help='Path to dnne_config.json file',
+        default=None
+    )
     
-    # Get server URL from environment or use config
-    server_url = os.environ.get('DNNE_SERVER_URL')
+    args = parser.parse_args()
     
-    client = DNNEAgentClient(config_path=config_path, server_url=server_url)
+    # Create and run client
+    client = DNNEAgentClient(config_path=args.config, server_ip=args.server_ip)
     
     try:
         await client.run()
