@@ -730,6 +730,24 @@ class PromptServer():
                 prompt = json_data["prompt"]
                 export_target = json_data.get("export_target", "local")
                 run_after_export = json_data.get("run_after_export", False)
+                workflow_path = json_data.get("workflow_path")
+                
+                # FAIL FAST: Extract workflow name from path if provided
+                if workflow_path:
+                    # Path format is like "workflows/MNIST_Test.json"
+                    # Extract just the filename without extension
+                    import os
+                    workflow_name = os.path.splitext(os.path.basename(workflow_path))[0]
+                    if workflow_name:
+                        self.current_workflow_name = workflow_name
+                        logging.info(f"Updated workflow name from path: {workflow_name}")
+                    else:
+                        error_msg = f"Invalid workflow path: {workflow_path}"
+                        logging.error(error_msg)
+                        return web.json_response({
+                            "error": error_msg,
+                            "node_errors": {}
+                        }, status=400)
                 
                 logging.info(f"Export target: {export_target}, Run after export: {run_after_export}")
                 
@@ -744,15 +762,17 @@ class PromptServer():
                     exporter = GraphExporter()
                     register_all_exporters(exporter)
 
-                    # Use the tracked workflow name if available, otherwise use timestamp
-                    if self.current_workflow_name:
-                        workflow_name = self.current_workflow_name
-                        logging.info(f"Using tracked workflow name: {workflow_name}")
-                    else:
-                        workflow_name = f"workflow_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                        logging.info(f"No tracked workflow, using timestamp: {workflow_name}")
-
-                    logging.info(f"Final workflow name: {workflow_name}")
+                    # FAIL FAST: Workflow name must be tracked
+                    if not self.current_workflow_name:
+                        error_msg = "Cannot export: No workflow is currently loaded. Please load a workflow first."
+                        logging.error(error_msg)
+                        return web.json_response({
+                            "error": error_msg,
+                            "node_errors": {}
+                        }, status=400)
+                    
+                    workflow_name = self.current_workflow_name
+                    logging.info(f"Exporting workflow: {workflow_name}")
                     
                     # Sanitize workflow name for filesystem
                     import re
