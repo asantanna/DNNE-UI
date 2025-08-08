@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-08*
+*Last Updated: 2025-08-08 (Session 2)*
 
 This index provides a quick overview of all active task tracking documents for the DNNE project. Each component has its own detailed task file in the corresponding subdirectory.
 
@@ -8,9 +8,10 @@ This index provides a quick overview of all active task tracking documents for t
 
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
-| **MCP Integration** | 🟢 Active | 41/41 tools (100%) | High | 2025-08-06 |
+| **MCP Integration** | 🟢 Active | 43/43 tools (100%) | High | 2025-08-08 |
 | **DNNE Agent** | 🟢 Complete | Phase 6 Complete | High | 2025-08-06 |
-| **Log Window** | 🟢 Working | ~90% - UI Testing Needed | Medium | 2025-08-08 |
+| **Log Window** | 🟢 Working | ~95% - Core Complete | Medium | 2025-08-08 |
+| **Export System** | 🟢 Fixed | Server restart issue resolved | High | 2025-08-08 |
 
 ## Legend
 - 🟢 **Active/Complete** - Actively worked on or completed
@@ -22,9 +23,9 @@ This index provides a quick overview of all active task tracking documents for t
 
 ### MCP Integration (`MCP/TASKS.md`)
 **Summary**: Model Context Protocol server for browser automation of DNNE UI
-- **Highlights**: 41 tools implemented, 100% tested, stateless architecture
-- **Recent**: Added run_after_export functionality
-- **Next Steps**: Implement 7 log management functions
+- **Highlights**: 43 tools implemented, 100% tested, stateless architecture
+- **Recent**: Added util_restart_dnne, util_is_DNNE_running, fixed log encoding
+- **Next Steps**: Implement 5 remaining log management functions
 
 ### DNNE Agent (`dnne_agent/TASKS.md`)
 **Summary**: Remote workflow deployment system for Linux/WSL agents
@@ -34,10 +35,17 @@ This index provides a quick overview of all active task tracking documents for t
 
 ### Log Window (`log_window/TASKS.md`)
 **Summary**: UI for viewing workflow execution logs
-- **Status**: Working - core functionality complete, UI components need testing
-- **Recent Fixes**: Log directory creation fixed, workflow tracking order corrected
+- **Status**: Working - core functionality complete, historical logs working
+- **Recent Fixes**: UTF-8 encoding for emojis, historical log retrieval, UI requests logs for completed workflows
 - **Testing Needed**: Auto-scroll, agent/log type dropdowns, visual indicators
 - **Priority**: Medium - core features working, polish needed
+
+### Export System
+**Summary**: Critical fix for workflow export after server restart
+- **Issue**: Export failed with "workflow_20250808_015258.json" errors after server restart
+- **Root Cause**: Server lost track of loaded workflow name after restart
+- **Solution**: Frontend now sends workflow path with every export request
+- **Status**: ✅ Fixed - Fail-fast principle applied, no fallbacks
 
 ## Quick Links
 

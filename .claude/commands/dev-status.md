@@ -3,7 +3,27 @@
 
 **📋 TASK TRACKING**: See `docs-dnne/for_claude/tasks/INDEX.md` for current task status and priorities across all components.
 
-## Latest Achievements (2025-08-06)
+## Latest Achievements (2025-08-08 Session 2)
+
+### Export System Fix ✅
+- Fixed critical issue where export failed after server restart
+- Frontend now sends workflow path with every export request
+- Server extracts workflow name from path (no fallbacks)
+- Fail-fast principle: clear errors instead of timestamp workarounds
+
+### Log Window Improvements ✅
+- Fixed UTF-8 encoding for emoji support in logs
+- Historical log retrieval for completed workflows
+- UI requests logs even when no active workflows
+- Proper log file naming (dnne_agent_server.log)
+
+### MCP Utility Functions ✅
+- Added util_restart_dnne() with optional agent restart
+- Added util_is_DNNE_running() health check
+- Renamed get_agent_status to get_viewer_client_log
+- Support for command-line arguments in restart (--verbose DEBUG)
+
+## Previous Achievements (2025-08-06)
 
 ### Content-Based IDs & Remote Logging ✅
 - Workflow IDs now use SHA256 content hash (wf_{hash[:12]}) for deterministic identification
@@ -19,11 +39,11 @@
 - MCP functions control and test the feature
 - End-to-end tested with MNIST achieving 99.58% accuracy
 
-## Current Work: UI Polish & Missing Features
-- Log viewer modal needs frontend implementation
-- Status bar should always show "Active Workflows: 0" when none
-- Telemetry pipeline not yet processed
-- Investigate programmatic agent server restart issue
+## Current Work: Pending Tasks
+- Implement 5 remaining MCP log management functions
+- Add util_set_DNNE_log_level() and util_set_agent_server_log_level()
+- Test get_viewer_client_log() retrieves content from UI
+- Fix export to fail with error when no client connected (currently silent)
 
 ## Claude Code Capabilities
 - **Server Control**: Can restart DNNE server via `/remote_command` endpoint
@@ -87,7 +107,14 @@ See `dnne_config.json`
 - **Runner**: `docs-dnne/development/runner.md` - Command line switches for runner.py
 - **CLAUDE.md**: Project overview and development guidance
 
-### Recent Commits
+### Recent Commits (2025-08-08)
+- `7aaf47b2` - Fix export after server restart by sending workflow path from frontend
+- `9d9f2a8` (Frontend) - Send workflow path with export requests
+- `1fe20ca0` - Fix health endpoint import error
+- `a359c19f` - Fix MCP tool name updates and permission script
+- `5fc5ac70` - Major MCP and server improvements for logging and health monitoring
+
+### Previous Commits
 - `a7163565` - Fix logging issues and MCP export_workflow reporting
 - `74952554` - Implement content-based workflow IDs and remote logging infrastructure
 - `e90d3989` - Add run_after_export functionality for remote clients

@@ -1,11 +1,11 @@
 # DNNE UI MCP - Task Tracking
 
-*Last Updated: 2025-08-06*
+*Last Updated: 2025-08-08*
 
 ## Quick Stats
-- **Total Tools**: 41 implemented (including set_run_after_export)
-- **Tested**: 41/41 (100%)
-- **Working**: 34/41 (82.9%)
+- **Total Tools**: 43 implemented (including utility functions)
+- **Tested**: 43/43 (100%)
+- **Working**: 36/43 (83.7%)
 - **Issues Found**: 7 tools not implemented (log management)
 
 ## ✅ Completed
@@ -72,10 +72,19 @@ See test_results_comprehensive.json for complete list (outdated - needs rerun af
 - [x] ENVIRONMENT_SETUP.md - New conda environment guide
 - [x] requirements.txt - Dependencies for MCP_PY310
 
+### Recent Additions (2025-08-08)
+- [x] **Added util_restart_dnne()** - Restart DNNE server with optional agent server restart
+- [x] **Added util_is_DNNE_running()** - Check if DNNE server is running via health endpoint
+- [x] **Added get_viewer_client_log()** - Get log content from UI viewer (renamed from get_agent_status)
+- [x] **Fixed log file encoding** - Added UTF-8 encoding for emoji support
+- [x] **Added extra_args to util_restart_dnne** - Support passing command-line arguments like --verbose DEBUG
+
 ## 🚧 In Progress
 
 ### Current Focus
-- [ ] Implement the 7 log management functions
+- [ ] Implement the 5 remaining log management functions
+- [ ] Add util_set_DNNE_log_level(log_level)
+- [ ] Add util_set_agent_server_log_level(log_level)
 
 ## 📋 TODO
 
@@ -113,7 +122,7 @@ See test_results_comprehensive.json for complete list (outdated - needs rerun af
 6. ~~**toggle_link_visibility**~~ - ✅ Replaced with get/set functions
 
 ### MCP Enhancements
-- [ ] Add new MCP function util_restart_DNNE with restart_agent_server option
+- [x] ~~Add new MCP function util_restart_DNNE with restart_agent_server option~~ - ✅ Completed
 - [ ] Add optional 'switches' parameter to MCP export function to pass runner.py arguments
 - [ ] Refactor browser_controller JavaScript into reusable snippets in js_snippets
 

@@ -3,9 +3,9 @@
 *Last Updated: 2025-08-08*
 
 ## Quick Stats
-- **Status**: Working - Needs UI Testing
-- **Priority**: High
-- **Completion**: ~90%
+- **Status**: Working - Core Features Complete
+- **Priority**: Medium
+- **Completion**: ~95%
 - **Dependencies**: DNNE Agent integration ✅
 
 ## Current Status
@@ -48,6 +48,9 @@ The log window functionality is fully implemented and working. The critical work
 ### ✅ FIXED: Log Directory Creation (2025-08-08)
 - [x] **Fixed workflow tracking order issue** - Workflow must be added to client_workflows BEFORE calling _start_workflow_logging
 - [x] **Added DNNE.log file** - Server now logs to both console and file for debugging
+- [x] **Fixed UTF-8 encoding** - Added encoding='utf-8' to all log file operations for emoji support
+- [x] **Fixed historical log retrieval** - Server finds latest workflow when no workflow_id provided
+- [x] **Updated UI to request logs** - DNNELogViewer.vue sends requests even when no active workflows
 - [x] **Fixed agent server log filename** - Changed from dnne_server.log to dnne_agent_server.log
 - [x] **Improved logging levels** - Changed verbose messages from INFO to DEBUG level
 - [x] **Replaced print statements** - Now using proper logging functions in execution.py and nodes.py
