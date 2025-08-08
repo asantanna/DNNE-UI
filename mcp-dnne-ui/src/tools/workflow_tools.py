@@ -400,15 +400,11 @@ class WorkflowTools:
             if not self.browser:
                 return format_mcp_response(False, error="Browser not initialized")
             
-            from utils.js_snippets import run_js_snippet_in_browser
+            from utils.js_snippets import js_is_checkbox_disabled, js_is_checkbox_checked
             from utils.js_defs import RUN_AFTER_EXPORT
             
             # FAIL FAST: Check if checkbox is disabled (Local selected)
-            is_disabled = await run_js_snippet_in_browser(
-                self.browser,
-                'is_checkbox_disabled',
-                {"selector": RUN_AFTER_EXPORT}
-            )
+            is_disabled = await js_is_checkbox_disabled(self.browser, RUN_AFTER_EXPORT)
             
             if is_disabled:
                 # Cannot export with run_after when Local is selected
@@ -418,11 +414,7 @@ class WorkflowTools:
                 )
             
             # Get original checkbox state
-            orig_checkbox_state = await run_js_snippet_in_browser(
-                self.browser, 
-                'is_checkbox_checked',
-                {"selector": RUN_AFTER_EXPORT}
-            )
+            orig_checkbox_state = await js_is_checkbox_checked(self.browser, RUN_AFTER_EXPORT)
             
             # FAIL FAST: If we can't read the checkbox state, something is wrong
             if orig_checkbox_state is None:

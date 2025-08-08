@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.helpers import format_mcp_response
 from utils.js_defs import *
 from utils.timing_constants import ANIMATION_DELAY, EXPORT_TIMEOUT
-from utils.js_snippets import run_js_snippet_in_browser
+from utils.js_snippets import js_is_checkbox_disabled, js_is_checkbox_checked
 
 logger = logging.getLogger(__name__)
 
@@ -159,11 +159,7 @@ class ExportTools:
                 )
             
             # Check if checkbox is disabled
-            is_disabled = await run_js_snippet_in_browser(
-                self.browser, 
-                "is_checkbox_disabled", 
-                {"selector": checkbox_selector}
-            )
+            is_disabled = await js_is_checkbox_disabled(self.browser, checkbox_selector)
             
             if is_disabled:
                 return format_mcp_response(
@@ -172,11 +168,7 @@ class ExportTools:
                 )
             
             # Get current state
-            is_checked = await run_js_snippet_in_browser(
-                self.browser,
-                "is_checkbox_checked",
-                {"selector": checkbox_selector}
-            )
+            is_checked = await js_is_checkbox_checked(self.browser, checkbox_selector)
             
             # Toggle if needed
             if is_checked != enabled:

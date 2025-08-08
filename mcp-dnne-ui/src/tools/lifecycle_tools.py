@@ -29,8 +29,12 @@ class LifecycleTools:
         """
         self.server = server
     
-    async def initialize_browser(self) -> Dict[str, Any]:
-        """Initialize the browser and navigate to DNNE UI"""
+    async def initialize_browser(self, headless: bool = None) -> Dict[str, Any]:
+        """Initialize the browser and navigate to DNNE UI
+        
+        Args:
+            headless: Whether to run browser in headless mode. If None, uses server default.
+        """
         try:
             # Check if browser exists AND is healthy
             if self.server.browser_controller:
@@ -52,13 +56,18 @@ class LifecycleTools:
                 await self.server.browser_controller.cleanup()
                 self.server.browser_controller = None
             
+            # Use provided headless value or fall back to server default
+            use_headless = headless if headless is not None else self.server.headless
+            
             # Create new browser instance
             self.server.browser_controller = BrowserController(
                 dnne_url=self.server.dnne_url,
-                headless=self.server.headless
+                headless=use_headless
             )
             await self.server.browser_controller.initialize()
-            return format_mcp_response(True, message="Browser initialized successfully")
+            
+            mode = "headless" if use_headless else "visible"
+            return format_mcp_response(True, message=f"Browser initialized successfully in {mode} mode")
             
         except Exception as e:
             logger.error(f"Failed to initialize browser: {e}")
