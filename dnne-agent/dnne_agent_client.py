@@ -64,12 +64,16 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
         except Exception as e:
             logger.debug(f"Failed to process telemetry from {addr}: {e}")
     
-    def _parse_telemetry(self, data: str) -> Optional[Dict[str, Any]]:
-        """Parse telemetry packet (JSON only)"""
+    def _parse_telemetry(self, data: str) -> Optional[Any]:
+        """Parse telemetry packet (JSON or pipe-delimited)"""
+        # Try JSON first
         try:
             return json.loads(data)
         except json.JSONDecodeError:
-            logger.debug(f"Invalid JSON telemetry: {data[:50]}...")
+            # Try pipe-delimited format
+            if '|' in data:
+                return data  # Return raw string for pipe-delimited
+            logger.debug(f"Invalid telemetry format: {data[:50]}...")
             return None
     
     def error_received(self, exc):
@@ -78,6 +82,107 @@ class TelemetryProtocol(asyncio.DatagramProtocol):
     def connection_lost(self, exc):
         if exc:
             logger.error(f"Telemetry UDP connection lost: {exc}")
+
+
+class ViolationAggregator:
+    """
+    Aggregates violations at agent level for efficient transmission.
+    Groups violations by node:type or node:type:extra_args.
+    """
+    
+    def __init__(self, summary_interval_secs: float = 10.0):
+        """
+        Initialize violation aggregator.
+        
+        Args:
+            summary_interval_secs: How often to generate summaries
+        """
+        self.summary_interval_secs = summary_interval_secs
+        self.violations_by_key = {}  # grouping key -> aggregated data
+        self.last_summary_sent_time = time.time()
+    
+    def add_violation(self, packet: Dict[str, Any]) -> bool:
+        """
+        Add a violation to the aggregator.
+        
+        Args:
+            packet: Violation packet from node
+            
+        Returns:
+            True if this should be forwarded as a detail message (first 5)
+        """
+        # Build grouping key with optional extra_args
+        extra = packet.get("extra_args", "")
+        if extra:
+            key = f"{packet['node_id']}:{packet['violation']}:{extra}"
+        else:
+            key = f"{packet['node_id']}:{packet['violation']}"
+        
+        if key not in self.violations_by_key:
+            self.violations_by_key[key] = {
+                "node_id": packet["node_id"],
+                "violation_type": packet["violation"],
+                "extra_args": packet.get("extra_args"),
+                "violation_count": 0,
+                "first_actual": packet["actual"],
+                "min_actual": packet["actual"],
+                "max_actual": packet["actual"],
+                "last_actual": packet["actual"],
+                "first_expected": packet["expected"],
+                "last_expected": packet["expected"],
+                "first_timestamp": packet["timestamp"]
+            }
+        
+        v = self.violations_by_key[key]
+        v["violation_count"] += 1
+        v["min_actual"] = min(v["min_actual"], packet["actual"])
+        v["max_actual"] = max(v["max_actual"], packet["actual"])
+        v["last_actual"] = packet["actual"]
+        v["last_expected"] = packet["expected"]
+        v["last_timestamp"] = packet["timestamp"]
+        
+        # Forward first 5 as details
+        return v["violation_count"] <= 5
+    
+    def should_send_summary(self) -> bool:
+        """Check if it's time to send a summary."""
+        return (time.time() - self.last_summary_sent_time) >= self.summary_interval_secs
+    
+    def get_summary(self) -> Optional[Dict[str, Any]]:
+        """
+        Get violation summary and reset for next interval.
+        
+        Returns:
+            Summary packet or None if no violations
+        """
+        if not self.violations_by_key:
+            return None
+        
+        # Build summary
+        summary = {
+            "type": "violation_summary",
+            "interval_seconds": self.summary_interval_secs,
+            "violations": []
+        }
+        
+        for key, data in self.violations_by_key.items():
+            violation_summary = {
+                "node_id": data["node_id"],
+                "violation_type": data["violation_type"],
+                "count": data["violation_count"],
+                "expected": data["last_expected"],
+                "actual_range": [data["min_actual"], data["max_actual"]],
+                "last_actual": data["last_actual"]
+            }
+            if data.get("extra_args"):
+                violation_summary["extra_args"] = data["extra_args"]
+            summary["violations"].append(violation_summary)
+        
+        # Reset for next interval
+        self.violations_by_key.clear()
+        self.last_summary_sent_time = time.time()
+        
+        return summary
 
 
 class DNNEAgentClient:
@@ -113,6 +218,10 @@ class DNNEAgentClient:
         self.telemetry_transport = None
         self.telemetry_protocol = None
         self.telemetry_port = self.get('agent_client.telemetry_port', 9999)
+        
+        # Violation aggregation
+        summary_interval = self.get('agent_client.violation_summary_interval', 10.0)
+        self.violation_aggregator = ViolationAggregator(summary_interval)
         
         # Control server for nodes
         self.node_connections = set()
@@ -301,22 +410,74 @@ class DNNEAgentClient:
             logger.error(f"Failed to start telemetry listener: {e}")
     
     async def telemetry_forwarder(self):
-        """Forward telemetry to server"""
+        """Forward telemetry to server with violation aggregation"""
         batch_interval = self.get('agent_client.telemetry_batch_interval', 0.1)
         
         while True:
             await asyncio.sleep(batch_interval)
             
-            if self.telemetry_buffer and self.websocket:
-                # Send batch to server
-                batch = list(self.telemetry_buffer)
+            # Get current workflow if any
+            current_workflow = None
+            for wid, wp in self.workflows.items():
+                if wp.process and wp.process.returncode is None:
+                    current_workflow = wp
+                    break
+            
+            if not current_workflow:
+                # Clear buffer if no active workflow
                 self.telemetry_buffer.clear()
+                continue
+            
+            # Process telemetry buffer
+            batch_to_send = []
+            
+            while self.telemetry_buffer:
+                packet = self.telemetry_buffer.popleft()
                 
-                # FAIL-FAST: If websocket is broken, we should know
-                await self.websocket.send(json.dumps({
-                    "type": "telemetry",
-                    "metrics": batch
-                }))
+                # Handle different packet types
+                if isinstance(packet, dict):
+                    packet_type = packet.get("type")
+                    
+                    if packet_type == "violation":
+                        # Process violation through aggregator
+                        should_forward = self.violation_aggregator.add_violation(packet)
+                        if should_forward:
+                            # Convert to detail format for first 5
+                            detail = {
+                                "type": "violation_detail",
+                                "node_id": packet["node_id"],
+                                "violation_type": packet["violation"],
+                                "expected": packet["expected"],
+                                "actual": packet["actual"],
+                                "timestamp": packet["timestamp"]
+                            }
+                            if packet.get("extra_args"):
+                                detail["extra_args"] = packet["extra_args"]
+                            batch_to_send.append(detail)
+                    else:
+                        # Forward other JSON packets as-is
+                        batch_to_send.append(packet)
+                        
+                elif isinstance(packet, str):
+                    # Forward pipe-delimited packets as-is
+                    batch_to_send.append(packet)
+            
+            # Check if we should send violation summary
+            if self.violation_aggregator.should_send_summary():
+                summary = self.violation_aggregator.get_summary()
+                if summary:
+                    batch_to_send.append(summary)
+            
+            # Send batch if we have data
+            if batch_to_send and self.websocket:
+                try:
+                    await self.websocket.send(json.dumps({
+                        "type": "telemetry_update",
+                        "workflow_id": current_workflow.workflow_id,
+                        "batch": batch_to_send
+                    }))
+                except Exception as e:
+                    logger.error(f"Failed to send telemetry: {e}")
     
     async def handle_server_message(self, data: Dict[str, Any]):
         """Handle messages from dnne_server"""

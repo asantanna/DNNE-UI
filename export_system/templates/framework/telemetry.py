@@ -11,6 +11,43 @@ from typing import Optional, Dict, Any
 import os
 
 
+class SimpleRateLimiter:
+    """
+    Simple rate limiter for fire-and-forget telemetry.
+    Limits messages per second to prevent overwhelming the network.
+    """
+    
+    def __init__(self, max_msgs_per_sec: int = 10):
+        """
+        Initialize rate limiter.
+        
+        Args:
+            max_msgs_per_sec: Maximum messages allowed per second
+        """
+        self.max_msgs_per_sec = max_msgs_per_sec
+        self.last_rate_window_start = time.time()
+        self.msgs_sent_this_sec = 0
+    
+    def should_send(self) -> bool:
+        """
+        Check if a message can be sent within rate limits.
+        
+        Returns:
+            True if message can be sent, False if rate limit exceeded
+        """
+        now = time.time()
+        # Reset counter if we've moved to a new second
+        if now - self.last_rate_window_start >= 1.0:
+            self.msgs_sent_this_sec = 0
+            self.last_rate_window_start = now
+        
+        # Check if we can send another message
+        if self.msgs_sent_this_sec < self.max_msgs_per_sec:
+            self.msgs_sent_this_sec += 1
+            return True
+        return False
+
+
 class TelemetryClient:
     """
     Fire-and-forget UDP telemetry client for exported nodes.
@@ -19,7 +56,8 @@ class TelemetryClient:
     Designed for minimal overhead and zero blocking on the sending node.
     """
     
-    def __init__(self, enabled: bool = False, host: str = "localhost", port: int = 9999):
+    def __init__(self, enabled: bool = False, host: str = "localhost", port: int = 9999,
+                 violation_rate_limit: int = 10):
         """
         Initialize telemetry client.
         
@@ -27,6 +65,7 @@ class TelemetryClient:
             enabled: Whether telemetry is enabled (can be disabled via env var)
             host: UDP destination host (default: localhost for local dnne_client)
             port: UDP destination port (default: 9999)
+            violation_rate_limit: Max violation messages per second (default: 10)
         """
         # Check environment variable override
         if os.environ.get('DNNE_TELEMETRY_DISABLED', '').lower() in ('1', 'true'):
@@ -36,6 +75,9 @@ class TelemetryClient:
         self.host = host
         self.port = port
         self.socket = None
+        
+        # Create rate limiter for violations
+        self.violation_rate_limiter = SimpleRateLimiter(violation_rate_limit)
         
         if enabled:
             try:
@@ -107,19 +149,23 @@ class TelemetryClient:
         self._send_metric(metric_name, node_id, value)
     
     def report_violation(self, node_id: str, violation_type: str, 
-                        expected: float, actual: float, guaranteed: bool = False):
+                        expected: float, actual: float, extra_args: str = None):
         """
-        Report performance target violation.
+        Report performance target violation with rate limiting.
         
         Args:
             node_id: Unique identifier for the node
             violation_type: Type of violation (e.g., "frequency_below_minimum")
             expected: Expected value
             actual: Actual value
-            guaranteed: Whether this was a guaranteed target
+            extra_args: Optional context for finer grouping (e.g., "input_queue", "gpu_0")
         """
         if not self.enabled:
             return
+        
+        # Apply rate limiting for violations
+        if not self.violation_rate_limiter.should_send():
+            return  # Drop message if rate limit exceeded
             
         packet_data = {
             "type": "violation",
@@ -127,9 +173,10 @@ class TelemetryClient:
             "violation": violation_type,
             "expected": expected,
             "actual": actual,
-            "guaranteed": guaranteed,
             "timestamp": time.time()
         }
+        if extra_args:
+            packet_data["extra_args"] = extra_args
         self._send_json(packet_data)
     
     def _send_metric(self, metric_type: str, node_id: str, value: float):
@@ -231,6 +278,6 @@ def report_custom(node_id: str, metric_name: str, value: float):
     get_telemetry().report_custom(node_id, metric_name, value)
 
 def report_violation(node_id: str, violation_type: str, 
-                    expected: float, actual: float, guaranteed: bool = False):
-    """Report performance violation."""
-    get_telemetry().report_violation(node_id, violation_type, expected, actual, guaranteed)
+                    expected: float, actual: float, extra_args: str = None):
+    """Report performance violation with optional context."""
+    get_telemetry().report_violation(node_id, violation_type, expected, actual, extra_args)

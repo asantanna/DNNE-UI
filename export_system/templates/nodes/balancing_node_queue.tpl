@@ -176,14 +176,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             for v in violations:
                 telemetry.report_violation(
                     self.node_id, v["type"], 
-                    v["expected"], v["actual"], v["guaranteed"]
+                    v["expected"], v["actual"]
                 )
         
         # Always record violations in metrics logger for persistence
         for v in violations:
             logger.record_violation(
                 self.node_id, f"BalancingNode_{self.node_id}",
-                v["type"], v["expected"], v["actual"], v["guaranteed"]
+                v["type"], v["expected"], v["actual"], False  # guaranteed param still needed for metrics logger
             )
         
         # NOTE: Removed max_hz throttling - measurement only
@@ -193,9 +193,19 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.current_latency = (end_time - start_time) * 1000  # ms
         self.latency_window.append(self.current_latency)
         
-        # Report metrics periodically
+        # Report metrics periodically (both to logger and telemetry)
         if self.execution_count % 100 == 0:
             self._report_metrics()
+            
+            # Send telemetry for current metrics if enabled
+            if Global.get_node_config(self.node_id, 'telemetry_enabled', False):
+                telemetry.report_custom(self.node_id, "frequency", self.average_frequency)
+                telemetry.report_custom(self.node_id, "latency_ms", self.average_latency)
+                # Report queue depths
+                for name, queue in self.input_queues.items():
+                    telemetry.report_queue_depth(self.node_id, f"input_{name}", queue.qsize())
+                for name, subscribers in self.output_subscribers.items():
+                    telemetry.report_queue_depth(self.node_id, f"output_{name}_subscribers", len(subscribers))
         
         # Forward input unchanged
         return {"output": input}
@@ -209,16 +219,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             violations.append({
                 "type": "frequency_below_minimum",
                 "expected": self.min_hz,
-                "actual": self.average_frequency,
-                "guaranteed": self.guaranteed
+                "actual": self.average_frequency
             })
         
         if self.max_hz >= 0 and self.average_frequency > self.max_hz:
             violations.append({
                 "type": "frequency_above_maximum",
                 "expected": self.max_hz,
-                "actual": self.average_frequency,
-                "guaranteed": self.guaranteed
+                "actual": self.average_frequency
             })
         
         # Latency violations
@@ -226,8 +234,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             violations.append({
                 "type": "latency_exceeded",
                 "expected": self.max_latency_ms,
-                "actual": self.average_latency,
-                "guaranteed": self.guaranteed
+                "actual": self.average_latency
             })
         
         return violations

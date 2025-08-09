@@ -231,12 +231,26 @@ class DNNEAgentServer:
             logger.info(f"Client {client_id} registered: {self.client_info[client_id]}")
             
         elif msg_type == "telemetry":
-            # Telemetry data
+            # Legacy telemetry data format
             metrics = data.get("metrics", [])
             for metric in metrics:
                 node_id = metric.get("node_id")
                 if node_id:
                     self.telemetry_buffer[node_id].append(metric)
+                    
+        elif msg_type == "telemetry_update":
+            # New telemetry format with workflow ID
+            workflow_id = data.get("workflow_id")
+            batch = data.get("batch", [])
+            
+            if workflow_id and batch:
+                # Forward telemetry to UIs
+                logger.debug(f"Forwarding telemetry batch for workflow {workflow_id}: {len(batch)} items")
+                await self.broadcast_to_ui({
+                    "type": "telemetry_update",
+                    "workflow_id": workflow_id,
+                    "batch": batch
+                })
                     
         elif msg_type == "workflow_status":
             # Workflow status update

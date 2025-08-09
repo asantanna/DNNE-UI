@@ -1390,6 +1390,12 @@ class PromptServer():
             # _write_workflow_log now handles both file writing and WebSocket forwarding
             self._write_workflow_log(workflow_id, log_data)
             
+        elif msg_type == "telemetry_update":
+            # Telemetry data from workflow nodes
+            workflow_id = message.get("workflow_id")
+            batch = message.get("batch", [])
+            self._write_telemetry_batch(workflow_id, batch)
+            
         else:
             # Unknown message type - log as error
             logging.error(f" Unknown agent message type: {msg_type}")
@@ -1524,7 +1530,7 @@ class PromptServer():
             logging.error(f" Log data: {log_data}")
     
     def _stop_workflow_logging(self, workflow_id):
-        """Stop logging for a workflow and close the file."""
+        """Stop logging for a workflow and close all files."""
         from datetime import datetime
         
         workflow = self.active_workflows.get(workflow_id)
@@ -1533,10 +1539,19 @@ class PromptServer():
             return
         
         try:
-            # Write footer
+            # Write footer to log file
             file_handle = workflow['file_handle']
             file_handle.write(f"\n# Stopped: {datetime.now().isoformat()}\n")
             file_handle.close()
+            
+            # Close all telemetry files if any
+            if "telemetry_files" in workflow:
+                for file_key, file_handle in workflow["telemetry_files"].items():
+                    try:
+                        file_handle.close()
+                        logging.debug(f"📊 Closed telemetry file: {file_key}")
+                    except Exception as e:
+                        logging.error(f"📊 Failed to close telemetry file {file_key}: {e}")
             
             # Remove from active workflows
             del self.active_workflows[workflow_id]
@@ -1544,6 +1559,131 @@ class PromptServer():
             logging.info(f" Stopped logging for workflow {workflow_id}")
         except Exception as e:
             logging.error(f" Failed to close log file: {e}")
+    
+    def _write_telemetry_batch(self, workflow_id, batch):
+        """Write telemetry batch to files with minimal processing."""
+        from datetime import datetime
+        from pathlib import Path
+        import json as json_module
+        
+        workflow = self.active_workflows.get(workflow_id)
+        if not workflow:
+            logging.debug(f"No active workflow found for {workflow_id} in _write_telemetry_batch")
+            return
+        
+        # Create telemetry directory with timestamp
+        log_dir = workflow["log_dir"]
+        
+        # Get or create telemetry directory for this run
+        if "telemetry_dir" not in workflow:
+            # Create timestamped telemetry directory
+            timestamp = workflow.get("start_time", datetime.now()).strftime("%Y-%m-%d_%H-%M-%S")
+            telemetry_base = log_dir.parent / "telemetry"
+            telemetry_dir = telemetry_base / f"telem_{timestamp}"
+            telemetry_dir.mkdir(parents=True, exist_ok=True)
+            workflow["telemetry_dir"] = telemetry_dir
+            workflow["telemetry_files"] = {}  # Track open file handles
+            logging.info(f"📊 Created telemetry directory: {telemetry_dir}")
+        
+        telemetry_dir = workflow["telemetry_dir"]
+        telemetry_files = workflow["telemetry_files"]
+        
+        try:
+            for packet in batch:
+                if isinstance(packet, str):
+                    # Pipe-delimited format for metrics
+                    parts = packet.split('|')
+                    if len(parts) >= 4:
+                        metric_type, node_id, value, timestamp = parts[:4]
+                        
+                        # Get or create file handle for this node
+                        if node_id not in telemetry_files:
+                            file_path = telemetry_dir / f"node_{node_id}.dat"
+                            telemetry_files[node_id] = open(file_path, "a")
+                        
+                        # Write metric: timestamp|type|value
+                        telemetry_files[node_id].write(f"{timestamp}|{metric_type}|{value}\n")
+                        telemetry_files[node_id].flush()
+                        
+                elif isinstance(packet, dict):
+                    packet_type = packet.get("type")
+                    
+                    if packet_type == "violation_detail":
+                        # Detailed violation
+                        node_id = packet.get("node_id")
+                        if not node_id:
+                            continue
+                        
+                        # Get or create violations file for this node
+                        violations_key = f"{node_id}_violations"
+                        if violations_key not in telemetry_files:
+                            file_path = telemetry_dir / f"node_{node_id}_violations.log"
+                            telemetry_files[violations_key] = open(file_path, "a")
+                        
+                        # Write violation line
+                        ts = datetime.fromtimestamp(packet.get("timestamp", 0))
+                        violation_type = packet.get("violation_type", "unknown")
+                        expected = packet.get("expected", 0)
+                        actual = packet.get("actual", 0)
+                        extra = packet.get("extra_args", "")
+                        
+                        if extra:
+                            line = f"{ts.isoformat()} {violation_type}[{extra}] exp={expected} act={actual}\n"
+                        else:
+                            line = f"{ts.isoformat()} {violation_type} exp={expected} act={actual}\n"
+                        
+                        telemetry_files[violations_key].write(line)
+                        telemetry_files[violations_key].flush()
+                        
+                    elif packet_type == "violation_summary":
+                        # Summary of violations
+                        for violation in packet.get("violations", []):
+                            node_id = violation.get("node_id")
+                            if not node_id:
+                                continue
+                            
+                            violations_key = f"{node_id}_violations"
+                            if violations_key not in telemetry_files:
+                                file_path = telemetry_dir / f"node_{node_id}_violations.log"
+                                telemetry_files[violations_key] = open(file_path, "a")
+                            
+                            # Write summary line
+                            ts = datetime.now()
+                            violation_type = violation.get("violation_type", "unknown")
+                            count = violation.get("count", 0)
+                            expected = violation.get("expected", 0)
+                            actual_range = violation.get("actual_range", [0, 0])
+                            last_actual = violation.get("last_actual", 0)
+                            extra = violation.get("extra_args", "")
+                            
+                            if extra:
+                                line = f"{ts.isoformat()} SUMMARY {violation_type}[{extra}] count={count} exp={expected} range={actual_range} last={last_actual}\n"
+                            else:
+                                line = f"{ts.isoformat()} SUMMARY {violation_type} count={count} exp={expected} range={actual_range} last={last_actual}\n"
+                            
+                            telemetry_files[violations_key].write(line)
+                            telemetry_files[violations_key].flush()
+                            
+                    elif packet_type == "queue":
+                        # Queue depth metrics
+                        node_id = packet.get("node_id")
+                        if node_id:
+                            if node_id not in telemetry_files:
+                                file_path = telemetry_dir / f"node_{node_id}.dat"
+                                telemetry_files[node_id] = open(file_path, "a")
+                            
+                            timestamp = packet.get("timestamp", time.time())
+                            queue_name = packet.get("queue", "unknown")
+                            depth = packet.get("depth", 0)
+                            
+                            # Write as: timestamp|queue_{name}|depth
+                            telemetry_files[node_id].write(f"{timestamp}|queue_{queue_name}|{depth}\n")
+                            telemetry_files[node_id].flush()
+                            
+        except Exception as e:
+            logging.error(f"📊 Failed to write telemetry: {e}")
+            import traceback
+            logging.error(traceback.format_exc())
     
     async def send_workflow_history(self, ws, workflow_id, client_id=None):
         """Send historical logs for a workflow to the client.
