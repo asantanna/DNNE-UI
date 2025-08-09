@@ -451,7 +451,8 @@ class DNNEAgentClient:
             
         try:
             # Start process (conda environment already verified to be active)
-            cmd = [sys.executable, "runner.py"] + args
+            # Use -u flag for unbuffered output to enable real-time log streaming
+            cmd = [sys.executable, "-u", "runner.py"] + args
             
             process = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -548,11 +549,13 @@ class DNNEAgentClient:
                 
                 # Send log to server
                 if self.websocket and line:
+                    from datetime import datetime
                     await self.websocket.send(json.dumps({
                         "type": "log",
                         "workflow_id": workflow_id,
                         "level": "info",
-                        "message": line
+                        "message": line,
+                        "timestamp": datetime.now().isoformat()
                     }))
                 
         except asyncio.CancelledError:
@@ -614,12 +617,13 @@ class DNNEAgentClient:
                 self.telemetry_transport.close()
 
 
-def setup_logging(log_dir: Optional[str] = None):
+def setup_logging(log_dir: Optional[str] = None, verbose: str = 'INFO'):
     """
     Set up logging to both console and file
     
     Args:
         log_dir: Directory for log files (default: ./logs)
+        verbose: Logging level ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
     """
     # Create logs directory
     if log_dir is None:
@@ -636,9 +640,12 @@ def setup_logging(log_dir: Optional[str] = None):
     # Set up formatters
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     
+    # Set logging level based on verbose flag
+    log_level = getattr(logging, verbose)
+    
     # Configure root logger
     logging.basicConfig(
-        level=logging.INFO,
+        level=log_level,
         format=log_format,
         handlers=[
             # Console handler
@@ -651,6 +658,7 @@ def setup_logging(log_dir: Optional[str] = None):
     # Log the startup message
     logger.info(f"=== DNNE Agent Client Started ===")
     logger.info(f"Log file: {log_file}")
+    logger.info(f"Logging level: {verbose}")
     logger.debug(f"Python version: {sys.version}")
     logger.debug(f"Platform: {sys.platform}")
     
@@ -676,11 +684,19 @@ async def main():
         help='Directory for log files (default: ./logs)',
         default=None
     )
+    parser.add_argument(
+        '--verbose',
+        default='INFO',
+        const='DEBUG',
+        nargs='?',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        help='Set the logging level (default: INFO, --verbose alone: DEBUG)'
+    )
     
     args = parser.parse_args()
     
     # Set up logging
-    log_file = setup_logging(args.log_dir)
+    log_file = setup_logging(args.log_dir, args.verbose)
     
     # Create and run client
     client = DNNEAgentClient(config_path=args.config, server_ip=args.server_ip)

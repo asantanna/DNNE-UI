@@ -2,6 +2,7 @@ import argparse
 import enum
 import os
 import comfy.options
+from dnne_cli_args import add_dnne_arguments
 
 
 class EnumAction(argparse.Action):
@@ -158,11 +159,6 @@ parser.add_argument("--multi-user", action="store_true", help="Enables per-user 
 parser.add_argument("--verbose", default='INFO', const='DEBUG', nargs="?", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Set the logging level')
 parser.add_argument("--log-stdout", action="store_true", help="Send normal process output to stdout instead of stderr (default).")
 
-# DNNE Agent Server arguments
-parser.add_argument("--agent-server-terminal", action="store_true", help="Start DNNE Agent Server in a new terminal window for debugging.")
-parser.add_argument("--no-agent-server", action="store_true", help="Don't start the DNNE Agent Server automatically.")
-parser.add_argument("--stop-agent-server", action="store_true", help="Stop any running DNNE Agent Server before starting.")
-parser.add_argument("--restart-agent-server", action="store_true", help="Stop and restart the DNNE Agent Server.")
 
 # The default built-in provider hosted under web/
 DEFAULT_VERSION_STRING = "comfyanonymous/ComfyUI@latest"
@@ -208,6 +204,9 @@ parser.add_argument(
     default="https://api.comfy.org",
     help="Set the base URL for the ComfyUI API.  (default: https://api.comfy.org)",
 )
+
+# Add DNNE-specific arguments
+add_dnne_arguments(parser)
 
 if comfy.options.args_parsing:
     args = parser.parse_args()

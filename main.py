@@ -221,18 +221,26 @@ def check_and_start_agent_server():
         return False
     
     try:
+        # Build the command with optional agent server arguments
+        cmd = [sys.executable, agent_script]
+        if hasattr(args, 'agent_server_args') and args.agent_server_args:
+            # Parse and add agent server arguments
+            if isinstance(args.agent_server_args, str):
+                cmd.extend(args.agent_server_args.split())
+            else:
+                cmd.extend(args.agent_server_args)
+            logging.info(f"Starting agent server with extra args: {args.agent_server_args}")
+        
         # Start the agent server (Windows only)
         if args.agent_server_terminal:
             # Start in a new terminal window
-            subprocess.Popen(
-                ['start', 'cmd', '/k', sys.executable, agent_script],
-                shell=True
-            )
+            terminal_cmd = ['start', 'cmd', '/k'] + cmd
+            subprocess.Popen(terminal_cmd, shell=True)
             logging.info("Starting DNNE Agent Server in new terminal window...")
         else:
             # Start as a detached subprocess (original behavior)
             subprocess.Popen(
-                [sys.executable, agent_script],
+                cmd,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
             )
         

@@ -1032,15 +1032,27 @@ class PromptServer():
                                 cmd.append("--restart-agent-server")
                                 logging.info(f"[Remote Command] Will restart agent server too")
                             
-                            # Add any additional command line arguments
-                            extra_args = args.get("extra_args", [])
-                            if extra_args:
-                                if isinstance(extra_args, str):
+                            # Add any additional command line arguments for DNNE
+                            # Support both old 'extra_args' and new 'dnne_extra_args' for compatibility
+                            dnne_extra_args = args.get("dnne_extra_args") or args.get("extra_args", [])
+                            if dnne_extra_args:
+                                if isinstance(dnne_extra_args, str):
                                     # Split the string into individual arguments
-                                    cmd.extend(extra_args.split())
+                                    cmd.extend(dnne_extra_args.split())
                                 else:
-                                    cmd.extend(extra_args)
-                                logging.info(f"[Remote Command] Adding extra args: {extra_args}")
+                                    cmd.extend(dnne_extra_args)
+                                logging.info(f"[Remote Command] Adding extra args for DNNE: {dnne_extra_args}")
+                            
+                            # Add any additional command line arguments for agent server
+                            agent_server_extra_args = args.get("agent_server_extra_args", [])
+                            if agent_server_extra_args:
+                                # Pass agent server args through to main.py which will handle them
+                                cmd.append("--agent-server-args")
+                                if isinstance(agent_server_extra_args, str):
+                                    cmd.append(agent_server_extra_args)
+                                else:
+                                    cmd.append(" ".join(agent_server_extra_args))
+                                logging.info(f"[Remote Command] Adding extra args for agent server: {agent_server_extra_args}")
                             
                             logging.info(f"[Remote Command] Starting new server with: {' '.join(cmd)}")
                             logging.info(f"[Remote Command] Working directory: {server_dir}")
@@ -1591,6 +1603,8 @@ class PromptServer():
         
         workflow = self.active_workflows.get(workflow_id)
         if not workflow:
+            logging.debug(f"No active workflow found for {workflow_id} in _write_workflow_log")
+            logging.debug(f"Active workflows: {list(self.active_workflows.keys())}")
             return  # No active workflow
         
         try:
@@ -1612,12 +1626,15 @@ class PromptServer():
             file_handle.flush()  # Ensure immediate write
             
             # Send via WebSocket WITH sequence for deduplication
+            logging.debug(f"Sending workflow_log via WebSocket for {workflow_id}, seq={sequence}")
             self.send_sync("workflow_log", {
                 "workflow_id": workflow_id,
                 "log": log_data_with_seq
             })
+            logging.debug(f"Successfully sent workflow_log for {workflow_id}")
         except Exception as e:
             logging.error(f" Failed to write log: {e}")
+            logging.error(f" Log data: {log_data}")
     
     def _stop_workflow_logging(self, workflow_id):
         """Stop logging for a workflow and close the file."""

@@ -289,6 +289,8 @@ class DNNEAgentServer:
             # Log message from workflow
             workflow_id = data.get("workflow_id")
             if workflow_id:
+                logger.debug(f"[LOG] Received from client {client_id}: workflow={workflow_id}, message={data.get('message', '')[:100]}")
+                
                 self.workflow_logs[workflow_id].append({
                     "timestamp": time.time(),
                     "level": data.get("level", "info"),
@@ -301,6 +303,7 @@ class DNNEAgentServer:
                     "workflow_id": workflow_id,
                     "log": data
                 }
+                logger.debug(f"[LOG] Broadcasting to {len(self.ui_connections)} UI(s): workflow={workflow_id}")
                 await self.broadcast_to_ui(message)
                 
                 # Also forward to test connections
@@ -619,7 +622,19 @@ async def main():
     parser = argparse.ArgumentParser(description="DNNE Agent Server")
     parser.add_argument("--enable-test-port", action="store_true",
                        help="Enable test control port (DO NOT USE IN PRODUCTION)")
+    parser.add_argument("--verbose", default='INFO', const='DEBUG', nargs="?", 
+                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], 
+                       help='Set the logging level (default: INFO, --verbose alone: DEBUG)')
     args = parser.parse_args()
+    
+    # Set logging level based on verbose flag
+    log_level = getattr(logging, args.verbose)
+    logging.getLogger().setLevel(log_level)
+    logger.setLevel(log_level)
+    if args.verbose == 'DEBUG':
+        logger.info("DEBUG logging enabled")
+    else:
+        logger.info(f"Logging level set to {args.verbose}")
     
     # Create server with test port if requested
     server = DNNEAgentServer(enable_test_port=args.enable_test_port)
