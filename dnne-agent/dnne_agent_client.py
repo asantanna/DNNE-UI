@@ -529,19 +529,25 @@ class DNNEAgentClient:
                 workflow.process.kill()
                 await workflow.process.wait()
             
-            # Cancel log reader
-            if workflow.log_reader_task:
-                workflow.log_reader_task.cancel()
-                try:
-                    await workflow.log_reader_task
-                except asyncio.CancelledError:
-                    pass  # Expected
-            
             # Store workflow name before cleanup
             workflow_name = workflow.workflow_name
             
-            # Note: We don't send status here because read_process_logs() will handle it
-            # when the process exits with SIGTERM (-15)
+            # Wait for log reader to complete and send final status
+            # The log reader will detect the process exit and send the "terminated" status
+            if workflow.log_reader_task:
+                try:
+                    # Give the log reader task time to send the final status
+                    await asyncio.wait_for(workflow.log_reader_task, timeout=2.0)
+                except asyncio.TimeoutError:
+                    # If it takes too long, cancel it
+                    logger.error(f"Log reader task for workflow {workflow_id} timed out after 2 seconds - forcibly cancelling")
+                    workflow.log_reader_task.cancel()
+                    try:
+                        await workflow.log_reader_task
+                    except asyncio.CancelledError:
+                        pass
+                except asyncio.CancelledError:
+                    logger.error(f"Log reader task for workflow {workflow_id} was already cancelled - final status may not have been sent")
             
             logger.info(f"Stop signal sent to workflow {workflow_id} ({workflow_name})")
         except Exception as e:
