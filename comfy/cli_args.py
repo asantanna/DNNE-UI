@@ -2,7 +2,7 @@ import argparse
 import enum
 import os
 import comfy.options
-from dnne_cli_args import add_dnne_arguments
+from dnne_hooks.cmdline_args import add_dnne_arguments
 
 
 class EnumAction(argparse.Action):

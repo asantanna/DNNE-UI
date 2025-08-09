@@ -307,8 +307,21 @@ def soft_empty_cache():
     print("Cache cleared (DNNE stub)")
 
 def interrupt_processing(value=True):
-    """Stub for interrupt processing"""
+    """Handle interrupt processing - calls DNNE stop handler"""
     print(f"Processing interrupt: {value}")
+    
+    # Call DNNE stop handler to stop agent workflows
+    try:
+        from dnne_hooks.stop_handler import dnne_stop_handler
+        # Get the prompt server instance if available
+        import server
+        if hasattr(server, 'PromptServer'):
+            prompt_server = server.PromptServer.instance
+            dnne_stop_handler(prompt_server)
+        else:
+            dnne_stop_handler()
+    except Exception as e:
+        print(f"Error calling DNNE stop handler: {e}")
 
 # Export for ComfyUI
 __all__ = [

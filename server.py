@@ -685,29 +685,6 @@ class PromptServer():
             queue_info['queue_pending'] = current_queue[1]
             return web.json_response(queue_info)
         
-        @routes.get("/api/agent/clients")
-        async def get_agent_clients(request):
-            """Return list of connected agent clients."""
-            clients = [
-                {"id": "local", "type": "local", "display": "Local"}
-            ]
-            
-            # Add connected remote clients
-            for client_id, info in self.agent_clients.items():
-                clients.append({
-                    "id": client_id,
-                    "type": "remote",
-                    "display": info.get("hostname", "Unknown"),
-                    "hostname": info.get("hostname"),
-                    "platform": info.get("platform"),
-                    "connected_at": info.get("connected_at")
-                })
-            
-            return web.json_response({
-                "clients": clients,
-                "connection_status": self.agent_connection_status
-            })
-        
         # HTTP endpoints for logs removed - use WebSockets only
         
         @routes.post("/prompt")
@@ -1194,65 +1171,6 @@ class PromptServer():
                     "request_id": json_data.get("request_id") if 'json_data' in locals() else None,
                     "timestamp": datetime.now().isoformat()
                 }, status=500)
-
-        @routes.get("/dnne/env_config/{task_name}")
-        async def get_env_config(request):
-            """Get environment-specific configuration for connected nodes"""
-            task_name = request.match_info.get("task_name", None)
-            requesting_node_type = request.rel_url.query.get("node_type", None)
-            logging.info(f" get_env_config called with task_name: {task_name}, requesting_node: {requesting_node_type}")
-            
-            if not task_name or task_name == "none":
-                logging.warning(f" Invalid task name: {task_name}")
-                return web.json_response({"error": "Invalid task name"}, status=400)
-            
-            try:
-                # Import the config loader
-                from custom_nodes.utils.isaac_gym_config_loader import IsaacGymEnvConfigLoader
-                
-                # Get singleton instance
-                loader = IsaacGymEnvConfigLoader.get_instance()
-                logging.info(f" Got config loader instance")
-                
-                # Get configuration for the task
-                config = loader.get_task_config(task_name)
-                logging.info(f" Retrieved config for {task_name}: {config is not None}")
-                
-                if not config:
-                    logging.warning(f" No configuration found for task: {task_name}")
-                    return web.json_response({"error": f"No configuration found for task: {task_name}"}, status=404)
-                
-                # Return configuration based on requesting node type
-                response_data = {
-                    "task_name": task_name,
-                }
-                
-                # Always include env config
-                env_config = config.get("isaac_gym_env_node", {})
-                response_data["isaac_gym_env"] = env_config
-                
-                # Add specific configs based on requesting node
-                if requesting_node_type == "PPOAgent":
-                    response_data["ppo_config"] = config.get("ppo_config_node", {})
-                    response_data["ppo_agent"] = config.get("ppo_agent_node", {})
-                elif requesting_node_type == "IsaacGymSim":
-                    # For IsaacGymSim, we need the null_action from env config
-                    response_data["isaac_gym_sim"] = {
-                        "null_action": env_config.get("null_action", "")
-                    }
-                else:
-                    # Default: return all configs for backward compatibility
-                    response_data["ppo_config"] = config.get("ppo_config_node", {})
-                    response_data["ppo_agent"] = config.get("ppo_agent_node", {})
-                
-                logging.info(f" Returning config for {requesting_node_type or 'all nodes'}")
-                return web.json_response(response_data)
-                
-            except Exception as e:
-                logging.error(f" Error loading config for task {task_name}: {e}")
-                import traceback
-                logging.error(traceback.format_exc())
-                return web.json_response({"error": str(e)}, status=500)
 
     async def connect_to_agent_server(self):
         """Connect to the DNNE agent server as a UI client."""
@@ -1792,6 +1710,11 @@ class PromptServer():
         self.user_manager.add_routes(self.routes)
         self.model_file_manager.add_routes(self.routes)
         self.custom_node_manager.add_routes(self.routes, self.app, nodes.LOADED_MODULE_DIRS.items())
+        
+        # Add DNNE-specific routes
+        from dnne_hooks.routes import dnne_add_routes
+        dnne_add_routes(self, self.routes)
+        
         self.app.add_subapp('/internal', self.internal_routes.get_app())
 
         # Prefix every route with /api for easier matching for delegation.
