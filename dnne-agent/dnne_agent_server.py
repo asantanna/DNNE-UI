@@ -39,7 +39,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler(os.path.join(_log_dir, 'dnne_agent_server.log'))
+        logging.FileHandler(os.path.join(_log_dir, 'dnne_agent_server.log'), mode='w')
     ]
 )
 logger = logging.getLogger('dnne_server')

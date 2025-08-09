@@ -24,7 +24,7 @@ def setup_logging(level: str = "INFO") -> None:
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(log_dir / "mcp_server.log", encoding='utf-8')
+            logging.FileHandler(log_dir / "mcp_server.log", mode='w', encoding='utf-8')
         ]
     )
 

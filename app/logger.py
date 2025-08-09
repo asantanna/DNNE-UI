@@ -72,7 +72,7 @@ def setup_logger(log_level: str = 'INFO', capacity: int = 300, use_stdout: bool 
     import os
     log_dir = 'dnne_logs'
     os.makedirs(log_dir, exist_ok=True)
-    file_handler = logging.FileHandler(os.path.join(log_dir, 'DNNE.log'), encoding='utf-8')
+    file_handler = logging.FileHandler(os.path.join(log_dir, 'DNNE.log'), mode='w', encoding='utf-8')
     file_handler.setLevel(log_level)
     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
     logger.addHandler(file_handler)

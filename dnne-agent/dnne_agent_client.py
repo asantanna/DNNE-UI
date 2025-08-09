@@ -703,7 +703,7 @@ def setup_logging(log_dir: Optional[str] = None, verbose: str = 'INFO'):
             # Console handler
             logging.StreamHandler(sys.stdout),
             # File handler
-            logging.FileHandler(log_file, encoding='utf-8')
+            logging.FileHandler(log_file, mode='w', encoding='utf-8')
         ]
     )
     
