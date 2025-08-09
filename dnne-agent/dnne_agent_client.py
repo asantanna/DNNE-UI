@@ -668,15 +668,20 @@ def setup_logging(log_dir: Optional[str] = None, verbose: str = 'INFO'):
     """
     # Create logs directory
     if log_dir is None:
-        log_dir = Path(__file__).parent / "logs"
+        # Try to use dnne_logs directory at project root
+        project_root = Path(__file__).parent.parent
+        log_dir = project_root / "dnne_logs"
+        
+        # If dnne_logs doesn't exist (relative path issue), fall back to script directory
+        if not log_dir.exists():
+            log_dir = Path(__file__).parent
+            log_dir.mkdir(exist_ok=True)
     else:
         log_dir = Path(log_dir)
+        log_dir.mkdir(exist_ok=True)
     
-    log_dir.mkdir(exist_ok=True)
-    
-    # Create log filename with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file = log_dir / f"dnne_agent_client_{timestamp}.log"
+    # Create log filename without timestamp
+    log_file = log_dir / "dnne_agent_client.log"
     
     # Set up formatters
     log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'

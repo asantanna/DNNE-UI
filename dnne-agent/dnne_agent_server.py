@@ -29,12 +29,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from dnne_config import DNNEConfig
 
 # Configure logging
+# Set up logging to dnne_logs directory
+import os as _os
+_log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dnne_logs')
+_os.makedirs(_log_dir, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('dnne_agent_server.log')
+        logging.FileHandler(os.path.join(_log_dir, 'dnne_agent_server.log'))
     ]
 )
 logger = logging.getLogger('dnne_server')
