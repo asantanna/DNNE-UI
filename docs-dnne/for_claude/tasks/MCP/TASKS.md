@@ -116,8 +116,6 @@ See test_results_comprehensive.json for complete list (outdated - needs rerun af
 - [ ] Refactor browser_controller JavaScript into reusable snippets in js_snippets
 
 ### Low Priority
-- [ ] Performance optimization
-- [ ] Additional error recovery strategies
 
 ## 🐛 Known Issues
 

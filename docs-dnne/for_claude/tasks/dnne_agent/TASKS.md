@@ -179,11 +179,8 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [x] Handle log streaming for running workflows
 - [x] Implement log file creation with timestamps
 - [x] Add proper log file closure on workflow stop
-- [ ] Add log viewer modal component in frontend (UI display)
 
 ### 5.5 Complete Testing
-- [ ] Test new UI layout with local export
-- [ ] Test new UI layout with remote export
 - [ ] End-to-end test with telemetry enabled
 - [ ] Test run_after_export functionality
 - [ ] Verify logs are captured and displayed
@@ -208,10 +205,31 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [x] Implement directory wipe before redeployment in agent client
 - [x] Ensure no leftover files from previous deployments
 
+## Phase 7: Logging Infrastructure Improvements ✅ 2025-08-08
+
+### 7.1 Centralized Logging ✅
+- [x] Create centralized dnne_logs directory for all DNNE components
+- [x] Configure DNNE server to write logs to dnne_logs/DNNE.log
+- [x] Configure agent server to write logs to dnne_logs/dnne_agent_server.log
+- [x] Configure agent client to write logs to dnne_logs/dnne_agent_client.log
+- [x] Configure MCP server to write logs to dnne_logs/mcp_server.log
+- [x] Remove timestamp from agent client log filename for easier access
+
+### 7.2 Status Bar Fix ✅ 
+- [x] Fix race condition in agent client stop_workflow() function
+- [x] Ensure log reader task completes to send "terminated" status
+- [x] Fix status bar not updating when workflows are forcibly terminated
+- [x] Add error logging for timeout and cancelled log reader tasks
+
+### 7.3 Log File Management ✅
+- [x] Change all log files to overwrite mode (mode='w') instead of append
+- [x] Ensure logs start fresh with each component restart
+- [x] Prevent log files from growing indefinitely
+
 ## Known Issues/Blockers
 - Telemetry data not being processed
 - Show Logs button needs frontend modal implementation
-- Status bar should always show "Active Workflows: 0" when none running
+- ~~Status bar should always show "Active Workflows: 0" when none running~~ ✅ Fixed
 - Programmatic agent server restart doesn't work
 
 ## Future Enhancements

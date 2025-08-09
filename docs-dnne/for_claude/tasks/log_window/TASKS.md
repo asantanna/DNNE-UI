@@ -65,36 +65,20 @@ The log window functionality is fully implemented and working. The critical work
 - [x] **Replaced print statements** - Now using proper logging functions in execution.py and nodes.py
 
 ### UI Component Testing
-- [ ] **Test auto-scroll functionality** - Verify it follows new log entries properly
-- [ ] **Test agent dropdown** - Ensure proper agent selection and log filtering
-- [ ] **Test log type dropdown** - Verify filtering works for different log types
-- [ ] **Test visual indicators** - Confirm "agent running" indicator updates correctly
 
 ### Integration Testing
 - [ ] Test with multiple concurrent workflows
 - [ ] Verify remote log collection from multiple agents
 - [ ] Test log streaming for long-running workflows
-- [ ] Verify log file size handling
 
 ## 📋 TODO
 
 ### Bug Fixes (After Testing)
 - [x] ~~Fix status bar workflow count update issue~~ - FIXED 2025-08-07
-- [ ] Address any auto-scroll issues found in testing
-- [ ] Fix dropdown filtering issues if any
-- [ ] Resolve visual indicator update problems
 
 ### Performance & Polish
-- [ ] Add performance optimizations for large log files
-- [ ] Implement log rotation/cleanup policies
-- [ ] Add error highlighting in logs
-- [ ] Create log level filtering (debug, info, warning, error)
-- [ ] Add log export functionality
 
 ### Documentation
-- [ ] Create user documentation for log window
-- [ ] Document log retention policies
-- [ ] Add troubleshooting guide
 
 ## 🐛 Known Issues
 

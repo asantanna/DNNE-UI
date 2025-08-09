@@ -3,7 +3,16 @@
 
 **📋 TASK TRACKING**: See `docs-dnne/for_claude/tasks/INDEX.md` for current task status and priorities across all components.
 
-## Latest Achievements (2025-08-08 Session 3)
+## Latest Achievements (2025-08-08 Session 4)
+
+### Logging Infrastructure Improvements ✅
+- Created centralized `dnne_logs` directory for all DNNE components
+- Configured all loggers (DNNE server, agent server/client, MCP) to use centralized directory
+- Fixed critical race condition causing status bar not to update when workflows terminated
+- Changed all log files to overwrite mode (mode='w') for fresh logs each run
+- Agent client log reader now completes before cancellation to send "terminated" status
+
+## Previous Session (2025-08-08 Session 3)
 
 ### STOP Button & Workflow Termination ✅
 - Organized DNNE code into dnne_hooks directory for separation from ComfyUI
@@ -118,12 +127,14 @@ See `dnne_config.json`
 - **CLAUDE.md**: Project overview and development guidance
 
 ### Recent Commits (2025-08-08)
+- `4baf02fa` - Change all log files to overwrite mode instead of append
+- `d8b8fcaf` - Fix agent client log reader cancellation race condition  
+- `4a587423` - Fix status bar not updating for terminated workflows
+- `0c644c71` - Add MCP server to centralized logging
+- `e7b9c0b2` - Centralize logging in dnne_logs directory
+- `b8546638` - Fix termination message not appearing in workflow logs
 - `150ed4f2` - Fix STOP button workflow termination and error handling
 - `e65deac5` - Organize DNNE code into dnne_hooks directory
-- `c3aabe0c` - Fix log viewer auto-switch and consolidate WebSocket messages
-- `51cfd349` - Fix real-time log streaming and add verbose debugging support
-- `7aaf47b2` - Fix export after server restart by sending workflow path from frontend
-- `9d9f2a8` (Frontend) - Send workflow path with export requests
 
 ### Previous Commits
 - `a7163565` - Fix logging issues and MCP export_workflow reporting
