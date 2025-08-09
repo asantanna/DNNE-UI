@@ -10,9 +10,22 @@ logger = logging.getLogger(__name__)
 
 def setup_logging(level: str = "INFO") -> None:
     """Configure logging for the MCP server"""
+    import os
+    from pathlib import Path
+    
+    # Get project root and create dnne_logs directory
+    project_root = Path(__file__).parent.parent.parent.parent  # Up to DNNE-UI
+    log_dir = project_root / "dnne_logs"
+    log_dir.mkdir(exist_ok=True)
+    
+    # Configure logging with both console and file output
     logging.basicConfig(
         level=getattr(logging, level.upper()),
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(log_dir / "mcp_server.log", encoding='utf-8')
+        ]
     )
 
 def get_env_var(key: str, default: Optional[str] = None) -> Optional[str]:
