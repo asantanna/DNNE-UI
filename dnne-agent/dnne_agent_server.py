@@ -255,7 +255,7 @@ class DNNEAgentServer:
                     workflow_info.workflow_name = workflow_name
                 if status == "running":
                     workflow_info.start_time = time.time()
-                elif status in ["completed", "failed", "stopped"]:
+                elif status in ["completed", "failed", "terminated"]:
                     workflow_info.end_time = time.time()
                     
                 # FAIL-FAST: Critical fields must exist

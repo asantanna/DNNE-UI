@@ -1377,7 +1377,7 @@ class PromptServer():
                 logging.debug(f"Status is 'running', calling _start_workflow_logging for {workflow_id}")
                 self._start_workflow_logging(workflow_id, client_id)
                 
-            elif status in ["stopped", "completed", "failed"]:
+            elif status in ["terminated", "completed", "failed"]:
                 # Stop logging and remove from tracking
                 self._stop_workflow_logging(workflow_id)
                 if workflow_id in self.client_workflows.get(client_id, {}):

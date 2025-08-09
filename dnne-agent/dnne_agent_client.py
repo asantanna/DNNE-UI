@@ -585,7 +585,7 @@ class DNNEAgentClient:
             exit_code = await workflow.process.wait()
             
             # Handle different exit codes
-            if exit_code == -15:  # SIGTERM - process was forcibly terminated
+            if exit_code == -15 or exit_code == -9:  # SIGTERM or SIGKILL - process was forcibly terminated
                 # Send termination message to log stream
                 from datetime import datetime
                 timestamp = datetime.now().isoformat()
@@ -602,7 +602,7 @@ class DNNEAgentClient:
                 
                 # Wait briefly to ensure log is written before status change
                 await asyncio.sleep(0.1)
-                status = "stopped"
+                status = "terminated"
             elif exit_code == 0:
                 status = "completed"
             else:
