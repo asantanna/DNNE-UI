@@ -1,11 +1,11 @@
 # Log Window Tasks
 
-*Last Updated: 2025-08-08*
+*Last Updated: 2025-08-08 (Session 3)*
 
 ## Quick Stats
 - **Status**: Working - Core Features Complete
 - **Priority**: Medium
-- **Completion**: ~95%
+- **Completion**: ~97%
 - **Dependencies**: DNNE Agent integration ✅
 
 ## Current Status
@@ -35,6 +35,15 @@ The log window functionality is fully implemented and working. The critical work
 - [x] Implement workflow_log message handler in server.py
 - [x] Create metadata.json for each deployment
 - [x] Add message handling for workflow_started/workflow_stopped
+
+### Phase 4: STOP Button & Error Handling ✅ (2025-08-08 Session 3)
+- [x] Organize DNNE code into dnne_hooks directory for separation from ComfyUI
+- [x] Implement STOP button functionality through WebSocket chain
+- [x] Make interrupt_processing async for proper stop signal handling
+- [x] Add robust error handling in agent client stop_workflow
+- [x] Fix race condition when workflow terminates during stop operation
+- [x] Add termination message injection to workflow logs
+- [x] Handle "not running" and "already stopped" cases gracefully
 
 ## 🚧 In Progress - Testing Phase
 

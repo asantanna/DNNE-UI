@@ -3,7 +3,17 @@
 
 **📋 TASK TRACKING**: See `docs-dnne/for_claude/tasks/INDEX.md` for current task status and priorities across all components.
 
-## Latest Achievements (2025-08-08 Session 2)
+## Latest Achievements (2025-08-08 Session 3)
+
+### STOP Button & Workflow Termination ✅
+- Organized DNNE code into dnne_hooks directory for separation from ComfyUI
+- Implemented STOP button functionality through WebSocket chain
+- Made interrupt_processing async for proper stop signal handling  
+- Fixed race condition in agent client when workflow terminates during stop
+- Added robust error handling with proper status reporting
+- Workflow termination messages injected into log stream
+
+## Previous Session (2025-08-08 Session 2)
 
 ### Export System Fix ✅
 - Fixed critical issue where export failed after server restart
@@ -40,10 +50,10 @@
 - End-to-end tested with MNIST achieving 99.58% accuracy
 
 ## Current Work: Pending Tasks
-- Implement 5 remaining MCP log management functions
-- Add util_set_DNNE_log_level() and util_set_agent_server_log_level()
-- Test get_viewer_client_log() retrieves content from UI
-- Fix export to fail with error when no client connected (currently silent)
+- Add WARNING header for historical logs in viewer
+- Test click_button with all locations/controls  
+- Replace all evaluate() calls in tool files with js_* functions
+- BUG: Export should fail with error when no client connected (currently silent)
 
 ## Claude Code Capabilities
 - **Server Control**: Can restart DNNE server via `/remote_command` endpoint
@@ -108,11 +118,12 @@ See `dnne_config.json`
 - **CLAUDE.md**: Project overview and development guidance
 
 ### Recent Commits (2025-08-08)
+- `150ed4f2` - Fix STOP button workflow termination and error handling
+- `e65deac5` - Organize DNNE code into dnne_hooks directory
+- `c3aabe0c` - Fix log viewer auto-switch and consolidate WebSocket messages
+- `51cfd349` - Fix real-time log streaming and add verbose debugging support
 - `7aaf47b2` - Fix export after server restart by sending workflow path from frontend
 - `9d9f2a8` (Frontend) - Send workflow path with export requests
-- `1fe20ca0` - Fix health endpoint import error
-- `a359c19f` - Fix MCP tool name updates and permission script
-- `5fc5ac70` - Major MCP and server improvements for logging and health monitoring
 
 ### Previous Commits
 - `a7163565` - Fix logging issues and MCP export_workflow reporting
