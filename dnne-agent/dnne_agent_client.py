@@ -397,7 +397,17 @@ class DNNEAgentClient:
         elif msg_type == "stop":
             # Stop workflow
             workflow_id = data.get("workflow_id")
-            await self.stop_workflow(workflow_id)
+            try:
+                await self.stop_workflow(workflow_id)
+            except Exception as e:
+                logger.error(f"Failed to stop workflow {workflow_id}: {e}")
+                # Notify server of failure
+                await self.websocket.send(json.dumps({
+                    "type": "workflow_status",
+                    "workflow_id": workflow_id,
+                    "status": "stop_failed",
+                    "details": str(e)
+                }))
     
     async def start_workflow(self, workflow_id: str, args: list):
         """Start workflow execution"""
@@ -492,11 +502,17 @@ class DNNEAgentClient:
     
     async def stop_workflow(self, workflow_id: str):
         """Stop workflow execution"""
-        if workflow_id not in self.workflows:
+        # Get workflow atomically to avoid race conditions
+        workflow = self.workflows.get(workflow_id)
+        if not workflow:
             logger.warning(f"Workflow {workflow_id} not running")
+            # Still notify server that workflow is not running
+            await self.websocket.send(json.dumps({
+                "type": "workflow_status",
+                "workflow_id": workflow_id,
+                "status": "not_running"
+            }))
             return
-            
-        workflow = self.workflows[workflow_id]
         
         try:
             # Send SIGTERM
@@ -506,30 +522,55 @@ class DNNEAgentClient:
             stop_timeout = self.get('agent_client.workflow_stop_timeout', 10)
             try:
                 await asyncio.wait_for(workflow.process.wait(), timeout=stop_timeout)
+                logger.info(f"Workflow {workflow_id} terminated gracefully")
             except asyncio.TimeoutError:
                 # Force kill
+                logger.warning(f"Workflow {workflow_id} did not terminate gracefully, force killing")
                 workflow.process.kill()
                 await workflow.process.wait()
                 
+            # Send termination message to log stream
+            from datetime import datetime
+            timestamp = datetime.now().isoformat()
+            termination_msg = f"\n{'='*60}\nWorkflow forcibly terminated at {timestamp}\n{'='*60}"
+            
+            # Send as a log message so it appears in the UI
+            await self.websocket.send(json.dumps({
+                "type": "log",
+                "workflow_id": workflow_id,
+                "level": "error",
+                "message": termination_msg,
+                "timestamp": timestamp
+            }))
+            
             # Cancel log reader
             if workflow.log_reader_task:
                 workflow.log_reader_task.cancel()
-                
-            # Cleanup
-            del self.workflows[workflow_id]
+                try:
+                    await workflow.log_reader_task
+                except asyncio.CancelledError:
+                    pass  # Expected
             
-            logger.info(f"Stopped workflow {workflow_id} ({workflow.workflow_name})")
+            # Store workflow name before cleanup
+            workflow_name = workflow.workflow_name
+            
+            # Cleanup - check if still exists (might have been removed by process exit handler)
+            if workflow_id in self.workflows:
+                del self.workflows[workflow_id]
+            
+            logger.info(f"Stopped workflow {workflow_id} ({workflow_name})")
             
             # Notify server
             await self.websocket.send(json.dumps({
                 "type": "workflow_status",
                 "workflow_id": workflow_id,
-                "workflow_name": workflow.workflow_name,
+                "workflow_name": workflow_name,
                 "status": "stopped"
             }))
-            
         except Exception as e:
-            logger.error(f"Failed to stop workflow: {e}")
+            logger.error(f"Error during workflow stop for {workflow_id}: {e}")
+            # Re-raise to be caught by the caller
+            raise
     
     async def read_process_logs(self, workflow_id: str):
         """Read process output and send to server"""

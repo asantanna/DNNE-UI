@@ -12,7 +12,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-def dnne_stop_handler(prompt_server=None):
+async def dnne_stop_handler(prompt_server=None):
     """
     Handle stop request for DNNE workflows.
     
@@ -66,16 +66,16 @@ def dnne_stop_handler(prompt_server=None):
             }
             
             # Send the message through agent WebSocket
-            asyncio.create_task(prompt_server.agent_ws.send_json(stop_message))
+            await prompt_server.agent_ws.send_json(stop_message)
             logger.info(f"Stop signal sent to agent server for workflow {workflow['workflow_id']}")
             
-            # Notify UI of status change
-            asyncio.create_task(prompt_server.send_sync("workflow_status", {
+            # Notify UI of status change - send_sync is already thread-safe
+            prompt_server.send_sync("workflow_status", {
                 "workflow_id": workflow['workflow_id'],
                 "workflow_name": workflow['workflow_name'],
                 "client_id": workflow['client_id'],
                 "status": "stopping"
-            }))
+            })
         except Exception as e:
             logger.error(f"Failed to send stop signal for workflow {workflow['workflow_id']}: {e}")
             # Continue trying to stop other workflows instead of failing completely

@@ -121,7 +121,7 @@ class DNNEConfig:
         
         # Skip validation on Windows for WSL paths
         if platform.system() == "Windows":
-            print("Note: Path validation skipped on Windows (WSL paths cannot be validated from Windows Python)")
+            # print("Note: Path validation skipped on Windows (WSL paths cannot be validated from Windows Python)")
             return
             
         # On Linux, only validate Linux paths

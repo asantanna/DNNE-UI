@@ -907,7 +907,7 @@ class PromptServer():
 
         @routes.post("/interrupt")
         async def post_interrupt(request):
-            nodes.interrupt_processing()
+            await nodes.interrupt_processing()
             return web.Response(status=200)
 
         @routes.post("/free")

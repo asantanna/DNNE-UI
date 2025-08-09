@@ -306,7 +306,7 @@ def soft_empty_cache():
     """Stub for cache clearing"""
     print("Cache cleared (DNNE stub)")
 
-def interrupt_processing(value=True):
+async def interrupt_processing(value=True):
     """Handle interrupt processing - calls DNNE stop handler"""
     print(f"Processing interrupt: {value}")
     
@@ -317,9 +317,9 @@ def interrupt_processing(value=True):
         import server
         if hasattr(server, 'PromptServer'):
             prompt_server = server.PromptServer.instance
-            dnne_stop_handler(prompt_server)
+            await dnne_stop_handler(prompt_server)
         else:
-            dnne_stop_handler()
+            await dnne_stop_handler()
     except Exception as e:
         print(f"Error calling DNNE stop handler: {e}")
 
