@@ -528,20 +528,6 @@ class DNNEAgentClient:
                 logger.warning(f"Workflow {workflow_id} did not terminate gracefully, force killing")
                 workflow.process.kill()
                 await workflow.process.wait()
-                
-            # Send termination message to log stream
-            from datetime import datetime
-            timestamp = datetime.now().isoformat()
-            termination_msg = f"\n{'='*60}\nWorkflow forcibly terminated at {timestamp}\n{'='*60}"
-            
-            # Send as a log message so it appears in the UI
-            await self.websocket.send(json.dumps({
-                "type": "log",
-                "workflow_id": workflow_id,
-                "level": "error",
-                "message": termination_msg,
-                "timestamp": timestamp
-            }))
             
             # Cancel log reader
             if workflow.log_reader_task:
@@ -554,19 +540,10 @@ class DNNEAgentClient:
             # Store workflow name before cleanup
             workflow_name = workflow.workflow_name
             
-            # Cleanup - check if still exists (might have been removed by process exit handler)
-            if workflow_id in self.workflows:
-                del self.workflows[workflow_id]
+            # Note: We don't send status here because read_process_logs() will handle it
+            # when the process exits with SIGTERM (-15)
             
-            logger.info(f"Stopped workflow {workflow_id} ({workflow_name})")
-            
-            # Notify server
-            await self.websocket.send(json.dumps({
-                "type": "workflow_status",
-                "workflow_id": workflow_id,
-                "workflow_name": workflow_name,
-                "status": "stopped"
-            }))
+            logger.info(f"Stop signal sent to workflow {workflow_id} ({workflow_name})")
         except Exception as e:
             logger.error(f"Error during workflow stop for {workflow_id}: {e}")
             # Re-raise to be caught by the caller
@@ -606,7 +583,30 @@ class DNNEAgentClient:
         finally:
             # Wait for process to complete and get exit code
             exit_code = await workflow.process.wait()
-            status = "completed" if exit_code == 0 else "failed"
+            
+            # Handle different exit codes
+            if exit_code == -15:  # SIGTERM - process was forcibly terminated
+                # Send termination message to log stream
+                from datetime import datetime
+                timestamp = datetime.now().isoformat()
+                termination_msg = f"\n{'='*60}\nWorkflow forcibly terminated at {timestamp}\n{'='*60}"
+                
+                if self.websocket:
+                    await self.websocket.send(json.dumps({
+                        "type": "log",
+                        "workflow_id": workflow_id,
+                        "level": "error",
+                        "message": termination_msg,
+                        "timestamp": timestamp
+                    }))
+                
+                # Wait briefly to ensure log is written before status change
+                await asyncio.sleep(0.1)
+                status = "stopped"
+            elif exit_code == 0:
+                status = "completed"
+            else:
+                status = "failed"
             
             # Log the workflow completion status
             logger.info(f"Workflow {workflow_id} ({workflow.workflow_name}) {status} with exit code {exit_code}")
