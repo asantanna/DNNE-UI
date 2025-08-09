@@ -1363,13 +1363,12 @@ class PromptServer():
             
             logging.info(f" Agent client connected: {info.get('hostname')}")
             
-            # Send unified status update
-            self.send_sync("client_status_update", {
-                "msg_type": "client_connected",
+            # Send client status update
+            self.send_sync("client_status", {
+                "status": "connected",
                 "client_id": client_id,
                 "client_hostname": info.get("hostname"),
-                "active_workflows": 0,
-                "active_workflow_details": [],
+                "platform": info.get("platform", "Unknown"),
                 "timestamp": info.get("connected_at")
             })
             
@@ -1386,13 +1385,11 @@ class PromptServer():
                 
                 logging.info(f" Agent client disconnected: {hostname}")
                 
-                # Send unified status update
-                self.send_sync("client_status_update", {
-                    "msg_type": "client_disconnected",
+                # Send client status update
+                self.send_sync("client_status", {
+                    "status": "disconnected",
                     "client_id": client_id,
                     "client_hostname": hostname,
-                    "active_workflows": 0,
-                    "active_workflow_details": [],
                     "timestamp": datetime.now().isoformat()
                 })
         
@@ -1437,6 +1434,14 @@ class PromptServer():
             
             logging.info(f"Workflow status: {status} for {workflow_name} ({workflow_id})")
             
+            # Forward the workflow_status message to UI for components that need it (like DNNELogViewer)
+            self.send_sync("workflow_status", {
+                "workflow_id": workflow_id,
+                "workflow_name": workflow_name,
+                "client_id": client_id,
+                "status": status
+            })
+            
             # Get client info
             client_info = self.agent_clients.get(client_id, {})
             hostname = client_info.get("hostname", "unknown")
@@ -1454,47 +1459,11 @@ class PromptServer():
                 logging.debug(f"Status is 'running', calling _start_workflow_logging for {workflow_id}")
                 self._start_workflow_logging(workflow_id, client_id)
                 
-                # Send workflow_started update
-                active_details = [
-                    {"name": wf["name"], "start_time": wf["start_time"]}
-                    for wf in self.client_workflows[client_id].values()
-                ]
-                
-                update_msg = {
-                    "msg_type": "workflow_started",
-                    "client_id": client_id,
-                    "client_hostname": hostname,
-                    "workflow_id": workflow_id,
-                    "workflow_name": workflow_name,
-                    "workflow_start_time": self.client_workflows[client_id][workflow_id]["start_time"],
-                    "active_workflows": len(self.client_workflows[client_id]),
-                    "active_workflow_details": active_details,
-                    "timestamp": datetime.now().isoformat()
-                }
-                self.send_sync("client_status_update", update_msg)
-                
             elif status in ["stopped", "completed", "failed"]:
                 # Stop logging and remove from tracking
                 self._stop_workflow_logging(workflow_id)
                 if workflow_id in self.client_workflows.get(client_id, {}):
                     del self.client_workflows[client_id][workflow_id]
-                
-                # Send workflow_stopped update
-                active_details = [
-                    {"name": wf["name"], "start_time": wf["start_time"]}
-                    for wf in self.client_workflows.get(client_id, {}).values()
-                ]
-                
-                self.send_sync("client_status_update", {
-                    "msg_type": "workflow_stopped",
-                    "client_id": client_id,
-                    "client_hostname": hostname,
-                    "workflow_id": workflow_id,
-                    "workflow_name": workflow_name,
-                    "active_workflows": len(self.client_workflows.get(client_id, {})),
-                    "active_workflow_details": active_details,
-                    "timestamp": datetime.now().isoformat()
-                })
             
         elif msg_type == "workflow_log":
             # Log message from running workflow
