@@ -6,7 +6,6 @@ Metadata: {METADATA}
 
 import sys
 import os
-import argparse
 from pathlib import Path
 import warnings
 
@@ -56,6 +55,7 @@ import logging
 {NODE_IMPORTS_SECTION}
 from framework import GraphRunner
 from framework.override_parser import parse_override_args
+from framework.arg_parser import create_parser, process_args
 # NOTE: Removed 'from nodes import *' - caused double Isaac Gym initialization
 # All required nodes are imported explicitly above
 
@@ -135,59 +135,10 @@ def configure_logging(verbose=None, debug=None):
 
 async def main():
     """Main execution function"""
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='DNNE Generated Training')
-    parser.add_argument('--verbose', '-v', nargs='?', const='all', default=None,
-                       help='Enable verbose logging (INFO level). Optional: comma-separated subsystems or node IDs (e.g., "mnist,42,queue" or "55")')
-    parser.add_argument('--debug', '-d', nargs='?', const='all', default=None,
-                       help='Enable debug logging (DEBUG level). Optional: comma-separated subsystems or node IDs (e.g., "yield,66,ppo" or "42")')
-    parser.add_argument('--save-checkpoint', action='store_true',
-                       help='Enable checkpoint saving')
-    parser.add_argument('--out-dir', type=str, default='runs/singles',
-                       help='Output directory for checkpoints and other outputs (default: runs/singles)')
-    parser.add_argument('--load-checkpoint', type=str,
-                       help='Directory to load checkpoints from (expects node_<id> subdirectories)')
-    parser.add_argument('--timeout', type=str,
-                       help='Training duration (e.g., 5, 30s, 5m, 1h30m)')
-    parser.add_argument('--visual', action='store_true',
-                       help='Enable visual mode (overrides headless setting)')
-    parser.add_argument('--headless', action='store_true',
-                       help='Force headless mode (default)')
-    parser.add_argument('--inference', action='store_true',
-                       help='Run in inference mode (no training, no gradients)')
-    parser.add_argument('--dnne-profiling', action='store_true',
-                       help='Enable profiling for C++ operations (Isaac Gym)')
-    parser.add_argument('--epochs', type=str, default=None,
-                       help='Override max epochs for EpochTracker nodes (e.g., --epochs 10 or --epochs 55:10,56:20)')
-    parser.add_argument('--max-iterations', type=str, default=None,
-                       help='Override max iterations for PPOAgent nodes (e.g., --max-iterations 1000 or --max-iterations 66:5000,67:10000)')
-    parser.add_argument('--learning-rate', type=str, default=None,
-                       help='Override learning rate for SGDOptimizer nodes (e.g., --learning-rate 0.01 or --learning-rate 68:0.001,69:0.01)')
-    parser.add_argument('--batch-size', type=str, default=None,
-                       help='Override batch size for BatchSampler nodes (e.g., --batch-size 32 or --batch-size 38:64,39:128)')
-    parser.add_argument('--fixed-seed', type=int, default=None,
-                       help='Use fixed random seed for deterministic execution')
-    parser.add_argument('--override', type=str, default=None,
-                       help='Override specific node configuration values (e.g., --override 56:checkpoint_enabled=True,56:checkpoint_trigger_type=end)')
-    parser.add_argument('--enable-telemetry', type=str, nargs='?', const='all', default=None,
-                       help='Enable telemetry reporting. Optional: comma-separated node IDs or "all" (e.g., --enable-telemetry 10,11 or --enable-telemetry)')
+    # Parse command line arguments using the extracted parser
+    parser = create_parser()
     args = parser.parse_args()
-    
-    # Convert node-specific arguments that should be integers when no ':' present
-    for arg_name in ['epochs', 'max_iterations', 'batch_size']:
-        value = getattr(args, arg_name.replace('-', '_'), None)
-        if value and ':' not in value:
-            try:
-                setattr(args, arg_name.replace('-', '_'), int(value))
-            except ValueError:
-                pass  # Keep as string if conversion fails
-    
-    # Convert learning_rate if no ':' present
-    if args.learning_rate and ':' not in args.learning_rate:
-        try:
-            args.learning_rate = float(args.learning_rate)
-        except ValueError:
-            pass  # Keep as string if conversion fails
+    args = process_args(args)
 
     # Parse timeout if provided
     duration_seconds = None

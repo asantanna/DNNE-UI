@@ -1,0 +1,194 @@
+{
+  "arguments": {
+    "verbose": {
+      "switch": "--verbose",
+      "shortSwitch": "-v",
+      "type": "select_or_text",
+      "label": "Verbose Logging",
+      "description": "Enable verbose logging (INFO level)",
+      "options": ["all", "custom"],
+      "placeholder": "e.g., mnist,42,queue",
+      "group": "logging"
+    },
+    "debug": {
+      "switch": "--debug",
+      "shortSwitch": "-d",
+      "type": "select_or_text",
+      "label": "Debug Logging",
+      "description": "Enable debug logging (DEBUG level)",
+      "options": ["all", "custom"],
+      "placeholder": "e.g., yield,66,ppo",
+      "group": "logging"
+    },
+    "save_checkpoint": {
+      "switch": "--save-checkpoint",
+      "type": "checkbox",
+      "label": "Save Checkpoints",
+      "description": "Enable checkpoint saving during training",
+      "group": "checkpoints"
+    },
+    "out_dir": {
+      "switch": "--out-dir",
+      "type": "text",
+      "label": "Output Directory",
+      "description": "Directory for checkpoints and other outputs",
+      "default": "runs/singles",
+      "placeholder": "runs/singles",
+      "group": "checkpoints"
+    },
+    "load_checkpoint": {
+      "switch": "--load-checkpoint",
+      "type": "text",
+      "label": "Load Checkpoint",
+      "description": "Directory to load checkpoints from",
+      "placeholder": "path/to/checkpoint",
+      "group": "checkpoints"
+    },
+    "timeout": {
+      "switch": "--timeout",
+      "type": "text",
+      "label": "Timeout",
+      "description": "Training duration",
+      "placeholder": "e.g., 30s, 5m, 1h30m",
+      "group": "training"
+    },
+    "visual": {
+      "switch": "--visual",
+      "type": "checkbox",
+      "label": "Visual Mode",
+      "description": "Enable visual mode (overrides headless)",
+      "group": "display"
+    },
+    "headless": {
+      "switch": "--headless",
+      "type": "checkbox",
+      "label": "Headless Mode",
+      "description": "Force headless mode (default)",
+      "group": "display"
+    },
+    "inference": {
+      "switch": "--inference",
+      "type": "checkbox",
+      "label": "Inference Mode",
+      "description": "Run in inference mode (no training, no gradients)",
+      "group": "training"
+    },
+    "dnne_profiling": {
+      "switch": "--dnne-profiling",
+      "type": "checkbox",
+      "label": "DNNE Profiling",
+      "description": "Enable profiling for C++ operations (Isaac Gym)",
+      "group": "debugging"
+    },
+    "epochs": {
+      "switch": "--epochs",
+      "type": "text",
+      "label": "Epochs",
+      "description": "Override max epochs for EpochTracker nodes",
+      "placeholder": "e.g., 10 or 55:10,56:20",
+      "group": "overrides"
+    },
+    "max_iterations": {
+      "switch": "--max-iterations",
+      "type": "text",
+      "label": "Max Iterations",
+      "description": "Override max iterations for PPOAgent nodes",
+      "placeholder": "e.g., 1000 or 66:5000",
+      "group": "overrides"
+    },
+    "learning_rate": {
+      "switch": "--learning-rate",
+      "type": "text",
+      "label": "Learning Rate",
+      "description": "Override learning rate for SGDOptimizer nodes",
+      "placeholder": "e.g., 0.01 or 68:0.001",
+      "group": "overrides"
+    },
+    "batch_size": {
+      "switch": "--batch-size",
+      "type": "text",
+      "label": "Batch Size",
+      "description": "Override batch size for BatchSampler nodes",
+      "placeholder": "e.g., 32 or 38:64",
+      "group": "overrides"
+    },
+    "fixed_seed": {
+      "switch": "--fixed-seed",
+      "type": "number",
+      "label": "Fixed Seed",
+      "description": "Use fixed random seed for deterministic execution",
+      "placeholder": "e.g., 42",
+      "group": "reproducibility"
+    },
+    "override": {
+      "switch": "--override",
+      "type": "text",
+      "label": "Advanced Overrides",
+      "description": "Override specific node configuration values",
+      "placeholder": "e.g., 56:checkpoint_enabled=True",
+      "group": "advanced"
+    },
+    "enable_telemetry": {
+      "switch": "--enable-telemetry",
+      "type": "select_or_text",
+      "label": "Enable Telemetry",
+      "description": "Enable telemetry reporting for debugging",
+      "options": ["all", "custom"],
+      "placeholder": "e.g., 10,11",
+      "group": "debugging"
+    }
+  },
+  "argument_order": [
+    "verbose",
+    "debug",
+    "save_checkpoint",
+    "out_dir",
+    "load_checkpoint",
+    "timeout",
+    "visual",
+    "headless",
+    "inference",
+    "dnne_profiling",
+    "epochs",
+    "max_iterations",
+    "learning_rate",
+    "batch_size",
+    "fixed_seed",
+    "enable_telemetry",
+    "override"
+  ],
+  "groups": {
+    "logging": {
+      "label": "Logging",
+      "order": 1
+    },
+    "checkpoints": {
+      "label": "Checkpoints",
+      "order": 2
+    },
+    "training": {
+      "label": "Training",
+      "order": 3
+    },
+    "display": {
+      "label": "Display",
+      "order": 4
+    },
+    "overrides": {
+      "label": "Node Overrides",
+      "order": 5
+    },
+    "reproducibility": {
+      "label": "Reproducibility",
+      "order": 6
+    },
+    "debugging": {
+      "label": "Debugging",
+      "order": 7
+    },
+    "advanced": {
+      "label": "Advanced",
+      "order": 8
+    }
+  }
+}

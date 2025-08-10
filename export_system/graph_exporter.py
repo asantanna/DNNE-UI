@@ -326,8 +326,42 @@ class GraphExporter:
         
         return False
     
+    def _validate_runner_args_timestamps(self):
+        """Lightweight check that runner_args.json is up-to-date"""
+        import os
+        import time
+        
+        template_dir = os.path.join(os.path.dirname(__file__), 'templates/framework')
+        arg_parser_path = os.path.join(template_dir, 'arg_parser.tpl')
+        runner_args_path = os.path.join(template_dir, 'runner_args.json')
+        
+        if not os.path.exists(runner_args_path):
+            raise Exception(
+                "runner_args.json is missing! Cannot export without UI configuration."
+            )
+        
+        arg_parser_mtime = os.path.getmtime(arg_parser_path)
+        runner_args_mtime = os.path.getmtime(runner_args_path)
+        
+        if arg_parser_mtime > runner_args_mtime:
+            # Format times for clarity
+            arg_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(arg_parser_mtime))
+            json_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(runner_args_mtime))
+            
+            raise Exception(
+                f"⚠️ EXPORT BLOCKED: runner_args.json is out of date!\n\n"
+                f"arg_parser.tpl modified: {arg_time}\n"
+                f"runner_args.json updated: {json_time}\n\n"
+                f"The argument parser has been modified more recently than the UI configuration.\n"
+                f"Please update runner_args.json to match the arguments in arg_parser.tpl\n"
+                f"Run tests to verify: python -m unittest dnne-test-suite.test_runner_args_sync"
+            )
+    
     def export_workflow(self, workflow: Dict, output_path: Optional[Path] = None) -> str:
         """Convert workflow JSON to modular Python package"""
+        # Validate that runner_args.json is up-to-date
+        self._validate_runner_args_timestamps()
+        
         nodes = workflow.get("nodes", [])
         links = workflow.get("links", [])
         metadata = workflow.get("metadata", {})
@@ -995,6 +1029,11 @@ class PlaceholderNode_{node_id}(QueueNode):
         override_parser_content = self._load_template("framework/override_parser.py")
         (framework_dir / "override_parser.py").write_text(override_parser_content, encoding='utf-8')
         self.logger.info("Exported override_parser.py for runtime parameter overrides")
+        
+        # Export arg_parser.py (required for command-line argument parsing)
+        arg_parser_content = self._load_template("framework/arg_parser.tpl")
+        (framework_dir / "arg_parser.py").write_text(arg_parser_content, encoding='utf-8')
+        self.logger.info("Exported arg_parser.py for command-line argument parsing")
         
         # Export telemetry.py (required by balancing node and others)
         telemetry_content = self._load_template("framework/telemetry.py")
