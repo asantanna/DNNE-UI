@@ -16,7 +16,7 @@ The `tasks/` subdirectory contains component-specific task tracking files for on
 ### Key Documentation References
 
 #### Architecture & Design
-- **`docs-dnne/architecture`** - Various documents describing the architecture and special issues in DNNE
+- **`dnne-docs/architecture`** - Various documents describing the architecture and special issues in DNNE
 
 #### Quick Access
 - **Task Status**: Check `tasks/INDEX.md` for current priorities and progress
@@ -47,13 +47,13 @@ Based on task statuses (see `tasks/INDEX.md` for details):
 
 ```bash
 # Check all task statuses
-cat docs-dnne/for_claude/tasks/INDEX.md
+cat dnne-docs/for_claude/tasks/INDEX.md
 
 # View specific component tasks
-cat docs-dnne/for_claude/tasks/{component}/TASKS.md
+cat dnne-docs/for_claude/tasks/{component}/TASKS.md
 
 # Create new task file from template
-cp docs-dnne/for_claude/tasks/TEMPLATE.md docs-dnne/for_claude/tasks/{new_component}/TASKS.md
+cp dnne-docs/for_claude/tasks/TEMPLATE.md dnne-docs/for_claude/tasks/{new_component}/TASKS.md
 ```
 
 Last updated: 2025-08-07

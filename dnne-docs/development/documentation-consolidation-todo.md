@@ -6,7 +6,7 @@ This document tracks the progress of consolidating and improving DNNE documentat
 1. Reduce CLAUDE.md files to concise pointers (~80% size reduction)
 2. Eliminate duplicate documentation
 3. Create clear navigation structure
-4. Move documentation to appropriate locations in docs-dnne/
+4. Move documentation to appropriate locations in dnne-docs/
 
 ## Progress Tracking
 
@@ -25,36 +25,36 @@ This document tracks the progress of consolidating and improving DNNE documentat
 - [x] Remove: Detailed architecture sections - Completed 2025-07-28
 - [x] Remove: Export system details - Completed 2025-07-28
 - [x] Remove: Node implementation details - Completed 2025-07-28
-- [x] Add: Pointers to docs-dnne for each topic - Completed 2025-07-28
+- [x] Add: Pointers to dnne-docs for each topic - Completed 2025-07-28
 
 #### `/export_system/CLAUDE.md` (413 lines → ~30 lines)
 - [x] Keep: One-paragraph overview - Completed 2025-07-28
 - [x] Keep: Directory structure - Completed 2025-07-28
 - [x] Remove: All detailed explanations - Completed 2025-07-28
-- [x] Add: "See docs-dnne/architecture/export_system.md" - Completed 2025-07-28
+- [x] Add: "See dnne-docs/architecture/export_system.md" - Completed 2025-07-28
 
 #### `/export_system/templates/CLAUDE.md` (692 lines → ~30 lines)
 - [x] Keep: Brief description - Completed 2025-07-28
 - [x] Keep: File naming conventions - Completed 2025-07-28
 - [x] Remove: All template examples and patterns - Completed 2025-07-28
-- [x] Create: `docs-dnne/architecture/templates.md` with the removed content - Completed 2025-07-28
+- [x] Create: `dnne-docs/architecture/templates.md` with the removed content - Completed 2025-07-28
 
 #### `/custom_nodes/ml_nodes/CLAUDE.md` (545 lines → ~30 lines)
 - [x] Keep: List of node categories - Completed 2025-07-28
 - [x] Remove: Implementation details - Completed 2025-07-28
-- [x] Add: "See docs-dnne/nodes/ml/" - Completed 2025-07-28
+- [x] Add: "See dnne-docs/nodes/ml/" - Completed 2025-07-28
 
 #### `/custom_nodes/robotics_nodes/CLAUDE.md` (347 lines → ~30 lines)
 - [x] Keep: List of node types - Completed 2025-07-28
 - [x] Remove: Implementation details - Completed 2025-07-28
-- [x] Add: "See docs-dnne/nodes/robotics/" - Completed 2025-07-28
+- [x] Add: "See dnne-docs/nodes/robotics/" - Completed 2025-07-28
 
 ### 3. Improve Root Documentation (Keep at root but enhance)
 
 #### `README.md` (root)
 - [ ] Add clear project overview
 - [ ] Add quick start section
-- [ ] Add navigation to docs-dnne
+- [ ] Add navigation to dnne-docs
 - [ ] Keep installation/setup basics
 
 #### `CONFIGURATION_GUIDE.md` (root)
@@ -65,8 +65,8 @@ This document tracks the progress of consolidating and improving DNNE documentat
 ### 4. Consolidate Duplicate/Scattered Content
 
 #### Adaptive Yielding Documentation
-- [ ] Keep main: `docs-dnne/architecture/adaptive-yielding.md`
-- [ ] Archive: Move `docs-dnne/experiments/yield_tests/` to `experiments/archive/`
+- [ ] Keep main: `dnne-docs/architecture/adaptive-yielding.md`
+- [ ] Archive: Move `dnne-docs/experiments/yield_tests/` to `experiments/archive/`
 - [ ] Merge any unique content from experiments into main doc
 
 #### Architecture Documentation
@@ -75,13 +75,13 @@ This document tracks the progress of consolidating and improving DNNE documentat
 - [ ] Merge duplicated content
 
 #### Code Review Documentation
-- [ ] Move content from `DNNE_CODE_REVIEW.md` to `docs-dnne/development/code-review.md`
+- [ ] Move content from `DNNE_CODE_REVIEW.md` to `dnne-docs/development/code-review.md`
 - [ ] Delete original file
 
 ### 5. Create Missing Documentation
-- [ ] Create `docs-dnne/architecture/templates.md` (from templates/CLAUDE.md content)
-- [ ] Create `docs-dnne/setup/environment.md` (conda and Isaac Gym setup from main CLAUDE.md)
-- [ ] Update `docs-dnne/README.md` with better navigation
+- [ ] Create `dnne-docs/architecture/templates.md` (from templates/CLAUDE.md content)
+- [ ] Create `dnne-docs/setup/environment.md` (conda and Isaac Gym setup from main CLAUDE.md)
+- [ ] Update `dnne-docs/README.md` with better navigation
 
 ### 6. Review and Update .claude Directory
 - [ ] Keep `.claude/commands/dev-status.md` but remove duplicate content about adaptive yielding
