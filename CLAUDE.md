@@ -19,7 +19,7 @@ The primary innovation is the **export system** that converts visual node graphs
 #### Backend Repository (This Repository)
 Contains the main DNNE-UI backend with:
 - `server.py` - Modified ComfyUI server that handles export functionality
-- `custom_nodes/` - Node implementations for ML and robotics
+- `custom_nodes/` - UI node implementations for ML and robotics
 - `export_system/` - Export system that converts visual graphs to Python code
 - `claude_scripts/` - Claude-created utility and test scripts for development
 
@@ -27,7 +27,11 @@ Contains the main DNNE-UI backend with:
 **GitHub**: https://github.com/asantanna/DNNE-UI-Frontend.git
 Vue.js-based frontend providing the visual graph editor interface (replaces original ComfyUI frontend).
 
+- To rebuild the frontend, use "./build_frontend.sh"
+
 ## Development Commands
+
+- When using the Bash tool, do not redirect stderr because it prevents pipes from working.
 
 ### Environment Setup
 The project requires a properly configured conda environment with PyTorch. To activate it:
@@ -39,7 +43,6 @@ source /home/asantanna/miniconda/bin/activate DNNE_PY38
 
 If the conda environment is not activated, you may encounter errors like:
 - `ModuleNotFoundError: No module named 'torch'`
-- Issues with CUDA/GPU detection
 - Missing dependencies that are installed in the conda environment
 
 ### Isaac Gym Integration
@@ -51,12 +54,9 @@ IsaacGym and IsaacGymEnvs are installed and verified working:
 - **GPU Support**: Verified working with CUDA and GPU PhysX acceleration
 - **Environment Testing**: Cartpole and other environments tested successfully
 
-**⚠️ CRITICAL ISAAC GYM IMPORT ORDER FIX ⚠️**
-The export system MUST ensure Isaac Gym nodes are imported before any torch-using nodes in `nodes/__init__.py`. This is handled in `graph_exporter._generate_node_init()` which sorts Isaac Gym nodes first. Without this, you get "PyTorch was imported before isaacgym" errors.
-
 ### Starting the Server (Windows only!)
 ```bash
-python main.py
+dnne.bat [args]
 ```
 
 ### Installing Dependencies
@@ -75,7 +75,7 @@ After exporting a workflow, run the generated script:
 cd export_system/exports/{workflow_name}
 python runner.py
 ```
-Note: Ensure the conda environment is activated before running exported scripts.
+Note: Ensure the conda environment is activated before running scripts in `claude_scripts`.
 
 ### Common Development Tasks
 - **Export workflows to Python**: Use the export system via the UI or programmatically through `claude_scripts/programmatic_export.py`
@@ -134,7 +134,7 @@ The export system is the project's most sophisticated feature, converting visual
 
 ### System Components
 The system has three main components:
-1. **Builder UI (DNNE-UI)**: Visual graph editor where users drag and drop nodes to create neural network architectures
+1. **Editor/Builder UI (DNNE)**: Visual graph editor where users drag and drop nodes to create neural network architectures
 2. **Export System**: Converts the visual graph into standalone Python scripts
 3. **Runner**: The exported Python script entry that runs independently with NVIDIA Isaac Gym
 
@@ -179,24 +179,9 @@ The system has three main components:
 - Only mark tests complete when they execute successfully from start to finish
 - Document failures honestly - partial success is not success
 
-### **⚠️ CRITICAL SILENT FAILURE PATTERN ⚠️**
-**INFERENCE MODE SILENT FAILURE**: Tests often pass with "✅ All tests passed!" but inference does NOTHING.
-**SYMPTOMS**: Training works, inference "completes" but shows 0 computations and no accuracy.
-**ROOT CAUSE**: Training triggers disabled in inference mode, so no data flows through network.
-**DETECTION**: Always check inference logs for "0 computations" - this means NO inference happened.
-**SOLUTION**: ✅ FIXED - GetBatch template updated with auto-trigger mechanism for inference mode.
-
-### **⚠️ CHECKPOINT LOADING ACCURACY DROP PATTERN ⚠️**
-**SYMPTOMS**: Training accuracy ~90%, inference accuracy drops to ~8% (random chance levels).
-**DETECTION**: Large accuracy gap between training and inference despite successful checkpoint loading.
-**POSSIBLE CAUSES**: Model state not properly restored, device mismatch, evaluation on wrong dataset.
-**STATUS**: Under investigation - need to verify checkpoint loading integrity in inference mode.
-
 ### **CRITICAL FILE ORGANIZATION RULE**
-**⚠️ ABSOLUTE PROHIBITION: NEVER create ANY files in the project root directory (/home/asantanna/DNNE/DNNE-UI/) ⚠️**
-
-**EXPORTS MUST GO TO**: `export_system/exports/{workflow_name}/` ONLY
-**TEST FILES MUST GO TO**: `dnne-test-suite` directories ONLY
+- NEVER create ANY files in the project root directory (/home/asantanna/DNNE/DNNE-UI/) unless directed to do so. ⚠️**
+- **ALL TEST FILES MUST GO TO**: `dnne-test-suite` directories ONLY
 
 ### File Structure Conventions
 - Queue templates end with `_queue.py` for async execution
