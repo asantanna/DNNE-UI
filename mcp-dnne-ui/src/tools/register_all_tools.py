@@ -261,6 +261,30 @@ def register_all_tools(server: "DNNE_UI_MCPServer"):
         description="Execute JavaScript code in the current browser context"
     )
     
+    register_tool(
+        ui_tools.get_checkbox_state,
+        name="get_checkbox_state",
+        description="Get the current state of a checkbox (e.g., 'runner_args_dlg/override')"
+    )
+    
+    register_tool(
+        ui_tools.click_checkbox,
+        name="click_checkbox",
+        description="Click a checkbox to toggle its state. Fails if checkbox is disabled or not visible."
+    )
+    
+    register_tool(
+        ui_tools.get_input_text,
+        name="get_input_text",
+        description="Get the current text value of an input field (e.g., 'runner_args_dlg/cmd_line')"
+    )
+    
+    register_tool(
+        ui_tools.enter_input_text,
+        name="enter_input_text",
+        description="Enter text into an input field (e.g., path='runner_args_dlg/cmd_line', text='--enable-telemetry 10,11')"
+    )
+    
     # Register canvas operation tools
     register_tool(
         canvas_tools.zoom_to_fit,

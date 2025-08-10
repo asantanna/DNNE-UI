@@ -87,19 +87,46 @@ DROPDOWN_ITEM_SELECTORS = [
     '.p-select-items li',                    # List items in select
     '.p-select-item',                        # Generic select items
     '.p-dropdown-item',                      # Generic dropdown items
+    '.p-tieredmenu-item',                    # PrimeVue tiered menu items (for export dropdown)
     'option'                                 # Standard HTML select options
 ]
 
 # Dropdown selector mapping for different UI locations
 DROPDOWN_SELECTORS = {
     "taskbar": {
-        "client": CLIENT_DROPDOWN  # #client-dropdown
+        "client": CLIENT_DROPDOWN,  # #client-dropdown
+        "export_with_args": ".p-splitbutton-dropdown"  # Export button dropdown arrow
     },
     "log_window": {
         "client": LOG_CLIENT_DROPDOWN,  # .log-client-dropdown
         "filter": LOG_FILTER_DROPDOWN   # .log-filter-dropdown
     }
 }
+
+# Checkbox selector mapping for different UI locations
+CHECKBOX_SELECTORS = {
+    "runner_args_dlg": {
+        "override": "#override-args"  # Override checkbox in runner args dialog
+    },
+    "taskbar": {
+        "run_after_export": RUN_AFTER_EXPORT  # Run after export checkbox
+    }
+}
+
+# Input field selector mapping for different UI locations
+INPUT_SELECTORS = {
+    "runner_args_dlg": {
+        "cmd_line": ".command-line-input"  # Command line arguments input field
+    }
+}
+
+# Menu and dialog selectors
+EXPORT_MENU_OVERLAY = ".p-tieredmenu-overlay"
+EXPORT_WITH_ARGS_MENU_ITEM = ".p-tieredmenu-item-link:has(.p-tieredmenu-item-label:has-text('Export with Arguments'))"
+RUNNER_ARGS_DIALOG = ".runner-args-dialog-content"
+EXPORT_WITH_ARGS_BUTTON = "button:has-text('Export with Arguments')"
+TIEREDMENU_ITEM = ".p-tieredmenu-item"
+TIEREDMENU_ITEM_LINK = ".p-tieredmenu-item-link"
 
 # Button selector mapping for different UI locations
 BUTTON_SELECTORS = {

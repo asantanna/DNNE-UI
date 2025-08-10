@@ -525,14 +525,24 @@ class UITools:
                     logger.debug(f"  Match found!")
                     break
             
+            # Import constants for tieredmenu
+            from utils.js_defs import TIEREDMENU_ITEM, TIEREDMENU_ITEM_LINK
+            
             # Click the matched item
             success = False
             if match_found:
-                success = await js_click_dropdown_item_by_index(
-                    self.browser,
-                    match_found['selector'],
-                    match_found['index']
-                )
+                # Special handling for tieredmenu items - need to click the link inside
+                if match_found['selector'] == TIEREDMENU_ITEM:
+                    # For tieredmenu, click the link element inside the item
+                    link_selector = f"{match_found['selector']}:nth-of-type({match_found['index'] + 1}) {TIEREDMENU_ITEM_LINK}"
+                    success = await self.browser.click(link_selector)
+                else:
+                    # Use the standard click method for other dropdown types
+                    success = await js_click_dropdown_item_by_index(
+                        self.browser,
+                        match_found['selector'],
+                        match_found['index']
+                    )
             
             if success:
                 return format_mcp_response(
@@ -651,6 +661,380 @@ class UITools:
                 
         except Exception as e:
             logger.error(f"Failed to click button: {e}")
+            return format_mcp_response(False, error=str(e))
+    
+    async def get_checkbox_state(self, path: str) -> Dict[str, Any]:
+        """
+        Get the current state of a checkbox
+        
+        Args:
+            path: Checkbox path like "runner_args_dlg/override"
+                  Format: location/control
+        
+        Returns:
+            MCP response with checkbox state (checked, disabled, visible)
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info(f"Getting checkbox state: {path}")
+            
+            # Parse the path
+            parts = path.split('/')
+            if len(parts) != 2:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid checkbox path: {path}. Use format 'location/control' (e.g., 'runner_args_dlg/override')"
+                )
+            
+            location = parts[0].lower()
+            control = parts[1].lower()
+            
+            # Get the checkbox selector from centralized mapping
+            from utils.js_defs import CHECKBOX_SELECTORS
+            
+            if location not in CHECKBOX_SELECTORS:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid location: {location}. Valid locations: {', '.join(CHECKBOX_SELECTORS.keys())}"
+                )
+            
+            if control not in CHECKBOX_SELECTORS[location]:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid control '{control}' for location '{location}'. Valid controls: {', '.join(CHECKBOX_SELECTORS[location].keys())}"
+                )
+            
+            checkbox_selector = CHECKBOX_SELECTORS[location][control]
+            
+            # Check if checkbox exists
+            exists = await self.browser.is_visible(checkbox_selector)
+            if not exists:
+                return format_mcp_response(
+                    False,
+                    error=f"Checkbox not found at {location}/{control} with selector: {checkbox_selector}"
+                )
+            
+            # Get checkbox state
+            state = await self.browser.evaluate(f"""
+                () => {{
+                    const checkbox = document.querySelector('{checkbox_selector}');
+                    if (!checkbox) return null;
+                    
+                    // Handle both input[type="checkbox"] and elements with checkbox role
+                    const isInput = checkbox.tagName.toLowerCase() === 'input';
+                    
+                    return {{
+                        checked: isInput ? checkbox.checked : checkbox.getAttribute('aria-checked') === 'true',
+                        disabled: checkbox.disabled || checkbox.hasAttribute('disabled') || checkbox.getAttribute('aria-disabled') === 'true',
+                        visible: checkbox.offsetParent !== null && window.getComputedStyle(checkbox).display !== 'none'
+                    }};
+                }}
+            """)
+            
+            if state is None:
+                return format_mcp_response(
+                    False,
+                    error=f"Failed to get state for checkbox at {location}/{control}"
+                )
+            
+            return format_mcp_response(
+                True,
+                data={
+                    "location": location,
+                    "control": control,
+                    "checked": state.get('checked', False),
+                    "disabled": state.get('disabled', False),
+                    "visible": state.get('visible', True)
+                },
+                message=f"Checkbox '{control}' at '{location}' is {'checked' if state.get('checked') else 'unchecked'}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to get checkbox state: {e}")
+            return format_mcp_response(False, error=str(e))
+    
+    async def click_checkbox(self, path: str) -> Dict[str, Any]:
+        """
+        Click a checkbox to toggle its state
+        
+        Args:
+            path: Checkbox path like "runner_args_dlg/override"
+                  Format: location/control
+        
+        Returns:
+            MCP response with new checkbox state
+            
+        Fails if:
+            - Checkbox doesn't exist
+            - Checkbox is not visible
+            - Checkbox is disabled
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info(f"Clicking checkbox: {path}")
+            
+            # First get the current state to validate
+            state_result = await self.get_checkbox_state(path)
+            
+            if not state_result['success']:
+                return state_result  # Pass through the error
+            
+            # Data is merged directly into the response, not under 'data' key
+            current_state = state_result
+            
+            # Check if checkbox is disabled
+            if current_state.get('disabled', False):
+                return format_mcp_response(
+                    False,
+                    error=f"Cannot click checkbox '{path}' - it is disabled"
+                )
+            
+            # Check if checkbox is visible
+            if not current_state.get('visible', True):
+                return format_mcp_response(
+                    False,
+                    error=f"Cannot click checkbox '{path}' - it is not visible"
+                )
+            
+            # Get the selector to click
+            parts = path.split('/')
+            location = parts[0].lower()
+            control = parts[1].lower()
+            
+            from utils.js_defs import CHECKBOX_SELECTORS
+            checkbox_selector = CHECKBOX_SELECTORS[location][control]
+            
+            # Click the checkbox
+            await self.browser.click(checkbox_selector)
+            await asyncio.sleep(ANIMATION_DELAY)
+            
+            # Get the new state
+            new_state_result = await self.get_checkbox_state(path)
+            
+            if not new_state_result['success']:
+                return format_mcp_response(
+                    False,
+                    error=f"Clicked checkbox but failed to verify new state"
+                )
+            
+            new_state = new_state_result.get('checked', False)
+            
+            return format_mcp_response(
+                True,
+                data={
+                    "location": location,
+                    "control": control,
+                    "checked": new_state
+                },
+                message=f"Checkbox '{control}' at '{location}' is now {'checked' if new_state else 'unchecked'}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to click checkbox: {e}")
+            return format_mcp_response(False, error=str(e))
+    
+    async def get_input_text(self, path: str) -> Dict[str, Any]:
+        """
+        Get the current text value of an input field
+        
+        Args:
+            path: Input path like "runner_args_dlg/cmd_line"
+                  Format: location/control
+        
+        Returns:
+            MCP response with input value and state
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info(f"Getting input text: {path}")
+            
+            # Parse the path
+            parts = path.split('/')
+            if len(parts) != 2:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid input path: {path}. Use format 'location/control' (e.g., 'runner_args_dlg/cmd_line')"
+                )
+            
+            location = parts[0].lower()
+            control = parts[1].lower()
+            
+            # Get the input selector from centralized mapping
+            from utils.js_defs import INPUT_SELECTORS
+            
+            if location not in INPUT_SELECTORS:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid location: {location}. Valid locations: {', '.join(INPUT_SELECTORS.keys())}"
+                )
+            
+            if control not in INPUT_SELECTORS[location]:
+                return format_mcp_response(
+                    False,
+                    error=f"Invalid control '{control}' for location '{location}'. Valid controls: {', '.join(INPUT_SELECTORS[location].keys())}"
+                )
+            
+            input_selector = INPUT_SELECTORS[location][control]
+            
+            # Check if input exists
+            exists = await self.browser.is_visible(input_selector)
+            if not exists:
+                return format_mcp_response(
+                    False,
+                    error=f"Input field not found at {location}/{control} with selector: {input_selector}"
+                )
+            
+            # Get input state and value
+            state = await self.browser.evaluate(f"""
+                () => {{
+                    const input = document.querySelector('{input_selector}');
+                    if (!input) return null;
+                    
+                    return {{
+                        value: input.value || '',
+                        disabled: input.disabled || input.hasAttribute('disabled'),
+                        readonly: input.readOnly || input.hasAttribute('readonly'),
+                        visible: input.offsetParent !== null && window.getComputedStyle(input).display !== 'none'
+                    }};
+                }}
+            """)
+            
+            if state is None:
+                return format_mcp_response(
+                    False,
+                    error=f"Failed to get state for input at {location}/{control}"
+                )
+            
+            return format_mcp_response(
+                True,
+                data={
+                    "location": location,
+                    "control": control,
+                    "value": state.get('value', ''),
+                    "disabled": state.get('disabled', False),
+                    "readonly": state.get('readonly', False),
+                    "visible": state.get('visible', True)
+                },
+                message=f"Input '{control}' at '{location}' has value: {state.get('value', '')}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to get input text: {e}")
+            return format_mcp_response(False, error=str(e))
+    
+    async def enter_input_text(self, path: str, text: str, clear_first: bool = True) -> Dict[str, Any]:
+        """
+        Enter text into an input field
+        
+        Args:
+            path: Input path like "runner_args_dlg/cmd_line"
+                  Format: location/control
+            text: Text to enter
+            clear_first: Whether to clear existing text first (default: True)
+        
+        Returns:
+            MCP response with the final text value
+        """
+        try:
+            if not self.browser:
+                return format_mcp_response(False, error="Browser not initialized")
+            
+            logger.info(f"Entering text into: {path}")
+            
+            # First get the current state to validate
+            state_result = await self.get_input_text(path)
+            
+            if not state_result['success']:
+                return state_result  # Pass through the error
+            
+            # Data is merged directly into the response, not under 'data' key
+            current_state = state_result
+            
+            # Check if input is disabled
+            if current_state.get('disabled', False):
+                return format_mcp_response(
+                    False,
+                    error=f"Cannot enter text in '{path}' - input is disabled"
+                )
+            
+            # Check if input is readonly
+            if current_state.get('readonly', False):
+                return format_mcp_response(
+                    False,
+                    error=f"Cannot enter text in '{path}' - input is readonly"
+                )
+            
+            # Check if input is visible
+            if not current_state.get('visible', True):
+                return format_mcp_response(
+                    False,
+                    error=f"Cannot enter text in '{path}' - input is not visible"
+                )
+            
+            # Get the selector
+            parts = path.split('/')
+            location = parts[0].lower()
+            control = parts[1].lower()
+            
+            from utils.js_defs import INPUT_SELECTORS
+            input_selector = INPUT_SELECTORS[location][control]
+            
+            # Focus the input
+            await self.browser.click(input_selector)
+            await asyncio.sleep(0.1)
+            
+            # Clear the input if requested
+            if clear_first:
+                # Select all and delete
+                await self.browser.evaluate(f"""
+                    () => {{
+                        const input = document.querySelector('{input_selector}');
+                        if (input) {{
+                            input.select();
+                            input.value = '';
+                            // Trigger input event for frameworks that listen to it
+                            input.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                        }}
+                    }}
+                """)
+                await asyncio.sleep(0.1)
+            
+            # Type the new text
+            await self.browser.type_text(input_selector, text)
+            await asyncio.sleep(0.1)
+            
+            # Get the final value
+            final_value = await self.browser.evaluate(f"""
+                () => {{
+                    const input = document.querySelector('{input_selector}');
+                    return input ? input.value : null;
+                }}
+            """)
+            
+            if final_value is None:
+                return format_mcp_response(
+                    False,
+                    error=f"Failed to verify text entry in '{path}'"
+                )
+            
+            return format_mcp_response(
+                True,
+                data={
+                    "location": location,
+                    "control": control,
+                    "value": final_value
+                },
+                message=f"Entered text in '{control}' at '{location}'"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to enter text: {e}")
             return format_mcp_response(False, error=str(e))
     
     async def run_javascript(self, code: str, return_result: bool = True) -> Dict[str, Any]:
