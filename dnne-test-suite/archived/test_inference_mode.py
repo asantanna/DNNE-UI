@@ -19,7 +19,7 @@ def test_mnist_inference():
     print("\n=== Testing MNIST Inference Mode ===")
     
     # Load MNIST workflow
-    workflow_path = Path("user/default/workflows/MNIST Test.json")
+    workflow_path = Path("user/default/workflows/MNIST_Test.json")
     if not workflow_path.exists():
         print(f"❌ Workflow not found: {workflow_path}")
         return False

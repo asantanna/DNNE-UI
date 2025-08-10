@@ -24,8 +24,8 @@ def main():
     
     print(f"✅ Registered {len(exporter.node_registry)} node types")
     
-    # Load MNIST Test workflow
-    workflow_path = Path("user/default/workflows/MNIST Test.json")
+    # Load MNIST_Test workflow
+    workflow_path = Path("user/default/workflows/MNIST_Test.json")
     if not workflow_path.exists():
         print(f"❌ Cannot find workflow file: {workflow_path}")
         return
@@ -56,7 +56,7 @@ def main():
             node["inputs"] = inputs_dict
     
     # Export to a new directory
-    export_dir = Path("export_system/exports/MNIST-Test")
+    export_dir = Path("export_system/exports/MNIST_Test")
     
     print(f"📦 Exporting to: {export_dir}")
     print("=" * 60)

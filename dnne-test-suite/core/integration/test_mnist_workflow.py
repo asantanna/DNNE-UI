@@ -44,7 +44,7 @@ class TestMNISTExecution:
         """
         
         if sample_mnist_workflow is None:
-            pytest.fail("MNIST Test workflow not available")
+            pytest.fail("MNIST_Test workflow not available")
             
         workflow_name = "MNIST_Test"
         export_path = None
@@ -140,7 +140,7 @@ class TestMNISTExecution:
         
         # Use real MNIST workflow if available
         if sample_mnist_workflow is None:
-            pytest.fail("MNIST Test workflow not available")
+            pytest.fail("MNIST_Test workflow not available")
             
         workflow_name = "MNIST_Test"
         export_path = None
@@ -200,7 +200,7 @@ class TestMNISTExecution:
                                 raise AssertionError("Could not parse final accuracy from output")
                             
                             # Print test summary with runtime, accuracy, and loss
-                            print(f"\n📊 MNIST Test Summary:")
+                            print(f"\n📊 MNIST_Test Summary:")
                             print(f"   Runtime: {test_duration:.1f} seconds")
                             print(f"   Final Accuracy: {final_accuracy:.1%}" if final_accuracy else "   Final Accuracy: Not available")
                             print(f"   Final Loss: {final_loss:.3f}" if final_loss else "   Final Loss: Not available")

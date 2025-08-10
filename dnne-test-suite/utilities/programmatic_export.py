@@ -32,7 +32,7 @@ def get_available_workflows():
 
 def normalize_workflow_name(name):
     """Convert workflow name to filename format"""
-    # Handle common cases like "MNIST Test" -> "MNIST Test.json"
+    # Handle common cases like "MNIST_Test" -> "MNIST_Test.json"
     if not name.endswith('.json'):
         return f"{name}.json"
     return name
@@ -97,8 +97,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s "MNIST Test"                    # Export with default timestamped directory
-  %(prog)s "MNIST Test" --target-dir "MNIST-Test"  # Export to specific directory
+  %(prog)s "MNIST_Test"                    # Export with default timestamped directory
+  %(prog)s "MNIST_Test" --target-dir "MNIST_Test"  # Export to specific directory
   %(prog)s --list                         # Show available workflows
         """
     )

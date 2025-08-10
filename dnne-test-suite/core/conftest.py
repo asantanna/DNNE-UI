@@ -42,7 +42,7 @@ TEST_DATA_DIR = Path(__file__).parent / "fixtures"
 
 @pytest.fixture
 def sample_mnist_workflow():
-    """Load the MNIST Test workflow for testing."""
+    """Load the MNIST_Test workflow for testing."""
     workflow_path = PROJECT_ROOT / "user" / "default" / "workflows" / "MNIST_Test.json"
     if workflow_path.exists():
         with open(workflow_path, 'r') as f:

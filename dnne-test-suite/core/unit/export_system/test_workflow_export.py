@@ -28,8 +28,8 @@ class TestWorkflowLoading:
     
     @pytest.mark.export
     def test_load_mnist_workflow_file(self, sample_mnist_workflow):
-        """Test loading actual MNIST Test.json workflow file."""
-        assert sample_mnist_workflow is not None, "MNIST Test.json workflow not found"
+        """Test loading actual MNIST_Test.json workflow file."""
+        assert sample_mnist_workflow is not None, "MNIST_Test.json workflow not found"
         
         # Validate workflow structure
         assert validate_workflow_structure(sample_mnist_workflow)
@@ -127,7 +127,7 @@ class TestWorkflowExport:
     @pytest.mark.export
     def test_full_mnist_workflow_export(self, sample_mnist_workflow):
         """Test export of full MNIST workflow with all components."""
-        assert sample_mnist_workflow is not None, "MNIST Test.json workflow not available"
+        assert sample_mnist_workflow is not None, "MNIST_Test.json workflow not available"
         
         exporter = GraphExporter()
         register_all_exporters(exporter)

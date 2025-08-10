@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test export of MNIST Test workflow
+Test export of MNIST_Test workflow
 """
 
 import os
@@ -15,7 +15,7 @@ from export_system.graph_exporter import GraphExporter
 from export_system.node_exporters import register_all_exporters
 
 def main():
-    print("Testing MNIST Test Workflow Export...")
+    print("Testing MNIST_Test Workflow Export...")
     print("=" * 60)
     
     # Create exporter
@@ -24,8 +24,8 @@ def main():
     
     print(f" Loaded export system with {len(exporter.node_registry)} node types")
     
-    # Load MNIST Test workflow
-    workflow_path = Path("user/default/workflows/MNIST Test.json")
+    # Load MNIST_Test workflow
+    workflow_path = Path("user/default/workflows/MNIST_Test.json")
     if not workflow_path.exists():
         print(f"L Workflow not found: {workflow_path}")
         return
@@ -37,7 +37,7 @@ def main():
     
     # Export the workflow
     try:
-        output_path = Path("export_system/exports/MNIST-Test")
+        output_path = Path("export_system/exports/MNIST_Test")
         result = exporter.export_workflow(workflow, output_path)
         print(" Export successful!")
         print(f" Generated package at: {output_path}")

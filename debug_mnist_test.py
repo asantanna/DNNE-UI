@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Standalone debug version of the failing MNIST test.
+Standalone debug version of the failing MNIST_Test.
 Removes pytest dependencies to make it easier to debug.
 """
 
@@ -83,10 +83,10 @@ def export_workflow_for_test(workflow_name: str, test_name: str = None) -> Path:
         raise RuntimeError(f"Export failed for workflow {workflow_name}: {e}")
 
 def main():
-    """Run the standalone MNIST test."""
+    """Run the standalone MNIST_Test."""
     print("🧪 Running standalone MNIST export and execution test")
     
-    workflow_name = "MNIST Test"
+    workflow_name = "MNIST_Test"
     export_path = None
     
     try:
