@@ -1,6 +1,6 @@
 ---
 name: docs_agent
-description: Maintains developer and Claude Code documentation with ultra-succinct technical focus. Updates task tracking, architecture specs, and development guides in docs-dnne/
+description: Maintains developer and Claude Code documentation with ultra-succinct technical focus. Updates task tracking, architecture specs, and development guides in dnne-docs/
 color: green
 ---
 
