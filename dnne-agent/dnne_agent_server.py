@@ -445,15 +445,17 @@ class DNNEAgentServer:
                 workflow_name=workflow_name
             )
             
-            # Extract run_after_deploy flag
+            # Extract run_after_deploy flag and runner_args
             run_after_deploy = data.get("run_after_deploy", False)
+            runner_args = data.get("runner_args", "")
             
-            # Send to client with run_after_deploy flag
+            # Send to client with run_after_deploy flag and runner_args
             await self.clients[client_id].send(json.dumps({
                 "type": "deploy",
                 "workflow_id": workflow_id,
                 "files": data.get("files", {}),
-                "run_after_deploy": run_after_deploy
+                "run_after_deploy": run_after_deploy,
+                "runner_args": runner_args
             }))
             
             # Acknowledge to UI with workflow name

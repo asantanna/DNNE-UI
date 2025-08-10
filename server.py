@@ -238,6 +238,34 @@ class PromptServer():
                                 client_id = data.get('client_id')  # For requesting latest logs when no workflow_id
                                 logging.debug(f"🔍 Received request_logs for workflow_id: {workflow_id}, client_id: {client_id}")
                                 await self.send_workflow_history(ws, workflow_id, client_id)
+                            elif msg_type == 'request_runner_args':
+                                # Handle request for runner arguments configuration
+                                import os
+                                runner_args_path = os.path.join(
+                                    os.path.dirname(__file__), 
+                                    'export_system/templates/framework/runner_args.json'
+                                )
+                                try:
+                                    with open(runner_args_path, 'r') as f:
+                                        runner_args = json.load(f)
+                                    
+                                    await ws.send_json({
+                                        'type': 'runner_args',
+                                        'data': runner_args
+                                    })
+                                    logging.debug("Sent runner_args configuration to frontend")
+                                except FileNotFoundError:
+                                    logging.error(f"runner_args.json not found at {runner_args_path}")
+                                    await ws.send_json({
+                                        'type': 'error',
+                                        'message': 'Runner arguments configuration not found'
+                                    })
+                                except Exception as e:
+                                    logging.error(f"Error loading runner_args.json: {e}")
+                                    await ws.send_json({
+                                        'type': 'error',
+                                        'message': f'Error loading runner arguments: {str(e)}'
+                                    })
                         except json.JSONDecodeError:
                             logging.warning(f'Invalid JSON from client: {msg.data}')
                         except Exception as e:
@@ -708,6 +736,7 @@ class PromptServer():
                 export_target = json_data.get("export_target", "local")
                 run_after_export = json_data.get("run_after_export", False)
                 workflow_path = json_data.get("workflow_path")
+                runner_args = json_data.get("runner_args", "")
                 
                 # FAIL FAST: Extract workflow name from path if provided
                 if workflow_path:
@@ -849,7 +878,8 @@ class PromptServer():
                                 "workflow_name": safe_name,
                                 "client_id": export_target,
                                 "files": files_to_deploy,
-                                "run_after_deploy": run_after_export
+                                "run_after_deploy": run_after_export,
+                                "runner_args": runner_args
                             }
                             
                             await self.agent_ws.send_json(deploy_msg)

@@ -488,8 +488,9 @@ class DNNEAgentClient:
             workflow_id = data.get("workflow_id")
             files = data.get("files", {})
             run_after_deploy = data.get("run_after_deploy", False)
+            runner_args = data.get("runner_args", "")
             
-            logger.info(f"Deploying workflow {workflow_id}, run_after_deploy={run_after_deploy}")
+            logger.info(f"Deploying workflow {workflow_id}, run_after_deploy={run_after_deploy}, runner_args={runner_args}")
             
             try:
                 # Clean deployment directory if it exists
@@ -535,8 +536,14 @@ class DNNEAgentClient:
                 
                 # Auto-start if requested
                 if run_after_deploy:
-                    logger.debug(f"Auto-starting workflow {workflow_id}")
-                    await self.start_workflow(workflow_id, [])
+                    # Parse runner_args into a list
+                    args_list = []
+                    if runner_args:
+                        # Simple splitting by spaces (could be improved for quoted args)
+                        import shlex
+                        args_list = shlex.split(runner_args)
+                    logger.debug(f"Auto-starting workflow {workflow_id} with args: {args_list}")
+                    await self.start_workflow(workflow_id, args_list)
                 
             except Exception as e:
                 logger.error(f"Deployment failed: {e}")
