@@ -3,7 +3,20 @@
 
 **📋 TASK TRACKING**: See `docs-dnne/for_claude/tasks/INDEX.md` for current task status and priorities across all components.
 
-## Latest Achievements (2025-01-09)
+## Latest Achievements (2025-01-10)
+
+### Runner Arguments Dialog Implementation ✅
+- Implemented dynamic, JSON-driven UI for configuring runner.py arguments
+- Two-column layout (900px width) with flexible field positioning
+- Removed groups system in favor of direct column/order per field
+- Override mode allows manual command line editing
+- All field types working: checkbox, text, number, select, select_or_text
+- Professional styling with dark background (#252525) for readonly command input
+- No frontend rebuild needed for layout changes - reads runner_args.json fresh
+- SplitButton with "Export with Arguments..." option
+- Real-time command line preview generation
+
+## Previous Session (2025-01-09)
 
 ### Telemetry Pipeline Implementation ✅
 - Implemented complete telemetry system from exported nodes to DNNE

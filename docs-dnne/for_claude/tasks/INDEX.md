@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-01-09*
+*Last Updated: 2025-01-10*
 
 This index provides a quick overview of all active task tracking documents for the DNNE project. Each component has its own detailed task file in the corresponding subdirectory.
 
@@ -12,6 +12,7 @@ This index provides a quick overview of all active task tracking documents for t
 | **DNNE Agent** | 🟢 Complete | Phase 8 Complete - Telemetry | High | 2025-01-09 |
 | **Log Window** | 🟢 Working | ~97% - STOP Button Fixed | Medium | 2025-08-08 |
 | **Export System** | 🟢 Fixed | Server restart issue resolved | High | 2025-08-08 |
+| **Runner Args Dialog** | 🟢 Complete | 100% - All features implemented | Medium | 2025-01-10 |
 
 ## Legend
 - 🟢 **Active/Complete** - Actively worked on or completed
@@ -48,6 +49,13 @@ This index provides a quick overview of all active task tracking documents for t
 - **Root Cause**: Server lost track of loaded workflow name after restart
 - **Solution**: Frontend now sends workflow path with every export request
 - **Status**: ✅ Fixed - Fail-fast principle applied, no fallbacks
+
+### Runner Args Dialog (`runner_args_dialog/TASKS.md`)
+**Summary**: Dynamic UI for configuring command-line arguments during export
+- **Highlights**: JSON-driven layout, no frontend rebuild needed for changes
+- **Features**: Two-column layout, override mode, real-time command preview
+- **Recent**: Removed groups system for flexible field positioning
+- **Status**: ✅ Complete - All UI issues resolved, styling perfected
 
 ## Quick Links
 
