@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-09*
+*Last Updated: 2025-01-09*
 
 This index provides a quick overview of all active task tracking documents for the DNNE project. Each component has its own detailed task file in the corresponding subdirectory.
 
@@ -9,7 +9,7 @@ This index provides a quick overview of all active task tracking documents for t
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
 | **MCP Integration** | 🟢 Active | 38/38 tools implemented, 2 pending | High | 2025-08-09 |
-| **DNNE Agent** | 🟢 Complete | Phase 6 Complete | High | 2025-08-06 |
+| **DNNE Agent** | 🟢 Complete | Phase 8 Complete - Telemetry | High | 2025-01-09 |
 | **Log Window** | 🟢 Working | ~97% - STOP Button Fixed | Medium | 2025-08-08 |
 | **Export System** | 🟢 Fixed | Server restart issue resolved | High | 2025-08-08 |
 
@@ -28,9 +28,10 @@ This index provides a quick overview of all active task tracking documents for t
 - **Next Steps**: Implement 2 log level utility functions
 
 ### DNNE Agent (`dnne_agent/TASKS.md`)
-**Summary**: Remote workflow deployment system for Linux/WSL agents
-- **Highlights**: All 6 phases complete, content-based IDs implemented
-- **Recent**: Remote logging infrastructure complete
+**Summary**: Remote workflow deployment system for Linux/WSL agents with telemetry
+- **Highlights**: All 8 phases complete, telemetry pipeline implemented
+- **Recent**: Telemetry system with violation aggregation and efficient file storage
+- **Features**: Rate-limited violations, agent-side aggregation, timestamped telemetry runs
 - **Known Issues**: Log viewer UI needs frontend implementation
 
 ### Log Window (`log_window/TASKS.md`)

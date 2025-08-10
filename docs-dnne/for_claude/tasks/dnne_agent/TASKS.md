@@ -166,11 +166,11 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [x] Handle workflow startup errors
 - [x] Update UI to show running status
 
-### 5.3 Telemetry Pipeline
-- [ ] Test telemetry flow: client → agent → DNNE
-- [ ] Implement telemetry storage in DNNE server
-- [ ] Forward telemetry data to UI via WebSocket
-- [ ] Handle telemetry buffer overflow
+### 5.3 Telemetry Pipeline ✅ 2025-01-09
+- [x] Test telemetry flow: client → agent → DNNE
+- [x] Implement telemetry storage in DNNE server
+- [x] Forward telemetry data to files (no real-time UI)
+- [x] Handle telemetry buffer overflow via rate limiting
 
 ### 5.4 Show Logs Implementation ✅
 - [x] Implement workflow_log handler in server.py
@@ -181,7 +181,7 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [x] Add proper log file closure on workflow stop
 
 ### 5.5 Complete Testing
-- [ ] End-to-end test with telemetry enabled
+- [x] End-to-end test with telemetry enabled ✅ 2025-01-09
 - [ ] Test run_after_export functionality
 - [ ] Verify logs are captured and displayed
 - [ ] Test error scenarios
@@ -226,8 +226,34 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [x] Ensure logs start fresh with each component restart
 - [x] Prevent log files from growing indefinitely
 
+## Phase 8: Telemetry Implementation ✅ 2025-01-09
+
+### 8.1 Telemetry Client Enhancement ✅
+- [x] Add `extra_args` parameter for violation grouping
+- [x] Implement SimpleRateLimiter (10 msgs/sec default)
+- [x] Remove unnecessary `guaranteed` parameter
+- [x] Support both JSON and pipe-delimited formats
+
+### 8.2 Agent-Side Aggregation ✅
+- [x] Create ViolationAggregator class
+- [x] Group violations by node:type or node:type:extra_args
+- [x] Forward first 5 details then summaries every 10s
+- [x] Batch telemetry every 100ms
+
+### 8.3 Server-Side Storage ✅
+- [x] Add telemetry_update handler in server.py
+- [x] Create telemetry/telem_{timestamp}/ directory structure
+- [x] Write efficient append-only files
+- [x] Close telemetry files on workflow stop
+
+### 8.4 Testing & Documentation ✅
+- [x] Create test scripts (test_telemetry_simple.py)
+- [x] Document architecture in telemetry.md
+- [x] Update balancing node to use new format
+- [x] Verify end-to-end pipeline
+
 ## Known Issues/Blockers
-- Telemetry data not being processed
+- ~~Telemetry data not being processed~~ ✅ Fixed
 - Show Logs button needs frontend modal implementation
 - ~~Status bar should always show "Active Workflows: 0" when none running~~ ✅ Fixed
 - Programmatic agent server restart doesn't work

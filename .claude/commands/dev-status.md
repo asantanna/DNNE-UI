@@ -3,7 +3,18 @@
 
 **📋 TASK TRACKING**: See `docs-dnne/for_claude/tasks/INDEX.md` for current task status and priorities across all components.
 
-## Latest Achievements (2025-08-08 Session 4)
+## Latest Achievements (2025-01-09)
+
+### Telemetry Pipeline Implementation ✅
+- Implemented complete telemetry system from exported nodes to DNNE
+- Added rate-limited violation reporting (10 msgs/sec) with optional `extra_args` grouping
+- Created agent-side ViolationAggregator (first 5 details, then summaries every 10s)
+- Efficient file storage in `telemetry/telem_{timestamp}/` directories
+- Fire-and-forget UDP from nodes, smart batching at agent level
+- Comprehensive documentation in `docs-dnne/architecture/telemetry.md`
+- Test scripts: `test_telemetry_simple.py` for verification
+
+## Previous Session (2025-08-08 Session 4)
 
 ### Logging Infrastructure Improvements ✅
 - Created centralized `dnne_logs` directory for all DNNE components
@@ -94,6 +105,12 @@ python claude_scripts/programmatic_export.py MNIST_Test
 cd export_system/exports/MNIST_Test
 python runner.py --epochs 10
 
+# Run with telemetry enabled
+python runner.py --enable-telemetry 10,11 --timeout 30s
+
+# Test telemetry
+python test_telemetry_simple.py
+
 # Build the frontend
 ./build_frontend.sh
 ```
@@ -123,6 +140,7 @@ See `dnne_config.json`
 ### Key Documentation
 - **Task Index**: `docs-dnne/for_claude/tasks/INDEX.md` - Quick overview of all component tasks
 - **Agent**: `docs-dnne/architecture/dnne-agent.md` - Agent architecture
+- **Telemetry**: `docs-dnne/architecture/telemetry.md` - Telemetry system architecture
 - **Runner**: `docs-dnne/development/runner.md` - Command line switches for runner.py
 - **CLAUDE.md**: Project overview and development guidance
 
