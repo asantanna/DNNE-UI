@@ -1,7 +1,10 @@
 
 # DNNE Development Status
 
-**📋 TASK TRACKING**: See `docs-dnne/for_claude/tasks/INDEX.md` for current task status and priorities across all components.
+$ARGUMENTS
+
+- **📋IMPORTANT CODING GUIDELINES**: Read `.claude/commands/rules-for-DNNE.md`
+- **📋 TASK TRACKING**: See `dnne-docs/for_claude/tasks/INDEX.md` for current task status and priorities across all components.
 
 ## Latest Achievements (2025-01-10)
 
@@ -24,7 +27,7 @@
 - Created agent-side ViolationAggregator (first 5 details, then summaries every 10s)
 - Efficient file storage in `telemetry/telem_{timestamp}/` directories
 - Fire-and-forget UDP from nodes, smart batching at agent level
-- Comprehensive documentation in `docs-dnne/architecture/telemetry.md`
+- Comprehensive documentation in `dnne-docs/architecture/telemetry.md`
 - Test scripts: `test_telemetry_simple.py` for verification
 
 ## Previous Session (2025-08-08 Session 4)
@@ -66,25 +69,6 @@
 - Renamed get_agent_status to get_viewer_client_log
 - Support for command-line arguments in restart (--verbose DEBUG)
 
-## Previous Achievements (2025-08-06)
-
-### Content-Based IDs & Remote Logging ✅
-- Workflow IDs now use SHA256 content hash (wf_{hash[:12]}) for deterministic identification
-- Complete remote logging infrastructure captures all workflow output
-- Logs saved to `remote_clients/{client}/{workflow}_wf_{id}/run_logs/`
-- Metadata.json tracks deployment information
-- Clean deployment ensures no leftover files
-
-### Run After Export Feature ✅
-- Checkbox properly disabled for Local exports
-- State preserved when switching between Local/remote clients
-- Workflows auto-start on remote clients when enabled
-- MCP functions control and test the feature
-- End-to-end tested with MNIST achieving 99.58% accuracy
-
-## Current Work: Pending Tasks
-- Add WARNING header for historical logs in viewer
-- Test click_button with all locations/controls  
 - Replace all evaluate() calls in tool files with js_* functions
 - BUG: Export should fail with error when no client connected (currently silent)
 
@@ -151,10 +135,10 @@ See `mcp-dnne-ui/README.md`
 See `dnne_config.json`
 
 ### Key Documentation
-- **Task Index**: `docs-dnne/for_claude/tasks/INDEX.md` - Quick overview of all component tasks
-- **Agent**: `docs-dnne/architecture/dnne-agent.md` - Agent architecture
-- **Telemetry**: `docs-dnne/architecture/telemetry.md` - Telemetry system architecture
-- **Runner**: `docs-dnne/development/runner.md` - Command line switches for runner.py
+- **Task Index**: `dnne-docs/for_claude/tasks/INDEX.md` - Quick overview of all component tasks
+- **Agent**: `dnne-docs/architecture/dnne-agent.md` - Agent architecture
+- **Telemetry**: `dnne-docs/architecture/telemetry.md` - Telemetry system architecture
+- **Runner**: `dnne-docs/development/runner.md` - Command line switches for runner.py
 - **CLAUDE.md**: Project overview and development guidance
 
 ### Recent Commits (2025-08-08)
