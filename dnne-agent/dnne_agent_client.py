@@ -632,6 +632,13 @@ class DNNEAgentClient:
             # Use -u flag for unbuffered output to enable real-time log streaming
             cmd = [sys.executable, "-u", "runner.py"] + args
             
+            # Log the command line at DEBUG level
+            logger.debug(f"Executing runner.py with command line: {' '.join(cmd)}")
+            logger.debug(f"  Working directory: {workspace}")
+            logger.debug(f"  Python executable: {sys.executable}")
+            if args:
+                logger.debug(f"  Runner arguments: {args}")
+            
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 cwd=workspace,
@@ -843,12 +850,14 @@ def setup_logging(log_dir: Optional[str] = None, verbose: str = 'INFO'):
     # Create logs directory
     if log_dir is None:
         # Try to use dnne_logs directory at project root
-        project_root = Path(__file__).parent.parent
+        # Use resolve() to get absolute path first to avoid relative path issues
+        script_path = Path(__file__).resolve()
+        project_root = script_path.parent.parent
         log_dir = project_root / "dnne_logs"
         
         # If dnne_logs doesn't exist (relative path issue), fall back to script directory
         if not log_dir.exists():
-            log_dir = Path(__file__).parent
+            log_dir = script_path.parent
             log_dir.mkdir(exist_ok=True)
     else:
         log_dir = Path(log_dir)

@@ -1499,21 +1499,24 @@ class PromptServer():
             file_handle = open(log_file, 'w', encoding='utf-8', buffering=1)
             
             # Store all workflow info in one place
+            start_time = datetime.now()
             self.active_workflows[workflow_id] = {
                 'file_handle': file_handle,
                 'sequence': 0,  # Initialize sequence counter
                 'name': workflow_name,
                 'client_id': client_id,
                 'client_hostname': client_hostname,
-                'start_time': datetime.now().isoformat(),
-                'log_file': str(log_file)  # Store path for later reading
+                'start_time': start_time,  # Store as datetime object for telemetry
+                'start_time_str': start_time.isoformat(),  # Store string version for display
+                'log_file': str(log_file),  # Store path for later reading
+                'log_dir': log_dir  # Store log directory for telemetry
             }
             
             # Write header
             file_handle.write(f"# Workflow: {workflow_name}\n")
             file_handle.write(f"# ID: {workflow_id}\n")
             file_handle.write(f"# Client: {client_hostname}\n")
-            file_handle.write(f"# Started: {self.active_workflows[workflow_id]['start_time']}\n")
+            file_handle.write(f"# Started: {self.active_workflows[workflow_id]['start_time_str']}\n")
             file_handle.write("#" * 60 + "\n\n")
             
             logging.info(f"Started logging for {workflow_name} to {log_file}")
