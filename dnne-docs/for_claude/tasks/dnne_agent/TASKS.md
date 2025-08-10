@@ -252,8 +252,37 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [x] Update balancing node to use new format
 - [x] Verify end-to-end pipeline
 
+## Phase 9: MCP UI Automation & Telemetry Testing (In Progress) 2025-01-10
+
+### 9.1 MCP UI Automation Enhancement ✅
+- [x] Add checkbox interaction support (get_checkbox_state, click_checkbox)
+- [x] Add input field interaction (get_input_text, enter_input_text)
+- [x] Fix click_droplist_item for PrimeVue tieredmenu components
+- [x] Use js_defs.py constants instead of hardcoded selectors
+
+### 9.2 Export with Arguments Support ✅
+- [x] Modify export_workflow to accept optional args parameter
+- [x] Implement full UI flow for "Export with Arguments" dialog
+- [x] Handle override checkbox and command line input
+- [x] Successfully export with telemetry arguments
+
+### 9.3 Telemetry Bug Fixes ✅
+- [x] Fix missing log_dir in active_workflows causing KeyError
+- [x] Fix start_time type (datetime object vs string) for telemetry
+- [x] Add debug logging for runner.py command line execution
+- [x] Fix agent client log directory resolution
+
+### 9.4 Telemetry End-to-End Testing (Partial)
+- [x] Verify runner.py receives telemetry arguments
+- [x] Confirm telemetry packets sent from runner
+- [x] Verify agent client forwards telemetry
+- [x] Confirm agent server broadcasts telemetry
+- [x] Verify DNNE receives telemetry updates
+- [x] Fix telemetry storage bugs (code fixed, not tested)
+- [ ] **VERIFY TELEMETRY FILES ARE ACTUALLY CREATED** - Need to re-test with fixed code
+
 ## Known Issues/Blockers
-- ~~Telemetry data not being processed~~ ✅ Fixed
+- **CRITICAL: Telemetry storage not working** - Fixed in code but NOT TESTED. No telemetry files created yet!
 - Show Logs button needs frontend modal implementation
 - ~~Status bar should always show "Active Workflows: 0" when none running~~ ✅ Fixed
 - Programmatic agent server restart doesn't work

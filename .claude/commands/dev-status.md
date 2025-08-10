@@ -6,7 +6,18 @@ $ARGUMENTS
 - **📋IMPORTANT CODING GUIDELINES**: Read `.claude/commands/rules-for-DNNE.md`
 - **📋 TASK TRACKING**: See `dnne-docs/for_claude/tasks/INDEX.md` for current task status and priorities across all components.
 
-## Latest Achievements (2025-01-10)
+## Latest Achievements (2025-01-10 Session 2)
+
+### MCP UI Automation & Telemetry Testing (INCOMPLETE)
+- Enhanced MCP with checkbox and input field interaction capabilities ✅
+- Fixed click_droplist_item to work with PrimeVue tieredmenu components ✅
+- Tested telemetry pipeline up to DNNE reception ✅
+- Fixed critical telemetry storage bugs in CODE ONLY (missing log_dir, wrong start_time type) ✅
+- Verified telemetry flows: runner → agent client → agent server → DNNE ✅
+- **CRITICAL ISSUE: Telemetry storage NOT working - no files created**
+- **Need to re-test with fixed code to verify storage actually works**
+
+## Earlier Today (2025-01-10 Session 1)
 
 ### Runner Arguments Dialog Implementation ✅
 - Implemented dynamic, JSON-driven UI for configuring runner.py arguments
