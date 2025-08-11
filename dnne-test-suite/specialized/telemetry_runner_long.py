@@ -131,13 +131,13 @@ async def run_long_telemetry_test():
                 print(f"\n⏱️ [{elapsed:.1f}s] Expected SUMMARY #{summary_count} at ~{elapsed:.0f}s")
             
             # Send violations continuously (3 per second)
-            for node_id in ["node_20", "node_21", "node_22"]:
+            for node_id in ["node_10", "node_11", "node_12"]:
                 # Different violation types for each node
-                if node_id == "node_20":
+                if node_id == "node_10":
                     violation_type = "frequency_below_minimum"
                     expected = 30.0
                     actual = 25.0 + random.uniform(-2, 2)
-                elif node_id == "node_21":
+                elif node_id == "node_11":
                     violation_type = "latency_exceeded"
                     expected = 10.0
                     actual = 15.0 + random.uniform(-3, 3)
@@ -176,7 +176,7 @@ async def run_long_telemetry_test():
         print(f"\n💥 Sending final burst to ensure last SUMMARY...")
         for i in range(20):
             telemetry.send_violation(
-                node_id="node_20",
+                node_id="node_10",
                 violation_type="final_burst",
                 expected=100,
                 actual=200

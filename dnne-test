@@ -2,7 +2,7 @@
 # DNNE Test Suite Command Dispatcher
 # Usage: dnne-test [command] [options]
 
-set -e
+# Removed set -e to prevent early exit during test execution
 
 # Source the existing command functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

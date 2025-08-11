@@ -54,7 +54,7 @@ class TelemetryTestOrchestrator:
             "basic": 10,
             "long": 40,  # 35s test + buffer
             "ratelimit": 15,
-            "aggregation": 20
+            "aggregation": 30  # Needs time for all 5 phases
         }
         self.test_runners = {
             "basic": "telemetry_runner.py",
@@ -205,25 +205,35 @@ class TelemetryTestOrchestrator:
         telem_dir = telem_dirs[0]
         print(f"✅ Found telemetry directory: {telem_dir}")
         
-        # Check for expected files based on test type
-        if self.test_type == "long":
-            expected_patterns = [
-                "node_node_20.dat",
-                "node_node_21.dat", 
-                "node_node_22.dat",
-                "node_node_20_violations.log",
-                "node_node_21_violations.log",
-                "node_node_22_violations.log"
-            ]
-        else:
-            expected_patterns = [
-                "node_node_10.dat",
-                "node_node_11.dat",
-                "node_node_12.dat",
-                "node_node_10_violations.log",
+        # All tests now use similar node patterns for simplicity
+        # Basic expectation: nodes 10-12 should always have data
+        expected_patterns = [
+            "node_node_10.dat",
+            "node_node_11.dat",
+            "node_node_12.dat",
+            "node_node_10_violations.log"
+        ]
+        
+        # Additional patterns for specific test types
+        if self.test_type == "basic":
+            # Basic test includes burst nodes and node_11 violations
+            expected_patterns.extend([
                 "node_node_11_violations.log",
                 "node_burst_node_*.dat"
-            ]
+            ])
+        elif self.test_type in ["long", "ratelimit", "aggregation"]:
+            # These tests have violations for nodes 11-12
+            expected_patterns.extend([
+                "node_node_11_violations.log",
+                "node_node_12_violations.log"
+            ])
+            
+        if self.test_type == "aggregation":
+            # Aggregation test also uses nodes 13-14 for extra testing
+            expected_patterns.extend([
+                "node_node_13.dat",
+                "node_node_14.dat"
+            ])
         
         found_files = []
         missing_patterns = []
@@ -258,8 +268,8 @@ class TelemetryTestOrchestrator:
                 print(f"   ❌ {p}")
             return False
         
-        # Validate content of a sample file
-        sample_node = "node_20" if self.test_type == "long" else "node_10"
+        # Validate content of a sample file - always use node_10
+        sample_node = "node_10"
         sample_file = telem_dir / f"node_{sample_node}.dat"
         if sample_file.exists():
             with open(sample_file, 'r') as f:
@@ -277,8 +287,8 @@ class TelemetryTestOrchestrator:
         violations_validated = False
         summary_found = False
         
-        # Check first node violations (should have SUMMARY after rate limiting test)
-        first_node = "node_20" if self.test_type == "long" else "node_10"
+        # Check first node violations - always use node_10
+        first_node = "node_10"
         violation_file_10 = telem_dir / f"node_{first_node}_violations.log"
         if violation_file_10.exists():
             with open(violation_file_10, 'r') as f:

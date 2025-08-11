@@ -114,13 +114,13 @@ async def run_ratelimit_test():
     
     try:
         # Phase 1: Burst test on single node
-        print("\n📈 Phase 1: Burst test on single node (node_30)")
+        print("\n📈 Phase 1: Burst test on single node (node_10)")
         print("   Sending 100 violations in 1 second...")
         
         burst_start = time.time()
         for i in range(100):
             telemetry.send_violation(
-                node_id="node_30",
+                node_id="node_10",
                 violation_type="burst_test",
                 expected=100,
                 actual=200 + i
@@ -142,7 +142,7 @@ async def run_ratelimit_test():
         multi_start = time.time()
         for i in range(50):
             # Send to three different nodes
-            for node_id in ["node_31", "node_32", "node_33"]:
+            for node_id in ["node_11", "node_12", "node_13"]:
                 telemetry.send_violation(
                     node_id=node_id,
                     violation_type="multi_node_test",
@@ -165,7 +165,7 @@ async def run_ratelimit_test():
         slow_start = time.time()
         for i in range(25):
             telemetry.send_violation(
-                node_id="node_34",
+                node_id="node_14",
                 violation_type="slow_test",
                 expected=10,
                 actual=15 + random.uniform(-2, 2)
@@ -179,7 +179,7 @@ async def run_ratelimit_test():
         # Send some normal metrics too
         print("\n📊 Sending normal metrics (not rate limited)...")
         for i in range(20):
-            for node_id in ["node_30", "node_31", "node_32", "node_33", "node_34"]:
+            for node_id in ["node_10", "node_11", "node_12", "node_13", "node_14"]:
                 telemetry.send_metric("throughput", node_id, random.uniform(80, 120))
             await asyncio.sleep(0.1)
         
@@ -189,9 +189,9 @@ async def run_ratelimit_test():
         print("\n" + "=" * 60)
         print("✅ Rate limiting test completed")
         print("📊 Expected results:")
-        print("   - node_30: ~10 violations (100 sent, rate limited)")
-        print("   - node_31/32/33: ~10 each (50 sent each, rate limited)")
-        print("   - node_34: 25 violations (all below rate limit)")
+        print("   - node_10: ~10 violations (100 sent, rate limited)")
+        print("   - node_11/12/13: ~10 each (50 sent each, rate limited)")
+        print("   - node_14: 25 violations (all below rate limit)")
         print("   - All nodes: Metrics should be recorded (not limited)")
         
     except KeyboardInterrupt:

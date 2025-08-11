@@ -2,7 +2,7 @@
 # DNNE Test Suite Claude Commands
 # Convenient commands for running DNNE tests with different configurations
 
-set -e  # Exit on error
+# Removed set -e to prevent early exit during test execution
 
 # Project root directory (where this script's parent directory is located)
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
