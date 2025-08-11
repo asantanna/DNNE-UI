@@ -195,9 +195,14 @@ class DNNEAgentClient:
     - Process management
     """
     
-    def __init__(self, config_path: Optional[str] = None, server_ip: Optional[str] = None):
+    def __init__(self, config_path: Optional[str] = None, server_ip: Optional[str] = None, test_mode: bool = False):
         # Load configuration
         self._load_config(config_path)
+        
+        # Store test mode flag
+        self.test_mode = test_mode
+        if test_mode:
+            logger.warning("Running in TEST MODE - for testing only")
         
         # Resolve server URL
         self.server_url = self._resolve_server_url(server_ip)
@@ -348,10 +353,13 @@ class DNNEAgentClient:
                 ping_timeout=10
             )
             
+            # Use special hostname when in test mode
+            hostname = "agent_client_test_host" if self.test_mode else socket.gethostname()
+            
             # Register with server
             await self.websocket.send(json.dumps({
                 "type": "register",
-                "hostname": socket.gethostname(),
+                "hostname": hostname,
                 "capabilities": {
                     "platform": sys.platform,
                     "python_version": sys.version,
@@ -899,7 +907,7 @@ async def main():
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description='DNNE Agent Client - Executes workflows and forwards telemetry')
     parser.add_argument(
-        '--server_ip',
+        '--server-ip',
         help='Server IP address (can be IP, IP:port, or "auto" for WSL auto-detection)',
         default=None
     )
@@ -921,6 +929,11 @@ async def main():
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
         help='Set the logging level (default: INFO, --verbose alone: DEBUG)'
     )
+    parser.add_argument(
+        '--test-mode',
+        action='store_true',
+        help='Run in test mode with special hostname for telemetry testing'
+    )
     
     args = parser.parse_args()
     
@@ -928,7 +941,7 @@ async def main():
     log_file = setup_logging(args.log_dir, args.verbose)
     
     # Create and run client
-    client = DNNEAgentClient(config_path=args.config, server_ip=args.server_ip)
+    client = DNNEAgentClient(config_path=args.config, server_ip=args.server_ip, test_mode=args.test_mode)
     
     try:
         await client.run()

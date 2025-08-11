@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import sys
+import json
 import aiohttp
 from pathlib import Path
 from typing import Dict, Any, TYPE_CHECKING
@@ -201,6 +202,12 @@ class UtilityTools:
             MCP response with restart status
         """
         try:
+            # Log what we're about to do
+            logger.info(f"[MCP RESTART] Starting restart process:")
+            logger.info(f"  - restart_agent_server: {restart_agent_server}")
+            logger.info(f"  - dnne_extra_args: {dnne_extra_args}")
+            logger.info(f"  - agent_server_extra_args: {agent_server_extra_args}")
+            
             async with aiohttp.ClientSession() as session:
                 payload = {
                     "command": "restart",
@@ -214,10 +221,16 @@ class UtilityTools:
                 # Add extra arguments for DNNE if provided
                 if dnne_extra_args:
                     payload["args"]["dnne_extra_args"] = dnne_extra_args
+                    logger.info(f"[MCP RESTART] Added DNNE extra args to payload: {dnne_extra_args}")
                 
                 # Add extra arguments for agent server if provided
                 if agent_server_extra_args:
                     payload["args"]["agent_server_extra_args"] = agent_server_extra_args
+                    logger.info(f"[MCP RESTART] Added agent server extra args to payload: {agent_server_extra_args}")
+                
+                # Log the full payload being sent
+                logger.info(f"[MCP RESTART] Sending payload to http://172.22.160.1:8188/remote_command:")
+                logger.info(f"[MCP RESTART] {json.dumps(payload, indent=2)}")
                 
                 async with session.post(
                     'http://172.22.160.1:8188/remote_command',
@@ -226,15 +239,18 @@ class UtilityTools:
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()
+                        logger.info(f"[MCP RESTART] Restart request successful, response: {data}")
                         return format_mcp_response(
                             True,
                             data=data,
                             message=f"Server restart initiated{' (including agent server)' if restart_agent_server else ''}"
                         )
                     else:
+                        error_msg = f"HTTP {resp.status}"
+                        logger.error(f"[MCP RESTART] Restart request failed: {error_msg}")
                         return format_mcp_response(
                             False,
-                            error=f"HTTP {resp.status}",
+                            error=error_msg,
                             message="Failed to restart server"
                         )
         except asyncio.TimeoutError:

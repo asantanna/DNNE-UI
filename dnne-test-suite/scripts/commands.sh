@@ -196,7 +196,33 @@ dnne_test_quick() {
 
 # Full test suite (everything)
 dnne_test_full() {
+    log_info "🚀 Running Full DNNE Test Suite"
+    echo "================================================================"
+    
+    # Run main tests (unit + integration)
     dnne_test_main "Complete Test Suite (Unit + Integration)"
+    local main_result=$?
+    
+    # Check if agent server is available for telemetry test
+    echo ""
+    log_info "Checking for telemetry test availability..."
+    if nc -z 172.22.160.1 8768 2>/dev/null; then
+        log_info "Running telemetry tests..."
+        dnne_test_telemetry
+        local telemetry_result=$?
+        
+        if [ $telemetry_result -ne 0 ]; then
+            log_warning "Telemetry tests failed or skipped"
+            # Don't fail the whole suite if telemetry tests fail
+            # since they require special setup
+        fi
+    else
+        log_info "Skipping telemetry tests (agent server test port not available)"
+        log_info "To enable: restart agent server with --enable-test-port"
+    fi
+    
+    # Return the main test result
+    return $main_result
 }
 
 # Coverage report
@@ -465,6 +491,43 @@ dnne_test_deps() {
     return $exit_code
 }
 
+# Telemetry tests
+dnne_test_telemetry() {
+    log_info "📊 Running DNNE Telemetry Tests"
+    echo "================================================================"
+    
+    check_project_root
+    activate_environment
+    
+    # Check if agent server is running with test port
+    echo "Checking agent server test port..."
+    if ! nc -z 172.22.160.1 8768 2>/dev/null; then
+        echo -e "${YELLOW}⚠️  Agent server test port not accessible${NC}"
+        echo "Make sure agent server is running with --enable-test-port"
+        echo ""
+        echo "To restart with test port:"
+        echo "  Use MCP: mcp__dnne-ui__util_restart_dnne with agent_server_extra_args='--enable-test-port'"
+        echo ""
+        return 1
+    fi
+    
+    echo -e "${GREEN}✅ Agent server test port is accessible${NC}"
+    echo ""
+    
+    # Run the comprehensive telemetry test
+    echo "Running telemetry test..."
+    python dnne-test-suite/specialized/test_telemetry.py "$@"
+    local result=$?
+    
+    if [ $result -eq 0 ]; then
+        echo -e "${GREEN}✅ Telemetry tests passed!${NC}"
+    else
+        echo -e "${RED}❌ Telemetry tests failed${NC}"
+    fi
+    
+    return $result
+}
+
 # Help function
 dnne_test_help() {
     echo "DNNE Test Suite Commands"
@@ -524,6 +587,7 @@ export -f dnne_test_checkpoint
 export -f dnne_test_inference
 export -f dnne_test_verbose
 export -f dnne_test_deps
+export -f dnne_test_telemetry
 export -f dnne_test_help
 
 # If script is run directly, show help

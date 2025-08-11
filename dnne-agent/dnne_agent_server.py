@@ -34,12 +34,17 @@ import os as _os
 _log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dnne_logs')
 _os.makedirs(_log_dir, exist_ok=True)
 
+# Configure logging with UTF-8 support for file output
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(os.path.join(_log_dir, 'dnne_agent_server.log'), mode='w')
+        logging.StreamHandler(sys.stdout),  # Use regular stdout, not wrapped
+        logging.FileHandler(
+            os.path.join(_log_dir, 'dnne_agent_server.log'), 
+            mode='w',
+            encoding='utf-8'  # UTF-8 encoding for file to handle emojis
+        )
     ]
 )
 logger = logging.getLogger('dnne_server')
@@ -571,8 +576,32 @@ class DNNEAgentServer:
             
             async for message in websocket:
                 data = json.loads(message)
-                # Forward test commands to UI handler
-                await self.handle_ui_message(websocket, data)
+                msg_type = data.get("type")
+                
+                # Handle special test messages
+                if msg_type == "test_workflow_start":
+                    # Create synthetic workflow for testing
+                    await self._handle_test_workflow_start(data)
+                    
+                elif msg_type == "test_telemetry":
+                    # Forward test telemetry as if from real workflow
+                    await self._handle_test_telemetry(data)
+                    
+                elif msg_type == "test_workflow_stop":
+                    # Stop test workflow
+                    await self._handle_test_workflow_stop(data)
+                    
+                elif msg_type == "get_clients":
+                    # Return list of connected clients
+                    await self._handle_get_clients(websocket)
+                    
+                elif msg_type == "deploy_to_client":
+                    # Deploy workflow to specific client
+                    await self._handle_deploy_to_client(data)
+                    
+                else:
+                    # Forward other test commands to UI handler
+                    await self.handle_ui_message(websocket, data)
                 
         except websockets.exceptions.ConnectionClosed:
             logger.info(f"Test control connection closed")
@@ -581,6 +610,208 @@ class DNNEAgentServer:
             logger.error(f"Error handling test control connection: {e}")
         finally:
             self.test_connections.remove(websocket)
+    
+    async def _handle_test_workflow_start(self, data: Dict[str, Any]):
+        """Handle test workflow start - creates synthetic workflow"""
+        workflow_id = data.get("workflow_id", f"test_wf_{int(time.time())}")
+        workflow_name = data.get("workflow_name", "TestWorkflow")
+        client_id = data.get("client_id", "test_client_001")
+        client_hostname = data.get("hostname", "test_machine")
+        
+        # Create synthetic client if needed
+        if client_id not in self.client_info:
+            self.client_info[client_id] = {
+                "hostname": client_hostname,
+                "platform": "test",
+                "connected_at": time.time()
+            }
+            logger.info(f"[TEST] Created synthetic client {client_id} ({client_hostname})")
+        
+        # Store workflow info
+        self.workflows[workflow_id] = WorkflowInfo(
+            workflow_id=workflow_id,
+            client_id=client_id,
+            files={},  # No actual files for test workflows
+            workflow_name=workflow_name
+        )
+        self.workflows[workflow_id].status = "running"
+        self.workflows[workflow_id].start_time = time.time()
+        
+        # Notify DNNE that workflow is deployed and running
+        await self.broadcast_to_ui({
+            "type": "workflow_status",
+            "workflow_id": workflow_id,
+            "workflow_name": workflow_name,
+            "client_id": client_id,
+            "status": "deployed"
+        })
+        
+        await asyncio.sleep(0.1)  # Small delay to ensure ordering
+        
+        await self.broadcast_to_ui({
+            "type": "workflow_status",
+            "workflow_id": workflow_id,
+            "workflow_name": workflow_name,
+            "client_id": client_id,
+            "status": "running"
+        })
+        
+        logger.info(f"[TEST] Started synthetic workflow {workflow_name} ({workflow_id})")
+    
+    async def _handle_test_telemetry(self, data: Dict[str, Any]):
+        """Handle test telemetry - forwards as real telemetry"""
+        workflow_id = data.get("workflow_id")
+        batch = data.get("batch", [])
+        
+        if not workflow_id:
+            logger.error("[TEST] test_telemetry missing workflow_id")
+            return
+            
+        if workflow_id not in self.workflows:
+            logger.error(f"[TEST] Unknown workflow {workflow_id} for telemetry")
+            return
+        
+        # Forward as normal telemetry update to DNNE
+        await self.broadcast_to_ui({
+            "type": "telemetry_update",
+            "workflow_id": workflow_id,
+            "batch": batch
+        })
+        
+        logger.debug(f"[TEST] Forwarded {len(batch)} telemetry items for {workflow_id}")
+    
+    async def _handle_test_workflow_stop(self, data: Dict[str, Any]):
+        """Handle test workflow stop - sends completion status"""
+        workflow_id = data.get("workflow_id")
+        status = data.get("status", "completed")  # completed, failed, terminated
+        
+        if not workflow_id:
+            logger.error("[TEST] test_workflow_stop missing workflow_id")
+            return
+            
+        if workflow_id not in self.workflows:
+            logger.error(f"[TEST] Unknown workflow {workflow_id} to stop")
+            return
+        
+        workflow = self.workflows[workflow_id]
+        workflow.status = status
+        workflow.end_time = time.time()
+        
+        # Notify DNNE that workflow has stopped
+        await self.broadcast_to_ui({
+            "type": "workflow_status",
+            "workflow_id": workflow_id,
+            "workflow_name": workflow.workflow_name,
+            "client_id": workflow.client_id,
+            "status": status
+        })
+        
+        logger.info(f"[TEST] Stopped workflow {workflow_id} with status: {status}")
+    
+    async def _handle_get_clients(self, websocket):
+        """Handle get_clients request - return list of connected clients"""
+        clients_list = []
+        
+        # Include real connected clients
+        for client_id, client_ws in self.clients.items():
+            info = self.client_info.get(client_id, {})
+            clients_list.append({
+                "client_id": client_id,
+                "hostname": info.get("hostname", "unknown"),
+                "platform": info.get("platform", "unknown"),
+                "connected": True,
+                "connected_at": info.get("connected_at", 0)
+            })
+        
+        # Include disconnected clients from client_info
+        for client_id, info in self.client_info.items():
+            if client_id not in self.clients:
+                clients_list.append({
+                    "client_id": client_id,
+                    "hostname": info.get("hostname", "unknown"),
+                    "platform": info.get("platform", "unknown"),
+                    "connected": False,
+                    "connected_at": info.get("connected_at", 0)
+                })
+        
+        # Send response
+        await websocket.send(json.dumps({
+            "type": "clients_list",
+            "clients": clients_list
+        }))
+        
+        logger.debug(f"[TEST] Sent list of {len(clients_list)} clients")
+    
+    async def _handle_deploy_to_client(self, data: Dict[str, Any]):
+        """
+        Handle deploy_to_client - deploy workflow to specific client
+        Note: this is used through test_port for debugging
+        """
+        client_hostname = data.get("client_hostname")
+        workflow_id = data.get("workflow_id")
+        workflow_name = data.get("workflow_name", workflow_id)
+        files = data.get("files", {})
+        run_after_deploy = data.get("run_after_deploy", False)
+        runner_args = data.get("runner_args", "")
+        
+        # Find client by hostname
+        target_client_id = None
+        target_client_ws = None
+        
+        for client_id, client_ws in self.clients.items():
+            info = self.client_info.get(client_id, {})
+            if info.get("hostname") == client_hostname:
+                target_client_id = client_id
+                target_client_ws = client_ws
+                break
+        
+        if not target_client_ws:
+            # Send failure response to test port
+            for test_ws in self.test_connections:
+                await test_ws.send(json.dumps({
+                    "type": "deploy_failed",
+                    "error": f"No client connected with hostname: {client_hostname}"
+                }))
+            logger.error(f"[TEST] No client found with hostname: {client_hostname}")
+            return
+        
+        # Store workflow info
+        self.workflows[workflow_id] = WorkflowInfo(
+            workflow_id=workflow_id,
+            client_id=target_client_id,
+            files=files,
+            workflow_name=workflow_name
+        )
+        
+        # Send deploy command to client
+        try:
+            await target_client_ws.send(json.dumps({
+                "type": "deploy",
+                "workflow_id": workflow_id,
+                "workflow_name": workflow_name,
+                "files": files,
+                "run_after_deploy": run_after_deploy,
+                "runner_args": runner_args
+            }))
+            
+            # Send success response to test port
+            for test_ws in self.test_connections:
+                await test_ws.send(json.dumps({
+                    "type": "deploy_success",
+                    "workflow_id": workflow_id,
+                    "client_id": target_client_id
+                }))
+            
+            logger.info(f"[TEST] Deployed workflow {workflow_name} ({workflow_id}) to client {target_client_id}")
+            
+        except Exception as e:
+            # Send failure response
+            for test_ws in self.test_connections:
+                await test_ws.send(json.dumps({
+                    "type": "deploy_failed",
+                    "error": str(e)
+                }))
+            logger.error(f"[TEST] Failed to deploy to client {target_client_id}: {e}")
     
     async def broadcast_to_ui(self, data: Dict[str, Any]):
         """Broadcast message to all connected UIs"""

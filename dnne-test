@@ -37,6 +37,7 @@ show_help() {
     echo "  coverage       Tests with coverage report (~60+ seconds)"
     echo "  performance    Performance comparison test (DNNE vs IsaacGym) (~3-5 minutes)"
     echo "  agent          DNNE Agent system tests (requires server on Windows) (~30 seconds)"
+    echo "  telemetry      Telemetry system tests (requires --enable-test-port) (~30 seconds)"
     echo ""
     echo -e "${GREEN}Helper Commands:${NC}"
     echo "  deps           Check dependencies only (~30 seconds)"
@@ -132,6 +133,11 @@ case "${1:-}" in
         shift
         echo -e "${BLUE}🔍 Checking DNNE Dependencies${NC}"
         dnne_test_deps "$@"
+        ;;
+    "telemetry")
+        shift
+        echo -e "${BLUE}📊 Running DNNE Telemetry Tests${NC}"
+        dnne_test_telemetry "$@"
         ;;
     "full")
         shift

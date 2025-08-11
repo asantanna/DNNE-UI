@@ -1,7 +1,29 @@
+import os
+import sys
+import logging
+
+# Set up basic logging VERY early to catch any import/startup errors
+# This must happen before ANY other imports that might fail
+if __name__ == "__main__":
+    # Basic logging configuration to capture early errors
+    import os as _early_os
+    _early_log_dir = _early_os.path.join(_early_os.path.dirname(__file__), 'dnne_logs')
+    _early_os.makedirs(_early_log_dir, exist_ok=True)
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(_early_os.path.join(_early_log_dir, 'DNNE.log'), mode='w', encoding='utf-8')
+        ]
+    )
+    logging.info("DNNE starting - initial logging configured")
+    logging.info(f"DNNE command line arguments: {sys.argv}")
+
+# Now do the normal imports in the correct order
 import comfy.options
 comfy.options.enable_args_parsing()
 
-import os
 import importlib.util
 import folder_paths
 import time
@@ -9,16 +31,15 @@ from comfy.cli_args import args
 from app.logger import setup_logger
 import itertools
 import utils.extra_config
-import logging
-import sys
 
 if __name__ == "__main__":
     #NOTE: These do not do anything on core ComfyUI, they are for custom nodes.
     os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
     os.environ['DO_NOT_TRACK'] = '1'
-
-
-setup_logger(log_level=args.verbose, use_stdout=args.log_stdout)
+    
+    # Re-configure logging with the actual command line arguments
+    setup_logger(log_level=args.verbose, use_stdout=args.log_stdout)
+    logging.info(f"DNNE logging reconfigured with verbose={args.verbose}, stdout={args.log_stdout}")
 
 def apply_custom_paths():
     # extra model paths

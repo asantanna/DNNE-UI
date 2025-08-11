@@ -77,15 +77,19 @@ def setup_logger(log_level: str = 'INFO', capacity: int = 300, use_stdout: bool 
     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
     logger.addHandler(file_handler)
 
-    stream_handler = logging.StreamHandler()
+    # Create UTF-8 wrapped stream for stderr to handle emojis on Windows
+    import codecs
+    utf8_stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, errors='replace')
+    stream_handler = logging.StreamHandler(utf8_stderr)
     stream_handler.setFormatter(logging.Formatter("%(message)s"))
 
     if use_stdout:
         # Only errors and critical to stderr
         stream_handler.addFilter(lambda record: not record.levelno < logging.ERROR)
 
-        # Lesser to stdout
-        stdout_handler = logging.StreamHandler(sys.stdout)
+        # Lesser to stdout - also wrap in UTF-8
+        utf8_stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, errors='replace')
+        stdout_handler = logging.StreamHandler(utf8_stdout)
         stdout_handler.setFormatter(logging.Formatter("%(message)s"))
         stdout_handler.addFilter(lambda record: record.levelno < logging.ERROR)
         logger.addHandler(stdout_handler)

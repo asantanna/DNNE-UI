@@ -972,6 +972,7 @@ class PromptServer():
             
             try:
                 json_data = await request.json()
+                logging.info(f"[Remote Command] Received request: {json_data}")
                 
                 # Simple auth check (can be enhanced later)
                 auth_token = json_data.get("auth")
@@ -1260,10 +1261,25 @@ class PromptServer():
     
     async def handle_agent_message(self, message):
         """Handle messages from the agent server."""
-        msg_type = message.get("type")
-        logging.debug(f"Received agent message type: {msg_type}")
-        
-        # Track active workflows per client
+        try:
+            msg_type = message.get("type")
+            logging.debug(f"Received agent message type: {msg_type}")
+            
+            # Process the message (rest of the function continues below)
+            await self._process_agent_message(message, msg_type)
+            
+        except KeyError as e:
+            logging.error(f"FAIL: Agent message missing required key: {e}")
+            logging.error(f"Message was: {message}")
+            # Don't crash the connection, but don't try to recover either
+        except Exception as e:
+            logging.error(f"FAIL: Agent message processing error: {e}")
+            logging.error(f"Message was: {message}")
+            # Don't crash the connection, but don't try to recover either
+    
+    async def _process_agent_message(self, message, msg_type):
+        """Process agent message - separated for error handling."""
+        # Track active workflows per client - moved from handle_agent_message
         if not hasattr(self, 'client_workflows'):
             self.client_workflows = {}  # {client_id: {workflow_id: {name, start_time}}}
         
@@ -1601,7 +1617,13 @@ class PromptServer():
         
         workflow = self.active_workflows.get(workflow_id)
         if not workflow:
-            logging.debug(f"No active workflow found for {workflow_id} in _write_telemetry_batch")
+            logging.error(f"FAIL: Cannot write telemetry for {workflow_id} - workflow not active")
+            return
+        
+        # Fail fast if log_dir is missing - indicates corrupted state
+        if "log_dir" not in workflow:
+            logging.error(f"FAIL: Workflow {workflow_id} missing log_dir - corrupted state")
+            logging.error(f"Workflow data: {workflow}")
             return
         
         # Create telemetry directory with timestamp
