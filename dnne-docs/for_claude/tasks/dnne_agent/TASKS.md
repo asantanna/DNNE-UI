@@ -300,13 +300,59 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [x] Include basic, long, ratelimit, aggregation, and overhead tests
 - [x] Add proper test summaries and pass/fail counts
 
+## Phase 11: Telemetry Test Suite Completion ✅ 2025-08-11
+
+### 11.1 Aggregation Test Creation ✅
+- [x] Create telemetry_runner_aggregation.py for testing aggregation features
+- [x] Test 100ms batching at agent level
+- [x] Test violation grouping with/without extra_args
+- [x] Test summary generation after 5 details then every 10 seconds
+- [x] Test queue depth metrics and custom metrics
+
+### 11.2 Test Suite Bug Fixes ✅
+- [x] Fix critical bug: dnne-test telemetry only ran basic test due to set -e
+- [x] Remove set -e from dnne-test and commands.sh scripts
+- [x] Standardize node IDs across all tests (nodes 10-14) for consistency
+- [x] Update test_telemetry.py to handle all test types properly
+- [x] Simplify validation logic in test_telemetry.py
+
+### 11.3 Test Suite Verification ✅
+- [x] Verify all 5 tests run via `./dnne-test telemetry` command
+- [x] Basic test: Core telemetry pipeline with SUMMARY validation ✅
+- [x] Long test: 35-second aggregation interval test ✅
+- [x] Ratelimit test: Violation rate limiting (10/sec) test ✅
+- [x] Aggregation test: Telemetry aggregation and batching ✅
+- [x] Overhead test: Performance impact measurement (runs but needs longer timeout)
+
 ### 10.4 Deployment Confirmation Flow ✅
 - [x] Fix agent server to wait for client confirmation before sending deploy_success
 - [x] Add "deployed" status handling in agent server
 - [x] Ensure proper synchronization between server and client
 
+## Phase 12: Telemetry Test Suite Optimization ✅ 2025-08-11
+
+### 12.1 Test Suite Optimization ✅
+- [x] Refactor telemetry_overhead_test.py to deploy workflow only once
+- [x] Add start_existing_workflow() to deployment_helper for workflow reuse
+- [x] Add wait_for_workflow_completion() to wait for workflow exit
+- [x] Remove confusing monitor_execution parameter from API
+- [x] Simplify deployment_helper API - separate starting from waiting
+
+### 12.2 Performance Improvements ✅
+- [x] Eliminate redundant workflow exports between test iterations
+- [x] Copy CIFAR-10 dataset (170MB) only once instead of per iteration
+- [x] Single workflow directory for entire test suite run
+- [x] Tests now handle their own timing for better control
+
+### 12.3 API Simplification ✅
+- [x] deploy_workflow_to_client() returns bool instead of timing
+- [x] start_existing_workflow() just starts and returns bool
+- [x] wait_for_workflow_completion() waits and returns exit code
+- [x] Removed monitor_workflow_execution() - timing is caller's responsibility
+
 ## Known Issues/Blockers
 - ~~**CRITICAL: Telemetry storage not working**~~ ✅ FIXED and verified working!
+- ~~**BUG: DNNE server crashes on startup after restart via MCP**~~ ✅ FIXED 2025-08-11 (Windows batch file arg format issue)
 - Show Logs button needs frontend modal implementation
 - ~~Status bar should always show "Active Workflows: 0" when none running~~ ✅ Fixed
 - Programmatic agent server restart doesn't work

@@ -1054,12 +1054,16 @@ class PromptServer():
                             # Add any additional command line arguments for agent server
                             agent_server_extra_args = args.get("agent_server_extra_args", [])
                             if agent_server_extra_args:
-                                # Pass agent server args through to main.py which will handle them
-                                cmd.append("--agent-server-args")
+                                # IMPORTANT: We use the --arg=value format instead of --arg value because
+                                # Windows batch files don't properly preserve quoted arguments when using %*
+                                # to pass arguments through. With space-separated format, quotes get mangled.
+                                # Python's argparse accepts both formats, so we use = for Windows compatibility.
+                                # Example: --agent-server-args="--enable-test-port" works
+                                #          --agent-server-args "--enable-test-port" fails (quotes lost)
                                 if isinstance(agent_server_extra_args, str):
-                                    cmd.append(agent_server_extra_args)
+                                    cmd.append(f"--agent-server-args={agent_server_extra_args}")
                                 else:
-                                    cmd.append(" ".join(agent_server_extra_args))
+                                    cmd.append(f"--agent-server-args={' '.join(agent_server_extra_args)}")
                                 logging.info(f"[Remote Command] Adding extra args for agent server: {agent_server_extra_args}")
                             
                             logging.info(f"[Remote Command] Starting new server with: {' '.join(cmd)}")

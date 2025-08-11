@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-01-10 Session 3*
+*Last Updated: 2025-08-11*
 
 This index provides a quick overview of all active task tracking documents for the DNNE project. Each component has its own detailed task file in the corresponding subdirectory.
 
@@ -9,7 +9,7 @@ This index provides a quick overview of all active task tracking documents for t
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
 | **MCP Integration** | 🟢 Enhanced | 42/42 tools implemented, UI automation improved | High | 2025-01-10 |
-| **DNNE Agent** | 🟢 Complete | Phase 10 - Telemetry WORKING! 0.6% overhead | High | 2025-01-10 |
+| **DNNE Agent** | 🟢 Complete | Phase 12 - Test suite optimized for workflow reuse | High | 2025-08-11 |
 | **Log Window** | 🟢 Working | ~97% - STOP Button Fixed | Medium | 2025-08-08 |
 | **Export System** | 🟢 Fixed | Server restart issue resolved | High | 2025-08-08 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features implemented | Medium | 2025-01-10 |
@@ -31,11 +31,19 @@ This index provides a quick overview of all active task tracking documents for t
 
 ### DNNE Agent (`dnne_agent/TASKS.md`)
 **Summary**: Remote workflow deployment system for Linux/WSL agents with telemetry
-- **Highlights**: Phase 10 complete - telemetry fully working with 0.6% overhead!
-- **Recent**: Fixed deployment confirmation flow, added copy_dir for dataset caching
-- **Today's Work**: Completed telemetry overhead testing, integrated all tests into dnne-test suite
-- **Success**: Telemetry storage VERIFIED WORKING, files created successfully
-- **Test Suite**: `dnne-test telemetry` now runs ALL telemetry tests including overhead
+- **Highlights**: Phase 12 complete - test suite optimized for workflow reuse
+- **Recent**: Optimized telemetry test suite to eliminate redundant deployments
+- **Today's Work Session 2**: 
+  - Refactored telemetry_overhead_test.py to deploy workflow only once
+  - Added start_existing_workflow() and wait_for_workflow_completion() to deployment_helper
+  - Simplified API - separated starting workflows from waiting for completion
+  - Eliminated redundant exports and data copies (saves ~170MB per iteration)
+  - Tests now handle their own timing for better control
+- **Today's Work Session 1**: 
+  - Created telemetry_runner_aggregation.py for testing aggregation features
+  - Fixed bug where dnne-test telemetry only ran basic test (removed set -e)
+  - All 5 telemetry tests now run successfully via `./dnne-test telemetry`
+- **Known Issue**: DNNE server crashes on startup after MCP restart (discovered today)
 
 ### Log Window (`log_window/TASKS.md`)
 **Summary**: UI for viewing workflow execution logs

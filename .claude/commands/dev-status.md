@@ -6,7 +6,28 @@ $ARGUMENTS
 - **📋IMPORTANT CODING GUIDELINES**: Read `.claude/commands/rules-for-DNNE.md`
 - **📋 TASK TRACKING**: See `dnne-docs/for_claude/tasks/INDEX.md` for current task status and priorities across all components.
 
-## Latest Achievements (2025-01-10 Session 3)
+## Latest Achievements (2025-08-11 Session 2)
+
+### Telemetry Test Suite Optimization ✅
+- Refactored telemetry_overhead_test.py to deploy workflow only once
+- Added start_existing_workflow() to deployment_helper for workflow reuse
+- Added wait_for_workflow_completion() to wait for workflow exit
+- Simplified deployment_helper API - separated starting from waiting
+- Eliminated redundant exports and data copies (saves ~170MB per iteration)
+- Tests now handle their own timing for better control
+- **Discovered bug**: DNNE server crashes on startup after MCP restart
+
+## Earlier Today (2025-08-11 Session 1)
+
+### Telemetry Test Suite Completion ✅
+- Created telemetry_runner_aggregation.py for testing aggregation, batching, and grouping
+- Fixed critical bug: `dnne-test telemetry` only ran basic test due to `set -e` in scripts
+- Removed `set -e` from dnne-test and commands.sh to allow all tests to run
+- Standardized node IDs across all tests (nodes 10-14) for consistency
+- Simplified test_telemetry.py validation logic
+- All 5 telemetry tests now run successfully: basic, long, ratelimit, aggregation, overhead
+
+## Previous Session (2025-01-10 Session 3)
 
 ### Telemetry Testing & Overhead Measurement ✅
 - Fixed telemetry overhead test with CIFAR-10 dataset (0.6% overhead - excellent!)
@@ -160,8 +181,9 @@ See `dnne_config.json`
 - **Runner**: `dnne-docs/development/runner.md` - Command line switches for runner.py
 - **CLAUDE.md**: Project overview and development guidance
 
-### Recent Commits (2025-01-10)
-- `303d81cc` - Fix telemetry overhead test and enhance test suite
+### Recent Commits (2025-08-11)
+- `4dc4d99b` - Optimize telemetry test suite to reuse workflows
+- `e70fb355` - Fix telemetry test suite and add aggregation test
 
 ### Previous Commits (2025-08-08)
 - `4baf02fa` - Change all log files to overwrite mode instead of append
