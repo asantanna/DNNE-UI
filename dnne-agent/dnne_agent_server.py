@@ -272,7 +272,20 @@ class DNNEAgentServer:
                 # Update workflow name if provided (in case it wasn't known during deployment)
                 if workflow_name:
                     workflow_info.workflow_name = workflow_name
-                if status == "running":
+                if status == "deployed":
+                    # Client has confirmed deployment is complete on disk
+                    # Now send deploy_success to test connections
+                    if hasattr(self, 'pending_deployments') and workflow_id in self.pending_deployments:
+                        pending = self.pending_deployments[workflow_id]
+                        for test_ws in self.test_connections:
+                            await test_ws.send(json.dumps({
+                                "type": "deploy_success",
+                                "workflow_id": workflow_id,
+                                "client_id": pending["client_id"]
+                            }))
+                        logger.info(f"[TEST] Client confirmed deployment of {pending['workflow_name']} ({workflow_id})")
+                        del self.pending_deployments[workflow_id]
+                elif status == "running":
                     workflow_info.start_time = time.time()
                 elif status in ["completed", "failed", "terminated"]:
                     workflow_info.end_time = time.time()
@@ -292,6 +305,15 @@ class DNNEAgentServer:
                 }
                 logger.debug(f"[WORKFLOW_STATUS] Broadcasting to UIs: workflow={workflow_id}, status={status}, client_id={workflow_info.client_id}")
                 await self.broadcast_to_ui(message)
+                
+                # Also broadcast to test connections
+                if self.test_connections:
+                    msg_json = json.dumps(message)
+                    for test_ws in self.test_connections:
+                        try:
+                            await test_ws.send(msg_json)
+                        except Exception as e:
+                            logger.error(f"Failed to send workflow_status to test connection: {e}")
             else:
                 # FAIL FAST: This should never happen - workflows must be tracked before status updates
                 logger.error(f"ERROR: Received status '{status}' for UNKNOWN workflow {workflow_id} from client {client_id}")
@@ -794,15 +816,16 @@ class DNNEAgentServer:
                 "runner_args": runner_args
             }))
             
-            # Send success response to test port
-            for test_ws in self.test_connections:
-                await test_ws.send(json.dumps({
-                    "type": "deploy_success",
-                    "workflow_id": workflow_id,
-                    "client_id": target_client_id
-                }))
+            # Don't send deploy_success yet - wait for client confirmation
+            # Store pending deployment info for when client confirms
+            if not hasattr(self, 'pending_deployments'):
+                self.pending_deployments = {}
+            self.pending_deployments[workflow_id] = {
+                "client_id": target_client_id,
+                "workflow_name": workflow_name
+            }
             
-            logger.info(f"[TEST] Deployed workflow {workflow_name} ({workflow_id}) to client {target_client_id}")
+            logger.info(f"[TEST] Sent workflow {workflow_name} ({workflow_id}) to client {target_client_id}, awaiting confirmation")
             
         except Exception as e:
             # Send failure response

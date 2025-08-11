@@ -9,12 +9,15 @@ import sys
 import asyncio
 import time
 import websockets
+import subprocess
+import json
 from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
 from helpers.deployment_helper import (
+    TestClientManager,
     check_client_connected,
     deploy_workflow_to_client,
     cleanup_workflow_directories
@@ -25,10 +28,11 @@ class TelemetryOverheadTest:
     """Test telemetry overhead using CIFAR10 workflow"""
     
     def __init__(self):
-        self.hostname = "test_node_overhead"
-        self.test_iterations = 3  # Run multiple iterations for averaging
+        self.hostname = "agent_client_test_host"  # Use same hostname as test mode
+        self.test_iterations = 2  # Run 2 test iterations after warmup
         self.windows_host = "172.22.160.1"  # Windows host IP
         self.test_port_url = f"ws://{self.windows_host}:8768"
+        self.client_manager = TestClientManager(self.windows_host)
         
     async def run_test(self):
         """Run the complete overhead test"""
@@ -44,19 +48,53 @@ class TelemetryOverheadTest:
             websocket = await websockets.connect(self.test_port_url)
             print(f"Connected to agent server test port")
             
-            # Check if client is connected
-            if not await check_client_connected(websocket, self.hostname):
-                print("ERROR: Test client not connected. Please run:")
-                print(f"  python dnne-agent/dnne_agent_client.py --hostname {self.hostname} --test-mode")
+            # Read and discard initial state message
+            initial_msg = await websocket.recv()
+            
+            # Ensure test client is connected
+            if not await self.client_manager.ensure_test_client_connected(websocket, self.hostname):
                 return False
             
-            print(f"Test client connected")
+            # Set up path to pre-downloaded CIFAR-10 dataset
+            cifar_data_dir = "/home/asantanna/DNNE/DNNE-UI/dnne-test-suite/DATASETS/cifar10"
+            
+            print("\n" + "="*60)
+            print("📦 Using pre-downloaded CIFAR-10 dataset")
+            print(f"   Source: {cifar_data_dir}")
+            print("="*60)
+            
+            # WARMUP RUN - Extract dataset and compile
+            print("\n" + "="*60)
+            print("🔥 WARMUP RUN - Extracting dataset and warming up...")
+            print("   (This run is not timed - it ensures data is extracted)")
+            print("="*60)
+            
+            warmup_time = await deploy_workflow_to_client(
+                websocket=websocket,
+                workflow_name="CIFAR10_Test",
+                client_hostname=self.hostname,
+                runner_args="--epochs 1",  # Just 1 epoch for warmup
+                workflow_id="cifar10_warmup",
+                monitor_execution=True,
+                copy_dir=(cifar_data_dir, "data")
+            )
+            
+            if warmup_time is not None:
+                print(f"✅ Warmup completed in {warmup_time:.2f} seconds")
+                print("   Dataset extracted and model compiled for subsequent runs")
+            else:
+                print("❌ Warmup failed - continuing anyway")
+            
+            # Clean up warmup files
+            await cleanup_workflow_directories(self.hostname, "cifar10_warmup")
+            await asyncio.sleep(2)  # Brief pause before actual tests
             
             # Run tests with and without telemetry
             times_with_telemetry = []
             times_without_telemetry = []
             
-            print(f"\nRunning {self.test_iterations} iterations...")
+            print(f"\n🚀 Running {self.test_iterations} test iterations...")
+            print("="*60)
             
             for i in range(self.test_iterations):
                 print(f"\n--- Iteration {i+1}/{self.test_iterations} ---")
@@ -67,9 +105,10 @@ class TelemetryOverheadTest:
                     websocket=websocket,
                     workflow_name="CIFAR10_Test",
                     client_hostname=self.hostname,
-                    runner_args="--epochs 2",
+                    runner_args="--epochs 2",  # 2 epochs for better measurement
                     workflow_id=f"cifar10_overhead_{i}_no_telem",
-                    monitor_execution=True
+                    monitor_execution=True,
+                    copy_dir=(cifar_data_dir, "data")
                 )
                 
                 if execution_time is not None:
@@ -87,9 +126,10 @@ class TelemetryOverheadTest:
                     websocket=websocket,
                     workflow_name="CIFAR10_Test",
                     client_hostname=self.hostname,
-                    runner_args="--epochs 2 --enable-telemetry 10,11",
+                    runner_args="--epochs 2 --enable-telemetry 10,11",  # 2 epochs
                     workflow_id=f"cifar10_overhead_{i}_with_telem",
-                    monitor_execution=True
+                    monitor_execution=True,
+                    copy_dir=(cifar_data_dir, "data")
                 )
                 
                 if execution_time is not None:
@@ -147,6 +187,8 @@ class TelemetryOverheadTest:
         finally:
             if 'websocket' in locals():
                 await websocket.close()
+            # Clean up test client if we started it
+            await self.client_manager.stop_test_client()
 
 
 async def main():

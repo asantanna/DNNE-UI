@@ -46,8 +46,8 @@ print(f"Using paths from dnne_config: isaac_gym={{isaac_gym_path}}")
 # Isaac Gym must be always be imported before pytorch to avoid import order issues
 try:
     import isaacgym
-except ImportError:
-    print("⚠️  Isaac Gym not found. Simulation features will be disabled.")
+except (ImportError, RuntimeError) as e:
+    print(f"⚠️  Isaac Gym not available: {{e}}. Simulation features will be disabled.")
 
 import asyncio
 import logging

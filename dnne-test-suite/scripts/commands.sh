@@ -514,18 +514,70 @@ dnne_test_telemetry() {
     echo -e "${GREEN}✅ Agent server test port is accessible${NC}"
     echo ""
     
-    # Run the comprehensive telemetry test
-    echo "Running telemetry test..."
-    python dnne-test-suite/specialized/test_telemetry.py "$@"
-    local result=$?
+    # Track results
+    local PASSED=0
+    local FAILED=0
     
-    if [ $result -eq 0 ]; then
-        echo -e "${GREEN}✅ Telemetry tests passed!${NC}"
+    # Function to run a test
+    run_telemetry_test() {
+        local test_type=$1
+        local description=$2
+        
+        echo -e "${YELLOW}Running $test_type test: $description${NC}"
+        echo "-------------------------------------"
+        
+        if python dnne-test-suite/specialized/test_telemetry.py --test-type "$test_type"; then
+            echo -e "${GREEN}✅ $test_type test PASSED${NC}"
+            echo ""
+            ((PASSED++))
+        else
+            echo -e "${RED}❌ $test_type test FAILED${NC}"
+            echo ""
+            ((FAILED++))
+        fi
+        
+        # Small delay between tests
+        sleep 2
+    }
+    
+    # Run all telemetry tests
+    run_telemetry_test "basic" "Core telemetry pipeline with SUMMARY validation"
+    
+    # Note: Long test takes 40 seconds
+    echo -e "${YELLOW}Note: Long test will take ~40 seconds...${NC}"
+    run_telemetry_test "long" "35-second aggregation interval test"
+    
+    run_telemetry_test "ratelimit" "Violation rate limiting (10/sec) test"
+    
+    run_telemetry_test "aggregation" "Telemetry aggregation test"
+    
+    # Run overhead test (separate script)
+    echo -e "${YELLOW}Running OVERHEAD test: Performance impact measurement${NC}"
+    echo "-------------------------------------"
+    if python dnne-test-suite/specialized/telemetry_overhead_test.py; then
+        echo -e "${GREEN}✅ OVERHEAD test PASSED${NC}"
+        echo ""
+        ((PASSED++))
     else
-        echo -e "${RED}❌ Telemetry tests failed${NC}"
+        echo -e "${RED}❌ OVERHEAD test FAILED${NC}"
+        echo ""
+        ((FAILED++))
     fi
     
-    return $result
+    # Summary
+    echo "====================================="
+    echo "Telemetry Test Suite Summary"
+    echo "====================================="
+    echo -e "${GREEN}Passed: $PASSED${NC}"
+    echo -e "${RED}Failed: $FAILED${NC}"
+    
+    if [ $FAILED -eq 0 ]; then
+        echo -e "\n${GREEN}✅ All telemetry tests passed!${NC}"
+        return 0
+    else
+        echo -e "\n${RED}❌ Some tests failed. Please review the output above.${NC}"
+        return 1
+    fi
 }
 
 # Help function
