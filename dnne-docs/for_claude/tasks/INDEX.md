@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-01-10 Session 2*
+*Last Updated: 2025-01-10 Session 3*
 
 This index provides a quick overview of all active task tracking documents for the DNNE project. Each component has its own detailed task file in the corresponding subdirectory.
 
@@ -9,7 +9,7 @@ This index provides a quick overview of all active task tracking documents for t
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
 | **MCP Integration** | 🟢 Enhanced | 42/42 tools implemented, UI automation improved | High | 2025-01-10 |
-| **DNNE Agent** | 🟡 In Progress | Phase 9 - Telemetry storage NOT VERIFIED | Critical | 2025-01-10 |
+| **DNNE Agent** | 🟢 Complete | Phase 10 - Telemetry WORKING! 0.6% overhead | High | 2025-01-10 |
 | **Log Window** | 🟢 Working | ~97% - STOP Button Fixed | Medium | 2025-08-08 |
 | **Export System** | 🟢 Fixed | Server restart issue resolved | High | 2025-08-08 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features implemented | Medium | 2025-01-10 |
@@ -31,11 +31,11 @@ This index provides a quick overview of all active task tracking documents for t
 
 ### DNNE Agent (`dnne_agent/TASKS.md`)
 **Summary**: Remote workflow deployment system for Linux/WSL agents with telemetry
-- **Highlights**: Phase 9 in progress - telemetry storage NOT working yet
-- **Recent**: Fixed telemetry storage bugs in code but NOT TESTED
-- **Today's Work**: Telemetry flows to DNNE but NO FILES CREATED - needs re-test with fixes
-- **CRITICAL**: Telemetry storage implementation incomplete - no data persisted to disk
-- **Known Issues**: Telemetry files not created, Log viewer UI needs frontend implementation
+- **Highlights**: Phase 10 complete - telemetry fully working with 0.6% overhead!
+- **Recent**: Fixed deployment confirmation flow, added copy_dir for dataset caching
+- **Today's Work**: Completed telemetry overhead testing, integrated all tests into dnne-test suite
+- **Success**: Telemetry storage VERIFIED WORKING, files created successfully
+- **Test Suite**: `dnne-test telemetry` now runs ALL telemetry tests including overhead
 
 ### Log Window (`log_window/TASKS.md`)
 **Summary**: UI for viewing workflow execution logs

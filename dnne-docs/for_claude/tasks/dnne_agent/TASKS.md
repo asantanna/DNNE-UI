@@ -272,17 +272,41 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - [x] Add debug logging for runner.py command line execution
 - [x] Fix agent client log directory resolution
 
-### 9.4 Telemetry End-to-End Testing (Partial)
+### 9.4 Telemetry End-to-End Testing ✅ 2025-01-10
 - [x] Verify runner.py receives telemetry arguments
 - [x] Confirm telemetry packets sent from runner
 - [x] Verify agent client forwards telemetry
 - [x] Confirm agent server broadcasts telemetry
 - [x] Verify DNNE receives telemetry updates
 - [x] Fix telemetry storage bugs (code fixed, not tested)
-- [ ] **VERIFY TELEMETRY FILES ARE ACTUALLY CREATED** - Need to re-test with fixed code
+- [x] **VERIFY TELEMETRY FILES ARE ACTUALLY CREATED** ✅ Working!
+
+## Phase 10: Telemetry Testing Enhancement ✅ 2025-01-10
+
+### 10.1 Deployment Helper Enhancement ✅
+- [x] Add copy_dir parameter to deploy_workflow_to_client for dataset caching
+- [x] Implement copy_data_to_workflow function for pre-deployment data copy
+- [x] Add start_workflow_manually function for separated deploy/run
+- [x] Fix monitor_workflow_execution timeout bug (was exiting after 1 second)
+
+### 10.2 Telemetry Overhead Test ✅
+- [x] Create telemetry_overhead_test.py for performance measurement
+- [x] Add warmup run to extract CIFAR-10 dataset before measurement
+- [x] Implement copy_dir to avoid 3-minute dataset downloads
+- [x] Measure telemetry overhead: 0.6% (well below 5% threshold)
+
+### 10.3 Test Suite Integration ✅
+- [x] Update dnne-test telemetry to run ALL telemetry tests
+- [x] Include basic, long, ratelimit, aggregation, and overhead tests
+- [x] Add proper test summaries and pass/fail counts
+
+### 10.4 Deployment Confirmation Flow ✅
+- [x] Fix agent server to wait for client confirmation before sending deploy_success
+- [x] Add "deployed" status handling in agent server
+- [x] Ensure proper synchronization between server and client
 
 ## Known Issues/Blockers
-- **CRITICAL: Telemetry storage not working** - Fixed in code but NOT TESTED. No telemetry files created yet!
+- ~~**CRITICAL: Telemetry storage not working**~~ ✅ FIXED and verified working!
 - Show Logs button needs frontend modal implementation
 - ~~Status bar should always show "Active Workflows: 0" when none running~~ ✅ Fixed
 - Programmatic agent server restart doesn't work
