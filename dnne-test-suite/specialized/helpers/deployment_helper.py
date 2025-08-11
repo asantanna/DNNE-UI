@@ -283,9 +283,8 @@ class DeploymentHelper:
         workflow_id: Optional[str] = None,
         display_name: Optional[str] = None,
         run_after_deploy: bool = True,
-        monitor_execution: bool = False,
         copy_dir: Optional[Tuple[str, str]] = None
-    ) -> Optional[float]:
+    ) -> bool:
         """
         Export and deploy a workflow to a test client.
         
@@ -297,21 +296,18 @@ class DeploymentHelper:
             workflow_id: Optional workflow ID (auto-generated if not provided)
             display_name: Optional display name (uses workflow_name if not provided)
             run_after_deploy: Whether to start execution after deployment
-            monitor_execution: Whether to monitor execution and return timing
             copy_dir: Optional tuple of (src_dir, rel_targ_dir) to copy data files
                      src_dir: Path to source directory with data
                      rel_targ_dir: Relative path within workflow directory
             
         Returns:
-            If monitor_execution is True, returns execution time in seconds.
-            If monitor_execution is False, returns 0.0 for success.
-            Returns None if deployment or execution failed.
+            True if deployment (and optional start) succeeded, False otherwise
         """
         # Export the workflow
         files = DeploymentHelper.export_workflow_locally(workflow_name)
         if not files:
             print(f"Failed to export workflow: {workflow_name}")
-            return None
+            return False
         
         # Generate workflow ID if not provided
         if not workflow_id:
@@ -337,7 +333,7 @@ class DeploymentHelper:
         )
         
         if not success:
-            return None
+            return False
         
         # If copy_dir is provided, copy the data files
         if copy_dir:
@@ -350,25 +346,17 @@ class DeploymentHelper:
             )
             if not success:
                 print(f"Failed to copy data files to workflow")
-                return None
+                return False
             
-            # Now start the workflow manually
+            # Now start the workflow using start_existing_workflow
             if run_after_deploy:
-                success = await DeploymentHelper.start_workflow_manually(
+                return await DeploymentHelper.start_existing_workflow(
                     websocket=websocket,
                     workflow_id=workflow_id,
                     runner_args=runner_args
                 )
-                if not success:
-                    print(f"Failed to start workflow manually")
-                    return None
         
-        # If not monitoring execution, return success
-        if not monitor_execution:
-            return 0.0
-        
-        # Monitor workflow execution
-        return await DeploymentHelper.monitor_workflow_execution(websocket, workflow_id)
+        return True
     
     @staticmethod
     async def copy_data_to_workflow(
@@ -424,21 +412,21 @@ class DeploymentHelper:
             return False
     
     @staticmethod
-    async def start_workflow_manually(
+    async def start_existing_workflow(
         websocket,
         workflow_id: str,
         runner_args: str = ""
     ) -> bool:
         """
-        Manually start a deployed workflow.
+        Start an already-deployed workflow with new arguments.
         
         Args:
-            websocket: Active WebSocket connection
-            workflow_id: ID of the workflow to start
+            websocket: Active WebSocket connection to test port
+            workflow_id: ID of the deployed workflow to start
             runner_args: Arguments to pass to runner.py
             
         Returns:
-            True if start command sent successfully, False otherwise
+            True if start command was sent successfully, False otherwise
         """
         try:
             # Parse runner_args into a list
@@ -452,52 +440,34 @@ class DeploymentHelper:
                 "args": args_list  # Server expects "args" not "runner_args"
             }))
             
-            # Wait for confirmation (with timeout)
-            try:
-                response = await asyncio.wait_for(websocket.recv(), timeout=5.0)
-                data = json.loads(response)
-                
-                if data.get("type") == "workflow_started":
-                    print(f"✅ Workflow {workflow_id} started manually")
-                    return True
-                elif data.get("type") == "error":
-                    print(f"Error starting workflow: {data.get('message')}")
-                    return False
-                    
-            except asyncio.TimeoutError:
-                # No confirmation, but may have started anyway
-                print(f"⚠️  No confirmation received for workflow start (may have started anyway)")
-                return True
-                
+            print(f"➡️ Started workflow {workflow_id}")
             return True
             
         except Exception as e:
-            print(f"Error starting workflow: {e}")
+            print(f"❌ Error starting workflow: {e}")
             return False
     
+    
     @staticmethod
-    async def monitor_workflow_execution(
+    async def wait_for_workflow_completion(
         websocket,
         workflow_id: str,
         timeout: float = 600.0
-    ) -> Optional[float]:
+    ) -> Optional[int]:
         """
-        Monitor a workflow's execution and return the execution time.
+        Wait for a workflow to complete and return its exit code.
         
         Args:
             websocket: Active WebSocket connection to test port
-            workflow_id: ID of the workflow to monitor
+            workflow_id: ID of the workflow to wait for
             timeout: Maximum time to wait for completion (seconds)
             
         Returns:
-            Execution time in seconds, or None if workflow failed/timed out
+            Exit code of the workflow, or None if timed out
         """
-        start_time = None
-        end_time = None
+        start_wait = time.time()
         
-        start_monitor = time.time()
-        
-        while time.time() - start_monitor < timeout:
+        while time.time() - start_wait < timeout:
             try:
                 response = await asyncio.wait_for(websocket.recv(), timeout=1.0)
                 data = json.loads(response)
@@ -506,37 +476,27 @@ class DeploymentHelper:
                 if data.get("type") == "workflow_status" and data.get("workflow_id") == workflow_id:
                     status = data.get("status")
                     
-                    if status == "running" and start_time is None:
-                        start_time = time.time()
-                    elif status in ["completed", "failed", "terminated"]:
-                        end_time = time.time()
+                    if status == "completed":
+                        print(f"✅ Workflow {workflow_id} completed successfully")
+                        return 0  # Success exit code
+                    elif status == "failed":
+                        exit_code = data.get("exit_code", 1)
+                        print(f"❌ Workflow {workflow_id} failed with exit code {exit_code}")
+                        return exit_code
+                    elif status == "terminated":
+                        print(f"⚠️ Workflow {workflow_id} was terminated")
+                        return -1
                         
-                        if status == "completed" and start_time:
-                            return end_time - start_time
-                        else:
-                            return None
-                
-                # Check for workflow logs that indicate completion
-                elif data.get("type") == "workflow_log" and data.get("workflow_id") == workflow_id:
-                    log_msg = data.get("log", {}).get("message", "")
-                    completion_indicators = [
-                        "Training complete",
-                        "epochs completed",
-                        "Workflow completed",
-                        "Execution finished"
-                    ]
-                    
-                    if any(indicator.lower() in log_msg.lower() for indicator in completion_indicators):
-                        if start_time and not end_time:
-                            end_time = time.time()
-                            return end_time - start_time
-                            
             except asyncio.TimeoutError:
                 # No message received in 1 second, continue waiting
                 pass
+            except Exception as e:
+                print(f"Error while waiting for workflow: {e}")
+                pass
         
-        print(f"Workflow execution monitoring timed out after {timeout} seconds")
+        print(f"⏱️ Timeout waiting for workflow {workflow_id} to complete after {timeout} seconds")
         return None
+    
     
     @staticmethod
     async def cleanup_workflow_directories(hostname: str, pattern: str = "*"):
@@ -586,20 +546,36 @@ async def deploy_workflow_to_client(
     client_hostname: str,
     runner_args: str = "",
     workflow_id: Optional[str] = None,
-    monitor_execution: bool = False,
     copy_dir: Optional[Tuple[str, str]] = None
-) -> Optional[float]:
+) -> bool:
     """Export and deploy a workflow to a test client"""
     return await DeploymentHelper.deploy_workflow_to_client(
         websocket, workflow_name, client_hostname, runner_args,
-        workflow_id, run_after_deploy=True, monitor_execution=monitor_execution,
+        workflow_id, run_after_deploy=True,
         copy_dir=copy_dir
     )
 
 
-async def monitor_workflow_execution(websocket, workflow_id: str) -> Optional[float]:
-    """Monitor workflow execution and return timing"""
-    return await DeploymentHelper.monitor_workflow_execution(websocket, workflow_id)
+async def start_existing_workflow(
+    websocket,
+    workflow_id: str,
+    runner_args: str = ""
+) -> bool:
+    """Start an already-deployed workflow with new arguments"""
+    return await DeploymentHelper.start_existing_workflow(
+        websocket, workflow_id, runner_args
+    )
+
+
+async def wait_for_workflow_completion(
+    websocket,
+    workflow_id: str,
+    timeout: float = 600.0
+) -> Optional[int]:
+    """Wait for a workflow to complete and return its exit code"""
+    return await DeploymentHelper.wait_for_workflow_completion(
+        websocket, workflow_id, timeout
+    )
 
 
 async def cleanup_workflow_directories(hostname: str, pattern: str = "*"):

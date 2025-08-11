@@ -20,6 +20,8 @@ from helpers.deployment_helper import (
     TestClientManager,
     check_client_connected,
     deploy_workflow_to_client,
+    start_existing_workflow,
+    wait_for_workflow_completion,
     cleanup_workflow_directories
 )
 
@@ -63,30 +65,41 @@ class TelemetryOverheadTest:
             print(f"   Source: {cifar_data_dir}")
             print("="*60)
             
-            # WARMUP RUN - Extract dataset and compile
+            # Deploy workflow ONCE with data copy and run warmup
             print("\n" + "="*60)
-            print("🔥 WARMUP RUN - Extracting dataset and warming up...")
-            print("   (This run is not timed - it ensures data is extracted)")
+            print("🔥 DEPLOYING WORKFLOW AND RUNNING WARMUP...")
+            print("   (Deploy once, copy data once, then reuse for all tests)")
             print("="*60)
             
-            warmup_time = await deploy_workflow_to_client(
+            # Use a fixed workflow ID that we'll reuse for all tests
+            fixed_workflow_id = "cifar10_overhead_test"
+            
+            # Deploy and start the warmup
+            success = await deploy_workflow_to_client(
                 websocket=websocket,
                 workflow_name="CIFAR10_Test",
                 client_hostname=self.hostname,
-                runner_args="--epochs 1",  # Just 1 epoch for warmup
-                workflow_id="cifar10_warmup",
-                monitor_execution=True,
+                runner_args="--epochs 1",  # 1 epoch for warmup
+                workflow_id=fixed_workflow_id,
                 copy_dir=(cifar_data_dir, "data")
             )
             
-            if warmup_time is not None:
-                print(f"✅ Warmup completed in {warmup_time:.2f} seconds")
-                print("   Dataset extracted and model compiled for subsequent runs")
+            if success:
+                # Wait for warmup to complete
+                print("⏳ Running warmup epoch...")
+                start_time = time.time()
+                exit_code = await wait_for_workflow_completion(websocket, fixed_workflow_id)
+                warmup_time = time.time() - start_time
+                
+                if exit_code == 0:
+                    print(f"✅ Warmup completed in {warmup_time:.2f} seconds")
+                    print("   Dataset extracted and workflow ready for reuse")
+                else:
+                    print(f"❌ Warmup failed with exit code {exit_code}")
             else:
-                print("❌ Warmup failed - continuing anyway")
+                print("❌ Failed to deploy workflow")
+                return False
             
-            # Clean up warmup files
-            await cleanup_workflow_directories(self.hostname, "cifar10_warmup")
             await asyncio.sleep(2)  # Brief pause before actual tests
             
             # Run tests with and without telemetry
@@ -99,47 +112,53 @@ class TelemetryOverheadTest:
             for i in range(self.test_iterations):
                 print(f"\n--- Iteration {i+1}/{self.test_iterations} ---")
                 
-                # Run without telemetry
+                # Run without telemetry - reuse existing deployment
                 print("\nRunning WITHOUT telemetry:")
-                execution_time = await deploy_workflow_to_client(
+                start_time = time.time()
+                success = await start_existing_workflow(
                     websocket=websocket,
-                    workflow_name="CIFAR10_Test",
-                    client_hostname=self.hostname,
-                    runner_args="--epochs 2",  # 2 epochs for better measurement
-                    workflow_id=f"cifar10_overhead_{i}_no_telem",
-                    monitor_execution=True,
-                    copy_dir=(cifar_data_dir, "data")
+                    workflow_id=fixed_workflow_id,
+                    runner_args="--epochs 1"  # 1 epoch for all tests
                 )
                 
-                if execution_time is not None:
-                    print(f"  Workflow completed in {execution_time:.2f} seconds")
-                    times_without_telemetry.append(execution_time)
+                if success:
+                    exit_code = await wait_for_workflow_completion(websocket, fixed_workflow_id)
+                    execution_time = time.time() - start_time
+                    
+                    if exit_code == 0:
+                        print(f"  Workflow completed in {execution_time:.2f} seconds")
+                        times_without_telemetry.append(execution_time)
+                    else:
+                        print(f"  Workflow failed with exit code {exit_code}")
                 else:
-                    print(f"  Workflow execution failed")
+                    print(f"  Failed to start workflow")
                 
                 # Small delay between tests
                 await asyncio.sleep(2)
                 
-                # Run with telemetry
+                # Run with telemetry - reuse existing deployment
                 print("\nRunning WITH telemetry:")
-                execution_time = await deploy_workflow_to_client(
+                start_time = time.time()
+                success = await start_existing_workflow(
                     websocket=websocket,
-                    workflow_name="CIFAR10_Test",
-                    client_hostname=self.hostname,
-                    runner_args="--epochs 2 --enable-telemetry 10,11",  # 2 epochs
-                    workflow_id=f"cifar10_overhead_{i}_with_telem",
-                    monitor_execution=True,
-                    copy_dir=(cifar_data_dir, "data")
+                    workflow_id=fixed_workflow_id,
+                    runner_args="--epochs 1 --enable-telemetry 10"  # 1 epoch, only node 10
                 )
                 
-                if execution_time is not None:
-                    print(f"  Workflow completed in {execution_time:.2f} seconds")
-                    times_with_telemetry.append(execution_time)
+                if success:
+                    exit_code = await wait_for_workflow_completion(websocket, fixed_workflow_id)
+                    execution_time = time.time() - start_time
+                    
+                    if exit_code == 0:
+                        print(f"  Workflow completed in {execution_time:.2f} seconds")
+                        times_with_telemetry.append(execution_time)
+                    else:
+                        print(f"  Workflow failed with exit code {exit_code}")
                 else:
-                    print(f"  Workflow execution failed")
+                    print(f"  Failed to start workflow")
                 
-                # Clean up after each iteration
-                await cleanup_workflow_directories(self.hostname, "cifar10_*")
+                # Small delay between tests
+                await asyncio.sleep(2)
             
             # Calculate results
             print("\n" + "="*60)
@@ -185,6 +204,10 @@ class TelemetryOverheadTest:
             traceback.print_exc()
             return False
         finally:
+            # Clean up the single workflow directory at the end
+            print("\n🧹 Cleaning up test workflow...")
+            await cleanup_workflow_directories(self.hostname, "cifar10_overhead_test")
+            
             if 'websocket' in locals():
                 await websocket.close()
             # Clean up test client if we started it
