@@ -533,8 +533,8 @@ class GraphExporter:
             
             # Require workflow name to be specified
             if not workflow_name:
-                # Check if this is a test workflow
-                if workflow_metadata and workflow_metadata.get("dnne-test"):
+                # Check if slot correction should be skipped
+                if workflow_metadata and workflow_metadata.get("skip-slot-correction"):
                     return links
                 raise ValueError("Workflow name is required for slot correction")
             

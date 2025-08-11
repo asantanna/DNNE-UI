@@ -26,7 +26,7 @@ def extract_minimal_workflow(workflow_data, add_test_metadata=False):
         minimal["metadata"] = workflow_data["metadata"]
     elif add_test_metadata:
         # Add test metadata if requested
-        minimal["metadata"] = {"dnne-test": True}
+        minimal["metadata"] = {"skip-slot-correction": True}
     
     # Extract nodes with only essential fields
     if "nodes" in workflow_data:
