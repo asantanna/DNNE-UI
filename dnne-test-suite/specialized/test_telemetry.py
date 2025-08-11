@@ -27,6 +27,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 # Import deployment helper
 from helpers.deployment_helper import (
+    TestClientManager,
     check_client_connected,
     deploy_files_to_client,
     cleanup_workflow_directories
@@ -41,13 +42,12 @@ class TelemetryTestOrchestrator:
     def __init__(self, verbose: bool = False, test_type: str = "basic"):
         self.verbose = verbose
         self.test_type = test_type
-        self.test_client_process = None
-        self.started_client = False
         self.windows_host = "172.22.160.1"
         self.test_port_url = f"ws://{self.windows_host}:8768"
         self.workflow_id = f"test_wf_{int(time.time())}"
         self.workflow_name = "TelemetryTest"
         self.test_client_hostname = "agent_client_test_host"
+        self.client_manager = TestClientManager(self.windows_host, verbose=verbose)
         
         # Test type specific settings
         self.test_durations = {
@@ -63,76 +63,6 @@ class TelemetryTestOrchestrator:
             "aggregation": "telemetry_runner_aggregation.py"
         }
     
-    async def check_test_client_connected(self, websocket) -> bool:
-        """
-        Check if a test client is connected to the agent server.
-        """
-        # Request list of connected clients
-        await websocket.send(json.dumps({
-            "type": "get_clients"
-        }))
-        
-        # Wait for response
-        response = await websocket.recv()
-        data = json.loads(response)
-        
-        if self.verbose:
-            print(f"   DEBUG: Got response type: {data.get('type')}")
-            print(f"   DEBUG: Clients: {data.get('clients', [])}")
-        
-        if data.get("type") == "clients_list":
-            clients = data.get("clients", [])
-            for client in clients:
-                if client.get("hostname") == self.test_client_hostname:
-                    print(f"✅ Test client already connected: {client.get('client_id')}")
-                    return True
-        
-        return False
-    
-    async def start_test_client(self) -> bool:
-        """
-        Start a test client with --test-mode flag.
-        """
-        print("🚀 Starting test client...")
-        
-        # Path to client script
-        client_script = Path(__file__).parent.parent.parent / "dnne-agent" / "dnne_agent_client.py"
-        
-        if not client_script.exists():
-            print(f"❌ Client script not found: {client_script}")
-            return False
-        
-        try:
-            # Start client with test mode
-            cmd = [
-                sys.executable,
-                str(client_script),
-                "--test-mode",
-                "--server-ip", f"{self.windows_host}:8766",
-                "--verbose", "INFO"
-            ]
-            
-            if self.verbose:
-                print(f"   Command: {' '.join(cmd)}")
-            
-            # Start client process
-            self.test_client_process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE if not self.verbose else None,
-                stderr=subprocess.PIPE if not self.verbose else None,
-                text=True
-            )
-            
-            self.started_client = True
-            print(f"   ✓ Started test client (PID: {self.test_client_process.pid})")
-            
-            # Wait for client to connect
-            await asyncio.sleep(3)
-            return True
-            
-        except Exception as e:
-            print(f"❌ Failed to start test client: {e}")
-            return False
     
     async def cleanup_old_workflows(self, keep_last_n: int = 0):
         """
@@ -169,32 +99,6 @@ class TelemetryTestOrchestrator:
                 except Exception as e:
                     print(f"   ⚠️ Failed to remove {dir_to_delete.name}: {e}")
         
-    async def stop_test_client(self):
-        """
-        Stop the test client if we started it.
-        """
-        if self.started_client and self.test_client_process:
-            print("🛑 Stopping test client...")
-            
-            try:
-                # Send SIGTERM
-                self.test_client_process.terminate()
-                
-                # Wait up to 5 seconds for graceful shutdown
-                try:
-                    self.test_client_process.wait(timeout=5)
-                    print("   ✓ Test client stopped gracefully")
-                except subprocess.TimeoutExpired:
-                    # Force kill
-                    self.test_client_process.kill()
-                    self.test_client_process.wait()
-                    print("   ✓ Test client force killed")
-                    
-            except Exception as e:
-                print(f"   ⚠️ Error stopping test client: {e}")
-            finally:
-                self.test_client_process = None
-                self.started_client = False
     
     async def deploy_telemetry_runner(self, websocket) -> bool:
         """
@@ -464,17 +368,9 @@ class TelemetryTestOrchestrator:
                     initial_data = json.loads(initial_msg)
                     print(f"   DEBUG: Initial state received: {initial_data.get('type')}")
                 
-                # Check if test client is connected
-                if not await self.check_test_client_connected(websocket):
-                    # Start test client
-                    if not await self.start_test_client():
-                        return 1
-                    
-                    # Verify client connected
-                    await asyncio.sleep(5)  # Give more time for client to register
-                    if not await self.check_test_client_connected(websocket):
-                        print("❌ Test client failed to connect")
-                        return 1
+                # Ensure test client is connected
+                if not await self.client_manager.ensure_test_client_connected(websocket, self.test_client_hostname):
+                    return 1
                 
                 # Deploy telemetry runner
                 if not await self.deploy_telemetry_runner(websocket):
@@ -511,8 +407,7 @@ class TelemetryTestOrchestrator:
             return 1
         finally:
             # Clean up test client if we started it
-            if self.started_client:
-                await self.stop_test_client()
+            await self.client_manager.stop_test_client()
 
 
 def main():
