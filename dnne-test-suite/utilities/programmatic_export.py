@@ -65,7 +65,8 @@ def export_workflow(workflow_name, target_dir=None, add_metadata=False):
     if add_metadata:
         if "metadata" not in workflow:
             workflow["metadata"] = {}
-        workflow["metadata"]["dnne-test"] = True
+        workflow["metadata"]["skip-slot-correction"] = True
+        workflow["metadata"]["workflow_name"] = workflow_name
     
     print(f"✓ Loaded workflow with {len(workflow.get('nodes', []))} nodes")
     
