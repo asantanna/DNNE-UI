@@ -1,0 +1,59 @@
+{
+  "file_id": "franka_test_trajectory_v1",
+  "description": "Test trajectories for Franka 7-DOF robot arm",
+  "robot": "Franka Emika Panda",
+  "columns": [
+    {
+      "name": "timestamp",
+      "dtype": "float64",
+      "unit": "seconds"
+    },
+    {
+      "name": "joint_0",
+      "dtype": "float32",
+      "unit": "radians",
+      "description": "Shoulder yaw"
+    },
+    {
+      "name": "joint_1",
+      "dtype": "float32",
+      "unit": "radians",
+      "description": "Shoulder pitch"
+    },
+    {
+      "name": "joint_2",
+      "dtype": "float32",
+      "unit": "radians",
+      "description": "Shoulder roll"
+    },
+    {
+      "name": "joint_3",
+      "dtype": "float32",
+      "unit": "radians",
+      "description": "Elbow"
+    },
+    {
+      "name": "joint_4",
+      "dtype": "float32",
+      "unit": "radians",
+      "description": "Wrist yaw"
+    },
+    {
+      "name": "joint_5",
+      "dtype": "float32",
+      "unit": "radians",
+      "description": "Wrist pitch"
+    },
+    {
+      "name": "joint_6",
+      "dtype": "float32",
+      "unit": "radians",
+      "description": "Wrist roll"
+    }
+  ],
+  "frequency_hz": 100.0,
+  "total_rows": 1000,
+  "duration_seconds": 10.0,
+  "created": "2025-01-12T10:00:00Z",
+  "version": "1.0.0"
+}

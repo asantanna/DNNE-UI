@@ -43,6 +43,7 @@ from .ppo_agent_exporter import PPOAgentExporter
 from .or_node_exporter import ORNodeExporter
 from .balancing_node_exporter import BalancingNodeExporter
 from .balancing_config_exporter import BalancingConfigExporter
+from .data_streamer_exporter import DataStreamerExporter
 
 
 # Registration functions
@@ -93,6 +94,7 @@ def register_utility_exporters(exporter):
     exporter.register_node("ORNode", ORNodeExporter)
     exporter.register_node("BalancingNode", BalancingNodeExporter)
     exporter.register_node("BalancingConfig", BalancingConfigExporter)
+    exporter.register_node("DataStreamer", DataStreamerExporter)
 
 # Main registration function
 def register_all_exporters(exporter):
@@ -146,6 +148,7 @@ __all__ = [
     'ORNodeExporter',
     'BalancingNodeExporter',
     'BalancingConfigExporter',
+    'DataStreamerExporter',
     # Registration functions
     'register_all_exporters',
     'register_ml_exporters',
