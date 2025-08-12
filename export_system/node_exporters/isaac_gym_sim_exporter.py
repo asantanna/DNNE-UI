@@ -17,40 +17,67 @@ class IsaacGymSimExporter(ExportableNode):
             {'name': 'reset_when_done', 'widget_index': 0, 'default': True},
             {'name': 'render', 'widget_index': 1, 'default': False},
             {'name': 'null_action', 'widget_index': 2, 'default': ""},
+            {'name': 'camera_position', 'widget_index': 3, 'default': "1.2, 1.2, 1.0"},
+            {'name': 'camera_target', 'widget_index': 4, 'default': "0.0, 0.0, 0.5"},
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
         
         # Get config from connected Isaac Gym Environment Config node
-        config_connection = cls.find_input_connection(node_data, connections, "env_config")
-        if config_connection:
-            source_node_id = config_connection['from_node']
-            config_node = all_nodes.get(source_node_id, {})
+        # Debug: Check what connections and all_nodes look like
+        import logging
+        logging.info(f"[IsaacGymSim Export] Looking for env_config connection")
+        logging.info(f"[IsaacGymSim Export] Node ID: {node_id}")
+        logging.info(f"[IsaacGymSim Export] All nodes IDs: {[n.get('id') for n in all_nodes] if all_nodes else 'None'}")
+        
+        # Find connected IsaacGymEnvs node through links
+        config_node = None
+        if all_links:
+            for link in all_links:
+                # Link format: [link_id, from_node, from_slot, to_node, to_slot, type]
+                if len(link) >= 5 and str(link[3]) == str(node_id) and link[4] == 0:  # env_config is input 0
+                    source_node_id = str(link[1])
+                    logging.info(f"[IsaacGymSim Export] Found connection from node {source_node_id}")
+                    # Find the source node
+                    for node in all_nodes:
+                        if str(node.get('id')) == source_node_id:
+                            config_node = node
+                            break
+                    break
+        
+        if config_node:
             
             # Extract config values from the config node's widgets
             config_widgets = config_node.get('widgets_values', [])
+            logging.info(f"[IsaacGymSim Export] Config node type: {config_node.get('type')}")
+            logging.info(f"[IsaacGymSim Export] Config widgets: {config_widgets}")
             
             # Map widget indices to config parameters
             # Based on INPUT_TYPES order in isaac_gym_envs_visnode.py
-            task = config_widgets[0] if len(config_widgets) > 0 else "Cartpole"
-            num_envs = config_widgets[1] if len(config_widgets) > 1 else 64
-            seed = config_widgets[2] if len(config_widgets) > 2 else 42
-            seed_control = config_widgets[3] if len(config_widgets) > 3 else "fixed"
-            headless = config_widgets[4] if len(config_widgets) > 4 else True
-            graphics_device_id = config_widgets[5] if len(config_widgets) > 5 else 0
-            sim_device = config_widgets[6] if len(config_widgets) > 6 else "cuda:0"
-            physics_engine = config_widgets[7] if len(config_widgets) > 7 else "physx"
-            multi_gpu = config_widgets[8] if len(config_widgets) > 8 else False
-            enable_cameras = config_widgets[9] if len(config_widgets) > 9 else False
+            # Fail-fast: ensure we have all required values
+            if len(config_widgets) < 10:
+                raise ValueError(
+                    f"IsaacGymEnvs node has insufficient widget values ({len(config_widgets)}). "
+                    f"Expected at least 10 values. This may indicate a corrupted workflow."
+                )
+            
+            task = config_widgets[0]
+            logging.info(f"[IsaacGymSim Export] Extracted task: {task}")
+            num_envs = config_widgets[1]
+            seed = config_widgets[2]
+            seed_control = config_widgets[3]
+            headless = config_widgets[4]
+            graphics_device_id = config_widgets[5]
+            sim_device = config_widgets[6]
+            physics_engine = config_widgets[7]
+            multi_gpu = config_widgets[8]
+            enable_cameras = config_widgets[9]
         else:
-            # Default values if no config connected
-            task = "Cartpole"
-            num_envs = 64
-            seed = 42
-            headless = True
-            graphics_device_id = 0
-            sim_device = "cuda:0"
-            physics_engine = "physx"
+            # Fail-fast: no config connected is an error
+            raise ValueError(
+                f"IsaacGymSim node {node_id} has no connected IsaacGymEnvs configuration node. "
+                f"Please connect an IsaacGymEnvs node to the env_config input."
+            )
         
         # Parse null action string to list
         null_action_str = params['null_action'].strip()
@@ -59,18 +86,38 @@ class IsaacGymSimExporter(ExportableNode):
         else:
             null_action_list = []
         
+        # Parse camera position string to list
+        camera_pos_str = params['camera_position'].strip()
+        if camera_pos_str:
+            camera_pos_list = [float(x.strip()) for x in camera_pos_str.split(',')]
+            if len(camera_pos_list) != 3:
+                raise ValueError(f"Camera position must have exactly 3 values (x,y,z), got {len(camera_pos_list)}")
+        else:
+            camera_pos_list = [1.2, 1.2, 1.0]  # Default
+        
+        # Parse camera target string to list
+        camera_target_str = params['camera_target'].strip()
+        if camera_target_str:
+            camera_target_list = [float(x.strip()) for x in camera_target_str.split(',')]
+            if len(camera_target_list) != 3:
+                raise ValueError(f"Camera target must have exactly 3 values (x,y,z), got {len(camera_target_list)}")
+        else:
+            camera_target_list = [0.0, 0.0, 0.5]  # Default
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "IsaacGymSimNode",
             "RESET_WHEN_DONE": params['reset_when_done'],
             "RENDER": params['render'],
             "NULL_ACTION": null_action_list,
+            "CAMERA_POSITION": camera_pos_list,
+            "CAMERA_TARGET": camera_target_list,
             "TASK": task,
             "NUM_ENVS": num_envs,
             "SEED": seed,
             "HEADLESS": headless,
-            "SIM_DEVICE": f'"{sim_device}"',  # Add quotes for string
-            "PHYSICS_ENGINE": f'"{physics_engine}"',  # Add quotes for string
+            "SIM_DEVICE": sim_device,  # String value, no extra quotes needed
+            "PHYSICS_ENGINE": physics_engine,  # String value, no extra quotes needed
             "GRAPHICS_DEVICE_ID": graphics_device_id,
         }
     

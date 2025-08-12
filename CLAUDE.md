@@ -51,9 +51,9 @@ If the conda environment is not activated, you may encounter errors like:
 
 ### Isaac Gym Integration
 IsaacGym and IsaacGymEnvs are installed and verified working:
-- **IsaacGym**: `/home/asantanna/DNNE-LINUX-SUPPORT/isaacgym` - Core physics simulation library
-- **IsaacGymEnvs**: `/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs` - Pre-built reinforcement learning environments
-- **rl_games_dnne**: `/home/asantanna/DNNE-LINUX-SUPPORT/rl_games_dnne` - Replacement for rl_games with additional features and debug messages
+- **IsaacGym**: `/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/isaacgym` - Core physics simulation library
+- **IsaacGymEnvs**: `/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs` - Pre-built reinforcement learning environments
+- **rl_games_dnne**: `/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/rl_games_dnne` - Replacement for rl_games with additional features and debug messages
 - **Import Order**: Always import `isaacgym` before `torch` to avoid conflicts
 - **GPU Support**: Verified working with CUDA and GPU PhysX acceleration
 - **Environment Testing**: Cartpole and other environments tested successfully

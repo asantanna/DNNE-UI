@@ -47,6 +47,14 @@ class IsaacGymSimNode(RoboticsNodeBase):
                     "default": "",
                     "tooltip": "Null action for initialization (comma-separated values). Enter manually for environments without nullAction in YAML."
                 }),
+                "camera_position": ("STRING", {
+                    "default": "1.2, 1.2, 1.0",
+                    "tooltip": "Initial camera position (x, y, z). Example: 1.2, 1.2, 1.0"
+                }),
+                "camera_target": ("STRING", {
+                    "default": "0.0, 0.0, 0.5",
+                    "tooltip": "Camera look-at target point (x, y, z). Example: 0.0, 0.0, 0.5"
+                }),
             }
         }
 
@@ -62,7 +70,9 @@ class IsaacGymSimNode(RoboticsNodeBase):
 
     def step_environment(self, config: Dict[str, Any], action: torch.Tensor, 
                         reset: Optional[Any] = None, reset_when_done: bool = True, 
-                        render: bool = False, null_action: str = "") -> Tuple[torch.Tensor, Optional[Any]]:
+                        render: bool = False, null_action: str = "",
+                        camera_position: str = "1.2, 1.2, 1.0",
+                        camera_target: str = "0.0, 0.0, 0.5") -> Tuple[torch.Tensor, Optional[Any]]:
         """
         This method is called during UI execution only.
         The actual environment stepping happens in the exported queue-based code.

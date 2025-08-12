@@ -31,6 +31,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         from framework.globals import Global as g
         self.render = g.visual_mode if hasattr(g, 'visual_mode') else {RENDER}
         self.null_action = {NULL_ACTION}
+        self.camera_position = {CAMERA_POSITION}
+        self.camera_target = {CAMERA_TARGET}
         self.env = None
         self.device = None
         self.obs_space = None
@@ -59,6 +61,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             print(f"[DEBUG IsaacGymSim] Creating env_config with task={{config['task']}}, render={{self.render}}")
             
             # Override num_envs to 1 for DNNE compatibility
+            # Only include parameters that make() actually accepts
             env_config = {{
                 "task": config.get("task", "{TASK}"),
                 "num_envs": 1,  # Force single environment
@@ -70,13 +73,23 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "force_render": self.render,
                 "multi_gpu": False,  # Not supported with single env
                 "virtual_screen_capture": False,
-                "enable_cameras": config.get("enable_cameras", False),
+                # Note: enable_cameras is not a parameter for make(), it's handled via cfg
             }}
             
             # Create environment
             print(f"[DEBUG IsaacGymSim] Calling make() with config: {{env_config}}")
             self.env = make(**env_config)
             print(f"[DEBUG IsaacGymSim] Environment created successfully!")
+            
+            # Set camera position from widget configuration
+            if hasattr(self.env, 'viewer') and self.env.viewer is not None and self.camera_position and self.camera_target:
+                # Use configured camera position and target
+                from isaacgym import gymapi
+                cam_pos = gymapi.Vec3(self.camera_position[0], self.camera_position[1], self.camera_position[2])
+                cam_target = gymapi.Vec3(self.camera_target[0], self.camera_target[1], self.camera_target[2])
+                self.env.gym.viewer_camera_look_at(
+                    self.env.viewer, None, cam_pos, cam_target)
+                print(f"[DEBUG IsaacGymSim] Camera positioned at {{self.camera_position}} looking at {{self.camera_target}}")
             
             # Get device
             self.device = torch.device(config.get("sim_device", "{SIM_DEVICE}"))
@@ -120,7 +133,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     async def compute(self, **kwargs) -> Dict[str, Any]:
         """Step the environment or handle reset"""
-        print(f"[DEBUG IsaacGymSim] compute() called with kwargs keys: {{kwargs.keys()}}")
         action = kwargs.get('action')
         reset = kwargs.get('reset')
         
@@ -169,7 +181,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Prepare outputs
             outputs = {{"observation": obs}}
             
-            # Handle done signal
+            # Handle done signal (any environment done triggers reset)
             if done.any():
                 outputs["done"] = True  # Send trigger
                 

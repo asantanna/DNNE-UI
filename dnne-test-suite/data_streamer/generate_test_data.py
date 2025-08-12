@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Generate test CSV data for Franka robot arm with 7 DOF
-Creates smooth sinusoidal trajectories for testing
+Generate test CSV data for Franka robot arm in task-space (6 DOF)
+Creates smooth sinusoidal trajectories for testing with FrankaCubeStack
 """
 
 import numpy as np
@@ -9,45 +9,46 @@ import pandas as pd
 import json
 
 def generate_franka_trajectory(num_samples=1000, frequency_hz=100.0):
-    """Generate smooth sinusoidal trajectories for Franka's 7 joints"""
+    """Generate smooth sinusoidal trajectories for Franka's task-space control (6 DOF)"""
     
     # Time array
     duration = num_samples / frequency_hz  # seconds
     t = np.linspace(0, duration, num_samples)
     
-    # Joint limits for Franka (approximate, in radians)
-    # These are conservative limits for safe testing
-    joint_limits = [
-        (-2.8, 2.8),   # Joint 0
-        (-1.7, 1.7),   # Joint 1  
-        (-2.8, 2.8),   # Joint 2
-        (-3.0, -0.06), # Joint 3
-        (-2.8, 2.8),   # Joint 4
-        (-0.01, 3.75), # Joint 5
-        (-2.8, 2.8),   # Joint 6
+    # Task-space limits for FrankaCubeStack
+    # Based on the cmd_limit values in franka_cube_stack.py:
+    # [0.1, 0.1, 0.1, 0.5, 0.5, 0.5] for [x, y, z, rx, ry, rz]
+    # These are action scale limits, we'll use smaller values for safety
+    task_limits = [
+        (-0.05, 0.05),   # X position
+        (-0.05, 0.05),   # Y position  
+        (-0.05, 0.05),   # Z position
+        (-0.25, 0.25),   # X rotation
+        (-0.25, 0.25),   # Y rotation
+        (-0.25, 0.25),   # Z rotation
     ]
     
-    # Generate smooth trajectories for each joint
+    # Generate smooth trajectories for each DOF
     # Use different frequencies and phases for variety
     trajectories = []
     
-    for i, (min_val, max_val) in enumerate(joint_limits):
+    for i, (min_val, max_val) in enumerate(task_limits):
         # Center and amplitude
-        center = (min_val + max_val) / 2
-        amplitude = (max_val - min_val) * 0.3  # Use 30% of range for safety
+        center = 0.0  # Task-space commands are typically centered at 0
+        amplitude = (max_val - min_val) * 0.4  # Use 40% of range for safety
         
-        # Different frequency for each joint (0.1 to 0.5 Hz)
+        # Different frequency for each DOF (0.1 to 0.4 Hz)
         freq = 0.1 + (i * 0.05)
         
-        # Phase offset for each joint
-        phase = i * np.pi / 7
+        # Phase offset for each DOF
+        phase = i * np.pi / 6
         
         # Generate sinusoidal trajectory
         trajectory = center + amplitude * np.sin(2 * np.pi * freq * t + phase)
         trajectories.append(trajectory)
     
-    # Create DataFrame
-    columns = [f"joint_{i}" for i in range(7)]
+    # Create DataFrame with task-space column names
+    columns = ["x", "y", "z", "rx", "ry", "rz"]
     df = pd.DataFrame(np.array(trajectories).T, columns=columns)
     
     # Add timestamp column
@@ -59,18 +60,18 @@ def create_metadata(frequency_hz=100.0, num_samples=1000):
     """Create metadata JSON for the trajectory data"""
     
     metadata = {
-        "file_id": "franka_test_trajectory_v1",
-        "description": "Test trajectories for Franka 7-DOF robot arm",
+        "file_id": "franka_taskspace_trajectory_v1",
+        "description": "Test task-space trajectories for Franka robot arm (FrankaCubeStack)",
         "robot": "Franka Emika Panda",
+        "control_mode": "task_space",
         "columns": [
             {"name": "timestamp", "dtype": "float64", "unit": "seconds"},
-            {"name": "joint_0", "dtype": "float32", "unit": "radians", "description": "Shoulder yaw"},
-            {"name": "joint_1", "dtype": "float32", "unit": "radians", "description": "Shoulder pitch"},
-            {"name": "joint_2", "dtype": "float32", "unit": "radians", "description": "Shoulder roll"},
-            {"name": "joint_3", "dtype": "float32", "unit": "radians", "description": "Elbow"},
-            {"name": "joint_4", "dtype": "float32", "unit": "radians", "description": "Wrist yaw"},
-            {"name": "joint_5", "dtype": "float32", "unit": "radians", "description": "Wrist pitch"},
-            {"name": "joint_6", "dtype": "float32", "unit": "radians", "description": "Wrist roll"},
+            {"name": "x", "dtype": "float32", "unit": "meters", "description": "X position delta"},
+            {"name": "y", "dtype": "float32", "unit": "meters", "description": "Y position delta"},
+            {"name": "z", "dtype": "float32", "unit": "meters", "description": "Z position delta"},
+            {"name": "rx", "dtype": "float32", "unit": "radians", "description": "X rotation delta"},
+            {"name": "ry", "dtype": "float32", "unit": "radians", "description": "Y rotation delta"},
+            {"name": "rz", "dtype": "float32", "unit": "radians", "description": "Z rotation delta"},
         ],
         "frequency_hz": frequency_hz,
         "total_rows": num_samples,

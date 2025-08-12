@@ -1,7 +1,8 @@
 {
-  "file_id": "franka_test_trajectory_v1",
-  "description": "Test trajectories for Franka 7-DOF robot arm",
+  "file_id": "franka_taskspace_trajectory_v1",
+  "description": "Test task-space trajectories for Franka robot arm (FrankaCubeStack)",
   "robot": "Franka Emika Panda",
+  "control_mode": "task_space",
   "columns": [
     {
       "name": "timestamp",
@@ -9,46 +10,40 @@
       "unit": "seconds"
     },
     {
-      "name": "joint_0",
+      "name": "x",
       "dtype": "float32",
-      "unit": "radians",
-      "description": "Shoulder yaw"
+      "unit": "meters",
+      "description": "X position delta"
     },
     {
-      "name": "joint_1",
+      "name": "y",
       "dtype": "float32",
-      "unit": "radians",
-      "description": "Shoulder pitch"
+      "unit": "meters",
+      "description": "Y position delta"
     },
     {
-      "name": "joint_2",
+      "name": "z",
       "dtype": "float32",
-      "unit": "radians",
-      "description": "Shoulder roll"
+      "unit": "meters",
+      "description": "Z position delta"
     },
     {
-      "name": "joint_3",
+      "name": "rx",
       "dtype": "float32",
       "unit": "radians",
-      "description": "Elbow"
+      "description": "X rotation delta"
     },
     {
-      "name": "joint_4",
+      "name": "ry",
       "dtype": "float32",
       "unit": "radians",
-      "description": "Wrist yaw"
+      "description": "Y rotation delta"
     },
     {
-      "name": "joint_5",
+      "name": "rz",
       "dtype": "float32",
       "unit": "radians",
-      "description": "Wrist pitch"
-    },
-    {
-      "name": "joint_6",
-      "dtype": "float32",
-      "unit": "radians",
-      "description": "Wrist roll"
+      "description": "Z rotation delta"
     }
   ],
   "frequency_hz": 100.0,

@@ -99,14 +99,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             self.node_logger.info(f"Loaded {{self.total_rows}} rows from {{self.file_path}}")
             
-            # For 'none' mode, start streaming immediately
+            # Log streaming mode (actual streaming happens in run())
             if self.sync_mode == "none":
-                print(f"[DEBUG DataStreamer] Starting continuous stream task...")
-                asyncio.create_task(self._continuous_stream())
-                
-            # For 'timed' mode, start timed streaming
+                print("[DEBUG DataStreamer] Will stream continuously")
             elif self.sync_mode == "timed":
-                asyncio.create_task(self._timed_stream())
+                print(f"[DEBUG DataStreamer] Will stream at {{self.frequency_hz}}Hz")
+            elif self.sync_mode == "external":
+                print("[DEBUG DataStreamer] Waiting for external sync signals")
                 
         except Exception as e:
             self.node_logger.error(f"Failed to initialize data streamer: {{e}}")
@@ -179,15 +178,38 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if sleep_time > 0:
                 await asyncio.sleep(sleep_time)
     
+    async def run(self):
+        """Override run for autonomous streaming modes"""
+        self.running = True
+        self.node_logger.info(f"Starting DataStreamer node {{self.node_id}}")
+        
+        try:
+            # Initialize data
+            await self.initialize()
+            
+            if self.sync_mode == "external":
+                # Use default QueueNode behavior for external sync
+                await super().run()
+            else:
+                # For 'none' and 'timed' modes, run the streaming task
+                if self.sync_mode == "none":
+                    await self._continuous_stream()
+                elif self.sync_mode == "timed":
+                    await self._timed_stream()
+                    
+        except asyncio.CancelledError:
+            self.node_logger.info(f"Node {{self.node_id}} cancelled")
+            raise
+        except Exception as e:
+            self.node_logger.error(f"Error in node {{self.node_id}}: {{e}}")
+            raise
+        finally:
+            self.running = False
+    
     async def compute(self, **kwargs) -> Dict[str, Any]:
-        """Handle sync and reset inputs"""
+        """Handle sync and reset inputs (only called in external mode)"""
         sync = kwargs.get('sync')
         reset = kwargs.get('reset')
-        
-        # Initialize on first call
-        if self.data is None:
-            await self.initialize()
-            return {{}}
         
         # Handle reset
         if reset is not None:

@@ -66,7 +66,7 @@ def dnne_add_routes(server_instance, routes):
             loader = IsaacGymEnvConfigLoader()
             
             # Load and get env config
-            config = loader.get_env_config(task_name)
+            config = loader.get_task_config(task_name)
             
             if config is None:
                 logging.warning(f" Config not found for task: {task_name}")
