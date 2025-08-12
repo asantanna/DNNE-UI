@@ -386,13 +386,13 @@ class WorkflowTools:
             logger.error(f"Failed to get current workflow name: {e}")
             return format_mcp_response(False, error=str(e))
     
-    async def export_workflow(self, run_after: bool = False, args: str = None) -> Dict[str, Any]:
+    async def export_workflow(self, args: str = None, run_after: bool = False) -> Dict[str, Any]:
         """
         Export the current workflow
         
         Args:
-            run_after: Whether to run the workflow after exporting
-            args: Optional runner arguments (e.g., "--enable-telemetry 10,11 --timeout 30s")
+            args: Optional runner arguments (custom args are not yet supported in new UI)
+            run_after: Whether to run after deployment (True = "Deploy and Run", False = "Deploy")
         
         Returns:
             MCP response with export status
@@ -401,33 +401,23 @@ class WorkflowTools:
             if not self.browser:
                 return format_mcp_response(False, error="Browser not initialized")
             
-            # Import UI tools for new functionality
-            from tools.ui_tools import UITools
-            from utils.js_defs import (
-                EXPORT_MENU_OVERLAY, 
-                EXPORT_WITH_ARGS_MENU_ITEM,
-                RUNNER_ARGS_DIALOG,
-                EXPORT_WITH_ARGS_BUTTON
-            )
-            ui_tools = UITools(self.server)
+            logger.info(f"Exporting workflow with run_after={run_after}")
             
-            # If args are provided, use the Export with Arguments flow
-            if args is not None:
-                logger.info(f"Exporting workflow with args: {args}")
-                
-                # 1. Click the export dropdown arrow to open menu
-                dropdown_selector = ".p-splitbutton-dropdown"
-                dropdown_exists = await self.browser.is_visible(dropdown_selector)
-                if not dropdown_exists:
-                    return format_mcp_response(
-                        False,
-                        error="Export dropdown arrow not found"
-                    )
-                
-                await self.browser.click(dropdown_selector)
+            # Import the correct selectors from js_defs
+            from utils.js_defs import (
+                EXPORT_DROPDOWN, EXPORT_BUTTON,
+                EXPORT_MENU_DEPLOY, EXPORT_MENU_DEPLOY_RUN, 
+                EXPORT_MENU_OVERLAY
+            )
+            
+            # Check if dropdown exists (split button)
+            dropdown_exists = await self.browser.is_visible(EXPORT_DROPDOWN)
+            
+            if dropdown_exists:
+                # New UI with split button - click dropdown to show menu
+                await self.browser.click(EXPORT_DROPDOWN)
                 await asyncio.sleep(ANIMATION_DELAY)
                 
-                # 2. Wait for menu and click "Export with Arguments..." menu item
                 # Wait for the tieredmenu overlay to appear
                 menu_visible = await self.browser.wait_for_selector(EXPORT_MENU_OVERLAY, timeout=2000)
                 if not menu_visible:
@@ -436,104 +426,41 @@ class WorkflowTools:
                         error="Export menu did not appear"
                     )
                 
-                # Click the menu item using the correct selector for tieredmenu
-                menu_item_exists = await self.browser.is_visible(EXPORT_WITH_ARGS_MENU_ITEM)
-                if not menu_item_exists:
+                # Determine which option to click based on run_after
+                if run_after:
+                    # Click "Deploy and Run" (2nd option)
+                    option_selector = EXPORT_MENU_DEPLOY_RUN
+                    option_name = "Deploy and Run"
+                else:
+                    # Click "Deploy" (1st option)
+                    option_selector = EXPORT_MENU_DEPLOY
+                    option_name = "Deploy"
+                
+                option_exists = await self.browser.is_visible(option_selector)
+                if not option_exists:
                     return format_mcp_response(
                         False,
-                        error="'Export with Arguments...' menu item not found"
+                        error=f"'{option_name}' option not found in export dropdown"
                     )
                 
-                await self.browser.click(EXPORT_WITH_ARGS_MENU_ITEM)
-                await asyncio.sleep(DIALOG_SETTLE_DELAY)
-                
-                # 3. Wait for dialog to be ready
-                dialog_visible = await self.browser.is_visible(RUNNER_ARGS_DIALOG)
-                if not dialog_visible:
-                    return format_mcp_response(
-                        False,
-                        error="Runner args dialog did not appear"
-                    )
-                
-                # 4. Check if override checkbox is already enabled
-                override_state = await ui_tools.get_checkbox_state("runner_args_dlg/override")
-                if not override_state["success"]:
-                    return format_mcp_response(
-                        False,
-                        error=f"Failed to get override checkbox state: {override_state.get('error')}"
-                    )
-                
-                # 5. Enable override if not already enabled
-                # Data is merged directly into response, not under 'data' key
-                if not override_state.get("checked", False):
-                    click_result = await ui_tools.click_checkbox("runner_args_dlg/override")
-                    if not click_result["success"]:
-                        return click_result  # Pass through the error
-                    await asyncio.sleep(ANIMATION_DELAY)
-                
-                # 6. Enter the command line arguments
-                text_result = await ui_tools.enter_input_text("runner_args_dlg/cmd_line", args)
-                if not text_result["success"]:
-                    return text_result  # Pass through the error
-                await asyncio.sleep(ANIMATION_DELAY)
-                
-                # 7. Click "Export with Arguments" button
-                export_btn_exists = await self.browser.is_visible(EXPORT_WITH_ARGS_BUTTON)
-                if not export_btn_exists:
-                    return format_mcp_response(
-                        False,
-                        error="'Export with Arguments' button not found in dialog"
-                    )
-                
-                await self.browser.click(EXPORT_WITH_ARGS_BUTTON)
+                await self.browser.click(option_selector)
                 await asyncio.sleep(WORKFLOW_LOAD_DELAY)
+                
+                # Note: Custom args checkbox exists but input mechanism not yet implemented
+                if args:
+                    logger.warning("Custom args provided but UI does not yet support entering them")
                 
                 return format_mcp_response(
                     True,
                     data={
-                        "run_after": run_after,
-                        "args": args
+                        "mode": option_name,
+                        "run_after": run_after
                     },
-                    message=f"Workflow export initiated with args: {args}"
+                    message=f"Workflow export initiated with mode: {option_name}"
                 )
             
-            # Original behavior when no args provided
-            from utils.js_snippets import js_is_checkbox_disabled, js_is_checkbox_checked
-            from utils.js_defs import RUN_AFTER_EXPORT
-            
-            # FAIL FAST: Check if checkbox is disabled (Local selected)
-            is_disabled = await js_is_checkbox_disabled(self.browser, RUN_AFTER_EXPORT)
-            
-            if is_disabled:
-                # Cannot export with run_after when Local is selected
-                return format_mcp_response(
-                    False,
-                    error="Cannot use 'run after export' with Local client selected. Please select a remote client (e.g., Tardigrade) first."
-                )
-            
-            # Get original checkbox state
-            orig_checkbox_state = await js_is_checkbox_checked(self.browser, RUN_AFTER_EXPORT)
-            
-            # FAIL FAST: If we can't read the checkbox state, something is wrong
-            if orig_checkbox_state is None:
-                return format_mcp_response(
-                    False,
-                    error="Failed to read run_after_export checkbox state"
-                )
-            
-            # Determine if we need to temporarily change the checkbox
-            must_change_checkbox = (
-                (run_after == True and orig_checkbox_state == False) or 
-                (run_after == False and orig_checkbox_state == True)
-            )
-            
-            # Temporarily change checkbox if needed
-            if must_change_checkbox:
-                logger.info(f"Temporarily changing checkbox from {orig_checkbox_state} to {run_after}")
-                await self.browser.click(RUN_AFTER_EXPORT)
-                await asyncio.sleep(ANIMATION_DELAY)
-            
-            logger.info(f"Exporting workflow (run_after={run_after})")
+            # Fallback: Simple export without dropdown - just click the export button
+            logger.info("Exporting workflow without custom args")
             
             # Click export button
             export_button_exists = await self.browser.is_visible(EXPORT_BUTTON)
@@ -546,16 +473,9 @@ class WorkflowTools:
             await self.browser.click(EXPORT_BUTTON)
             await asyncio.sleep(WORKFLOW_LOAD_DELAY)  # Wait for export to start
             
-            # Restore checkbox to original state if we changed it
-            if must_change_checkbox:
-                logger.info(f"Restoring checkbox to original state: {orig_checkbox_state}")
-                await self.browser.click(RUN_AFTER_EXPORT)
-                await asyncio.sleep(ANIMATION_DELAY)
-            
             return format_mcp_response(
                 True,
-                data={"run_after": orig_checkbox_state},
-                message=f"Workflow export initiated (run_after: {run_after})"
+                message="Workflow export initiated"
             )
             
         except Exception as e:

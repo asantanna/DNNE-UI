@@ -10,13 +10,18 @@ SIDEBAR_CONTAINER = ".side-bar-container"
 SIDEBAR_BUTTON_ACTIVE = ".side-bar-button.active"
 SIDEBAR_CONTENT_CONTAINER = ".sidebar-content-container"
 
-# Action bar
-EXPORT_BUTTON = '[data-testid="export-button"]'
-EXPORT_TARGET_DROPDOWN = ".export-target-dropdown"
-RUN_AFTER_EXPORT = "#run-after-export"  # TBD - need to verify actual selector
+# Action bar / Taskbar
+ACTIONBAR = '.actionbar'  # Main action bar container
+ACTIONBAR_CONTENT = '.actionbar-content'  # Action bar content area
+QUEUE_BUTTON_GROUP = '.queue-button-group'  # Queue button group in action bar
+EXPORT_BUTTON = '.p-splitbutton-button'  # Main export button in split button
+EXPORT_DROPDOWN = '.p-splitbutton-dropdown'  # Export dropdown arrow
+EXPORT_SPLITBUTTON = '.p-splitbutton[data-testid="export-button"]'  # Full split button component
+CUSTOM_ARGS = "#use-custom-args"  # Custom args checkbox in taskbar
 STOP_BUTTON = 'button[aria-label="Stop"]'
 SHOW_LOGS_BUTTON = 'button[aria-label="Show Logs"]'
-TARGET_DROPDOWN = ".target-dropdown"
+CLIENT_DROPDOWN = "#client-dropdown"  # Client dropdown in action bar
+TARGET_DROPDOWN = ".target-dropdown"  # Generic target dropdown (if exists)
 
 # Canvas controls
 ZOOM_IN = 'button[aria-label="Zoom In"]'
@@ -69,12 +74,14 @@ TOAST_ERROR = ".p-toast-message-error"
 TOAST_SUCCESS = ".p-toast-message-success"
 
 # Client/Logs
-CLIENT_DROPDOWN = "#client-dropdown"  # Client dropdown in action bar
-LOG_PANEL = ".log-panel"  # TBD
+LOG_VIEWER_DIALOG = ".dnne-log-viewer-dialog"  # Log viewer dialog container
+LOG_CONTAINER = ".log-container"  # Log content container
+LOG_TEXT = ".log-text"  # Pre element containing log text
 SHOW_ALL_LOGS = 'button[aria-label="Show Logs"]'
-CLEAR_LOGS = ".clear-logs"  # TBD
-LOG_CLIENT_DROPDOWN = ".log-client-dropdown"
-LOG_FILTER_DROPDOWN = ".log-filter-dropdown"
+CLEAR_LOGS = ".clear-logs"  # TBD - if exists
+LOG_CLIENT_DROPDOWN = ".log-client-dropdown"  # Client selector dropdown in log viewer
+LOG_TYPE_DROPDOWN = ".log-type-dropdown"  # Log type selector (e.g., Telemetry Data)
+AUTO_SCROLL_CHECKBOX = "#auto-scroll"  # Auto-scroll checkbox in log viewer
 
 # Dropdown item selectors for finding options in opened dropdowns
 DROPDOWN_ITEM_SELECTORS = [
@@ -95,11 +102,11 @@ DROPDOWN_ITEM_SELECTORS = [
 DROPDOWN_SELECTORS = {
     "taskbar": {
         "client": CLIENT_DROPDOWN,  # #client-dropdown
-        "export_with_args": ".p-splitbutton-dropdown"  # Export button dropdown arrow
+        "export": EXPORT_DROPDOWN  # Export button dropdown arrow (.p-splitbutton-dropdown)
     },
     "log_window": {
         "client": LOG_CLIENT_DROPDOWN,  # .log-client-dropdown
-        "filter": LOG_FILTER_DROPDOWN   # .log-filter-dropdown
+        "type": LOG_TYPE_DROPDOWN       # .log-type-dropdown (for telemetry data types)
     }
 }
 
@@ -109,29 +116,37 @@ CHECKBOX_SELECTORS = {
         "override": "#override-args"  # Override checkbox in runner args dialog
     },
     "taskbar": {
-        "run_after_export": RUN_AFTER_EXPORT  # Run after export checkbox
+        "custom_args": "#use-custom-args"  # Custom args checkbox (new UI)
+    },
+    "log_window": {
+        "auto_scroll": AUTO_SCROLL_CHECKBOX  # Auto-scroll checkbox in log viewer
     }
 }
 
 # Input field selector mapping for different UI locations
 INPUT_SELECTORS = {
     "runner_args_dlg": {
-        "cmd_line": ".command-line-input"  # Command line arguments input field
+        "cmd_line": ".command-line-input"  # Command line arguments input field (correct!)
     }
 }
 
 # Menu and dialog selectors
 EXPORT_MENU_OVERLAY = ".p-tieredmenu-overlay"
-EXPORT_WITH_ARGS_MENU_ITEM = ".p-tieredmenu-item-link:has(.p-tieredmenu-item-label:has-text('Export with Arguments'))"
-RUNNER_ARGS_DIALOG = ".runner-args-dialog-content"
-EXPORT_WITH_ARGS_BUTTON = "button:has-text('Export with Arguments')"
+EXPORT_MENU_DEPLOY = ".p-tieredmenu-item:nth-child(1) .p-tieredmenu-item-link"  # "Deploy" option
+EXPORT_MENU_DEPLOY_RUN = ".p-tieredmenu-item:nth-child(2) .p-tieredmenu-item-link"  # "Deploy and Run" option
+EXPORT_MENU_RUN_ONLY = ".p-tieredmenu-item:nth-child(3) .p-tieredmenu-item-link"  # "Run Only" option
+RUNNER_ARGS_DIALOG = ".runner-args-dialog-content"  # Runner args dialog content
+RUNNER_ARGS_DIALOG_CONTAINER = ".p-dialog[aria-labelledby='runner-args-dialog']"  # Full dialog container
+RUNNER_ARGS_CANCEL_BUTTON = ".runner-args-dialog-content button[aria-label='Cancel']"  # Cancel button
+RUNNER_ARGS_ACCEPT_BUTTON = ".runner-args-dialog-content button.p-button:not(.p-button-secondary)"  # Accept button (Deploy/Deploy and Run/Run Only)
 TIEREDMENU_ITEM = ".p-tieredmenu-item"
 TIEREDMENU_ITEM_LINK = ".p-tieredmenu-item-link"
 
 # Button selector mapping for different UI locations
 BUTTON_SELECTORS = {
     "taskbar": {
-        "export": EXPORT_BUTTON,          # [data-testid="export-button"]
+        "export": EXPORT_BUTTON,          # .p-splitbutton-button (main export button)
+        "export_dropdown": EXPORT_DROPDOWN,  # .p-splitbutton-dropdown (dropdown arrow)
         "stop": STOP_BUTTON,              # button[aria-label="Stop"]
         "show_logs": SHOW_LOGS_BUTTON     # button[aria-label="Show Logs"]
     },
@@ -145,6 +160,10 @@ BUTTON_SELECTORS = {
         "close": DIALOG_CLOSE,            # .p-dialog-close-button
         "confirm": f"{DIALOG_FOOTER} button:has-text('Yes'), {DIALOG_FOOTER} button:has-text('Confirm')",
         "cancel": f"{DIALOG_FOOTER} button:has-text('No'), {DIALOG_FOOTER} button:has-text('Cancel')"
+    },
+    "runner_args_dlg": {
+        "cancel": RUNNER_ARGS_CANCEL_BUTTON,      # Cancel button in runner args dialog
+        "accept": RUNNER_ARGS_ACCEPT_BUTTON       # Accept button (text varies: Deploy/Deploy and Run/Run Only)
     },
     "sidebar": {
         "close_workflow": CLOSE_WORKFLOW  # .close-workflow-button

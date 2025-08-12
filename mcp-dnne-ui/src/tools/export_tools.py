@@ -12,7 +12,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.helpers import format_mcp_response
 from utils.js_defs import *
 from utils.timing_constants import ANIMATION_DELAY, EXPORT_TIMEOUT
-from utils.js_snippets import js_is_checkbox_disabled, js_is_checkbox_checked
 
 logger = logging.getLogger(__name__)
 
@@ -132,58 +131,8 @@ class ExportTools:
             logger.error(f"Failed to get export status: {e}")
             return format_mcp_response(False, error=str(e))
     
-    async def set_run_after_export(self, enabled: bool) -> Dict[str, Any]:
-        """
-        Set whether to run the workflow after export
-        
-        Args:
-            enabled: Whether to enable run after export
-        
-        Returns:
-            MCP response with success status
-        """
-        try:
-            if not self.browser:
-                return format_mcp_response(False, error="Browser not initialized")
-            
-            logger.info(f"Setting run after export to: {enabled}")
-            
-            # Use the defined selector for the run after export checkbox
-            checkbox_selector = RUN_AFTER_EXPORT
-            
-            checkbox_exists = await self.browser.is_visible(checkbox_selector)
-            if not checkbox_exists:
-                return format_mcp_response(
-                    False,
-                    error="Run after export checkbox not found"
-                )
-            
-            # Check if checkbox is disabled
-            is_disabled = await js_is_checkbox_disabled(self.browser, checkbox_selector)
-            
-            if is_disabled:
-                return format_mcp_response(
-                    False,
-                    error="Cannot set run after export - checkbox is disabled (Local export selected)"
-                )
-            
-            # Get current state
-            is_checked = await js_is_checkbox_checked(self.browser, checkbox_selector)
-            
-            # Toggle if needed
-            if is_checked != enabled:
-                await self.browser.click(checkbox_selector)
-                await asyncio.sleep(ANIMATION_DELAY)
-            
-            return format_mcp_response(
-                True,
-                data={"run_after_export": enabled},
-                message=f"Run after export set to: {enabled}"
-            )
-            
-        except Exception as e:
-            logger.error(f"Failed to set run after export: {e}")
-            return format_mcp_response(False, error=str(e))
+    # Note: set_run_after_export function has been removed as the UI no longer has this checkbox.
+    # The new UI uses a custom_args checkbox and the "Export with Arguments..." flow instead.
     
     async def wait_for_export_completion(self, timeout: int = EXPORT_TIMEOUT) -> Dict[str, Any]:
         """
