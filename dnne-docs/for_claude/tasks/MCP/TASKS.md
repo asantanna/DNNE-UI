@@ -79,28 +79,13 @@ See test_results_comprehensive.json for complete list (outdated - needs rerun af
 - [x] **Fixed log file encoding** - Added UTF-8 encoding for emoji support
 - [x] **Added extra_args to util_restart_dnne** - Support passing command-line arguments like --verbose DEBUG
 
-## 🚧 In Progress
-
-### Current Focus
-- [ ] Add util_set_DNNE_log_level(log_level) - Set DNNE server logging level
-- [ ] Add util_set_agent_server_log_level(log_level) - Set agent server logging level
-
 ## 📋 TODO
 
-### High Priority
-- [x] ~~**Fix cleanup_browser naming**~~ - ✅ Renamed to "shut_down_browser_automation"
-- [x] ~~**Fix get_workflow_list**~~ - ✅ Now handles sidebar state internally
-- [x] ~~**Fix get_connected_clients**~~ - ✅ No longer returns "Local"
-- [x] ~~**Fix select_client**~~ - ✅ Works without emoji prefix
-- [x] ~~**Delete open_menu function**~~ - ✅ Removed duplicate
-- [x] ~~**Fix toggle_link_visibility**~~ - ✅ Replaced with get/set functions
-- [x] ~~**Remove state management**~~ - ✅ MCP server is now stateless
-
-### Medium Priority
-- [ ] **Investigate scope of suppress_browser_messages** - The suppress_browser_messages flag was added to test output but its scope should be reviewed to ensure it suppresses the right messages without hiding important errors
-
 ### Low Priority
-- [x] ~~**Test remaining tools after fixes**~~ - ✅ Comprehensive testing completed (38/38 passing)
+- [ ] **Investigate scope of suppress_browser_messages** - The suppress_browser_messages flag was added to test output but its scope should be reviewed to ensure it suppresses the right messages without hiding important errors
+- [ ] Add util_set_DNNE_log_level(log_level) - Set DNNE server logging level
+- [ ] Add util_set_agent_server_log_level(log_level) - Set agent server logging level
+- [ ] Refactor browser_controller JavaScript into reusable snippets in js_snippets
 
 ### Issues Found During Manual Testing (ALL FIXED ✅)
 1. ~~**cleanup_browser**~~ - ✅ Renamed to "shut_down_browser_automation"
@@ -112,10 +97,7 @@ See test_results_comprehensive.json for complete list (outdated - needs rerun af
 
 ### MCP Enhancements
 - [x] ~~Add new MCP function util_restart_DNNE with restart_agent_server option~~ - ✅ Completed
-- [ ] Add optional 'switches' parameter to MCP export function to pass runner.py arguments
-- [ ] Refactor browser_controller JavaScript into reusable snippets in js_snippets
-
-### Low Priority
+- [x] ~~Add optional 'switches' parameter to MCP export function to pass runner.py arguments~~ - ✅ Completed
 
 ## 🐛 Known Issues
 

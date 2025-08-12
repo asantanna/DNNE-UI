@@ -238,6 +238,26 @@ class PromptServer():
                                 client_id = data.get('client_id')  # For requesting latest logs when no workflow_id
                                 logging.debug(f"🔍 Received request_logs for workflow_id: {workflow_id}, client_id: {client_id}")
                                 await self.send_workflow_history(ws, workflow_id, client_id)
+                            elif msg_type == 'request_telemetry':
+                                # Handle request for telemetry data
+                                workflow_id = data.get('workflow_id')
+                                client_id = data.get('client_id')
+                                telemetry_type = data.get('telemetry_type', 'violations')  # 'violations' or 'data'
+                                logging.debug(f"📊 Received request_telemetry for workflow_id: {workflow_id}, type: {telemetry_type}")
+                                await self.send_telemetry_history(ws, workflow_id, client_id, telemetry_type)
+                            elif msg_type == 'check_workflow_exists':
+                                # Check if workflow exists on remote client
+                                client_id = data.get('client_id')
+                                workflow_id = data.get('workflow_id')
+                                logging.debug(f"🔍 Checking if workflow {workflow_id} exists on {client_id}")
+                                await self.check_workflow_exists(ws, client_id, workflow_id)
+                            elif msg_type == 'run_workflow':
+                                # Run an existing workflow on remote client
+                                client_id = data.get('client_id')
+                                workflow_id = data.get('workflow_id')
+                                runner_args = data.get('runner_args', '')
+                                logging.debug(f"▶️ Running workflow {workflow_id} on {client_id}")
+                                await self.run_existing_workflow(ws, client_id, workflow_id, runner_args)
                             elif msg_type == 'request_runner_args':
                                 # Handle request for runner arguments configuration
                                 import os
@@ -1446,6 +1466,14 @@ class PromptServer():
             batch = message.get("batch", [])
             self._write_telemetry_batch(workflow_id, batch)
             
+        elif msg_type == "workflow_exists_response":
+            # Response from agent about workflow existence check
+            # Forward to all UI clients
+            await self.send_to_all({
+                "type": "workflow_exists_response",
+                "data": message
+            })
+            
         else:
             # Unknown message type - log as error
             logging.error(f" Unknown agent message type: {msg_type}")
@@ -1842,6 +1870,165 @@ class PromptServer():
                 
         except Exception as e:
             logging.error(f" Failed to send workflow history: {e}")
+    
+    async def send_telemetry_history(self, ws, workflow_id, client_id, telemetry_type):
+        """Read and send telemetry data from disk"""
+        from pathlib import Path
+        import time
+        
+        logging.debug(f"📊 send_telemetry_history: workflow_id={workflow_id}, client_id={client_id}, type={telemetry_type}")
+        
+        # Try to find telemetry directory
+        telemetry_dir = None
+        
+        # First check if it's an active workflow
+        workflow = self.active_workflows.get(workflow_id) if workflow_id else None
+        if workflow and 'telemetry_dir' in workflow:
+            telemetry_dir = Path(workflow['telemetry_dir'])
+            logging.debug(f"  Found active workflow telemetry dir: {telemetry_dir}")
+        else:
+            # Try to find historical telemetry
+            if workflow_id:
+                # Look for telemetry in the workflow's directory
+                client_dir = Path(f"remote_clients/{client_id or 'local'}")
+                if client_dir.exists():
+                    # Find the workflow directory
+                    for wf_dir in client_dir.glob(f"*_{workflow_id}"):
+                        telem_base = wf_dir / "telemetry"
+                        if telem_base.exists():
+                            # Get the most recent telemetry directory
+                            telem_dirs = list(telem_base.glob("telem_*"))
+                            if telem_dirs:
+                                telemetry_dir = sorted(telem_dirs)[-1]  # Most recent
+                                logging.debug(f"  Found historical telemetry dir: {telemetry_dir}")
+                                break
+        
+        # If no telemetry directory found, send empty response
+        if not telemetry_dir or not telemetry_dir.exists():
+            logging.debug(f"  No telemetry directory found")
+            await ws.send_json({
+                "type": "telemetry_history",
+                "data": {
+                    "workflow_id": workflow_id,
+                    "telemetry_type": telemetry_type,
+                    "content": f"No telemetry {telemetry_type} available.",
+                    "timestamp": time.time()
+                }
+            })
+            return
+        
+        telemetry_output = []
+        
+        try:
+            if telemetry_type == 'violations':
+                # Read only violation files
+                violation_files = sorted(telemetry_dir.glob("*_violations.log"))
+                if violation_files:
+                    for violation_file in violation_files:
+                        node_id = violation_file.stem.replace('node_', '').replace('_violations', '')
+                        telemetry_output.append(f"\n{'='*60}\n")
+                        telemetry_output.append(f"Node {node_id} Violations\n")
+                        telemetry_output.append(f"{'='*60}\n")
+                        with open(violation_file, 'r') as f:
+                            content = f.read()
+                            if content:
+                                telemetry_output.append(content)
+                            else:
+                                telemetry_output.append("No violations recorded.\n")
+                else:
+                    telemetry_output.append("No violation files found.\n")
+            else:  # telemetry_type == 'data'
+                # Read only metric data files (exclude violations)
+                metric_files = sorted([f for f in telemetry_dir.glob("node_*.dat") 
+                                      if '_violations' not in str(f)])
+                if metric_files:
+                    for metric_file in metric_files:
+                        node_id = metric_file.stem.replace('node_', '')
+                        telemetry_output.append(f"\n{'='*60}\n")
+                        telemetry_output.append(f"Node {node_id} Metrics\n")
+                        telemetry_output.append(f"{'='*60}\n")
+                        with open(metric_file, 'r') as f:
+                            content = f.read()
+                            if content:
+                                # Format the metrics for readability
+                                lines = content.strip().split('\n')
+                                for line in lines[-100:]:  # Show last 100 entries
+                                    telemetry_output.append(line + '\n')
+                            else:
+                                telemetry_output.append("No metrics recorded.\n")
+                else:
+                    telemetry_output.append("No metric files found.\n")
+            
+            # Send the telemetry data
+            content = ''.join(telemetry_output) if telemetry_output else f"No {telemetry_type} available."
+            await ws.send_json({
+                "type": "telemetry_history",
+                "data": {
+                    "workflow_id": workflow_id,
+                    "telemetry_type": telemetry_type,
+                    "content": content,
+                    "timestamp": time.time()
+                }
+            })
+            
+            logging.debug(f"  ✅ Sent telemetry {telemetry_type} ({len(content)} chars)")
+            
+        except Exception as e:
+            logging.error(f"  ❌ Error reading telemetry: {e}")
+            await ws.send_json({
+                "type": "telemetry_history",
+                "data": {
+                    "workflow_id": workflow_id,
+                    "telemetry_type": telemetry_type,
+                    "content": f"Error reading telemetry: {str(e)}",
+                    "timestamp": time.time()
+                }
+            })
+    
+    async def check_workflow_exists(self, ws, client_id, workflow_id):
+        """Check if workflow exists on remote client"""
+        from pathlib import Path
+        
+        if self.agent_ws and client_id != 'local':
+            # Forward check to agent
+            await self.agent_ws.send_json({
+                "type": "check_workflow",
+                "client_id": client_id,
+                "workflow_id": workflow_id
+            })
+            # Agent will respond directly to UI
+        else:
+            # For local, check file system
+            workflow_dir = Path(f"export_system/exports/{workflow_id}")
+            exists = workflow_dir.exists() and (workflow_dir / "runner.py").exists()
+            
+            await ws.send_json({
+                "type": "workflow_exists_response",
+                "data": {
+                    "client_id": client_id,
+                    "workflow_id": workflow_id,
+                    "exists": exists
+                }
+            })
+            logging.debug(f"  Local workflow {workflow_id} exists: {exists}")
+    
+    async def run_existing_workflow(self, ws, client_id, workflow_id, runner_args):
+        """Run an already deployed workflow"""
+        if self.agent_ws and client_id != 'local':
+            # Forward to agent
+            await self.agent_ws.send_json({
+                "type": "run_workflow",
+                "client_id": client_id,
+                "workflow_id": workflow_id,
+                "runner_args": runner_args
+            })
+            logging.info(f"  Forwarded run command to agent for {workflow_id} on {client_id}")
+        else:
+            # For local, run directly
+            # This would require implementing local execution logic
+            # For now, just log
+            logging.info(f"  Local run not yet implemented for {workflow_id}")
+            # Could potentially start a subprocess here similar to how agent does it
     
     def _get_latest_workflow_id(self, client_id):
         """Get the workflow_id of the most recent workflow for a client."""

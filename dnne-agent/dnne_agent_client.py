@@ -892,6 +892,11 @@ def setup_logging(log_dir: Optional[str] = None, verbose: str = 'INFO'):
         ]
     )
     
+    # Suppress verbose websockets library debug messages (PING/PONG keepalive)
+    logging.getLogger('websockets').setLevel(logging.INFO)
+    logging.getLogger('websockets.client').setLevel(logging.INFO)
+    logging.getLogger('websockets.protocol').setLevel(logging.INFO)
+    
     # Log the startup message
     logger.info(f"=== DNNE Agent Client Started ===")
     logger.info(f"Log file: {log_file}")

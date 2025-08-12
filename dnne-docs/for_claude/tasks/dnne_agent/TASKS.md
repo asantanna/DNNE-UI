@@ -182,9 +182,9 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 
 ### 5.5 Complete Testing
 - [x] End-to-end test with telemetry enabled ✅ 2025-01-09
-- [ ] Test run_after_export functionality
-- [ ] Verify logs are captured and displayed
-- [ ] Test error scenarios
+- [x] Test run_after_export functionality ✅ 2025-08-11
+- [ ] Verify telemetry logs are captured and displayed in log viewer (not yet tested with UI)
+- [x] Test error scenarios ✅ 2025-08-11
 
 ## Phase 6: Content-Based IDs and Logging Infrastructure ✅ 2025-08-06
 
@@ -356,6 +356,12 @@ This document tracks the implementation of DNNE Agent integration for remote wor
 - Show Logs button needs frontend modal implementation
 - ~~Status bar should always show "Active Workflows: 0" when none running~~ ✅ Fixed
 - Programmatic agent server restart doesn't work
+
+## Low Priority Fixes
+1. **Comment out verbose keepalive debug messages** in dnne_agent_client.py
+   - Messages to remove/comment: "received keepalive", "PING", "PONG"
+   - These are too verbose even at DEBUG level
+   - Clutter the logs without providing useful information
 
 ## Future Enhancements
 1. Implement --server-ip[:port] command line switch for dnne_agent_client.py

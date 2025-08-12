@@ -66,19 +66,27 @@ The log window functionality is fully implemented and working. The critical work
 
 ### UI Component Testing
 
-### Integration Testing
-- [ ] Test with multiple concurrent workflows
-- [ ] Verify remote log collection from multiple agents
-- [ ] Test log streaming for long-running workflows
-
 ## 📋 TODO
 
-### Bug Fixes (After Testing)
-- [x] ~~Fix status bar workflow count update issue~~ - FIXED 2025-08-07
+### High Priority - Telemetry Log Viewing
+- [ ] **Implement telemetry log viewing in UI** - Currently not implemented
+- [ ] **Fix execution log streaming overlap** - When telemetry is selected, execution logs keep streaming into window
+- [ ] **Add per-client execution log buffer** - Buffer execution logs in memory per-client to preserve when switching views
+  - When switching to telemetry view, execution logs must not be lost
+  - Telemetry always reads from disk (no buffer needed)
+  - Switching back to execution logs should restore from buffer
+  - Buffer must be per-client to handle client switching
 
-### Performance & Polish
+### Medium Priority - UI State Management  
+- [ ] **Save runner params per-client** - UI should save runner params dialog settings in memory per-client to avoid reconfiguration
 
-### Documentation
+### Low Priority Testing
+- [ ] Test with multiple concurrent workflows (not currently supported)
+- [ ] Verify remote log collection from multiple agents (not currently supported)
+- [ ] **Consider run mode dropdown** - Change "run after export" checkbox to dropdown:
+  - "Export only"
+  - "Run after export" 
+  - "Run existing" (export once, run many times)
 
 ## 🐛 Known Issues
 
