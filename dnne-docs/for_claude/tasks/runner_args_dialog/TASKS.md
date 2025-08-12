@@ -135,6 +135,13 @@ The Runner Arguments Dialog provides a dynamic, JSON-driven UI for configuring c
 - Resolved default value issues
 - Completed all UI polish tasks
 
+### Session 3 (2025-08-12)
+- MCP integration fully tested with new UI
+- Successfully tested override checkbox via MCP
+- Verified command line input entry works via MCP
+- Confirmed accept button (Deploy/Deploy and Run/Run Only) changes based on context
+- Tested telemetry flags with --enable-telemetry option
+
 ## Success Metrics
 
 ✅ **All Goals Achieved**:

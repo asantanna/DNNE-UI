@@ -1,12 +1,12 @@
 # DNNE UI MCP - Task Tracking
 
-*Last Updated: 2025-08-09*
+*Last Updated: 2025-08-12*
 
 ## Quick Stats
 - **Total Tools**: 38 implemented (including utility functions)
 - **Tested**: 38/38 (100%)
 - **Working**: 38/38 (100%)
-- **Status**: All tools fully implemented and tested
+- **Status**: All tools fully implemented and tested with new PrimeVue 4 UI
 
 ## ✅ Completed
 
@@ -78,6 +78,17 @@ See test_results_comprehensive.json for complete list (outdated - needs rerun af
 - [x] **Added get_viewer_client_log()** - Get log content from UI viewer (renamed from get_agent_status)
 - [x] **Fixed log file encoding** - Added UTF-8 encoding for emoji support
 - [x] **Added extra_args to util_restart_dnne** - Support passing command-line arguments like --verbose DEBUG
+
+### PrimeVue 4 UI Updates (2025-08-12)
+- [x] **Updated all selectors in js_defs.py** - Fixed to match new PrimeVue 4 components
+- [x] **Fixed export workflow** - Now uses split button dropdown with Deploy/Deploy and Run/Run Only options
+- [x] **Updated runner args dialog selectors** - Added support for override checkbox and command line input
+- [x] **Fixed log viewer selectors** - Updated client/type dropdowns and auto-scroll checkbox
+- [x] **Removed obsolete functions** - Deleted set_run_after_export as UI no longer has this checkbox
+- [x] **Fixed custom args checkbox** - Corrected selector to #use-custom-args
+- [x] **Added RUNNER_ARGS_ACCEPT_BUTTON** - Generic accept button that changes text based on context
+- [x] **Updated export flow** - Must select remote client, then dropdown selects mode, then click export button
+- [x] **Verified telemetry** - Successfully tested with --enable-telemetry flag and viewed telemetry data in logs
 
 ## 📋 TODO
 
