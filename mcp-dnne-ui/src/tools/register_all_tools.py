@@ -136,11 +136,7 @@ def register_all_tools(server: "DNNE_UI_MCPServer"):
         description="Take a screenshot of the DNNE UI"
     )
     
-    register_tool(
-        export_tools.set_run_after_export,
-        name="set_run_after_export",
-        description="Set whether to run the workflow after export (for testing only - export_workflow overrides this)"
-    )
+    # Note: set_run_after_export has been removed as the UI no longer has this checkbox
     
     # Register utility tools
     register_tool(
