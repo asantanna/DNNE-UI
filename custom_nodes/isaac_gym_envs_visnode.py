@@ -13,15 +13,7 @@ from inspect import cleandoc
 from custom_nodes.base import RoboticsNodeBase
 from custom_nodes.node_colors import get_node_colors
 
-try:
-    from .utils.isaac_gym_config_loader import IsaacGymConfigLoader
-except ImportError:
-    # Fallback
-    class IsaacGymConfigLoader:
-        def __init__(self):
-            pass
-        def get_available_tasks(self):
-            return ["Cartpole", "Ant", "Humanoid", "Anymal", "BallBalance", "FrankaCabinet"]
+from .utils.isaac_gym_config_loader import IsaacGymEnvConfigLoader as IsaacGymConfigLoader
 
 
 class IsaacGymEnvs(RoboticsNodeBase):
@@ -36,13 +28,9 @@ class IsaacGymEnvs(RoboticsNodeBase):
 
     def __init__(self):
         super().__init__()
-        # Load available tasks
-        try:
-            loader = IsaacGymConfigLoader()
-            self.available_tasks = loader.get_available_tasks()
-        except Exception:
-            # Fallback to common tasks if config loading fails
-            self.available_tasks = ["Cartpole", "Ant", "Humanoid", "Anymal", "BallBalance", "FrankaCabinet"]
+        # Load available tasks - fail fast if config loading fails
+        loader = IsaacGymConfigLoader()
+        self.available_tasks = loader.get_available_tasks()
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -69,7 +57,7 @@ class IsaacGymEnvs(RoboticsNodeBase):
                     "max": 1000000,
                     "tooltip": "Random seed for reproducibility"
                 }),
-                "control_after_generate": (["fixed", "randomize", "increment", "decrement"], {
+                "seed_control": (["fixed", "randomize", "increment", "decrement"], {
                     "default": "fixed",
                     "tooltip": "How to handle seed between runs"
                 }),
@@ -134,7 +122,7 @@ class IsaacGymEnvs(RoboticsNodeBase):
     RETURN_NAMES = ("env",)
     FUNCTION = "configure"
 
-    def configure(self, task, num_envs, seed, control_after_generate, headless, graphics_device_id, sim_device, 
+    def configure(self, task, num_envs, seed, seed_control, headless, graphics_device_id, sim_device, 
                   physics_engine, multi_gpu, enable_cameras, force_render=False, use_gpu_pipeline=True, 
                   num_threads=0, solver_type=1, num_subscenes=0):
         """
@@ -146,7 +134,7 @@ class IsaacGymEnvs(RoboticsNodeBase):
             "task": task,
             "num_envs": num_envs,
             "seed": seed,
-            "control_after_generate": control_after_generate,
+            "seed_control": seed_control,
             "headless": headless,
             "graphics_device_id": graphics_device_id,
             "sim_device": sim_device,

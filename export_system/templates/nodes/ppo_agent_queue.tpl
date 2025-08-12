@@ -44,7 +44,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             'task': '{ENV_TASK}',
             'num_envs': {ENV_NUM_ENVS},
             'seed': {ENV_SEED},
-            'control_after_generate': '{ENV_CONTROL_AFTER_GENERATE}',
+            'seed_control': '{ENV_SEED_CONTROL}',
             'headless': {ENV_HEADLESS},
             'graphics_device_id': {ENV_GRAPHICS_DEVICE},
             'sim_device': '{ENV_SIM_DEVICE}',
@@ -182,8 +182,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         """
         Create configuration arguments for IsaacGymEnvs train.py
         """
-        # Apply seed control logic based on control_after_generate
-        control_mode = self.env_config.get('control_after_generate', 'fixed')
+        # Apply seed control logic based on seed_control
+        control_mode = self.env_config.get('seed_control', 'fixed')
         
         if control_mode == 'randomize':
             # Generate a new random seed for each run

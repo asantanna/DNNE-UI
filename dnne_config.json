@@ -19,7 +19,7 @@
       "conda_env": "DNNE_PY310"
     },
     "wsl": {
-      "filesystem_prefix": "\\\\wsl.localhost\\Ubuntu",
+      "filesystem_prefix": "U:",
       "home_path": "/home/asantanna"
     },
     "export": {

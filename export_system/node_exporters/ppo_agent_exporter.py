@@ -62,7 +62,7 @@ class PPOAgentExporter(ExportableNode):
         if env_config:
             # Fail-fast: all required env config values must be present
             required_env_keys = [
-                'task', 'num_envs', 'seed', 'control_after_generate', 'headless',
+                'task', 'num_envs', 'seed', 'seed_control', 'headless',
                 'graphics_device_id', 'sim_device', 'physics_engine', 'multi_gpu',
                 'enable_cameras', 'force_render', 'use_gpu_pipeline', 'num_threads',
                 'solver_type', 'num_subscenes', 'isaac_gym_envs_path'
@@ -78,7 +78,7 @@ class PPOAgentExporter(ExportableNode):
                 "ENV_TASK": env_config['task'],
                 "ENV_NUM_ENVS": env_config['num_envs'],
                 "ENV_SEED": env_config['seed'],
-                "ENV_CONTROL_AFTER_GENERATE": env_config['control_after_generate'],
+                "ENV_SEED_CONTROL": env_config['seed_control'],
                 "ENV_HEADLESS": env_config['headless'],
                 "ENV_GRAPHICS_DEVICE": env_config['graphics_device_id'],
                 "ENV_SIM_DEVICE": env_config['sim_device'],
@@ -207,7 +207,7 @@ class PPOAgentExporter(ExportableNode):
         
         # Map widget values to config (based on IsaacGymEnvs node definition)
         # Fail-fast: ensure we have all required widget values
-        required_widget_count = 15  # 9 required + 5 optional + 1 for control_after_generate
+        required_widget_count = 15  # 9 required + 5 optional + 1 for seed_control
         if len(widget_values) < required_widget_count:
             raise ValueError(
                 f"IsaacGymEnvs node {env_node_id} has {len(widget_values)} widget values, "
@@ -220,7 +220,7 @@ class PPOAgentExporter(ExportableNode):
             'task': widget_values[0],
             'num_envs': widget_values[1],
             'seed': widget_values[2],
-            'control_after_generate': widget_values[3],
+            'seed_control': widget_values[3],
             'headless': widget_values[4],
             'graphics_device_id': widget_values[5],
             'sim_device': widget_values[6],

@@ -19,11 +19,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=["env_config", "action"], optional=["reset"])
+        self.setup_inputs(required=["action"])  # Config is embedded, reset handled in compute
         self.setup_outputs(["observation", "done"])
         
+        # Create input queue for optional reset input
+        from asyncio import Queue
+        self.input_queues["reset"] = Queue(maxsize=1)  # Trigger signal - size 1
+        
         self.reset_when_done = {RESET_WHEN_DONE}
-        self.render = {RENDER}
+        # Check for visual mode from Global
+        from framework.globals import Global as g
+        self.render = g.visual_mode if hasattr(g, 'visual_mode') else {RENDER}
         self.null_action = {NULL_ACTION}
         self.env = None
         self.device = None
@@ -33,12 +39,24 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
     async def initialize(self):
         """Initialize Isaac Gym environment from config"""
+        print(f"[DEBUG IsaacGymSim] Starting initialization...")
         try:
-            # Get config from input
-            config = await self.get_input("config")
+            # Config from IsaacGymEnvs virtual node (embedded during export)
+            config = {{
+                "task": "{TASK}",
+                "num_envs": {NUM_ENVS},
+                "seed": {SEED},
+                "sim_device": "{SIM_DEVICE}",
+                "headless": {HEADLESS},  # Will be overridden by visual flag
+                "graphics_device_id": {GRAPHICS_DEVICE_ID},
+                "enable_cameras": False
+            }}
             
             # Import isaacgymenvs (already imported at top of runner.py)
+            print(f"[DEBUG IsaacGymSim] Importing isaacgymenvs...")
             from isaacgymenvs import make
+            
+            print(f"[DEBUG IsaacGymSim] Creating env_config with task={{config['task']}}, render={{self.render}}")
             
             # Override num_envs to 1 for DNNE compatibility
             env_config = {{
@@ -56,7 +74,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             }}
             
             # Create environment
+            print(f"[DEBUG IsaacGymSim] Calling make() with config: {{env_config}}")
             self.env = make(**env_config)
+            print(f"[DEBUG IsaacGymSim] Environment created successfully!")
             
             # Get device
             self.device = torch.device(config.get("sim_device", "{SIM_DEVICE}"))
@@ -90,7 +110,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 self.node_logger.info(f"Stepped with null action: {{self.null_action}}")
             
             # Send initial observation
-            await self.send_output(obs, "observation")
+            await self.send_output("observation", obs)
             
             self.node_logger.info(f"Initialized {{config['task']}} environment on {{self.device}}")
             
@@ -98,11 +118,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.node_logger.error(f"Failed to initialize environment: {{e}}")
             raise
     
-    async def compute(self, config=None, action=None, reset=None) -> Dict[str, Any]:
+    async def compute(self, **kwargs) -> Dict[str, Any]:
         """Step the environment or handle reset"""
+        print(f"[DEBUG IsaacGymSim] compute() called with kwargs keys: {{kwargs.keys()}}")
+        action = kwargs.get('action')
+        reset = kwargs.get('reset')
         
         # Initialize on first call
         if self.env is None:
+            print(f"[DEBUG IsaacGymSim] env is None, calling initialize()...")
             await self.initialize()
             return {{}}  # Initialization sends initial observation
         
@@ -165,7 +189,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                             obs = obs["obs"]
                     
                     # Send new observation after reset
-                    await self.send_output(obs, "observation")
+                    await self.send_output("observation", obs)
             
             return outputs
         

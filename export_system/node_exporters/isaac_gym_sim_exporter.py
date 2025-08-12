@@ -35,7 +35,7 @@ class IsaacGymSimExporter(ExportableNode):
             task = config_widgets[0] if len(config_widgets) > 0 else "Cartpole"
             num_envs = config_widgets[1] if len(config_widgets) > 1 else 64
             seed = config_widgets[2] if len(config_widgets) > 2 else 42
-            control_after_generate = config_widgets[3] if len(config_widgets) > 3 else "fixed"
+            seed_control = config_widgets[3] if len(config_widgets) > 3 else "fixed"
             headless = config_widgets[4] if len(config_widgets) > 4 else True
             graphics_device_id = config_widgets[5] if len(config_widgets) > 5 else 0
             sim_device = config_widgets[6] if len(config_widgets) > 6 else "cuda:0"

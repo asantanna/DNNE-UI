@@ -1,0 +1,72 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(chmod:*)",
+      "Bash(find:*)",
+      "Bash(git add:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "mcp__dnne-ui__clear_workflow",
+      "mcp__dnne-ui__click_button",
+      "mcp__dnne-ui__click_droplist",
+      "mcp__dnne-ui__click_droplist_item",
+      "mcp__dnne-ui__click_menu_header",
+      "mcp__dnne-ui__click_menu_item",
+      "mcp__dnne-ui__dismiss_dialog",
+      "mcp__dnne-ui__export_workflow",
+      "mcp__dnne-ui__get_canvas_state",
+      "mcp__dnne-ui__get_connected_clients",
+      "mcp__dnne-ui__get_current_workflow_name",
+      "mcp__dnne-ui__get_node_count",
+      "mcp__dnne-ui__get_status_bar_info",
+      "mcp__dnne-ui__get_viewer_client_log",
+      "mcp__dnne-ui__get_workflow_list",
+      "mcp__dnne-ui__initialize_browser",
+      "mcp__dnne-ui__is_browser_running",
+      "mcp__dnne-ui__is_ui_healthy",
+      "mcp__dnne-ui__load_workflow",
+      "mcp__dnne-ui__new_blank_workflow",
+      "mcp__dnne-ui__open_sidebar_tab",
+      "mcp__dnne-ui__restart_browser",
+      "mcp__dnne-ui__run_javascript",
+      "mcp__dnne-ui__save_workflow",
+      "mcp__dnne-ui__select_client",
+      "mcp__dnne-ui__set_run_after_export",
+      "mcp__dnne-ui__shut_down_browser_automation",
+      "mcp__dnne-ui__take_screenshot",
+      "mcp__dnne-ui__util_find_elements_by_text",
+      "mcp__dnne-ui__util_get_dnne_server_status",
+      "mcp__dnne-ui__util_is_DNNE_running",
+      "mcp__dnne-ui__util_is_agent_server_running",
+      "mcp__dnne-ui__util_restart_dnne",
+      "mcp__dnne-ui__wait_for_ui_ready",
+      "mcp__dnne-ui__zoom_in",
+      "mcp__dnne-ui__zoom_out",
+      "mcp__dnne-ui__zoom_to_fit",
+      "Bash(./build_frontend.sh:*)",
+      "Bash(git stash show:*)",
+      "Bash(./dnne-test:*)"
+    ],
+    "deny": [],
+    "additionalDirectories": [
+      "/home/asantanna/DNNE",
+      "/tmp"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/bash_tool_monitor.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

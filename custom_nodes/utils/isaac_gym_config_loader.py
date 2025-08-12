@@ -223,7 +223,7 @@ class IsaacGymEnvConfigLoader:
         return {
             "num_envs": num_envs,
             "seed": global_cfg.get('seed', 42),
-            "control_after_generate": "fixed",  # Use the actual widget name
+            "seed_control": "fixed",  # Use the actual widget name
             "headless": global_cfg.get('headless', False),
             "graphics_device_id": global_cfg.get('graphics_device_id', 0),
             "sim_device": global_cfg.get('sim_device', 'cuda:0'),
