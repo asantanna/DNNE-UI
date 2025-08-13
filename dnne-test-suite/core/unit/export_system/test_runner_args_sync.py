@@ -32,15 +32,24 @@ class TestRunnerArgsSync(unittest.TestCase):
         parser_args = self._extract_parser_arguments()
         ui_args = self._load_ui_arguments()
         
-        # Check for missing arguments in UI
-        missing_in_ui = parser_args - ui_args
+        # Arguments intentionally omitted from UI:
+        # - headless: default behavior, saves UI space
+        # - dnne_profiling: too obscure for normal users
+        # - debug: redundant with verbose (--debug == --verbose DEBUG)
+        # - verbose: handled differently in UI as "logging" with select options
+        intentionally_omitted = {'headless', 'dnne_profiling', 'debug', 'verbose'}
+        
+        # Check for missing arguments in UI (excluding intentional omissions)
+        missing_in_ui = parser_args - ui_args - intentionally_omitted
         self.assertEqual(missing_in_ui, set(),
             f"Arguments in arg_parser.tpl but missing from runner_args.json: {missing_in_ui}\n"
             f"Please update runner_args.json with UI configuration for these arguments"
         )
         
         # Check for extra arguments in UI (possibly removed from parser)
-        extra_in_ui = ui_args - parser_args
+        # Note: 'logging' in UI maps to 'verbose' in parser
+        ui_only_mappings = {'logging'}  # These UI args map to different parser args
+        extra_in_ui = ui_args - parser_args - ui_only_mappings
         self.assertEqual(extra_in_ui, set(),
             f"Arguments in runner_args.json but not in arg_parser.tpl: {extra_in_ui}\n"
             f"These arguments may have been removed - please clean up runner_args.json"
@@ -70,6 +79,10 @@ class TestRunnerArgsSync(unittest.TestCase):
             # Switch should start with -- or -
             self.assertTrue(switch.startswith('--') or switch.startswith('-'),
                           f"Invalid switch format for {arg_name}: {switch}")
+            
+            # Special case: logging in UI maps to --verbose in arg parser
+            if arg_name == 'logging' and switch == '--verbose':
+                continue  # This is correct
             
             # Switch should relate to argument name (with underscores as hyphens)
             expected_switch = '--' + arg_name.replace('_', '-')
