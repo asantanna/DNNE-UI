@@ -177,7 +177,7 @@ class TestSGDOptimizerExporter:
         """Test extraction of optimizer parameters."""
         # Use ComfyUI format with widgets_values
         node_data = {
-            "widgets_values": [0.001, 0.8]  # learning_rate, momentum
+            "widgets_values": [0.001, 0.8, 0.0]  # learning_rate, momentum, weight_decay
         }
         
         template_vars = SGDOptimizerExporter.prepare_template_vars(
@@ -417,7 +417,12 @@ class TestNodeExporterIntegration:
             "widgets": {
                 "nested_dict": {"key": "value"},
                 "tuple_param": (1, 2, 3)
-            }
+            },
+            "widgets_values": [
+                "./data",  # data_path
+                True,      # train
+                False      # download
+            ]
         }
         
         # Test with MNISTDatasetExporter as representative (doesn't require connections)

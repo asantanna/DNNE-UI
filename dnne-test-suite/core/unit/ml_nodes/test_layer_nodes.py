@@ -1,8 +1,7 @@
 """
 Unit tests for ML layer nodes.
 
-Tests Network, LinearLayer, Conv2DLayer, Activation, Dropout, BatchNorm, 
-and Flatten nodes for proper layer construction and forward passes.
+Tests Network and LinearLayer nodes for proper layer construction and forward passes.
 """
 
 import pytest
@@ -13,8 +12,7 @@ from unittest.mock import Mock, patch, MagicMock
 
 # Import nodes to test
 from custom_nodes import (
-    NetworkNode, LinearLayerNode, Conv2DLayerNode, ActivationNode,
-    DropoutNode, BatchNormNode, FlattenNode
+    NetworkNode, LinearLayerNode
 )
 from fixtures.node_data import (
     LINEAR_LAYER_DATA, NETWORK_DATA, create_sample_tensor, create_sample_mnist_batch
@@ -89,7 +87,7 @@ class TestLinearLayerNode:
         
         # Mock node data with widget values
         mock_data = {
-            "widgets_values": [128, True, "relu", 0.1]  # output_size, bias, activation, dropout
+            "widgets_values": [128, True, "relu", 0.1, "auto"]  # output_size, bias, activation, dropout, weight_init
         }
         
         # Mock connections - need to handle missing connections gracefully
@@ -210,247 +208,9 @@ class TestNetworkNode:
         assert "TENSOR" in return_types  # Should include tensor outputs
         assert "MODEL" in return_types   # Should include model output
         
-        # Test forward method exists (for UI connectivity)
-        assert hasattr(node, 'forward')
-        assert callable(node.forward)
-
-
-class TestActivationNode:
-    """Test Activation node for activation functions."""
-    
-    @pytest.mark.ml
-    def test_input_types(self):
-        """Test Activation input type definition."""
-        node = ActivationNode()
-        input_types = node.INPUT_TYPES()
-        
-        assert "required" in input_types
-        # Should accept input tensor and activation type
-        all_params = {**input_types["required"], **input_types.get("optional", {})}
-        assert len(all_params) >= 1
-    
-    @pytest.mark.ml
-    def test_activation_export_functionality(self):
-        """Test activation node export functionality."""
-        node = ActivationNode()
-        
-        # Test UI interface
-        input_types = node.INPUT_TYPES()
-        assert "required" in input_types
-        required = input_types["required"]
-        
-        # Should accept input tensor and activation type
-        assert "input" in required
-        
-        # Test that the node has proper structure for export
-        assert hasattr(node, "RETURN_TYPES")
-        assert hasattr(node, "RETURN_NAMES")
-        assert hasattr(node, "FUNCTION")
-        
-        # ActivationNode uses 'apply_activation' function (changed during refactoring)
-        assert node.FUNCTION == "apply_activation"
-        
-        # Should return tensor output
-        return_types = node.RETURN_TYPES
-        assert "TENSOR" in return_types
-
-
-class TestConv2DLayerNode:
-    """Test Conv2D layer for convolutional operations."""
-    
-    @pytest.mark.ml
-    def test_input_types(self):
-        """Test Conv2D input type definition."""
-        node = Conv2DLayerNode()
-        input_types = node.INPUT_TYPES()
-        
-        assert "required" in input_types
-        # Should have channel and kernel parameters
-        all_params = {**input_types["required"], **input_types.get("optional", {})}
-        
-        conv_params = [k for k in all_params.keys() 
-                      if any(param in k.lower() for param in ["channel", "kernel", "filter"])]
-        assert len(conv_params) >= 1, "Should have convolution parameters"
-    
-    @pytest.mark.ml
-    def test_conv2d_export_functionality(self):
-        """Test Conv2D layer export functionality."""
-        node = Conv2DLayerNode()
-        
-        # Test UI interface
-        input_types = node.INPUT_TYPES()
-        assert "required" in input_types
-        required = input_types["required"]
-        
-        # Should have convolution-specific parameters
-        assert "input" in required  # Input tensor
-        
-        # Test node structure for export
-        assert hasattr(node, "RETURN_TYPES")
-        assert hasattr(node, "RETURN_NAMES")
-        assert hasattr(node, "FUNCTION")
-        
-        # Conv2D uses 'apply_conv' function (changed during refactoring)
-        assert node.FUNCTION == "apply_conv"
-        
-        # Should return tensor output
-        return_types = node.RETURN_TYPES
-        assert "TENSOR" in return_types
-
-
-class TestDropoutNode:
-    """Test Dropout node for regularization."""
-    
-    @pytest.mark.ml
-    def test_input_types(self):
-        """Test Dropout input type definition."""
-        node = DropoutNode()
-        input_types = node.INPUT_TYPES()
-        
-        assert "required" in input_types
-        all_params = {**input_types["required"], **input_types.get("optional", {})}
-        assert len(all_params) >= 1
-    
-    @pytest.mark.ml
-    def test_dropout_export_functionality(self):
-        """Test dropout export functionality."""
-        node = DropoutNode()
-        
-        # Test UI interface
-        input_types = node.INPUT_TYPES()
-        assert "required" in input_types
-        required = input_types["required"]
-        
-        # Should accept input tensor and dropout parameters
-        assert "input" in required
-        
-        # Test node structure for export
-        assert hasattr(node, "RETURN_TYPES")
-        assert hasattr(node, "RETURN_NAMES")
-        assert hasattr(node, "FUNCTION")
-        
-        # Dropout uses 'apply_dropout' function (changed during refactoring)
-        assert node.FUNCTION == "apply_dropout"
-        
-        # Should return tensor output
-        return_types = node.RETURN_TYPES
-        assert "TENSOR" in return_types
-    
-    @pytest.mark.ml
-    def test_dropout_ui_parameters(self):
-        """Test dropout UI parameter configuration."""
-        node = DropoutNode()
-        
-        # Test input types include dropout rate parameter
-        input_types = node.INPUT_TYPES()
-        all_params = {**input_types["required"], **input_types.get("optional", {})}
-        
-        # Should have dropout probability parameter
-        # (parameter name may vary - p, dropout, dropout_rate, etc.)
-        dropout_params = [k for k in all_params.keys() 
-                         if any(param in k.lower() for param in ["dropout", "p", "rate"])]
-        
-        # Allow flexible parameter naming
-        if len(dropout_params) == 0:
-            # If no explicit dropout parameter, that's also valid for some implementations
-            pass  # Some dropout implementations might not expose the parameter in UI
-
-
-class TestBatchNormNode:
-    """Test BatchNorm node for normalization."""
-    
-    @pytest.mark.ml
-    def test_input_types(self):
-        """Test BatchNorm input type definition."""
-        node = BatchNormNode()
-        input_types = node.INPUT_TYPES()
-        
-        assert "required" in input_types
-        all_params = {**input_types["required"], **input_types.get("optional", {})}
-        assert len(all_params) >= 1
-    
-    @pytest.mark.ml
-    def test_batch_norm_export_functionality(self):
-        """Test BatchNorm export functionality."""
-        node = BatchNormNode()
-        
-        # Test UI interface
-        input_types = node.INPUT_TYPES()
-        assert "required" in input_types
-        required = input_types["required"]
-        
-        # Should accept input tensor
-        assert "input" in required
-        
-        # Test node structure for export
-        assert hasattr(node, "RETURN_TYPES")
-        assert hasattr(node, "RETURN_NAMES")
-        assert hasattr(node, "FUNCTION")
-        
-        # BatchNorm uses 'apply_batchnorm' function (changed during refactoring)
-        assert node.FUNCTION == "apply_batchnorm"
-        
-        # Should return tensor output
-        return_types = node.RETURN_TYPES
-        assert "TENSOR" in return_types
-
-
-class TestFlattenNode:
-    """Test Flatten node for tensor reshaping."""
-    
-    @pytest.mark.ml
-    def test_input_types(self):
-        """Test Flatten input type definition."""
-        node = FlattenNode()
-        input_types = node.INPUT_TYPES()
-        
-        assert "required" in input_types
-        all_params = {**input_types["required"], **input_types.get("optional", {})}
-        assert len(all_params) >= 1
-    
-    @pytest.mark.ml
-    def test_flatten_export_functionality(self):
-        """Test flatten export functionality."""
-        node = FlattenNode()
-        
-        # Test UI interface
-        input_types = node.INPUT_TYPES()
-        assert "required" in input_types
-        required = input_types["required"]
-        
-        # Should accept input tensor
-        assert "input" in required
-        
-        # Test node structure for export
-        assert hasattr(node, "RETURN_TYPES")
-        assert hasattr(node, "RETURN_NAMES")
-        assert hasattr(node, "FUNCTION")
-        
-        # Flatten uses 'flatten_tensor' function (changed during refactoring)
-        assert node.FUNCTION == "flatten_tensor"
-        
-        # Should return tensor output
-        return_types = node.RETURN_TYPES
-        assert "TENSOR" in return_types
-    
-    @pytest.mark.ml
-    def test_flatten_ui_configuration(self):
-        """Test flatten UI configuration options."""
-        node = FlattenNode()
-        
-        # Test that flatten has minimal configuration
-        input_types = node.INPUT_TYPES()
-        
-        # Flatten typically just needs input tensor
-        required = input_types.get("required", {})
-        optional = input_types.get("optional", {})
-        all_params = {**required, **optional}
-        
-        # Should have input parameter
-        assert "input" in all_params
-        
-        # May have optional parameters like start_dim, end_dim
-        # but these are implementation-specific
+        # Test that node doesn't execute (DNNE nodes only export)
+        assert hasattr(node, 'FUNCTION')
+        assert node.FUNCTION is None  # DNNE nodes don't execute
 
 
 class TestLayerNodeIntegration:
@@ -461,8 +221,7 @@ class TestLayerNodeIntegration:
     def test_layer_export_integration(self):
         """Test that all layer nodes have consistent export interfaces."""
         # Test that all layer node types have exporters
-        layer_nodes = [LinearLayerNode, NetworkNode, ActivationNode, Conv2DLayerNode, 
-                      DropoutNode, BatchNormNode, FlattenNode]
+        layer_nodes = [LinearLayerNode, NetworkNode]
         
         for node_class in layer_nodes:
             node = node_class()
@@ -484,8 +243,7 @@ class TestLayerNodeIntegration:
     def test_layer_node_categories(self):
         """Test that all layer nodes have appropriate categories."""
         nodes = [
-            NetworkNode(), LinearLayerNode(), Conv2DLayerNode(),
-            ActivationNode(), DropoutNode(), BatchNormNode(), FlattenNode()
+            NetworkNode(), LinearLayerNode()
         ]
         
         for node in nodes:
@@ -515,8 +273,7 @@ class TestLayerNodeIntegration:
     @pytest.mark.ml
     def test_layer_node_parameter_validation_interface(self):
         """Test that layer nodes have proper parameter validation interfaces."""
-        layer_nodes = [LinearLayerNode, NetworkNode, ActivationNode, Conv2DLayerNode, 
-                      DropoutNode, BatchNormNode, FlattenNode]
+        layer_nodes = [LinearLayerNode, NetworkNode]
         
         for node_class in layer_nodes:
             node = node_class()

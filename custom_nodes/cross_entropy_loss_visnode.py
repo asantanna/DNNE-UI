@@ -3,11 +3,8 @@ Cross Entropy Loss Node
 Computes cross-entropy loss for multi-class classification tasks.
 """
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from inspect import cleandoc
-from custom_nodes.base import RoboticsNodeBase, get_context
+from custom_nodes.base import RoboticsNodeBase
 from custom_nodes.node_colors import get_node_colors
 
 
@@ -34,19 +31,8 @@ class CrossEntropyLossNode(RoboticsNodeBase):
 
     RETURN_TYPES = ("TENSOR", "FLOAT")
     RETURN_NAMES = ("loss", "accuracy")
-    FUNCTION = "compute_loss"
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"
-
-    def compute_loss(self, predictions, labels):
-        loss = F.cross_entropy(predictions, labels)
-        
-        # Calculate accuracy
-        _, predicted = torch.max(predictions, 1)
-        total = labels.size(0)
-        correct = (predicted == labels).sum().item()
-        accuracy = correct / total if total > 0 else 0.0
-        
-        return (loss, accuracy)
 
 # Node registration
 NODE_CLASS_MAPPINGS = {

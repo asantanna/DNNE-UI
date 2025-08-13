@@ -3,11 +3,8 @@ Linear Layer Node
 Represents a fully connected (dense) layer in a neural network with optional activation.
 """
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from inspect import cleandoc
-from custom_nodes.base import RoboticsNodeBase, get_context
+from custom_nodes.base import RoboticsNodeBase
 from custom_nodes.node_colors import get_node_colors
 
 
@@ -54,46 +51,8 @@ class LinearLayerNode(RoboticsNodeBase):
 
     RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
-    FUNCTION = "apply_layer"
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"
-
-    def __init__(self):
-        super().__init__()
-        self.layer = None
-
-    def apply_layer(self, input, output_size, bias, activation, dropout, weight_init):
-        # Flatten input if needed
-        if len(input.shape) > 2:
-            input = input.view(input.size(0), -1)
-
-        input_size = input.shape[1]
-        
-        # Create layer if not exists or size changed
-        if self.layer is None or self.layer.in_features != input_size or self.layer.out_features != output_size:
-            self.layer = nn.Linear(input_size, output_size, bias=bias)
-            
-            # Move to same device as input
-            device = input.device if isinstance(input, torch.Tensor) else torch.device("cpu")
-            self.layer = self.layer.to(device)
-
-        # Apply linear transformation
-        output = self.layer(input)
-
-        # Apply activation
-        if activation == "relu":
-            output = F.relu(output)
-        elif activation == "tanh":
-            output = torch.tanh(output)
-        elif activation == "sigmoid":
-            output = torch.sigmoid(output)
-        elif activation == "leaky_relu":
-            output = F.leaky_relu(output, negative_slope=0.01)
-
-        # Apply dropout if in training mode
-        if dropout > 0 and self.training:
-            output = F.dropout(output, p=dropout, training=True)
-
-        return (output,)
 
 # Node registration
 NODE_CLASS_MAPPINGS = {

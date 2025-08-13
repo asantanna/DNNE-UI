@@ -23,15 +23,12 @@ LINEAR_LAYER_DATA = {
 }
 
 MNIST_DATASET_DATA = {
-    "inputs": {
-        "batch_size": 32,
-        "download": False,
-        "data_path": "./data"
-    },
-    "widgets": {
-        "train": True,
-        "transform": "normalize"
-    }
+    "inputs": {},
+    "widgets_values": [
+        "./data",  # data_path
+        True,      # train
+        False      # download
+    ]
 }
 
 NETWORK_DATA = {

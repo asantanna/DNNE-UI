@@ -359,7 +359,8 @@ class TestErrorHandling:
         # Use a workflow with nodes that don't require connections
         workflow = {
             "metadata": {
-                "dnne-test": True
+                "dnne-test": True,
+                "skip-slot-correction": True  # Test workflow doesn't need slot correction
             },
             "nodes": [
                 {

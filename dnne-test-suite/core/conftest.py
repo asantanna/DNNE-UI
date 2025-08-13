@@ -52,6 +52,7 @@ def sample_mnist_workflow():
                 if "metadata" not in workflow:
                     workflow["metadata"] = {}
                 workflow["metadata"]["dnne-test"] = True
+                workflow["metadata"]["workflow_name"] = "MNIST_Test"  # Required for slot correction
             return workflow
     return None
 
@@ -68,6 +69,7 @@ def sample_cartpole_workflow():
                 if "metadata" not in workflow:
                     workflow["metadata"] = {}
                 workflow["metadata"]["dnne-test"] = True
+                workflow["metadata"]["workflow_name"] = "Cartpole_RL_Single"  # Required for slot correction
             return workflow
     return None
 

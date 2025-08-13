@@ -25,7 +25,7 @@ Audits DNNE codebase for UI/export compatibility issues and fail-fast compliance
 - [ ] **Orphaned Files**: Every exporter has matching visnode
 - [ ] **Virtual Nodes**: PPOAgent/IsaacGymSim properly extract from virtual nodes
 - [ ] **Camera Exception**: Only camera fields can default when empty (not missing)
-- [ ] **Data Format**: Handle both UI (`inputs` dict) and programmatic (`widgets_values`)
+- [ ] **Data Format**: Test both UI and programmatic exports (handled by helper functions)
 - [ ] **WebSocket Only**: Dynamic features use WebSocket, not REST
 - [ ] **Base Classes**: All throw NotImplementedError, no default implementations
 - [ ] **Export Testing**: Both UI and programmatic exports work

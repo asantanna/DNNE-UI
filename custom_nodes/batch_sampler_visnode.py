@@ -3,10 +3,8 @@ Batch Sampler Node
 Creates a DataLoader that provides batched samples from a dataset with configurable batch size and shuffling.
 """
 
-import torch
-from torch.utils.data import DataLoader
 from inspect import cleandoc
-from custom_nodes.base import RoboticsNodeBase, get_context
+from custom_nodes.base import RoboticsNodeBase
 from custom_nodes.node_colors import get_node_colors
 
 
@@ -51,29 +49,8 @@ class BatchSamplerNode(RoboticsNodeBase):
 
     RETURN_TYPES = ("DATALOADER", "SCHEMA")
     RETURN_NAMES = ("dataloader", "schema")
-    FUNCTION = "create_dataloader"
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"
-
-    def create_dataloader(self, dataset, schema, batch_size, shuffle, seed, seed_control):
-        print("WARNING: BatchSamplerNode.create_dataloader was called in UI mode!")
-        raise RuntimeError("Function disabled for testing - DNNE should be export-only, not executing nodes")
-        # Set seed if specified
-        generator = None
-        if seed >= 0:
-            generator = torch.Generator()
-            generator.manual_seed(seed)
-
-        dataloader = DataLoader(
-            dataset,
-            batch_size=batch_size,
-            shuffle=shuffle,
-            generator=generator,
-            num_workers=0,  # Avoid multiprocessing issues
-            pin_memory=True if torch.cuda.is_available() else False
-        )
-
-        # Pass through the schema unchanged
-        return (dataloader, schema)
 
 # Node registration
 NODE_CLASS_MAPPINGS = {

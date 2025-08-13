@@ -3,9 +3,6 @@ PPO Agent
 Complete Proximal Policy Optimization agent implementation for reinforcement learning.
 """
 
-import torch
-import torch.nn as nn
-from typing import Dict, Any, Optional, Tuple
 from inspect import cleandoc
 from custom_nodes.base import RoboticsNodeBase
 from custom_nodes.node_colors import get_node_colors
@@ -16,7 +13,7 @@ class PPOAgent(RoboticsNodeBase):
     Complete Proximal Policy Optimization agent implementation for reinforcement learning."""
     
     DESCRIPTION = cleandoc(__doc__)
-    FUNCTION = "run_ppo"
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "rl"
     COLOR = get_node_colors("learning")["color"]
     BGCOLOR = get_node_colors("learning")["bgcolor"]
@@ -79,65 +76,6 @@ class PPOAgent(RoboticsNodeBase):
 
     RETURN_TYPES = ("PPO_AGENT", "DICT", "DICT")
     RETURN_NAMES = ("agent", "training_stats", "eval_stats")
-
-    def __init__(self):
-        super().__init__()
-        self.agent = None
-        self.env = None
-        self.iteration = 0
-
-    def run_ppo(self, env_config: Dict[str, Any], ppo_config: Dict[str, Any],
-                max_iterations: int, checkpoint_interval: int,
-                eval_interval: int, eval_episodes: int,
-                log_interval: int, save_path: str,
-                resume_from: Optional[str] = None,
-                balancing_config: Optional[Dict[str, Any]] = None) -> Tuple[Any, Dict[str, Any], Dict[str, Any]]:
-        """
-        Run PPO training loop
-        
-        This is a placeholder for the actual PPO implementation.
-        In the real implementation, this would:
-        1. Create/load the Isaac Gym environment
-        2. Initialize the PPO agent with networks
-        3. Run the training loop
-        4. Return statistics
-        """
-        
-        # Placeholder implementation
-        training_stats = {
-            "iteration": self.iteration,
-            "total_timesteps": 0,
-            "mean_reward": 0.0,
-            "mean_episode_length": 0,
-            "value_loss": 0.0,
-            "policy_loss": 0.0,
-            "entropy": 0.0,
-            "learning_rate": ppo_config["learning_rate"],
-            "clip_fraction": 0.0,
-            "explained_variance": 0.0
-        }
-        
-        eval_stats = {
-            "eval_mean_reward": 0.0,
-            "eval_std_reward": 0.0,
-            "eval_mean_episode_length": 0,
-            "eval_episodes": eval_episodes
-        }
-        
-        # In actual implementation, this would be the trained agent
-        agent_info = {
-            "env_config": env_config,
-            "ppo_config": ppo_config,
-            "iteration": self.iteration,
-            "save_path": save_path
-        }
-        
-        return (agent_info, training_stats, eval_stats)
-
-    @classmethod
-    def IS_CHANGED(cls, **kwargs):
-        # Always execute to maintain training state
-        return True
 
 
 # Node registration

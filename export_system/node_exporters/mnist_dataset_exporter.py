@@ -8,7 +8,7 @@ from ..graph_exporter import ExportableNode
 class MNISTDatasetExporter(ExportableNode):
     @classmethod
     def get_template_name(cls):
-        return "nodes/mnist_dataset_simple_queue.tpl"
+        return "nodes/mnist_dataset_queue.tpl"
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):

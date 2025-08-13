@@ -1,7 +1,7 @@
 """
 Unit tests for ML training nodes.
 
-Tests CrossEntropyLoss, Accuracy, SGDOptimizer, TrainingStep, and EpochTracker
+Tests CrossEntropyLoss, SGDOptimizer, TrainingStep, and EpochTracker
 nodes for proper training coordination and trigger-based execution.
 """
 
@@ -14,7 +14,7 @@ import time
 
 # Import nodes to test
 from custom_nodes import (
-    CrossEntropyLossNode, AccuracyNode, SGDOptimizerNode, 
+    CrossEntropyLossNode, SGDOptimizerNode, 
     TrainingStepNode, EpochTrackerNode
 )
 from fixtures.node_data import (
@@ -126,60 +126,6 @@ class TestCrossEntropyLossNode:
         assert "ml" in node.CATEGORY.lower() or "training" in node.CATEGORY.lower()
 
 
-class TestAccuracyNode:
-    """Test Accuracy node for standalone accuracy computation."""
-    
-    @pytest.mark.ml
-    def test_input_types(self):
-        """Test Accuracy input type definition."""
-        node = AccuracyNode()
-        input_types = node.INPUT_TYPES()
-        
-        assert "required" in input_types
-        all_params = {**input_types["required"], **input_types.get("optional", {})}
-        assert len(all_params) >= 1
-    
-    @pytest.mark.ml
-    def test_accuracy_export_functionality(self):
-        """Test Accuracy node export functionality."""
-        node = AccuracyNode()
-        
-        # Test UI interface
-        input_types = node.INPUT_TYPES()
-        assert "required" in input_types
-        required = input_types["required"]
-        
-        # Should accept predictions and targets
-        assert "predictions" in required or "input" in required
-        
-        # Test node structure for export
-        assert hasattr(node, "RETURN_TYPES")
-        assert hasattr(node, "RETURN_NAMES")
-        assert hasattr(node, "FUNCTION")
-        
-        # Should return accuracy metric
-        return_types = node.RETURN_TYPES
-        assert len(return_types) >= 1
-    
-    @pytest.mark.ml
-    def test_accuracy_ui_interface(self):
-        """Test Accuracy node UI interface."""
-        node = AccuracyNode()
-        
-        # Test return types and names
-        return_types = node.RETURN_TYPES
-        return_names = node.RETURN_NAMES
-        
-        # Should return accuracy value
-        assert len(return_types) == len(return_names)
-        assert len(return_types) >= 1
-        
-        # Test category
-        assert hasattr(node, "CATEGORY")
-        category = node.CATEGORY.lower()
-        assert "ml" in category or "training" in category or "accuracy" in category
-
-
 class TestSGDOptimizerNode:
     """Test SGDOptimizer node for gradient-based optimization."""
     
@@ -244,7 +190,7 @@ class TestSGDOptimizerNode:
         
         # Mock node data with SGD parameters
         mock_data = {
-            "widgets_values": [0.01, 0.9]  # learning_rate, momentum
+            "widgets_values": [0.01, 0.9, 0.0]  # learning_rate, momentum, weight_decay
         }
         mock_connections = {
             "network": [("node_1", "model")]
@@ -521,7 +467,7 @@ class TestTrainingNodeIntegration:
     def test_training_node_categories(self):
         """Test that all training nodes have appropriate categories."""
         nodes = [
-            CrossEntropyLossNode(), AccuracyNode(), SGDOptimizerNode(),
+            CrossEntropyLossNode(), SGDOptimizerNode(),
             TrainingStepNode(), EpochTrackerNode()
         ]
         

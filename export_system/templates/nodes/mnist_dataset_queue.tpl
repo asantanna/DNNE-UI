@@ -1,25 +1,12 @@
 # Template variables - replaced during export
-from framework.globals import dnne_logging
 
-# MNIST subsystem logger
-mnist_logger = dnne_logging.getLogger("mnist")
-
-template_vars = {
-    "NODE_ID": "mnist_1",
-    "CLASS_NAME": "MNISTDatasetNode",
-    "DATA_PATH": "./data",
-    "TRAIN": True,
-    "DOWNLOAD": True,
-    "BATCH_SIZE": 32,
-    "EMIT_RATE": 10.0
-}
-
-class {CLASS_NAME}_{NODE_ID}(SensorNode):
-    """MNIST dataset loader that emits batches at fixed rate"""
+class MNISTDatasetNode_{NODE_ID}(QueueNode):
+    """MNIST dataset loader"""
     
     def __init__(self, node_id: str):
-        super().__init__(node_id, update_rate={EMIT_RATE})
-        self.setup_outputs(["batch_data", "batch_labels"])
+        super().__init__(node_id)
+        self.setup_inputs(required=[])  # No inputs
+        self.setup_outputs(["dataset", "schema"])
         
         # Setup dataset
         transform = transforms.Compose([
@@ -34,27 +21,49 @@ class {CLASS_NAME}_{NODE_ID}(SensorNode):
             transform=transform
         )
         
-        self.dataloader = DataLoader(
-            self.dataset,
-            batch_size={BATCH_SIZE},
-            shuffle=True,
-            num_workers=0
-        )
+        # Create schema describing the dataset
+        self.schema = {
+            "outputs": {
+                "images": {
+                    "type": "tensor",
+                    "shape": (28, 28),
+                    "flattened_size": 784,
+                    "dtype": "float32"
+                },
+                "labels": {
+                    "type": "tensor", 
+                    "shape": (),
+                    "num_classes": 10,
+                    "dtype": "int64"
+                }
+            },
+            "num_samples": len(self.dataset)
+        }
         
-        self.data_iter = iter(self.dataloader)
-        self.epoch = 0
-    
     async def compute(self) -> Dict[str, Any]:
-        try:
-            images, labels = next(self.data_iter)
-        except StopIteration:
-            # Reset iterator at end of epoch
-            self.epoch += 1
-            self.data_iter = iter(self.dataloader)
-            images, labels = next(self.data_iter)
-            mnist_logger.info(f"Starting epoch {{self.epoch}}")
+        # Return dataset and its schema
+        return {
+            "dataset": self.dataset,
+            "schema": self.schema
+        }
+    
+    async def run(self):
+        """Override run to emit dataset once"""
+        self.running = True
+        self.node_logger.info(f"Starting node {self.node_id}")
         
-        return {{
-            "batch_data": images,
-            "batch_labels": labels
-        }}
+        try:
+            # Emit dataset once
+            outputs = await self.compute()
+            for output_name, value in outputs.items():
+                await self.send_output(output_name, value)
+            
+            # Keep running but don't emit again
+            while self.running:
+                await asyncio.sleep(1.0)
+                
+        except asyncio.CancelledError:
+            self.node_logger.info(f"Node {self.node_id} cancelled")
+            raise
+        finally:
+            self.running = False

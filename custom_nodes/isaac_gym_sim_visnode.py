@@ -3,9 +3,6 @@ Isaac Gym Simulator Interface
 Queue-based interface to Isaac Gym environments for real-time simulation.
 """
 
-import torch
-import numpy as np
-from typing import Dict, Any, Optional, Tuple
 from inspect import cleandoc
 from custom_nodes.base import RoboticsNodeBase
 from custom_nodes.node_colors import get_node_colors
@@ -60,57 +57,7 @@ class IsaacGymSimNode(RoboticsNodeBase):
 
     RETURN_TYPES = ("TENSOR", "TRIGGER")
     RETURN_NAMES = ("observation", "done")
-    FUNCTION = "step_environment"
-
-    def __init__(self):
-        super().__init__()
-        self.env = None
-        self.env_config = None
-        self.device = None
-
-    def step_environment(self, config: Dict[str, Any], action: torch.Tensor, 
-                        reset: Optional[Any] = None, reset_when_done: bool = True, 
-                        render: bool = False, null_action: str = "",
-                        camera_position: str = "1.2, 1.2, 1.0",
-                        camera_target: str = "0.0, 0.0, 0.5") -> Tuple[torch.Tensor, Optional[Any]]:
-        """
-        This method is called during UI execution only.
-        The actual environment stepping happens in the exported queue-based code.
-        """
-        # In the UI, we just validate inputs and return dummy outputs
-        if not isinstance(config, dict):
-            raise ValueError("Config must be a dictionary from Isaac Gym Environment Config node")
-        
-        if not isinstance(action, torch.Tensor):
-            raise ValueError("Action must be a tensor")
-        
-        # Get expected observation shape from config
-        task = config.get("task")
-        if not task:
-            raise ValueError("IsaacGymSim: config must provide 'task' field")
-        
-        # Create dummy observation based on task
-        # These are approximate observation sizes for common tasks
-        obs_sizes = {
-            "Cartpole": 4,
-            "Ant": 60,
-            "Humanoid": 108,
-            "Anymal": 48,
-            "BallBalance": 38,
-            "FrankaCabinet": 23,
-        }
-        
-        obs_size = obs_sizes.get(task)
-        if obs_size is None:
-            raise ValueError(f"IsaacGymSim: Unknown task '{task}'. Supported tasks: {list(obs_sizes.keys())}")
-        
-        # Create dummy observation tensor
-        observation = torch.zeros((1, obs_size), dtype=torch.float32)
-        
-        # Done is a trigger signal (we'll return None in UI mode)
-        done_signal = None
-        
-        return (observation, done_signal)
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
 
 
 # Node registration

@@ -8,7 +8,8 @@ without requiring large external dependencies.
 # Minimal single LinearLayer workflow
 MINIMAL_LINEAR_WORKFLOW = {
     "metadata": {
-        "dnne-test": True
+        "dnne-test": True,
+        "skip-slot-correction": True  # Test workflows don't need slot correction
     },
     "nodes": [
         {
@@ -33,7 +34,8 @@ MINIMAL_LINEAR_WORKFLOW = {
 # Simple workflow with proper layer connections (from MNIST_Test)
 SIMPLE_DATASET_NETWORK = {
     "metadata": {
-        "dnne-test": True
+        "dnne-test": True,
+        "skip-slot-correction": True  # Test workflows don't need slot correction
     },
     "nodes": [
         {
@@ -128,7 +130,8 @@ SIMPLE_DATASET_NETWORK = {
 # Complete minimal training workflow
 MINIMAL_TRAINING_WORKFLOW = {
     "metadata": {
-        "dnne-test": True
+        "dnne-test": True,
+        "skip-slot-correction": True  # Test workflows don't need slot correction
     },
     "nodes": [
         {
@@ -232,7 +235,8 @@ MINIMAL_TRAINING_WORKFLOW = {
 # Simple robotics workflow (Cartpole-like)
 SIMPLE_ROBOTICS_WORKFLOW = {
     "metadata": {
-        "dnne-test": True
+        "dnne-test": True,
+        "skip-slot-correction": True  # Test workflows don't need slot correction
     },
     "nodes": [
         {
@@ -297,7 +301,8 @@ SIMPLE_ROBOTICS_WORKFLOW = {
 # Invalid workflow for error testing
 INVALID_WORKFLOW = {
     "metadata": {
-        "dnne-test": True
+        "dnne-test": True,
+        "skip-slot-correction": True  # Test workflows don't need slot correction
     },
     "nodes": [
         {

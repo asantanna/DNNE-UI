@@ -3,11 +3,8 @@ SGD Optimizer Node
 Stochastic Gradient Descent optimizer for training neural networks.
 """
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from inspect import cleandoc
-from custom_nodes.base import RoboticsNodeBase, get_context
+from custom_nodes.base import RoboticsNodeBase
 from custom_nodes.node_colors import get_node_colors
 
 
@@ -52,22 +49,8 @@ class SGDOptimizerNode(RoboticsNodeBase):
 
     RETURN_TYPES = ("OPTIMIZER",)
     RETURN_NAMES = ("optimizer",)
-    FUNCTION = "create_optimizer"
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"
-
-    def create_optimizer(self, model, learning_rate, momentum, weight_decay):
-        if model is None:
-            raise ValueError("Model is required for optimizer")
-        
-        # Create SGD optimizer
-        optimizer = torch.optim.SGD(
-            model.parameters(),
-            lr=learning_rate,
-            momentum=momentum,
-            weight_decay=weight_decay
-        )
-        
-        return (optimizer,)
 
 # Node registration
 NODE_CLASS_MAPPINGS = {

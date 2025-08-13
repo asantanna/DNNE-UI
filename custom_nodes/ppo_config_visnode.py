@@ -3,8 +3,6 @@ PPO Config
 Configuration node for Proximal Policy Optimization algorithm parameters.
 """
 
-import torch
-from typing import Dict, Any, Tuple
 from inspect import cleandoc
 from custom_nodes.base import RoboticsNodeBase
 from custom_nodes.node_colors import get_node_colors
@@ -15,7 +13,7 @@ class PPOConfig(RoboticsNodeBase):
     Configuration node for Proximal Policy Optimization algorithm parameters."""
     
     DESCRIPTION = cleandoc(__doc__)
-    FUNCTION = "create_config"
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "rl"
     IS_VIRTUAL = True  # Configuration-only node
     COLOR = get_node_colors("utility")["color"]
@@ -164,53 +162,6 @@ class PPOConfig(RoboticsNodeBase):
 
     RETURN_TYPES = ("PPO_CONFIG",)
     RETURN_NAMES = ("config",)
-
-    def create_config(self, **kwargs) -> Tuple[Dict[str, Any]]:
-        """
-        This method is never actually called during export.
-        It exists only to satisfy ComfyUI's node interface.
-        """
-        # FAIL-FAST: All parameters must be explicitly provided
-        required_params = [
-            "learning_rate", "num_epochs", "minibatch_size", "clip_param",
-            "value_loss_coef", "entropy_coef", "gamma", "gae_lambda",
-            "max_grad_norm", "horizon_length", "max_iterations", "lr_schedule",
-            "lr_schedule_kl_threshold", "use_clipped_value_loss", "normalize_advantage",
-            "normalize_input", "normalize_value", "reward_shaper_scale", "e_clip",
-            "truncate_grads", "bounds_loss_coef"
-        ]
-        
-        missing_params = [p for p in required_params if p not in kwargs]
-        if missing_params:
-            raise ValueError(f"PPOConfig missing required parameters: {missing_params}")
-        
-        config = {
-            # Core PPO settings
-            "learning_rate": kwargs["learning_rate"],
-            "epochs": kwargs["num_epochs"],
-            "minibatch_size": kwargs["minibatch_size"],
-            "e_clip": kwargs["clip_param"],
-            "critic_coef": kwargs["value_loss_coef"],
-            "entropy_coef": kwargs["entropy_coef"],
-            "gamma": kwargs["gamma"],
-            "tau": kwargs["gae_lambda"],
-            "grad_norm": kwargs["max_grad_norm"],
-            
-            # Optional settings
-            "horizon_length": kwargs["horizon_length"],
-            "max_epochs": kwargs["max_iterations"],
-            "lr_schedule": kwargs["lr_schedule"],
-            "kl_threshold": kwargs["lr_schedule_kl_threshold"],
-            "clip_value": kwargs["use_clipped_value_loss"],
-            "normalize_advantage": kwargs["normalize_advantage"],
-            "normalize_input": kwargs["normalize_input"],
-            "normalize_value": kwargs["normalize_value"],
-            "reward_shaper": {"scale_value": kwargs["reward_shaper_scale"]},
-            "bounds_loss_coef": kwargs["bounds_loss_coef"],
-            "truncate_grads": kwargs["truncate_grads"],
-        }
-        
-        return (config,)
 
 
 # Node registration

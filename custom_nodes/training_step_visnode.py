@@ -3,11 +3,8 @@ Training Step Node
 Executes a single training step: forward pass, loss computation, backpropagation, and parameter update.
 """
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from inspect import cleandoc
-from custom_nodes.base import RoboticsNodeBase, get_context
+from custom_nodes.base import RoboticsNodeBase
 from custom_nodes.node_colors import get_node_colors
 
 
@@ -34,19 +31,8 @@ class TrainingStepNode(RoboticsNodeBase):
 
     RETURN_TYPES = ("SYNC",)
     RETURN_NAMES = ("ready",)
-    FUNCTION = "train_step"
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"
-
-    def train_step(self, loss, optimizer):
-        # Visual node - no execution, just return placeholder
-        ready_signal = {
-            "signal_type": "ready",
-            "timestamp": 0,
-            "source_node": "training_step",
-            "metadata": {"phase": "training_complete"}
-        }
-        
-        return (ready_signal,)
 
 # Node registration
 NODE_CLASS_MAPPINGS = {

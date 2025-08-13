@@ -120,35 +120,7 @@ class IsaacGymEnvs(RoboticsNodeBase):
 
     RETURN_TYPES = ("ISAAC_ENV_CONFIG",)
     RETURN_NAMES = ("env",)
-    FUNCTION = "configure"
-
-    def configure(self, task, num_envs, seed, seed_control, headless, graphics_device_id, sim_device, 
-                  physics_engine, multi_gpu, enable_cameras, force_render=False, use_gpu_pipeline=True, 
-                  num_threads=0, solver_type=1, num_subscenes=0):
-        """
-        This method is never actually called during export.
-        It exists only to satisfy ComfyUI's node interface.
-        """
-        # Return configuration dict that would be used by PPO_Agent
-        config = {
-            "task": task,
-            "num_envs": num_envs,
-            "seed": seed,
-            "seed_control": seed_control,
-            "headless": headless,
-            "graphics_device_id": graphics_device_id,
-            "sim_device": sim_device,
-            "physics_engine": physics_engine,
-            "multi_gpu": multi_gpu,
-            "enable_cameras": enable_cameras,
-            "force_render": force_render,
-            "use_gpu_pipeline": use_gpu_pipeline,
-            "num_threads": num_threads,
-            "solver_type": solver_type,
-            "num_subscenes": num_subscenes
-        }
-        
-        return (config,)
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
 
 
 # Node registration
