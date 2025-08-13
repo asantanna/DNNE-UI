@@ -935,10 +935,12 @@ class PromptServer():
                 except Exception as e:
                     logging.error(f"Export failed: {str(e)}")
                     import traceback
+                    tb_str = traceback.format_exc()
+                    logging.error(f"Traceback:\n{tb_str}")
                     traceback.print_exc()
                     return web.json_response({
                         "error": f"Export failed: {str(e)}",
-                        "details": traceback.format_exc()
+                        "details": tb_str
                     }, status=500)
                 
         @routes.post("/queue")
