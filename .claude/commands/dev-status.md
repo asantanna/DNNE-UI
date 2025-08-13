@@ -8,6 +8,18 @@ $ARGUMENTS
 
 ## Latest Achievements (2025-08-13)
 
+### Visual Node Architecture & Test Suite Fixes ✅
+- Fixed visual node architecture - all nodes properly use FUNCTION = None
+- Removed all dead execution methods (load_dataset, create_dataloader, etc.)
+- Deleted 7 incomplete node implementations and their exporters
+- Deleted BalancingConfig exporter/template (it's a virtual node)
+- Updated all tests to check UI interface instead of execution behavior
+- Fixed test data formats to use widgets_values arrays
+- Added workflow_name to fixtures for slot correction
+- Template naming consistency (removed "simple" suffix)
+- Fixed runner args sync tests to handle intentional UI omissions
+- **Result**: All 163 tests passing (reduced from 28 failures to 0)
+
 ### PPOAgent Export System Fix ✅
 - Fixed widget update mechanism for task-specific configurations
 - Resolved backend/frontend naming mismatch (isaac_gym_env_node → isaac_gym_env)
@@ -192,7 +204,11 @@ See `dnne_config.json`
 - **Runner**: `dnne-docs/development/runner.md` - Command line switches for runner.py
 - **CLAUDE.md**: Project overview and development guidance
 
-### Recent Commits (2025-08-11)
+### Recent Commits (2025-08-13)
+- `51974e60` - Fix runner args sync tests to handle intentional UI design decisions
+- `41466e51` - Fix DNNE visual node architecture and tests
+
+### Previous Commits (2025-08-11)
 - `4dc4d99b` - Optimize telemetry test suite to reuse workflows
 - `e70fb355` - Fix telemetry test suite and add aggregation test
 

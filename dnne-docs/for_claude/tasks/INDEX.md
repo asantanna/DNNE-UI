@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-12*
+*Last Updated: 2025-08-13*
 
 This index provides a quick overview of all active task tracking documents for the DNNE project. Each component has its own detailed task file in the corresponding subdirectory.
 
@@ -12,7 +12,7 @@ This index provides a quick overview of all active task tracking documents for t
 | **DNNE Agent** | 🟢 Complete | Phase 12 - Fully functional | High | 2025-08-11 |
 | **Log Window** | 🟢 Complete | ~98% - Telemetry viewing implemented, minor UI polish needed | Low | 2025-08-12 |
 | **Server** | 🟢 Working | ~99% - Minor UX fixes needed | Low | 2025-08-11 |
-| **Export System** | 🟢 Working | ~95% - Data file inclusion pending | Medium | 2025-08-12 |
+| **Export System** | 🟢 Working | ~95% - Test suite fixed, architecture cleaned | Medium | 2025-08-13 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features implemented with state persistence | Medium | 2025-08-12 |
 
 ## Legend
@@ -59,9 +59,9 @@ This index provides a quick overview of all active task tracking documents for t
 
 ### Export System (`export_system/TASKS.md`)
 **Summary**: Converts visual workflows to executable Python code
-- **Status**: Working - Core functionality complete
+- **Status**: Working - Test suite fully passing (163 tests)
+- **Recent** (2025-08-13): Fixed visual node architecture, removed dead code, cleaned up 7 incomplete nodes
 - **Pending Enhancement**: Include data files during export to avoid re-downloading
-- **Recent**: Full telemetry support and remote deployment capabilities
 
 ### Runner Args Dialog (`runner_args_dialog/TASKS.md`)
 **Summary**: Dynamic UI for configuring command-line arguments during export
@@ -105,7 +105,19 @@ Based on current task statuses, the priority items are:
 2. **Fix Log View Switching**: Prevent run logs from briefly appearing in telemetry view
 3. **Windows URL Fix**: Show localhost instead of 0.0.0.0 in server startup message
 
-## Today's Achievements (2025-08-12)
+## Today's Achievements (2025-08-13)
+
+### Export System & Test Suite Fixes
+- ✅ Fixed visual node architecture - all nodes use FUNCTION = None
+- ✅ Removed all dead execution methods from visual nodes
+- ✅ Deleted 7 incomplete node implementations and their exporters
+- ✅ Updated all tests to check UI interface instead of execution behavior
+- ✅ Fixed test data formats and workflow metadata
+- ✅ Renamed templates for consistency
+- ✅ Fixed runner args sync tests to handle intentional UI design decisions
+- ✅ **Result**: All 163 tests passing (reduced from 28 failures to 0)
+
+## Previous Day's Achievements (2025-08-12)
 
 ### Major UI/UX Improvements
 - ✅ Implemented telemetry log viewing with separate violations/data views
