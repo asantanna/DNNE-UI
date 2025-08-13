@@ -12,12 +12,19 @@ class AccuracyExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Use universal parameter reader
+        # Use universal parameter reader - FAIL-FAST: no defaults
         param_specs = [
-            {'name': 'top_k', 'widget_index': 2, 'default': 1},
+            {'name': 'top_k', 'widget_index': 2},
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present
+        if params.get('top_k') is None:
+            raise ValueError(
+                f"Accuracy node {node_id} missing required parameter: top_k. "
+                f"The UI must provide the top-k value for accuracy calculation."
+            )
         
         # Get input connections
         input_connections = connections.get('inputs', {})

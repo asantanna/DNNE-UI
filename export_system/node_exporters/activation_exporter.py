@@ -12,13 +12,22 @@ class ActivationExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Use universal parameter reader
+        # Use universal parameter reader - FAIL-FAST: no defaults
         param_specs = [
-            {'name': 'activation', 'widget_index': 1, 'default': 'relu'},
-            {'name': 'dim', 'widget_index': 2, 'default': -1},
+            {'name': 'activation', 'widget_index': 1},
+            {'name': 'dim', 'widget_index': 2},
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present
+        required_params = ['activation', 'dim']
+        missing_params = [p for p in required_params if params.get(p) is None]
+        if missing_params:
+            raise ValueError(
+                f"Activation node {node_id} missing required parameters: {missing_params}. "
+                f"The UI must provide all activation configuration parameters."
+            )
         
         # Get input connections
         input_connections = connections.get('inputs', {})

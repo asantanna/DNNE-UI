@@ -12,13 +12,20 @@ class EpochTrackerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Use universal parameter reader for consistent data access
+        # Use universal parameter reader - FAIL-FAST: no defaults
         # The widgets_values array contains only max_epochs at index 0
         param_specs = [
-            {'name': 'max_epochs', 'widget_index': 0, 'default': 100}
+            {'name': 'max_epochs', 'widget_index': 0}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present
+        if params.get('max_epochs') is None:
+            raise ValueError(
+                f"EpochTracker node {node_id} missing required parameter: max_epochs. "
+                f"The UI must provide the maximum number of epochs."
+            )
         
         max_epochs = params['max_epochs']
         

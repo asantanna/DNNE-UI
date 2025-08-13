@@ -12,16 +12,25 @@ class LinearLayerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Use universal parameter reader for consistent data access
+        # Use universal parameter reader - FAIL-FAST: no defaults
         param_specs = [
-            {'name': 'output_size', 'widget_index': 0, 'default': 128},
-            {'name': 'bias', 'widget_index': 1, 'default': True},
-            {'name': 'activation', 'widget_index': 2, 'default': 'relu'},
-            {'name': 'dropout', 'widget_index': 3, 'default': 0.0},
-            {'name': 'weight_init', 'widget_index': 4, 'default': 'auto'}
+            {'name': 'output_size', 'widget_index': 0},
+            {'name': 'bias', 'widget_index': 1},
+            {'name': 'activation', 'widget_index': 2},
+            {'name': 'dropout', 'widget_index': 3},
+            {'name': 'weight_init', 'widget_index': 4}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present
+        required_params = ['output_size', 'bias', 'activation', 'dropout', 'weight_init']
+        missing_params = [p for p in required_params if params.get(p) is None]
+        if missing_params:
+            raise ValueError(
+                f"LinearLayer node {node_id} missing required parameters: {missing_params}. "
+                f"The UI must provide all layer configuration parameters."
+            )
         
         # Query input size from connected source node
         input_schema = cls.get_input_schema(node_data, connections, 

@@ -12,14 +12,23 @@ class SGDOptimizerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Use universal parameter reader for consistent data access
+        # Use universal parameter reader - FAIL-FAST: no defaults
         param_specs = [
-            {'name': 'learning_rate', 'widget_index': 0, 'default': 0.01},
-            {'name': 'momentum', 'widget_index': 1, 'default': 0.9},
-            {'name': 'weight_decay', 'widget_index': 2, 'default': 0.0}
+            {'name': 'learning_rate', 'widget_index': 0},
+            {'name': 'momentum', 'widget_index': 1},
+            {'name': 'weight_decay', 'widget_index': 2}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present
+        required_params = ['learning_rate', 'momentum', 'weight_decay']
+        missing_params = [p for p in required_params if params.get(p) is None]
+        if missing_params:
+            raise ValueError(
+                f"SGDOptimizer node {node_id} missing required parameters: {missing_params}. "
+                f"The UI must provide all optimizer parameters."
+            )
         
         return {
             "NODE_ID": node_id,

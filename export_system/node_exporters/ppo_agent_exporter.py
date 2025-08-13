@@ -19,22 +19,33 @@ class PPOAgentExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Get node parameters
+        # Get node parameters - FAIL-FAST: no defaults (except load_checkpoint which can be empty)
         param_specs = [
-            {'name': 'network_mlp_layers', 'widget_index': 0, 'default': "[256, 128, 64]"},
-            {'name': 'network_activation', 'widget_index': 1, 'default': "elu"},
-            {'name': 'separate_value_network', 'widget_index': 2, 'default': False},
-            {'name': 'checkpoint_interval', 'widget_index': 3, 'default': 100},
-            {'name': 'keep_checkpoints', 'widget_index': 4, 'default': 5},
-            {'name': 'load_checkpoint', 'widget_index': 5, 'default': ""},
-            {'name': 'log_interval', 'widget_index': 6, 'default': 10},
-            {'name': 'save_interval', 'widget_index': 7, 'default': 1000},
-            {'name': 'experiment_name', 'widget_index': 8, 'default': "PPO_DNNE"},
-            {'name': 'mixed_precision', 'widget_index': 9, 'default': False},
-            {'name': 'multi_gpu', 'widget_index': 10, 'default': False},
+            {'name': 'network_mlp_layers', 'widget_index': 0},
+            {'name': 'network_activation', 'widget_index': 1},
+            {'name': 'separate_value_network', 'widget_index': 2},
+            {'name': 'checkpoint_interval', 'widget_index': 3},
+            {'name': 'keep_checkpoints', 'widget_index': 4},
+            {'name': 'load_checkpoint', 'widget_index': 5, 'default': ""},  # OK to be empty
+            {'name': 'log_interval', 'widget_index': 6},
+            {'name': 'save_interval', 'widget_index': 7},
+            {'name': 'experiment_name', 'widget_index': 8},
+            {'name': 'mixed_precision', 'widget_index': 9},
+            {'name': 'multi_gpu', 'widget_index': 10},
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present (load_checkpoint can be empty)
+        required_params = ['network_mlp_layers', 'network_activation', 'separate_value_network',
+                          'checkpoint_interval', 'keep_checkpoints', 'log_interval', 
+                          'save_interval', 'experiment_name', 'mixed_precision', 'multi_gpu']
+        missing_params = [p for p in required_params if params.get(p) is None]
+        if missing_params:
+            raise ValueError(
+                f"PPOAgent node {node_id} missing required parameters: {missing_params}. "
+                f"The UI must provide all PPO agent configuration parameters."
+            )
         
         # Extract configuration from connected virtual nodes
         env_config = cls._extract_env_config(node_id, all_nodes, all_links)

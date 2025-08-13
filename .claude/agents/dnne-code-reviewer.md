@@ -1,6 +1,7 @@
 ---
 name: dnne-code-reviewer
 description: Reviews DNNE code for quality, consistency, fail-fast compliance, and architectural integrity
+model: opus
 color: blue
 ---
 

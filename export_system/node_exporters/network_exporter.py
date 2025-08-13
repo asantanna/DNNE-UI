@@ -50,15 +50,25 @@ class NetworkExporter(ExportableNode):
             if layer["dropout"] > 0:
                 layer_definitions.append(f"        layers.append(nn.Dropout({layer['dropout']}))")
         
-        # Read checkpoint settings using universal parameter reader
+        # Read checkpoint settings - FAIL-FAST: no defaults
         checkpoint_specs = [
-            {'name': 'checkpoint_enabled', 'widget_index': 0, 'default': True},
-            {'name': 'checkpoint_trigger_type', 'widget_index': 1, 'default': 'epoch'},
-            {'name': 'checkpoint_trigger_value', 'widget_index': 2, 'default': '50'},
-            {'name': 'checkpoint_load_on_start', 'widget_index': 3, 'default': False}
+            {'name': 'checkpoint_enabled', 'widget_index': 0},
+            {'name': 'checkpoint_trigger_type', 'widget_index': 1},
+            {'name': 'checkpoint_trigger_value', 'widget_index': 2},
+            {'name': 'checkpoint_load_on_start', 'widget_index': 3}
         ]
         
         checkpoint_params = cls.get_node_parameters_batch(node_data, checkpoint_specs)
+        
+        # Validate required checkpoint parameters are present
+        required_checkpoint = ['checkpoint_enabled', 'checkpoint_trigger_type', 
+                              'checkpoint_trigger_value', 'checkpoint_load_on_start']
+        missing_checkpoint = [p for p in required_checkpoint if checkpoint_params.get(p) is None]
+        if missing_checkpoint:
+            raise ValueError(
+                f"Network node {node_id} missing checkpoint parameters: {missing_checkpoint}. "
+                f"The UI must provide all checkpoint configuration."
+            )
         checkpoint_enabled = checkpoint_params['checkpoint_enabled']
         checkpoint_trigger_type = checkpoint_params['checkpoint_trigger_type']
         checkpoint_trigger_value = checkpoint_params['checkpoint_trigger_value']

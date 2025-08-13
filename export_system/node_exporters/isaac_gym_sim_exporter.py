@@ -119,22 +119,34 @@ class IsaacGymSimExporter(ExportableNode):
             null_action_list = []
         
         # Parse camera position string to list
+        # FAIL-FAST: Field must exist, but empty value gets default
+        if 'camera_position' not in params:
+            raise ValueError(
+                f"IsaacGymSim node {node_id} missing camera_position field. "
+                f"The UI must provide this field (even if empty for default)."
+            )
         camera_pos_str = params['camera_position'].strip()
         if camera_pos_str:
             camera_pos_list = [float(x.strip()) for x in camera_pos_str.split(',')]
             if len(camera_pos_list) != 3:
                 raise ValueError(f"Camera position must have exactly 3 values (x,y,z), got {len(camera_pos_list)}")
         else:
-            camera_pos_list = [1.2, 1.2, 1.0]  # Default
+            camera_pos_list = [1.2, 1.2, 1.0]  # Default when field exists but is empty
         
-        # Parse camera target string to list
+        # Parse camera target string to list  
+        # FAIL-FAST: Field must exist, but empty value gets default
+        if 'camera_target' not in params:
+            raise ValueError(
+                f"IsaacGymSim node {node_id} missing camera_target field. "
+                f"The UI must provide this field (even if empty for default)."
+            )
         camera_target_str = params['camera_target'].strip()
         if camera_target_str:
             camera_target_list = [float(x.strip()) for x in camera_target_str.split(',')]
             if len(camera_target_list) != 3:
                 raise ValueError(f"Camera target must have exactly 3 values (x,y,z), got {len(camera_target_list)}")
         else:
-            camera_target_list = [0.0, 0.0, 0.5]  # Default
+            camera_target_list = [0.0, 0.0, 0.5]  # Default when field exists but is empty
         
         return {
             "NODE_ID": node_id,

@@ -1,6 +1,7 @@
 ---
 name: docs_agent
 description: Maintains developer and Claude Code documentation with ultra-succinct technical focus. Updates task tracking, architecture specs, and development guides in dnne-docs/
+model: opus
 color: green
 ---
 

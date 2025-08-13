@@ -12,15 +12,24 @@ class BatchSamplerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Use universal parameter reader for consistent data access
+        # Use universal parameter reader - FAIL-FAST: no defaults
         param_specs = [
-            {'name': 'batch_size', 'widget_index': 0, 'default': 32},
-            {'name': 'shuffle', 'widget_index': 1, 'default': True},
-            {'name': 'seed', 'widget_index': 2, 'default': 42},
-            {'name': 'seed_control', 'widget_index': 3, 'default': 'fixed'}
+            {'name': 'batch_size', 'widget_index': 0},
+            {'name': 'shuffle', 'widget_index': 1},
+            {'name': 'seed', 'widget_index': 2},
+            {'name': 'seed_control', 'widget_index': 3}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present
+        required_params = ['batch_size', 'shuffle', 'seed', 'seed_control']
+        missing_params = [p for p in required_params if params.get(p) is None]
+        if missing_params:
+            raise ValueError(
+                f"BatchSampler node {node_id} missing required parameters: {missing_params}. "
+                f"The UI must provide all sampler configuration parameters."
+            )
         
         return {
             "NODE_ID": node_id,

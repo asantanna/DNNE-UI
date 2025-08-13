@@ -12,13 +12,22 @@ class DropoutExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Use universal parameter reader
+        # Use universal parameter reader - FAIL-FAST: no defaults
         param_specs = [
-            {'name': 'dropout_rate', 'widget_index': 1, 'default': 0.5},
-            {'name': 'training', 'widget_index': 2, 'default': True},
+            {'name': 'dropout_rate', 'widget_index': 1},
+            {'name': 'training', 'widget_index': 2},
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present
+        required_params = ['dropout_rate', 'training']
+        missing_params = [p for p in required_params if params.get(p) is None]
+        if missing_params:
+            raise ValueError(
+                f"Dropout node {node_id} missing required parameters: {missing_params}. "
+                f"The UI must provide all dropout configuration parameters."
+            )
         
         # Get input connections
         input_connections = connections.get('inputs', {})

@@ -12,14 +12,23 @@ class TensorVisualizerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Use universal parameter reader
+        # Use universal parameter reader - FAIL-FAST: no defaults
         param_specs = [
-            {'name': 'name', 'widget_index': 1, 'default': 'tensor'},
-            {'name': 'bins', 'widget_index': 2, 'default': 50},
-            {'name': 'sample_size', 'widget_index': 3, 'default': 1000},
+            {'name': 'name', 'widget_index': 1},
+            {'name': 'bins', 'widget_index': 2},
+            {'name': 'sample_size', 'widget_index': 3},
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present
+        required_params = ['name', 'bins', 'sample_size']
+        missing_params = [p for p in required_params if params.get(p) is None]
+        if missing_params:
+            raise ValueError(
+                f"TensorVisualizer node {node_id} missing required parameters: {missing_params}. "
+                f"The UI must provide all visualization configuration parameters."
+            )
         
         # Get input connections
         input_connections = connections.get('inputs', {})

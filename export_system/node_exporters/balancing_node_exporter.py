@@ -15,22 +15,33 @@ class BalancingNodeExporter(ExportableNode):
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
         """Prepare template variables for Balancing Node"""
-        # Define parameter specifications matching the node's widget order
+        # Define parameter specifications - FAIL-FAST: no defaults
         param_specs = [
-            {'name': 'item_name', 'widget_index': 0, 'default': 'items'},
-            {'name': 'enabled', 'widget_index': 1, 'default': True},
-            {'name': 'min_hz', 'widget_index': 2, 'default': -1.0},
-            {'name': 'max_hz', 'widget_index': 3, 'default': -1.0},
-            {'name': 'target_hz', 'widget_index': 4, 'default': -1.0},
-            {'name': 'target_percentage', 'widget_index': 5, 'default': -1.0},
-            {'name': 'priority', 'widget_index': 6, 'default': 0},
-            {'name': 'guaranteed', 'widget_index': 7, 'default': False},
-            {'name': 'max_latency_ms', 'widget_index': 8, 'default': -1.0},
-            {'name': 'window_size', 'widget_index': 9, 'default': 100},
-            {'name': 'log_violations', 'widget_index': 10, 'default': True},
+            {'name': 'item_name', 'widget_index': 0},
+            {'name': 'enabled', 'widget_index': 1},
+            {'name': 'min_hz', 'widget_index': 2},
+            {'name': 'max_hz', 'widget_index': 3},
+            {'name': 'target_hz', 'widget_index': 4},
+            {'name': 'target_percentage', 'widget_index': 5},
+            {'name': 'priority', 'widget_index': 6},
+            {'name': 'guaranteed', 'widget_index': 7},
+            {'name': 'max_latency_ms', 'widget_index': 8},
+            {'name': 'window_size', 'widget_index': 9},
+            {'name': 'log_violations', 'widget_index': 10},
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present
+        required_params = ['item_name', 'enabled', 'min_hz', 'max_hz', 'target_hz', 
+                          'target_percentage', 'priority', 'guaranteed', 'max_latency_ms',
+                          'window_size', 'log_violations']
+        missing_params = [p for p in required_params if params.get(p) is None]
+        if missing_params:
+            raise ValueError(
+                f"BalancingNode {node_id} missing required parameters: {missing_params}. "
+                f"The UI must provide all balancing configuration parameters."
+            )
         
         return {
             "NODE_ID": node_id,
