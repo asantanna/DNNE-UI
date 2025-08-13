@@ -23,7 +23,7 @@ VALID_TYPES = {
 }
 
 # Add to ComfyUI's type registry
-from custom_nodes.robotics_types import ROBOTICS_TYPES, ML_TYPES, RL_TYPES
+from custom_nodes.utils.robotics_types import ROBOTICS_TYPES, ML_TYPES, RL_TYPES
 VALID_TYPES.update(ROBOTICS_TYPES)
 VALID_TYPES.update(ML_TYPES)
 VALID_TYPES.update(RL_TYPES)
