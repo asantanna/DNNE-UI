@@ -136,15 +136,21 @@ class PPOAgentExporter(ExportableNode):
         
         # Add balancing configuration if present
         if balancing_config:
+            # Extract values from the config we built - use 0 only for truly optional fields
+            freq = balancing_config.get('frequency', {})
+            throughput = balancing_config.get('throughput', {})
+            scheduling = balancing_config.get('scheduling', {})
+            latency = balancing_config.get('latency', {})
+            
             template_vars.update({
                 "HAS_BALANCING_CONFIG": True,
-                "BALANCING_MIN_HZ": balancing_config.get('frequency', {}).get('min_hz', 0),
-                "BALANCING_MAX_HZ": balancing_config.get('frequency', {}).get('max_hz', 0),
-                "BALANCING_TARGET_HZ": balancing_config.get('frequency', {}).get('target_hz', 0),
-                "BALANCING_TARGET_PERCENTAGE": balancing_config.get('throughput', {}).get('target_percentage', 0),
-                "BALANCING_PRIORITY": balancing_config.get('scheduling', {}).get('priority', 0),
-                "BALANCING_GUARANTEED": balancing_config.get('scheduling', {}).get('guaranteed', False),
-                "BALANCING_MAX_LATENCY_MS": balancing_config.get('latency', {}).get('max_latency_ms', 0),
+                "BALANCING_MIN_HZ": freq.get('min_hz', 0),  # 0 means no min constraint
+                "BALANCING_MAX_HZ": freq.get('max_hz', 0),  # 0 means no max constraint
+                "BALANCING_TARGET_HZ": freq.get('target_hz', 0),  # 0 means no target
+                "BALANCING_TARGET_PERCENTAGE": throughput.get('target_percentage', 0),  # 0 means no target
+                "BALANCING_PRIORITY": scheduling.get('priority', 0),  # 0 is valid default priority
+                "BALANCING_GUARANTEED": scheduling.get('guaranteed', False),  # False is valid default
+                "BALANCING_MAX_LATENCY_MS": latency.get('max_latency_ms', 0),  # 0 means no constraint
             })
         else:
             template_vars["HAS_BALANCING_CONFIG"] = False
@@ -198,42 +204,43 @@ class PPOAgentExporter(ExportableNode):
         if node_type != "IsaacGymEnvs":
             return None
             
-        # Extract widget values
-        widget_values = env_node_data.get("widgets_values", [])
+        # Use parameter specs to extract values from either inputs dict or widgets_values
+        param_specs = [
+            {'name': 'task', 'widget_index': 0},
+            {'name': 'num_envs', 'widget_index': 1},
+            {'name': 'seed', 'widget_index': 2},
+            {'name': 'seed_control', 'widget_index': 3},
+            {'name': 'headless', 'widget_index': 4},
+            {'name': 'graphics_device_id', 'widget_index': 5},
+            {'name': 'sim_device', 'widget_index': 6},
+            {'name': 'physics_engine', 'widget_index': 7},
+            {'name': 'multi_gpu', 'widget_index': 8},
+            {'name': 'enable_cameras', 'widget_index': 9},
+            {'name': 'force_render', 'widget_index': 10},
+            {'name': 'use_gpu_pipeline', 'widget_index': 11},
+            {'name': 'num_threads', 'widget_index': 12},
+            {'name': 'solver_type', 'widget_index': 13},
+            {'name': 'num_subscenes', 'widget_index': 14},
+        ]
+        
+        # Get parameters using the helper that checks both inputs and widgets_values
+        params = cls.get_node_parameters_batch(env_node_data, param_specs)
         
         # Debug logging
         import logging
-        logging.info(f"[DNNE Export] IsaacGymEnvs widget_values: {widget_values}")
+        logging.info(f"[DNNE Export] IsaacGymEnvs params: {params}")
         
-        # Map widget values to config (based on IsaacGymEnvs node definition)
-        # Fail-fast: ensure we have all required widget values
-        required_widget_count = 15  # 9 required + 5 optional + 1 for seed_control
-        if len(widget_values) < required_widget_count:
+        # Validate all required parameters are present
+        missing_params = [spec['name'] for spec in param_specs if params.get(spec['name']) is None]
+        if missing_params:
             raise ValueError(
-                f"IsaacGymEnvs node {env_node_id} has {len(widget_values)} widget values, "
-                f"expected at least {required_widget_count}. "
-                f"This may indicate a mismatch between the visual node and workflow."
+                f"IsaacGymEnvs node {env_node_id} missing required parameters: {missing_params}. "
+                f"This may indicate the UI is not sending widget values correctly."
             )
         
-        # Extract values with explicit indexing - no defaults!
-        return {
-            'task': widget_values[0],
-            'num_envs': widget_values[1],
-            'seed': widget_values[2],
-            'seed_control': widget_values[3],
-            'headless': widget_values[4],
-            'graphics_device_id': widget_values[5],
-            'sim_device': widget_values[6],
-            'physics_engine': widget_values[7],
-            'multi_gpu': widget_values[8],
-            'enable_cameras': widget_values[9],
-            'force_render': widget_values[10],
-            'use_gpu_pipeline': widget_values[11],
-            'num_threads': widget_values[12],
-            'solver_type': widget_values[13],
-            'num_subscenes': widget_values[14],
-            'isaac_gym_envs_path': '/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs',  # Always use default path
-        }
+        # Return config with all parameters
+        params['isaac_gym_envs_path'] = '/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs'  # Always use default path
+        return params
     
     @classmethod
     def _extract_ppo_config(cls, ppo_node_id, all_nodes, all_links):
@@ -268,47 +275,69 @@ class PPOAgentExporter(ExportableNode):
         if node_type != "PPOConfig":
             return None
             
-        # Extract widget values
-        widget_values = config_node_data.get("widgets_values", [])
+        # Use parameter specs matching PPOConfig INPUT_TYPES order
+        param_specs = [
+            {'name': 'learning_rate', 'widget_index': 0},
+            {'name': 'num_epochs', 'widget_index': 1},  # maps to mini_epochs
+            {'name': 'minibatch_size', 'widget_index': 2},
+            {'name': 'clip_param', 'widget_index': 3},  # maps to e_clip
+            {'name': 'value_loss_coef', 'widget_index': 4},  # maps to critic_coef
+            {'name': 'entropy_coef', 'widget_index': 5},
+            {'name': 'gamma', 'widget_index': 6},
+            {'name': 'gae_lambda', 'widget_index': 7},  # maps to tau
+            {'name': 'max_grad_norm', 'widget_index': 8},  # maps to grad_norm
+            {'name': 'horizon_length', 'widget_index': 9},
+            {'name': 'max_iterations', 'widget_index': 10},  # maps to max_epochs
+            {'name': 'lr_schedule', 'widget_index': 11},  # maps to schedule_type
+            {'name': 'lr_schedule_kl_threshold', 'widget_index': 12},
+            {'name': 'use_clipped_value_loss', 'widget_index': 13},  # maps to clip_value
+            {'name': 'normalize_advantage', 'widget_index': 14},
+            {'name': 'normalize_input', 'widget_index': 15},
+            {'name': 'normalize_value', 'widget_index': 16},
+            {'name': 'reward_shaper_scale', 'widget_index': 17},  # not used but in node
+            {'name': 'e_clip', 'widget_index': 18},  # duplicate param
+            {'name': 'truncate_grads', 'widget_index': 19},  # not used
+            {'name': 'bounds_loss_coef', 'widget_index': 20},
+        ]
         
-        # Map widget values to config (based on PPOConfig node definition)
-        # Widget order from PPOConfig INPUT_TYPES:
-        # 0: learning_rate, 1: num_epochs, 2: minibatch_size, 3: clip_param,
-        # 4: value_loss_coef, 5: entropy_coef, 6: gamma, 7: gae_lambda,
-        # 8: max_grad_norm, 9: horizon_length, 10: max_iterations, 11: lr_schedule,
-        # 12: lr_schedule_kl_threshold, 13: use_clipped_value_loss, 14: normalize_advantage,
-        # 15: normalize_input, 16: normalize_value, 17: reward_shaper_scale,
-        # 18: e_clip, 19: truncate_grads, 20: bounds_loss_coef
+        # Get parameters using the helper that checks both inputs and widgets_values
+        raw_params = cls.get_node_parameters_batch(config_node_data, param_specs)
         
-        # Fail-fast: ensure we have all required widget values
-        required_widget_count = 21  # 9 required + 12 optional parameters
-        if len(widget_values) < required_widget_count:
+        # Validate required parameters are present
+        required_params = [
+            'learning_rate', 'num_epochs', 'minibatch_size', 'clip_param',
+            'value_loss_coef', 'entropy_coef', 'gamma', 'gae_lambda',
+            'max_grad_norm', 'horizon_length', 'max_iterations', 'lr_schedule',
+            'lr_schedule_kl_threshold', 'use_clipped_value_loss', 'normalize_advantage',
+            'normalize_input', 'normalize_value', 'bounds_loss_coef'
+        ]
+        missing_params = [p for p in required_params if raw_params.get(p) is None]
+        if missing_params:
             raise ValueError(
-                f"PPOConfig node {config_node_id} has {len(widget_values)} widget values, "
-                f"expected at least {required_widget_count}. "
-                f"This may indicate a mismatch between the visual node and workflow."
+                f"PPOConfig node {config_node_id} missing required parameters: {missing_params}. "
+                f"This may indicate the UI is not sending widget values correctly."
             )
         
-        # Direct mapping from widget values - no defaults!
+        # Map to the expected output format
         return {
-            'learning_rate': widget_values[0],
-            'mini_epochs': widget_values[1],
-            'minibatch_size': widget_values[2],
-            'e_clip': widget_values[3],
-            'critic_coef': widget_values[4],
-            'entropy_coef': widget_values[5],
-            'gamma': widget_values[6],
-            'tau': widget_values[7],
-            'grad_norm': widget_values[8],
-            'horizon_length': widget_values[9],
-            'max_epochs': widget_values[10],
-            'schedule_type': widget_values[11],
-            'lr_schedule_kl_threshold': widget_values[12],
-            'clip_value': widget_values[13],
-            'normalize_advantage': widget_values[14],
-            'normalize_input': widget_values[15],
-            'normalize_value': widget_values[16],
-            'bounds_loss_coef': widget_values[20],
+            'learning_rate': raw_params['learning_rate'],
+            'mini_epochs': raw_params['num_epochs'],
+            'minibatch_size': raw_params['minibatch_size'],
+            'e_clip': raw_params['clip_param'],
+            'critic_coef': raw_params['value_loss_coef'],
+            'entropy_coef': raw_params['entropy_coef'],
+            'gamma': raw_params['gamma'],
+            'tau': raw_params['gae_lambda'],
+            'grad_norm': raw_params['max_grad_norm'],
+            'horizon_length': raw_params['horizon_length'],
+            'max_epochs': raw_params['max_iterations'],
+            'schedule_type': raw_params['lr_schedule'],
+            'lr_schedule_kl_threshold': raw_params['lr_schedule_kl_threshold'],
+            'clip_value': raw_params['use_clipped_value_loss'],
+            'normalize_advantage': raw_params['normalize_advantage'],
+            'normalize_input': raw_params['normalize_input'],
+            'normalize_value': raw_params['normalize_value'],
+            'bounds_loss_coef': raw_params['bounds_loss_coef'],
         }
     
     @classmethod
@@ -345,15 +374,29 @@ class PPOAgentExporter(ExportableNode):
         if node_type != "BalancingConfig":
             return None
             
-        # Extract widget values
-        widget_values = balancing_node_data.get("widgets_values", [])
+        # Use parameter specs matching BalancingConfig INPUT_TYPES order
+        param_specs = [
+            {'name': 'enabled', 'widget_index': 0},
+            {'name': 'min_hz', 'widget_index': 1},
+            {'name': 'max_hz', 'widget_index': 2},
+            {'name': 'target_hz', 'widget_index': 3},
+            {'name': 'target_percentage', 'widget_index': 4},
+            {'name': 'priority', 'widget_index': 5},
+            {'name': 'guaranteed', 'widget_index': 6},
+            {'name': 'max_latency_ms', 'widget_index': 7},
+        ]
         
-        # Map widget values to config (based on BalancingConfig node definition)
-        # Widget order: enabled, min_hz, max_hz, target_hz, target_percentage, priority, 
-        #               guaranteed, max_latency_ms
+        # Get parameters using the helper that checks both inputs and widgets_values
+        params = cls.get_node_parameters_batch(balancing_node_data, param_specs)
         
-        # Check if config is enabled (first widget)
-        enabled = widget_values[0] if len(widget_values) > 0 else True
+        # Check if config is enabled
+        enabled = params.get('enabled')
+        if enabled is None:
+            raise ValueError(
+                f"BalancingConfig node {balancing_node_id} missing 'enabled' parameter. "
+                f"This may indicate the UI is not sending widget values correctly."
+            )
+        
         if not enabled:
             return {"enabled": False, "type": "balancing_config"}
             
@@ -362,27 +405,30 @@ class PPOAgentExporter(ExportableNode):
             'enabled': True,
             'frequency': {},
             'throughput': {},
-            'scheduling': {
-                'priority': widget_values[5] if len(widget_values) > 5 else 0,
-                'guaranteed': widget_values[6] if len(widget_values) > 6 else False,
-            },
+            'scheduling': {},
             'latency': {},
         }
         
+        # Add scheduling settings (always include if present)
+        if params.get('priority') is not None:
+            config['scheduling']['priority'] = params['priority']
+        if params.get('guaranteed') is not None:
+            config['scheduling']['guaranteed'] = params['guaranteed']
+        
         # Add frequency settings if specified (>= 0 means care, -1 means don't care)
-        if len(widget_values) > 1 and widget_values[1] >= 0:
-            config['frequency']['min_hz'] = widget_values[1]
-        if len(widget_values) > 2 and widget_values[2] >= 0:
-            config['frequency']['max_hz'] = widget_values[2]
-        if len(widget_values) > 3 and widget_values[3] >= 0:
-            config['frequency']['target_hz'] = widget_values[3]
+        if params.get('min_hz') is not None and params['min_hz'] >= 0:
+            config['frequency']['min_hz'] = params['min_hz']
+        if params.get('max_hz') is not None and params['max_hz'] >= 0:
+            config['frequency']['max_hz'] = params['max_hz']
+        if params.get('target_hz') is not None and params['target_hz'] >= 0:
+            config['frequency']['target_hz'] = params['target_hz']
             
         # Add throughput settings if specified
-        if len(widget_values) > 4 and widget_values[4] >= 0:
-            config['throughput']['target_percentage'] = widget_values[4]
+        if params.get('target_percentage') is not None and params['target_percentage'] >= 0:
+            config['throughput']['target_percentage'] = params['target_percentage']
             
         # Add latency settings if specified
-        if len(widget_values) > 7 and widget_values[7] >= 0:
-            config['latency']['max_latency_ms'] = widget_values[7]
+        if params.get('max_latency_ms') is not None and params['max_latency_ms'] >= 0:
+            config['latency']['max_latency_ms'] = params['max_latency_ms']
         
         return config

@@ -21,19 +21,10 @@ from .sgd_optimizer_exporter import SGDOptimizerExporter
 from .training_step_exporter import TrainingStepExporter
 from .epoch_tracker_exporter import EpochTrackerExporter
 from .tensor_visualizer_exporter import TensorVisualizerExporter
-from .loss_exporter import LossExporter
-from .optimizer_exporter import OptimizerExporter
-from .display_exporter import DisplayExporter
 
 # Robotics Exporters
 from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
 from .isaac_gym_sim_exporter import IsaacGymSimExporter
-from .camera_sensor_exporter import CameraSensorExporter
-from .imu_sensor_exporter import IMUSensorExporter
-from .vision_network_exporter import VisionNetworkExporter
-from .sound_network_exporter import SoundNetworkExporter
-from .decision_network_exporter import DecisionNetworkExporter
-from .robot_controller_exporter import RobotControllerExporter
 
 # RL Exporters
 from .ppo_config_exporter import PPOConfigExporter
@@ -66,9 +57,6 @@ def register_ml_exporters(exporter):
     exporter.register_node("TrainingStep", TrainingStepExporter)
     exporter.register_node("EpochTracker", EpochTrackerExporter)
     exporter.register_node("TensorVisualizer", TensorVisualizerExporter)
-    exporter.register_node("Loss", LossExporter)
-    exporter.register_node("Optimizer", OptimizerExporter)
-    exporter.register_node("Display", DisplayExporter)
     
     # Aliases for compatibility
     exporter.register_node("Linear", LinearLayerExporter)
@@ -77,12 +65,6 @@ def register_robotics_exporters(exporter):
     """Register all robotics node exporters"""
     exporter.register_node("IsaacGymEnvs", IsaacGymEnvsExporter)
     exporter.register_node("IsaacGymSim", IsaacGymSimExporter)
-    exporter.register_node("CameraSensor", CameraSensorExporter)
-    exporter.register_node("IMUSensor", IMUSensorExporter)
-    exporter.register_node("VisionNetwork", VisionNetworkExporter)
-    exporter.register_node("SoundNetwork", SoundNetworkExporter)
-    exporter.register_node("DecisionNetwork", DecisionNetworkExporter)
-    exporter.register_node("RobotController", RobotControllerExporter)
 
 def register_rl_exporters(exporter):
     """Register all RL node exporters"""
@@ -129,18 +111,9 @@ __all__ = [
     'TrainingStepExporter',
     'EpochTrackerExporter',
     'TensorVisualizerExporter',
-    'LossExporter',
-    'OptimizerExporter',
-    'DisplayExporter',
     # Robotics nodes
     'IsaacGymEnvsExporter',
     'IsaacGymSimExporter',
-    'CameraSensorExporter',
-    'IMUSensorExporter',
-    'VisionNetworkExporter',
-    'SoundNetworkExporter',
-    'DecisionNetworkExporter',
-    'RobotControllerExporter',
     # RL nodes
     'PPOConfigExporter',
     'PPOAgentExporter',

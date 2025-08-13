@@ -49,12 +49,19 @@ class BatchSamplerExporter(ExportableNode):
     @classmethod
     def get_initial_output_schema(cls, node_data):
         """BatchSampler passes through dataset schema but wraps data in DataLoader"""
+        widget_values = node_data.get("widgets_values", [])
+        if len(widget_values) < 2:
+            raise ValueError(
+                f"BatchSampler node missing widget values. "
+                f"Expected 2 values (batch_size, shuffle), got {len(widget_values)}"
+            )
+        
         return {
             "outputs": {
                 "dataloader": {
                     "type": "dataloader",
-                    "batch_size": node_data.get("widgets_values", [32])[0] if node_data.get("widgets_values") else 32,
-                    "shuffle": node_data.get("widgets_values", [32, True])[1] if len(node_data.get("widgets_values", [])) > 1 else True,
+                    "batch_size": widget_values[0],
+                    "shuffle": widget_values[1],
                     "contains_schema": True  # Indicates this contains schema information
                 },
                 "schema": {

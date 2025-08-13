@@ -61,7 +61,7 @@ Rules DNNE Development:
 * Verify it works
 * Only then move to the next change
 
-### 7. **Write a Failing Test First**
+### 7. **When Debugging, Write a Simple Test Script To Isolate Code **
 * Some problems are harder to debug when testing the entire server logic at once:
 * Create a simple script that reproduces the issue
 * Run it and see it fail

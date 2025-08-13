@@ -39,7 +39,7 @@ Ensure DNNE code quality through systematic review of fail-fast principles, code
 
 ## Core Principles
 
-1. **Fail fast, fail clearly** - No silent failures or guessed defaults
+1. **Fail fast, fail clearly** - No silent failures or fallbacks with defaults
 2. **DRY (Don't Repeat Yourself)** - Centralize common code
 3. **Clean imports** - Proper order and placement
 4. **Clear boundaries** - Respect DNNE vs ComfyUI separation
@@ -55,10 +55,10 @@ Ensure DNNE code quality through systematic review of fail-fast principles, code
 | `getattr(g, 'attr', default)` | ❌ BAD | Require explicit definition |
 | `try/except: pass` | ❌ BAD | Handle or propagate errors |
 | `if g.verbose:` | ✅ GOOD | Fails if undefined |
-| Base class with defaults | ❌ BAD | Use NotImplementedError |
+| Base class with innapropriate defaults | ❌ BAD | Use NotImplementedError |
 | Silent fallbacks | ❌ BAD | Explicit error messages |
 
-**Principle**: Code should fail immediately when assumptions are violated.
+**Principle**: "LOG AND FAIL": Code should fail immediately when assumptions are violated.
 
 ### 2. Code Duplication
 
@@ -87,7 +87,7 @@ from nodes import NetworkNode
 ```
 
 **Exceptions**:
-- IsaacGym before PyTorch (document with comment)
+- IsaacGym before PyTorch (problem already solved in runner.py)
 - Late imports only for circular dependency resolution
 
 ### 4. Architecture Rules
@@ -169,5 +169,5 @@ from nodes import NetworkNode
 - **Be specific**: Include file:line references
 - **Be actionable**: Every issue needs a fix
 - **Be constructive**: Note good patterns too
-- **Be practical**: Early development allows breaking changes
+- **Be practical**: We are in Early development, this allows breaking changes
 - **Be focused**: DNNE core only, ignore ComfyUI base

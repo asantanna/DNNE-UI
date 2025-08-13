@@ -170,30 +170,44 @@ class PPOConfig(RoboticsNodeBase):
         This method is never actually called during export.
         It exists only to satisfy ComfyUI's node interface.
         """
+        # FAIL-FAST: All parameters must be explicitly provided
+        required_params = [
+            "learning_rate", "num_epochs", "minibatch_size", "clip_param",
+            "value_loss_coef", "entropy_coef", "gamma", "gae_lambda",
+            "max_grad_norm", "horizon_length", "max_iterations", "lr_schedule",
+            "lr_schedule_kl_threshold", "use_clipped_value_loss", "normalize_advantage",
+            "normalize_input", "normalize_value", "reward_shaper_scale", "e_clip",
+            "truncate_grads", "bounds_loss_coef"
+        ]
+        
+        missing_params = [p for p in required_params if p not in kwargs]
+        if missing_params:
+            raise ValueError(f"PPOConfig missing required parameters: {missing_params}")
+        
         config = {
             # Core PPO settings
-            "learning_rate": kwargs.get("learning_rate", 3e-4),
-            "epochs": kwargs.get("num_epochs", 4),
-            "minibatch_size": kwargs.get("minibatch_size", 8192),
-            "e_clip": kwargs.get("clip_param", 0.2),
-            "critic_coef": kwargs.get("value_loss_coef", 0.5),
-            "entropy_coef": kwargs.get("entropy_coef", 0.01),
-            "gamma": kwargs.get("gamma", 0.99),
-            "tau": kwargs.get("gae_lambda", 0.95),
-            "grad_norm": kwargs.get("max_grad_norm", 0.5),
+            "learning_rate": kwargs["learning_rate"],
+            "epochs": kwargs["num_epochs"],
+            "minibatch_size": kwargs["minibatch_size"],
+            "e_clip": kwargs["clip_param"],
+            "critic_coef": kwargs["value_loss_coef"],
+            "entropy_coef": kwargs["entropy_coef"],
+            "gamma": kwargs["gamma"],
+            "tau": kwargs["gae_lambda"],
+            "grad_norm": kwargs["max_grad_norm"],
             
             # Optional settings
-            "horizon_length": kwargs.get("horizon_length", 16),
-            "max_epochs": kwargs.get("max_iterations", 10000),
-            "lr_schedule": kwargs.get("lr_schedule", "constant"),
-            "kl_threshold": kwargs.get("lr_schedule_kl_threshold", 0.008),
-            "clip_value": kwargs.get("use_clipped_value_loss", True),
-            "normalize_advantage": kwargs.get("normalize_advantage", True),
-            "normalize_input": kwargs.get("normalize_input", True),
-            "normalize_value": kwargs.get("normalize_value", True),
-            "reward_shaper": {"scale_value": kwargs.get("reward_shaper_scale", 1.0)},
-            "bounds_loss_coef": kwargs.get("bounds_loss_coef", 0.0001),
-            "truncate_grads": kwargs.get("truncate_grads", True),
+            "horizon_length": kwargs["horizon_length"],
+            "max_epochs": kwargs["max_iterations"],
+            "lr_schedule": kwargs["lr_schedule"],
+            "kl_threshold": kwargs["lr_schedule_kl_threshold"],
+            "clip_value": kwargs["use_clipped_value_loss"],
+            "normalize_advantage": kwargs["normalize_advantage"],
+            "normalize_input": kwargs["normalize_input"],
+            "normalize_value": kwargs["normalize_value"],
+            "reward_shaper": {"scale_value": kwargs["reward_shaper_scale"]},
+            "bounds_loss_coef": kwargs["bounds_loss_coef"],
+            "truncate_grads": kwargs["truncate_grads"],
         }
         
         return (config,)

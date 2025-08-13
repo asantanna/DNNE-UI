@@ -12,16 +12,25 @@ class IsaacGymSimExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Get parameters from widgets
+        # Get parameters from widgets - NO DEFAULTS, fail-fast!
         param_specs = [
-            {'name': 'reset_when_done', 'widget_index': 0, 'default': True},
-            {'name': 'render', 'widget_index': 1, 'default': False},
-            {'name': 'null_action', 'widget_index': 2, 'default': ""},
-            {'name': 'camera_position', 'widget_index': 3, 'default': "1.2, 1.2, 1.0"},
-            {'name': 'camera_target', 'widget_index': 4, 'default': "0.0, 0.0, 0.5"},
+            {'name': 'reset_when_done', 'widget_index': 0},
+            {'name': 'render', 'widget_index': 1},
+            {'name': 'null_action', 'widget_index': 2},
+            {'name': 'camera_position', 'widget_index': 3},
+            {'name': 'camera_target', 'widget_index': 4},
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present
+        required_params = ['reset_when_done', 'render', 'null_action', 'camera_position', 'camera_target']
+        missing_params = [p for p in required_params if params.get(p) is None]
+        if missing_params:
+            raise ValueError(
+                f"IsaacGymSim node {node_id} missing required parameters: {missing_params}. "
+                f"This may indicate the UI is not sending widget values correctly."
+            )
         
         # Get config from connected Isaac Gym Environment Config node
         # Debug: Check what connections and all_nodes look like
@@ -47,31 +56,54 @@ class IsaacGymSimExporter(ExportableNode):
         
         if config_node:
             
-            # Extract config values from the config node's widgets
-            config_widgets = config_node.get('widgets_values', [])
-            logging.info(f"[IsaacGymSim Export] Config node type: {config_node.get('type')}")
-            logging.info(f"[IsaacGymSim Export] Config widgets: {config_widgets}")
+            # Use parameter specs to extract values from either inputs dict or widgets_values
+            param_specs = [
+                {'name': 'task', 'widget_index': 0},
+                {'name': 'num_envs', 'widget_index': 1},
+                {'name': 'seed', 'widget_index': 2},
+                {'name': 'seed_control', 'widget_index': 3},
+                {'name': 'headless', 'widget_index': 4},
+                {'name': 'graphics_device_id', 'widget_index': 5},
+                {'name': 'sim_device', 'widget_index': 6},
+                {'name': 'physics_engine', 'widget_index': 7},
+                {'name': 'multi_gpu', 'widget_index': 8},
+                {'name': 'enable_cameras', 'widget_index': 9},
+                {'name': 'force_render', 'widget_index': 10},
+                {'name': 'use_gpu_pipeline', 'widget_index': 11},
+                {'name': 'num_threads', 'widget_index': 12},
+                {'name': 'solver_type', 'widget_index': 13},
+                {'name': 'num_subscenes', 'widget_index': 14},
+            ]
             
-            # Map widget indices to config parameters
-            # Based on INPUT_TYPES order in isaac_gym_envs_visnode.py
-            # Fail-fast: ensure we have all required values
-            if len(config_widgets) < 10:
+            # Get parameters using the helper that checks both inputs and widgets_values
+            config_params = cls.get_node_parameters_batch(config_node, param_specs)
+            
+            logging.info(f"[IsaacGymSim Export] Config node type: {config_node.get('type')}")
+            logging.info(f"[IsaacGymSim Export] Extracted config_params: {config_params}")
+            
+            # Validate required parameters are present
+            required_params = ['task', 'num_envs', 'seed', 'seed_control', 'headless',
+                             'graphics_device_id', 'sim_device', 'physics_engine', 
+                             'multi_gpu', 'enable_cameras']
+            missing_params = [p for p in required_params if config_params.get(p) is None]
+            if missing_params:
                 raise ValueError(
-                    f"IsaacGymEnvs node has insufficient widget values ({len(config_widgets)}). "
-                    f"Expected at least 10 values. This may indicate a corrupted workflow."
+                    f"IsaacGymEnvs node missing required parameters: {missing_params}. "
+                    f"This may indicate the UI is not sending widget values correctly."
                 )
             
-            task = config_widgets[0]
+            # Extract individual values
+            task = config_params['task']
             logging.info(f"[IsaacGymSim Export] Extracted task: {task}")
-            num_envs = config_widgets[1]
-            seed = config_widgets[2]
-            seed_control = config_widgets[3]
-            headless = config_widgets[4]
-            graphics_device_id = config_widgets[5]
-            sim_device = config_widgets[6]
-            physics_engine = config_widgets[7]
-            multi_gpu = config_widgets[8]
-            enable_cameras = config_widgets[9]
+            num_envs = config_params['num_envs']
+            seed = config_params['seed']
+            seed_control = config_params['seed_control']
+            headless = config_params['headless']
+            graphics_device_id = config_params['graphics_device_id']
+            sim_device = config_params['sim_device']
+            physics_engine = config_params['physics_engine']
+            multi_gpu = config_params['multi_gpu']
+            enable_cameras = config_params['enable_cameras']
         else:
             # Fail-fast: no config connected is an error
             raise ValueError(

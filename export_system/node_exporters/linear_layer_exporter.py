@@ -62,8 +62,10 @@ class LinearLayerExporter(ExportableNode):
     @classmethod
     def get_initial_output_schema(cls, node_data):
         # Get output size from widgets_values (ComfyUI workflow format)
-        widget_values = node_data.get("widgets_values", [128, True, "relu", 0.0])
-        output_size = widget_values[0] if len(widget_values) > 0 else 128
+        widget_values = node_data.get("widgets_values", [])
+        if not widget_values or len(widget_values) < 1:
+            raise ValueError(f"LinearLayer node missing required widget values. Expected at least 1, got {len(widget_values)}")
+        output_size = widget_values[0]
         
         return {
             "outputs": {

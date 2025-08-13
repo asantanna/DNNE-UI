@@ -85,7 +85,9 @@ class IsaacGymSimNode(RoboticsNodeBase):
             raise ValueError("Action must be a tensor")
         
         # Get expected observation shape from config
-        task = config.get("task", "Cartpole")
+        task = config.get("task")
+        if not task:
+            raise ValueError("IsaacGymSim: config must provide 'task' field")
         
         # Create dummy observation based on task
         # These are approximate observation sizes for common tasks
@@ -98,7 +100,9 @@ class IsaacGymSimNode(RoboticsNodeBase):
             "FrankaCabinet": 23,
         }
         
-        obs_size = obs_sizes.get(task, 10)  # Default to 10 if unknown task
+        obs_size = obs_sizes.get(task)
+        if obs_size is None:
+            raise ValueError(f"IsaacGymSim: Unknown task '{task}'. Supported tasks: {list(obs_sizes.keys())}")
         
         # Create dummy observation tensor
         observation = torch.zeros((1, obs_size), dtype=torch.float32)

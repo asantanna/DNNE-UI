@@ -1,16 +1,16 @@
 # Export System Tasks
 
-*Last Updated: 2025-08-12*
+*Last Updated: 2025-08-13*
 
 ## Quick Stats
-- **Status**: Working - Core Features Complete
+- **Status**: Working - UI Export Issue Identified
 - **Priority**: High
-- **Completion**: ~95%
+- **Completion**: ~90%
 - **Dependencies**: Node implementations, Runner framework
 
 ## Current Status
 
-The export system successfully converts visual workflows to executable Python code. It handles ML, RL, and robotics nodes with queue-based async architecture. Recent improvements include telemetry support and remote deployment capabilities.
+The export system successfully converts visual workflows to executable Python code. It handles ML, RL, and robotics nodes with queue-based async architecture. Recent improvements include telemetry support and remote deployment capabilities. **Critical issue identified**: UI export reconstructs from prompt format losing widget_values.
 
 ## ✅ Completed
 
@@ -36,8 +36,19 @@ The export system successfully converts visual workflows to executable Python co
 - [x] Runner arguments configuration
 - [x] Workflow packaging for distribution
 - [x] Queue-based async execution framework
+- [x] DataStreamer node for CSV trajectory streaming
+- [x] Isaac Gym camera position configuration
 
 ## 📋 TODO
+
+### Critical - In Progress
+
+1. **Fix UI export widget_values issue**
+   - Status: IN PROGRESS
+   - UI export reconstructs from prompt format which lacks widget_values
+   - Exporters that read config from connected nodes fail (IsaacGymSim, PPOAgent)
+   - Solution: Update exporters to check both widgets_values and inputs fields
+   - Workaround: Use programmatic export or recreate affected nodes
 
 ### High Priority
 

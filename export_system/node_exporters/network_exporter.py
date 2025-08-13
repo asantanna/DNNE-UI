@@ -190,13 +190,18 @@ class NetworkExporter(ExportableNode):
                 break
             
             # Extract layer information from widgets_values (ComfyUI workflow format)
-            widget_values = node_data.get("widgets_values", [128, True, "relu", 0.0])
+            widget_values = node_data.get("widgets_values", [])
+            if len(widget_values) < 4:
+                raise ValueError(
+                    f"LinearLayer node {current_node} missing widget values. "
+                    f"Expected 4 values (output_size, bias, activation, dropout), got {len(widget_values)}"
+                )
             layer_info = {
                 "node_id": current_node,
-                "output_size": widget_values[0] if len(widget_values) > 0 else 128,
-                "bias": widget_values[1] if len(widget_values) > 1 else True,
-                "activation": widget_values[2] if len(widget_values) > 2 else "none",
-                "dropout": widget_values[3] if len(widget_values) > 3 else 0.0
+                "output_size": widget_values[0],
+                "bias": widget_values[1],
+                "activation": widget_values[2],
+                "dropout": widget_values[3]
             }
             layers.append(layer_info)
             

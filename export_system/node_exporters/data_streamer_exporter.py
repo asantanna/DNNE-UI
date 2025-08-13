@@ -14,30 +14,39 @@ class DataStreamerExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Extract widget values
-        widgets = node_data.get("widgets_values", [])
+        # Use get_node_parameters_batch to handle both UI and programmatic export
+        param_specs = [
+            {'name': 'file_path', 'widget_index': 0},
+            {'name': 'sync_mode', 'widget_index': 1},
+            {'name': 'frequency_hz', 'widget_index': 2},
+            {'name': 'auto_first_row', 'widget_index': 3},
+            {'name': 'loop_data', 'widget_index': 4},
+            {'name': 'eof_mode', 'widget_index': 5},
+            {'name': 'delimiter', 'widget_index': 6},
+            {'name': 'skip_header', 'widget_index': 7},
+        ]
         
-        # Default values matching the node definition
-        file_path = "./data/trajectory.csv"
-        sync_mode = "none"
-        frequency_hz = 100.0
-        auto_first_row = True
-        loop_data = False
-        eof_mode = "stop"
-        delimiter = ","
-        skip_header = True
+        params = cls.get_node_parameters_batch(node_data, param_specs)
         
-        # Extract values from widgets array
-        # Order must match the order in INPUT_TYPES
-        if len(widgets) >= 8:
-            file_path = widgets[0]
-            sync_mode = widgets[1]
-            frequency_hz = float(widgets[2])
-            auto_first_row = bool(widgets[3])
-            loop_data = bool(widgets[4])
-            eof_mode = widgets[5]
-            delimiter = widgets[6]
-            skip_header = bool(widgets[7])
+        # FAIL-FAST: Validate required parameters
+        required_params = ['file_path', 'sync_mode', 'frequency_hz', 'auto_first_row',
+                          'loop_data', 'eof_mode', 'delimiter', 'skip_header']
+        missing_params = [p for p in required_params if params.get(p) is None]
+        if missing_params:
+            raise ValueError(
+                f"DataStreamer node {node_id} missing required parameters: {missing_params}. "
+                f"This may indicate the UI is not sending widget values correctly."
+            )
+        
+        # Extract values with proper type conversion
+        file_path = params['file_path']
+        sync_mode = params['sync_mode']
+        frequency_hz = float(params['frequency_hz'])
+        auto_first_row = bool(params['auto_first_row'])
+        loop_data = bool(params['loop_data'])
+        eof_mode = params['eof_mode']
+        delimiter = params['delimiter']
+        skip_header = bool(params['skip_header'])
         
         return {
             "NODE_ID": node_id,
