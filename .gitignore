@@ -20,6 +20,7 @@ venv/
 
 /user/
 !/user/default/workflows/
+!/user/default/custom_compute_funcs/
 
 *.log
 web_custom_versions/

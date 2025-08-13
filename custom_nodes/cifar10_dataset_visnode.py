@@ -4,8 +4,8 @@ Loads the CIFAR-10 dataset containing 60,000 32x32 color images in 10 classes.
 """
 
 from inspect import cleandoc
-from custom_nodes.base import RoboticsNodeBase
-from custom_nodes.node_colors import get_node_colors
+from custom_nodes.utils.visnode_base import RoboticsNodeBase
+from custom_nodes.utils.node_colors import get_node_colors
 
 
 class CIFAR10DatasetNode(RoboticsNodeBase):

@@ -4,8 +4,8 @@ Active passthrough node that measures and enforces performance targets
 """
 
 from inspect import cleandoc
-from custom_nodes.base import RoboticsNodeBase
-from custom_nodes.node_colors import get_node_colors
+from custom_nodes.utils.visnode_base import RoboticsNodeBase
+from custom_nodes.utils.node_colors import get_node_colors
 
 
 class BalancingNode(RoboticsNodeBase):

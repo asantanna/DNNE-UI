@@ -88,7 +88,10 @@ class IsaacGymEnvConfigLoader:
         if self._configs_cache is None:
             self._load_all_configs()
             
-        return self._configs_cache.get(task_name, {})
+        config = self._configs_cache.get(task_name)
+        if config is None:
+            raise NotImplementedError(f"Task '{task_name}' not found. Available tasks: {list(self._configs_cache.keys())}")
+        return config
     
     def get_node_defaults(self, task_name: str, node_type: str) -> Dict[str, Any]:
         """
@@ -186,6 +189,87 @@ class IsaacGymEnvConfigLoader:
         
         return value
     
+    def get_task_dt(self, task_name: str) -> float:
+        """
+        Get the simulation timestep (dt) for a specific task.
+        Fail-fast: raises NotImplementedError if dt is not found.
+        
+        Args:
+            task_name: Name of the IsaacGymEnvs task
+            
+        Returns:
+            The dt value from the task's sim configuration
+        """
+        config = self.get_task_config(task_name)
+        
+        # Look for dt in the cached task config
+        if 'sim_dt' in config.get('isaac_gym_env', {}):
+            return config['isaac_gym_env']['sim_dt']
+            
+        # If not cached, load from file directly
+        task_file = self.task_cfg_path / f"{task_name}.yaml"
+        if not task_file.exists():
+            raise NotImplementedError(f"Task file not found for '{task_name}'")
+            
+        with open(task_file, 'r') as f:
+            task_config = yaml.safe_load(f)
+            
+        dt = task_config.get('sim', {}).get('dt')
+        if dt is None:
+            raise NotImplementedError(f"Task '{task_name}' does not specify sim.dt in its YAML configuration")
+            
+        return float(dt)
+    
+    def get_task_subtasks(self, task_name: str) -> List[str]:
+        """
+        Get available subtasks for a DNNE environment.
+        
+        Args:
+            task_name: Name of the IsaacGymEnvs task
+            
+        Returns:
+            List of available subtask names, or empty list if not a DNNE environment
+        """
+        # Load task configuration
+        task_file = self.task_cfg_path / f"{task_name}.yaml"
+        if not task_file.exists():
+            raise NotImplementedError(f"Task file not found for '{task_name}'")
+            
+        with open(task_file, 'r') as f:
+            task_config = yaml.safe_load(f)
+            
+        # Check if this is a DNNE environment
+        if not task_config.get('is_dnne_environment', False):
+            return []
+            
+        # For now, return hardcoded subtasks for FrankaDNNE
+        # In future, this could be read from YAML or discovered dynamically
+        if task_name == "FrankaDNNE":
+            return ["random_target"]
+            
+        return []
+    
+    def is_dnne_environment(self, task_name: str) -> bool:
+        """
+        Check if a task is a DNNE-specific environment.
+        
+        Args:
+            task_name: Name of the IsaacGymEnvs task
+            
+        Returns:
+            True if this is a DNNE environment, False otherwise
+        """
+        task_file = self.task_cfg_path / f"{task_name}.yaml"
+        if not task_file.exists():
+            return False
+            
+        try:
+            with open(task_file, 'r') as f:
+                task_config = yaml.safe_load(f)
+            return task_config.get('is_dnne_environment', False)
+        except:
+            return False
+    
     def _extract_env_node_config(self, task_config: Dict, ppo_config: Dict) -> Dict[str, Any]:
         """Extract configuration for IsaacGymEnvs node."""
         env_cfg = task_config.get('env', {})
@@ -220,7 +304,10 @@ class IsaacGymEnvConfigLoader:
             # Leave blank if not specified - will cause error if user tries to use IsaacGymSimNode
             null_action_str = ""
         
-        return {
+        # Extract dt value if present
+        dt = sim_cfg.get('dt')
+        
+        config = {
             "num_envs": num_envs,
             "seed": global_cfg.get('seed', 42),
             "seed_control": "fixed",  # Use the actual widget name
@@ -252,6 +339,12 @@ class IsaacGymEnvConfigLoader:
             ),
             "null_action": null_action_str,  # Add null action to config
         }
+        
+        # Add dt if available (for DNNE environments)
+        if dt is not None:
+            config["sim_dt"] = float(dt)
+            
+        return config
     
     def _extract_ppo_config_node(self, ppo_config: Dict) -> Dict[str, Any]:
         """Extract configuration for PPOConfig node."""

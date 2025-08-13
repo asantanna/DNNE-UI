@@ -7,14 +7,8 @@ from typing import Dict, Any, Optional, List
 import torch
 import numpy as np
 
-# Import robotics types from the original location temporarily
-# This will be updated when we move robotics_types.py as well
-try:
-    from .robotics_types import TensorData, Context
-except ImportError:
-    # Fallback for when we're in the middle of refactoring
-    TensorData = None
-    Context = None
+# Import robotics types from the same directory
+from .robotics_types import TensorData, Context
 
 
 class RoboticsNodeBase:
@@ -85,7 +79,7 @@ class RoboticsNodeBase:
             return torch.from_numpy(data)
         elif isinstance(data, (list, tuple)):
             return torch.tensor(data)
-        elif TensorData and isinstance(data, TensorData):
+        elif isinstance(data, TensorData):
             return data.to_torch()
         else:
             raise ValueError(f"Cannot convert {type(data)} to tensor")
@@ -183,7 +177,7 @@ _context = None
 def get_context():
     """Get or create global context"""
     global _context
-    if _context is None and Context:
+    if _context is None:
         _context = Context()
     return _context
 

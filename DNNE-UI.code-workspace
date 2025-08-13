@@ -9,14 +9,12 @@
             "path": "../DNNE-UI-Frontend"
         },
         {
-            "name": "DNNE-LINUX-SUPPORT",
-            "path": "/home/asantanna/DNNE-LINUX-SUPPORT"
-        },
-        {
             "name": "TMP",
             "path": "/tmp"
         },
-
+        {
+            "path": "../DNNE-LINUX-SUPPORT"
+        }
     ],
     "settings": {}
 }

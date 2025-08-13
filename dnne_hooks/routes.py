@@ -49,7 +49,7 @@ def dnne_add_routes(server_instance, routes):
     
     @routes.get("/dnne/env_config/{task_name}")
     async def get_env_config(request):
-        """Get environment-specific configuration for connected nodes"""
+        """Get environment-specific configuration and metadata for connected nodes"""
         task_name = request.match_info.get("task_name", None)
         requesting_node_type = request.rel_url.query.get("node_type", None)
         logging.info(f" get_env_config called with task_name: {task_name}, requesting_node: {requesting_node_type}")
@@ -74,13 +74,28 @@ def dnne_add_routes(server_instance, routes):
             
             # Extract and send the configuration
             config_dict = config.to_dict() if hasattr(config, 'to_dict') else dict(config)
-            logging.info(f" Sending config for task {task_name}: {list(config_dict.keys())}")
             
-            return web.json_response({
+            # Build response with config and metadata
+            response = {
                 "task_name": task_name,
                 "config": config_dict,
-                "requesting_node": requesting_node_type
-            })
+                "requesting_node": requesting_node_type,
+                "is_dnne_environment": loader.is_dnne_environment(task_name)
+            }
+            
+            # Add DNNE-specific metadata if this is a DNNE environment
+            if response["is_dnne_environment"]:
+                response["subtasks"] = loader.get_task_subtasks(task_name)
+                
+                # Try to get dt value
+                try:
+                    response["dt"] = loader.get_task_dt(task_name)
+                except NotImplementedError:
+                    # dt not found, that's ok for some tasks
+                    pass
+            
+            logging.info(f" Sending config for task {task_name}: {list(config_dict.keys())}")
+            return web.json_response(response)
             
         except ImportError as e:
             logging.error(f" Failed to import IsaacGymEnvConfigLoader: {e}")
