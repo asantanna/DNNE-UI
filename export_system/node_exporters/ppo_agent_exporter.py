@@ -4,6 +4,7 @@ Exporter for PPOAgent node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from custom_nodes.utils.isaac_gym_config_loader import IsaacGymEnvConfigLoader
 
 class PPOAgentExporter(ExportableNode):
     """Exporter for PPO Agent node - the main RL training node"""
@@ -19,32 +20,29 @@ class PPOAgentExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Get node parameters - FAIL-FAST: no defaults (except load_checkpoint which can be empty)
+        # Get node parameters from the UI widgets
+        # The PPOAgent node has these widgets in order:
+        # max_iterations, checkpoint_interval, eval_interval, eval_episodes, log_interval, save_path, resume_from
         param_specs = [
-            {'name': 'network_mlp_layers', 'widget_index': 0},
-            {'name': 'network_activation', 'widget_index': 1},
-            {'name': 'separate_value_network', 'widget_index': 2},
-            {'name': 'checkpoint_interval', 'widget_index': 3},
-            {'name': 'keep_checkpoints', 'widget_index': 4},
-            {'name': 'load_checkpoint', 'widget_index': 5, 'default': ""},  # OK to be empty
-            {'name': 'log_interval', 'widget_index': 6},
-            {'name': 'save_interval', 'widget_index': 7},
-            {'name': 'experiment_name', 'widget_index': 8},
-            {'name': 'mixed_precision', 'widget_index': 9},
-            {'name': 'multi_gpu', 'widget_index': 10},
+            {'name': 'max_iterations', 'widget_index': 0},
+            {'name': 'checkpoint_interval', 'widget_index': 1},
+            {'name': 'eval_interval', 'widget_index': 2},
+            {'name': 'eval_episodes', 'widget_index': 3},
+            {'name': 'log_interval', 'widget_index': 4},
+            {'name': 'save_path', 'widget_index': 5},
+            {'name': 'resume_from', 'widget_index': 6, 'default': ""},  # OK to be empty
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
         
-        # Validate required parameters are present (load_checkpoint can be empty)
-        required_params = ['network_mlp_layers', 'network_activation', 'separate_value_network',
-                          'checkpoint_interval', 'keep_checkpoints', 'log_interval', 
-                          'save_interval', 'experiment_name', 'mixed_precision', 'multi_gpu']
+        # Validate required parameters are present (resume_from can be empty)
+        required_params = ['max_iterations', 'checkpoint_interval', 'eval_interval', 
+                          'eval_episodes', 'log_interval', 'save_path']
         missing_params = [p for p in required_params if params.get(p) is None]
         if missing_params:
             raise ValueError(
                 f"PPOAgent node {node_id} missing required parameters: {missing_params}. "
-                f"The UI must provide all PPO agent configuration parameters."
+                f"The UI must provide all training control parameters."
             )
         
         # Extract configuration from connected virtual nodes
@@ -52,21 +50,51 @@ class PPOAgentExporter(ExportableNode):
         ppo_config = cls._extract_ppo_config(node_id, all_nodes, all_links)
         balancing_config = cls._extract_balancing_config(node_id, all_nodes, all_links)
         
+        # Load task-specific configuration from YAML if we have a task
+        task_ppo_config = {}
+        if env_config and 'task' in env_config:
+            task_name = env_config['task']
+            loader = IsaacGymEnvConfigLoader()
+            task_config = loader.get_task_config(task_name)
+            if task_config and 'ppo_agent' in task_config:
+                task_ppo_config = task_config['ppo_agent']
+        
+        # Get network configuration from task config with sensible defaults
+        network_mlp_layers = task_ppo_config.get('network_mlp_layers', [256, 128, 64])
+        network_activation = task_ppo_config.get('network_activation', 'elu')
+        separate_value_network = task_ppo_config.get('separate_value_network', False)
+        mixed_precision = task_ppo_config.get('mixed_precision', False)
+        multi_gpu = task_ppo_config.get('multi_gpu', False)
+        
+        # Get other parameters from task config or use defaults
+        keep_checkpoints = task_ppo_config.get('keep_checkpoints', 5)
+        save_interval = task_ppo_config.get('save_interval', 1000)
+        experiment_name = task_ppo_config.get('experiment_name', f"{env_config.get('task', 'PPO')}_PPO")
+        
         # Merge all configuration
         template_vars = {
             "NODE_ID": node_id,
             "CLASS_NAME": "PPOAgentNode",
-            "NETWORK_MLP_LAYERS": params['network_mlp_layers'],
-            "NETWORK_ACTIVATION": params['network_activation'],
-            "SEPARATE_VALUE_NETWORK": params['separate_value_network'],
+            # Network configuration from task YAML
+            "NETWORK_MLP_LAYERS": network_mlp_layers,
+            "NETWORK_ACTIVATION": network_activation,
+            "SEPARATE_VALUE_NETWORK": separate_value_network,
+            # Training control from UI widgets
             "CHECKPOINT_INTERVAL": params['checkpoint_interval'],
-            "KEEP_CHECKPOINTS": params['keep_checkpoints'],
-            "LOAD_CHECKPOINT": params['load_checkpoint'],
             "LOG_INTERVAL": params['log_interval'],
-            "SAVE_INTERVAL": params['save_interval'],
-            "EXPERIMENT_NAME": params['experiment_name'],
-            "MIXED_PRECISION": params['mixed_precision'],
-            "MULTI_GPU": params['multi_gpu'],
+            "SAVE_PATH": params['save_path'],
+            "RESUME_FROM": params['resume_from'],
+            "MAX_ITERATIONS": params['max_iterations'],
+            "EVAL_INTERVAL": params['eval_interval'],
+            "EVAL_EPISODES": params['eval_episodes'],
+            # Additional parameters from task config or defaults
+            "KEEP_CHECKPOINTS": keep_checkpoints,
+            "SAVE_INTERVAL": save_interval,
+            "EXPERIMENT_NAME": experiment_name,
+            "MIXED_PRECISION": mixed_precision,
+            "MULTI_GPU": multi_gpu,
+            # For compatibility - some templates might still use this
+            "LOAD_CHECKPOINT": params.get('resume_from', ''),
         }
         
         # Add environment configuration

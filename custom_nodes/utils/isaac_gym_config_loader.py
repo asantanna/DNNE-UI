@@ -102,8 +102,8 @@ class IsaacGymEnvConfigLoader:
             Dictionary of default values for the node's widgets
         """
         config = self.get_task_config(task_name)
-        node_key = f"{node_type}_node"
-        return config.get(node_key, {})
+        # Use node_type directly as the key (no longer append "_node")
+        return config.get(node_type, {})
     
     def _load_all_configs(self):
         """Load all configurations and cache them."""
@@ -138,9 +138,9 @@ class IsaacGymEnvConfigLoader:
             # Extract configurations for each node
             return {
                 "task_name": task_name,
-                "isaac_gym_env_node": self._extract_env_node_config(task_config, ppo_config),
-                "ppo_config_node": self._extract_ppo_config_node(ppo_config),
-                "ppo_agent_node": self._extract_ppo_agent_node(ppo_config, task_name)
+                "isaac_gym_env": self._extract_env_node_config(task_config, ppo_config),
+                "ppo_config": self._extract_ppo_config_node(ppo_config),
+                "ppo_agent": self._extract_ppo_agent_node(ppo_config, task_name)
             }
             
         except Exception as e:

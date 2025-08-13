@@ -70,6 +70,9 @@ class PPOAgent(RoboticsNodeBase):
                 "resume_from": ("STRING", {
                     "default": "",
                     "tooltip": "Path to checkpoint to resume training from"
+                }),
+                "balancing_config": ("BALANCING_CONFIG", {
+                    "tooltip": "Optional balancing configuration from BalancingConfig node"
                 })
             }
         }
@@ -87,7 +90,8 @@ class PPOAgent(RoboticsNodeBase):
                 max_iterations: int, checkpoint_interval: int,
                 eval_interval: int, eval_episodes: int,
                 log_interval: int, save_path: str,
-                resume_from: Optional[str] = None) -> Tuple[Any, Dict[str, Any], Dict[str, Any]]:
+                resume_from: Optional[str] = None,
+                balancing_config: Optional[Dict[str, Any]] = None) -> Tuple[Any, Dict[str, Any], Dict[str, Any]]:
         """
         Run PPO training loop
         
