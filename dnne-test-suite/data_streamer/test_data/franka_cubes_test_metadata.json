@@ -1,14 +1,9 @@
 {
-  "file_id": "franka_taskspace_trajectory_v1",
-  "description": "Test task-space trajectories for Franka robot arm (FrankaCubeStack)",
+  "file_id": "franka_taskspace_trajectory_v2",
+  "description": "Test task-space trajectories for Franka robot arm with gripper (FrankaCubeStack)",
   "robot": "Franka Emika Panda",
-  "control_mode": "task_space",
+  "control_mode": "task_space_with_gripper",
   "columns": [
-    {
-      "name": "timestamp",
-      "dtype": "float64",
-      "unit": "seconds"
-    },
     {
       "name": "x",
       "dtype": "float32",
@@ -44,11 +39,19 @@
       "dtype": "float32",
       "unit": "radians",
       "description": "Z rotation delta"
+    },
+    {
+      "name": "gripper",
+      "dtype": "float32",
+      "unit": "normalized",
+      "description": "Gripper command (>=0 open, <0 closed)"
     }
   ],
-  "frequency_hz": 100.0,
-  "total_rows": 1000,
-  "duration_seconds": 10.0,
+  "frequency_hz": 59.98800239952009,
+  "total_rows": 299,
+  "duration_seconds": 4.984330000000001,
   "created": "2025-01-12T10:00:00Z",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "environment": "FrankaCubeStack",
+  "pattern": "sinusoidal"
 }

@@ -49,6 +49,14 @@ The export system successfully converts visual workflows to executable Python co
 - [x] Runner args sync tests handle intentional UI omissions
 - [x] All 163 tests passing (0 failures)
 
+### File Copy Mechanism (2025-08-13)
+- [x] Implemented get_export_files() in ExportableNode base class
+- [x] DataStreamer node exports data files with src_path/dest_dir widgets
+- [x] File collision detection with fail-fast behavior
+- [x] Support for both files and directories
+- [x] Path validation (relative paths only for dest_dir)
+- [x] Fixed path separator issues (using forward slashes)
+
 ## 📋 TODO
 
 ### Critical - In Progress
@@ -62,13 +70,14 @@ The export system successfully converts visual workflows to executable Python co
 
 ### High Priority
 
-1. **Include data files during export**
-   - Status: PENDING
-   - Copy dataset files to export directory during export
-   - Avoid re-downloading datasets on every deployment
-   - Check for existing data files locally first
-   - Update node code to look for local data before downloading
-   - Pattern already exists in telemetry test suite
+1. ~~**Include data files during export**~~ ✅ COMPLETED (2025-08-13)
+   - Status: COMPLETED
+   - Implemented file copy mechanism for DataStreamer node
+   - Added get_export_files() method to ExportableNode base class
+   - GraphExporter now collects and copies files with collision detection
+   - DataStreamer can specify src_path and dest_dir for file copying
+   - Handles both individual files and entire directories
+   - Fail-fast on file collisions between nodes
 
 ### Medium Priority
 

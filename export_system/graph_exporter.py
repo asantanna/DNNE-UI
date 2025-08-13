@@ -6,7 +6,7 @@ Converts node graphs to reactive Python scripts using async queues
 
 from pathlib import Path
 import json
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 import logging
 
 class ExportableNode:
@@ -46,6 +46,18 @@ class ExportableNode:
         if slot < len(input_names):
             return input_names[slot]
         return f"input_{slot}"
+    
+    @classmethod
+    def get_export_files(cls, node_id: str, node_data: Dict) -> List[Tuple[str, str]]:
+        """Return list of files/directories to copy during export.
+        
+        Returns:
+            List of tuples: [(source_path, dest_dir), ...]
+            where dest_dir is relative to the export package root.
+            
+        Override in subclasses that need to export data files.
+        """
+        return []
     
     @classmethod
     def get_node_parameter(cls, node_data: Dict, param_name: str, default_value=None, widget_index: int = None):
@@ -505,6 +517,9 @@ class GraphExporter:
                 node_classes.append((node_id, node_type, class_name))
                 node_instances.append(f'node_{node_id} = {class_name}("{node_id}")')
         
+        # Collect and process file copy requests from all nodes
+        self._process_file_copy_requests(nodes, output_path)
+        
         # Generate nodes/__init__.py
         self._generate_node_init(nodes_dir, node_classes)
         
@@ -639,6 +654,118 @@ class GraphExporter:
         else:
             raise FileNotFoundError(f"Required dependency file not found: {source_path}. "
                                     f"The node requires '{dep_filename}' but it does not exist in templates/")
+    
+    def _process_file_copy_requests(self, nodes: List[Dict], output_path: Path):
+        """Collect and process file copy requests from all nodes with collision detection."""
+        import shutil
+        import os
+        from collections import defaultdict
+        
+        # Accumulate all file copy requests
+        file_requests = []  # List of (node_id, src_path, dest_dir)
+        
+        for node in nodes:
+            node_id = str(node["id"])
+            node_type = node.get("class_type") or node.get("type")
+            
+            # Skip virtual nodes
+            if self._is_virtual_node(node_type):
+                continue
+            
+            if node_type in self.node_registry:
+                node_class = self.node_registry[node_type]
+                
+                # Check if node has files to export
+                if hasattr(node_class, 'get_export_files'):
+                    files_to_copy = node_class.get_export_files(node_id, node)
+                    for src_path, dest_dir in files_to_copy:
+                        file_requests.append((node_id, src_path, dest_dir))
+        
+        # If no files to copy, we're done
+        if not file_requests:
+            return
+        
+        # Build collision detection map: destination file -> (node_id, source_path)
+        dest_map = {}  # Maps final destination paths to (node_id, src_path)
+        
+        for node_id, src_path, dest_dir in file_requests:
+            # Resolve source path
+            src_path = Path(src_path)
+            
+            # Validate source exists
+            if not src_path.exists():
+                raise FileNotFoundError(
+                    f"DataStreamer node {node_id}: Source path does not exist: {src_path}"
+                )
+            
+            # Validate dest_dir is relative
+            if os.path.isabs(dest_dir):
+                raise ValueError(
+                    f"DataStreamer node {node_id}: dest_dir must be a relative path, got: {dest_dir}"
+                )
+            
+            # Calculate destination path
+            dest_base = output_path / dest_dir if dest_dir != "." else output_path
+            
+            # Determine what files will be created
+            if src_path.is_file():
+                # Single file will be copied
+                final_dest = dest_base / src_path.name
+                
+                # Check for collision
+                if final_dest in dest_map:
+                    other_node_id, other_src = dest_map[final_dest]
+                    if other_src != src_path:  # Different sources to same destination
+                        raise ValueError(
+                            f"File collision detected: Multiple nodes trying to write to '{final_dest.relative_to(output_path)}':\n"
+                            f"  - Node {other_node_id}: copying from {other_src}\n"
+                            f"  - Node {node_id}: copying from {src_path}"
+                        )
+                else:
+                    dest_map[final_dest] = (node_id, src_path)
+            
+            elif src_path.is_dir():
+                # Directory tree will be copied
+                # We need to check all files that would be created
+                for root, dirs, files in os.walk(src_path):
+                    rel_root = Path(root).relative_to(src_path.parent)
+                    for file in files:
+                        src_file = Path(root) / file
+                        final_dest = dest_base / rel_root / file
+                        
+                        # Check for collision
+                        if final_dest in dest_map:
+                            other_node_id, other_src = dest_map[final_dest]
+                            if other_src != src_file:  # Different sources to same destination
+                                raise ValueError(
+                                    f"File collision detected: Multiple nodes trying to write to '{final_dest.relative_to(output_path)}':\n"
+                                    f"  - Node {other_node_id}: copying from {other_src}\n"
+                                    f"  - Node {node_id}: copying from {src_file}"
+                                )
+                        else:
+                            dest_map[final_dest] = (node_id, src_file)
+        
+        # All validation passed, now perform the copies
+        for node_id, src_path, dest_dir in file_requests:
+            src_path = Path(src_path)
+            dest_base = output_path / dest_dir if dest_dir != "." else output_path
+            
+            # Create destination directory if needed
+            dest_base.mkdir(parents=True, exist_ok=True)
+            
+            if src_path.is_file():
+                # Copy single file
+                dest_file = dest_base / src_path.name
+                shutil.copy2(src_path, dest_file)
+                self.logger.info(f"Copied file: {src_path} -> {dest_file.relative_to(output_path)}")
+            
+            elif src_path.is_dir():
+                # Copy directory tree
+                dest_subdir = dest_base / src_path.name
+                if dest_subdir.exists():
+                    shutil.rmtree(dest_subdir)  # Remove existing to ensure clean copy
+                shutil.copytree(src_path, dest_subdir)
+                self.logger.info(f"Copied directory: {src_path} -> {dest_subdir.relative_to(output_path)}")
     
     def _process_template(self, template: str, variables: Dict[str, Any]) -> str:
         """Process template by replacing variables"""

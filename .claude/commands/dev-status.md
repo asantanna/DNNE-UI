@@ -8,6 +8,17 @@ $ARGUMENTS
 
 ## Latest Achievements (2025-08-13)
 
+### DataStreamer File Copy Mechanism ✅
+- Implemented file copy mechanism for exporting data files with workflows
+- Added get_export_files() method to ExportableNode base class
+- Updated DataStreamer node to use new src_path/dest_dir widgets
+- GraphExporter now collects and processes file copy requests with collision detection
+- Supports both individual files and entire directories
+- Fail-fast behavior on file collisions between nodes
+- Fixed path separator issues (using forward slashes for cross-platform compatibility)
+- Generated test data for Isaac Gym environments (299 samples @ 60Hz for 5 seconds)
+- **Result**: Franka_Coop_Nodes workflow successfully exports with data files
+
 ### Visual Node Architecture & Test Suite Fixes ✅
 - Fixed visual node architecture - all nodes properly use FUNCTION = None
 - Removed all dead execution methods (load_dataset, create_dataloader, etc.)
