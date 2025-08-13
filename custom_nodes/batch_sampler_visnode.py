@@ -55,6 +55,8 @@ class BatchSamplerNode(RoboticsNodeBase):
     CATEGORY = "ml"
 
     def create_dataloader(self, dataset, schema, batch_size, shuffle, seed, seed_control):
+        print("WARNING: BatchSamplerNode.create_dataloader was called in UI mode!")
+        raise RuntimeError("Function disabled for testing - DNNE should be export-only, not executing nodes")
         # Set seed if specified
         generator = None
         if seed >= 0:

@@ -25,9 +25,13 @@ class DataStreamerNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "file_path": ("STRING", {
-                    "default": "./data/trajectory.csv",
-                    "tooltip": "Path to CSV file containing data to stream. Supports relative and absolute paths."
+                "src_path": ("STRING", {
+                    "default": "",
+                    "tooltip": "Source path to CSV file or directory to copy to export package. Leave blank to skip copying."
+                }),
+                "dest_dir": ("STRING", {
+                    "default": "data",
+                    "tooltip": "Destination directory name in export package (relative to package root). Used only if src_path is provided."
                 }),
                 "sync_mode": (["none", "external", "timed"], {
                     "default": "none",
@@ -72,65 +76,7 @@ class DataStreamerNode(RoboticsNodeBase):
 
     RETURN_TYPES = ("TENSOR", "TRIGGER", "DICT")
     RETURN_NAMES = ("data", "done", "metadata")
-    FUNCTION = "stream_data"
-
-    def stream_data(self, file_path: str, sync_mode: str, frequency_hz: float,
-                   auto_first_row: bool, loop_data: bool, eof_mode: str,
-                   delimiter: str, skip_header: bool,
-                   sync: Optional[Any] = None, reset: Optional[Any] = None) -> Tuple[torch.Tensor, Optional[Any], Dict]:
-        """
-        In UI mode, just validate the file exists and return dummy outputs.
-        Actual streaming happens in the exported queue-based code.
-        """
-        
-        # Validate file exists
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"CSV file not found: {file_path}")
-        
-        # Check for metadata file
-        base_name = os.path.splitext(file_path)[0]
-        metadata_path = f"{base_name}_metadata.json"
-        metadata = {}
-        
-        if os.path.exists(metadata_path):
-            try:
-                with open(metadata_path, 'r') as f:
-                    metadata = json.load(f)
-            except Exception as e:
-                print(f"Warning: Could not load metadata from {metadata_path}: {e}")
-        
-        # Try to determine data shape by reading first data row
-        try:
-            import csv
-            with open(file_path, 'r') as f:
-                reader = csv.reader(f, delimiter=delimiter)
-                
-                # Skip header if requested
-                if skip_header:
-                    next(reader, None)
-                
-                # Read first data row to get shape
-                first_row = next(reader, None)
-                if first_row:
-                    num_columns = len(first_row)
-                    # Create dummy tensor with correct shape
-                    dummy_data = torch.zeros(num_columns, dtype=torch.float32)
-                else:
-                    dummy_data = torch.zeros(1, dtype=torch.float32)
-        except Exception as e:
-            print(f"Warning: Could not read CSV file {file_path}: {e}")
-            dummy_data = torch.zeros(1, dtype=torch.float32)
-        
-        # Done signal is None in UI mode
-        done_signal = None
-        
-        # Add file info to metadata
-        metadata["file_path"] = file_path
-        metadata["sync_mode"] = sync_mode
-        if sync_mode == "timed":
-            metadata["frequency_hz"] = frequency_hz
-        
-        return (dummy_data, done_signal, metadata)
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
 
 
 # Node registration
