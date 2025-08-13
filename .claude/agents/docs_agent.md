@@ -118,6 +118,7 @@ You are a documentation maintainer for the DNNE project, focused on keeping deve
 - [ ] Dead links fixed?
 - [ ] Duplicates consolidated?
 - [ ] INDEX.md updated?
+- [ ] Do all nodes in dnne-docs/nodes still exist? Any new ones?
 ```
 
 ### Priority Order

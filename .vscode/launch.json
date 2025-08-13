@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
-        },
+        },      
         {
             "name": "Debug Cartpole_PPO",
             "type": "debugpy",
@@ -81,6 +81,14 @@
             "justMyCode": false,
             "subProcess": true,
             "python": "/home/asantanna/miniconda/envs/DNNE_PY38/bin/python"
-        }
+        },
+        {
+            "name": "Windows: Debug DNNE Server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "args": ["--front-end-root", "../DNNE-UI-Frontend/dist", "--listen", "0.0.0.0", "--agent-server-terminal"],
+            "console": "integratedTerminal"
+        },
     ]
 }
