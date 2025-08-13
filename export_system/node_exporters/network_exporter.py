@@ -199,19 +199,29 @@ class NetworkExporter(ExportableNode):
             if not node_data or node_type != "LinearLayer":
                 break
             
-            # Extract layer information from widgets_values (ComfyUI workflow format)
-            widget_values = node_data.get("widgets_values", [])
-            if len(widget_values) < 4:
+            # Extract layer information using the universal parameter reader
+            param_specs = [
+                {'name': 'output_size', 'widget_index': 0},
+                {'name': 'bias', 'widget_index': 1},
+                {'name': 'activation', 'widget_index': 2},
+                {'name': 'dropout', 'widget_index': 3}
+            ]
+            
+            params = cls.get_node_parameters_batch(node_data, param_specs)
+            
+            # Validate required parameters are present
+            if params.get('output_size') is None:
                 raise ValueError(
                     f"LinearLayer node {current_node} missing widget values. "
-                    f"Expected 4 values (output_size, bias, activation, dropout), got {len(widget_values)}"
+                    f"Could not extract output_size parameter."
                 )
+            
             layer_info = {
                 "node_id": current_node,
-                "output_size": widget_values[0],
-                "bias": widget_values[1],
-                "activation": widget_values[2],
-                "dropout": widget_values[3]
+                "output_size": params['output_size'],
+                "bias": params['bias'],
+                "activation": params['activation'],
+                "dropout": params['dropout']
             }
             layers.append(layer_info)
             

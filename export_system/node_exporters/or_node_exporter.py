@@ -14,7 +14,7 @@ class ORNodeExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        params = node_data.get("inputs", {})
+        # OR node doesn't require any widget parameters, just return the basic template vars
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "ORNode"

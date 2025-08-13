@@ -58,19 +58,31 @@ class BatchSamplerExporter(ExportableNode):
     @classmethod
     def get_initial_output_schema(cls, node_data):
         """BatchSampler passes through dataset schema but wraps data in DataLoader"""
-        widget_values = node_data.get("widgets_values", [])
-        if len(widget_values) < 2:
+        # Use the universal parameter reader to get widget values
+        param_specs = [
+            {'name': 'batch_size', 'widget_index': 0},
+            {'name': 'shuffle', 'widget_index': 1},
+            {'name': 'seed', 'widget_index': 2},
+            {'name': 'seed_control', 'widget_index': 3}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Check if we got the required parameters
+        if params.get('batch_size') is None:
             raise ValueError(
                 f"BatchSampler node missing widget values. "
-                f"Expected 2 values (batch_size, shuffle), got {len(widget_values)}"
+                f"Could not extract batch_size parameter from node data."
             )
         
         return {
             "outputs": {
                 "dataloader": {
                     "type": "dataloader",
-                    "batch_size": widget_values[0],
-                    "shuffle": widget_values[1],
+                    "batch_size": params['batch_size'],
+                    "shuffle": params['shuffle'],
+                    "seed": params['seed'],
+                    "seed_control": params['seed_control'],
                     "contains_schema": True  # Indicates this contains schema information
                 },
                 "schema": {
