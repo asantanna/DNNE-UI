@@ -52,7 +52,8 @@
       "mcp__dnne-ui__zoom_in",
       "mcp__dnne-ui__zoom_out",
       "mcp__dnne-ui__zoom_to_fit",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "additionalDirectories": [
