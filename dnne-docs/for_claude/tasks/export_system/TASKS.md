@@ -8,26 +8,9 @@
 - Queue-based async architecture
 - All nodes use FUNCTION = None (visual-only)
 - Custom Computation node with file export support
+- ✅ UI export widget_values issue fixed
 
 ## 📋 Active TODOs
-
-### Critical - In Progress
-1. **Fix UI export widget_values issue**
-   - UI export reconstructs from prompt format which lacks widget_values
-   - Exporters that read config from connected nodes fail (IsaacGymSim, PPOAgent)
-   - Solution: Update exporters to check both widgets_values and inputs fields
-   - Workaround: Use programmatic export or recreate affected nodes
-
-### Medium Priority
-1. **Optimize export for large workflows**
-   - Currently exports all nodes even if not connected
-   - Should prune disconnected subgraphs
-   - Add validation for required connections
-
-2. **Add export validation**
-   - Verify all required node inputs are connected
-   - Check for circular dependencies
-   - Validate data type compatibility between connections
 
 ### Low Priority
 1. **Export profiling and metrics**
@@ -39,6 +22,17 @@
    - Allow users to provide custom templates
    - Template validation and testing framework
    - Documentation for template creation
+
+## Future Enhancements
+1. **Optimize export for large workflows**
+   - Currently exports all nodes even if not connected
+   - Should prune disconnected subgraphs
+   - Add validation for required connections
+
+2. **Add export validation**
+   - Verify all required node inputs are connected
+   - Check for circular dependencies
+   - Validate data type compatibility between connections
 
 ## 💡 Quick Reference
 

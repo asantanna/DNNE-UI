@@ -12,11 +12,7 @@
 - Clean error handling and debugging options
 - Centralized configuration management
 - Log viewer modal fully implemented
-
-## Low Priority Fixes
-1. **Comment out verbose keepalive debug messages** in dnne_agent_client.py
-   - Messages to remove/comment: "received keepalive", "PING", "PONG"
-   - These are too verbose even at DEBUG level
+- ✅ Verbose keepalive debug messages fixed
 
 ## Future Enhancements
 1. Implement --server-ip[:port] command line switch for dnne_agent_client.py
