@@ -56,10 +56,15 @@ class CustomComputationExporter(ExportableNode):
         # Generate a safe module name from the file path
         module_name = Path(src_path).stem.replace('-', '_').replace(' ', '_')
         
+        # For the exported code, use relative path to the copied file
+        # The file will be copied to custom_compute_funcs/ subdirectory
+        file_name = os.path.basename(src_path)
+        exported_path = f"custom_compute_funcs/{file_name}"
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "CustomComputationNode",
-            "SRC_PATH": src_path,
+            "SRC_PATH": exported_path,  # Use relative path in the export
             "MODULE_NAME": module_name
         }
     
@@ -93,3 +98,30 @@ class CustomComputationExporter(ExportableNode):
                 }
             }
         }
+    
+    @classmethod
+    def get_export_files(cls, node_id, node_data):
+        """Return list of files to copy during export."""
+        # Get the src_path parameter
+        param_specs = [
+            {'name': 'src_path', 'widget_index': 0},
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        src_path = params.get('src_path', '').strip() if params.get('src_path') else ''
+        
+        # If no source path, nothing to copy
+        if not src_path:
+            return []
+        
+        # Resolve the full path using same logic as prepare_template_vars
+        import os
+        import dnne_config
+        
+        # If no directory separator, look in standard location
+        if os.sep not in src_path:
+            dnne_root = dnne_config.get_dnne_root()
+            src_path = os.path.join(dnne_root, "user", "default", "custom_compute_funcs", src_path)
+        
+        # Copy to custom_compute_funcs subdirectory in the export
+        return [(src_path, "custom_compute_funcs")]

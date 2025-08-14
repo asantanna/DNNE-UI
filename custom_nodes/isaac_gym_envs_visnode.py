@@ -44,6 +44,19 @@ class IsaacGymEnvs(RoboticsNodeBase):
                     "default": "Cartpole",
                     "tooltip": "Select an IsaacGymEnvs task - REQUIRED for export"
                 }),
+                "subtask": ("STRING", {
+                    "default": "random_target",
+                    "tooltip": "Subtask for DNNE environment",
+                    "dnne_only": True  # Only show for DNNE environments
+                }),
+                "dt": ("FLOAT", {
+                    "default": 0.01667,  # 60 Hz default
+                    "min": 0.001,
+                    "max": 0.1,
+                    "step": 0.001,
+                    "tooltip": "Simulation timestep (seconds)",
+                    "dnne_only": True  # Only show/editable for DNNE environments
+                }),
                 "num_envs": ("INT", {
                     "default": 64,
                     "min": 1,
@@ -116,20 +129,6 @@ class IsaacGymEnvs(RoboticsNodeBase):
                     "min": 0,
                     "max": 32,
                     "tooltip": "Number of PhysX subscenes (0 = auto)"
-                }),
-                # DNNE-specific widgets that only appear for DNNE environments
-                "subtask": ("STRING", {
-                    "default": "random_target",
-                    "tooltip": "Subtask for DNNE environment",
-                    "dnne_only": True  # Only show for DNNE environments
-                }),
-                "dt": ("FLOAT", {
-                    "default": 0.01667,  # 60 Hz default
-                    "min": 0.001,
-                    "max": 0.1,
-                    "step": 0.001,
-                    "tooltip": "Simulation timestep (seconds)",
-                    "dnne_only": True  # Only show/editable for DNNE environments
                 }),
             }
         }

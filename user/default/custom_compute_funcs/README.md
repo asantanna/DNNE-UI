@@ -12,19 +12,21 @@ Every Python file must contain a `compute` function with the following signature
 
 ```python
 import torch
+from typing import Optional
 
-def compute(input: torch.Tensor) -> torch.Tensor:
+def compute(input: torch.Tensor) -> Optional[torch.Tensor]:
     """
-    Process the input tensor and return a result tensor.
+    Process the input tensor and return a result tensor or None.
     
     Args:
         input: Input tensor from the previous node
         
     Returns:
-        Processed output tensor
+        - torch.Tensor: Processed output tensor
+        - None: No output (acts as a filter)
     """
     # Your custom computation here
-    return output
+    return output  # or return None to filter
 ```
 
 ## Examples
@@ -48,6 +50,16 @@ def compute(input):
 def compute(input):
     # Return mean across batch dimension
     return input.mean(dim=0, keepdim=True)
+```
+
+### Filter Operation
+```python
+def compute(input):
+    # Only pass through tensors with positive mean
+    if input.mean() > 0:
+        return input
+    else:
+        return None  # Filter out this input
 ```
 
 ## File Naming

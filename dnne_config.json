@@ -10,8 +10,8 @@
       "max_connections": 10
     },
     "paths": {
-      "dnne_root": "E:\\ALS-Projects\\DNNE\\DNNE-UI",
-      "frontend_root": "E:\\ALS-Projects\\DNNE\\DNNE-UI-Frontend",
+      "dnne_root": "U:\\home\\asantanna\\DNNE\\DNNE-UI",
+      "frontend_root": "U:\\home\\asantanna\\DNNE\\DNNE-UI-Frontend",
       "temp_directory": "C:\\Temp"
     },
     "conda": {

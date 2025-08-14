@@ -116,16 +116,16 @@ class IsaacGymEnvConfigLoader:
             logger.error(f"Task config path not found: {self.task_cfg_path}")
             return
             
-        # Find all tasks with PPO configs
+        # Find all tasks (with or without PPO configs)
         for task_file in sorted(self.task_cfg_path.glob("*.yaml")):
             if task_file.is_file():
                 task_name = task_file.stem
                 ppo_file = self.train_cfg_path / f"{task_name}PPO.yaml"
                 
-                if ppo_file.exists():
-                    config = self._load_environment_config(task_name, task_file, ppo_file)
-                    if config:
-                        self._configs_cache[task_name] = config
+                # Load config whether or not PPO file exists
+                config = self._load_environment_config(task_name, task_file, ppo_file)
+                if config:
+                    self._configs_cache[task_name] = config
     
     def _load_environment_config(self, task_name: str, task_file: Path, ppo_file: Path) -> Optional[Dict[str, Any]]:
         """Load configuration for a specific environment."""
@@ -134,17 +134,24 @@ class IsaacGymEnvConfigLoader:
             with open(task_file, 'r') as f:
                 task_config = yaml.safe_load(f)
                 
-            # Load PPO config
-            with open(ppo_file, 'r') as f:
-                ppo_config = yaml.safe_load(f)
+            # Load PPO config if it exists
+            ppo_config = None
+            if ppo_file.exists():
+                with open(ppo_file, 'r') as f:
+                    ppo_config = yaml.safe_load(f)
                 
             # Extract configurations for each node
-            return {
+            result = {
                 "task_name": task_name,
                 "isaac_gym_env": self._extract_env_node_config(task_config, ppo_config),
-                "ppo_config": self._extract_ppo_config_node(ppo_config),
-                "ppo_agent": self._extract_ppo_agent_node(ppo_config, task_name)
             }
+            
+            # Only add PPO configs if PPO file exists
+            if ppo_config:
+                result["ppo_config"] = self._extract_ppo_config_node(ppo_config)
+                result["ppo_agent"] = self._extract_ppo_agent_node(ppo_config, task_name)
+                
+            return result
             
         except Exception as e:
             logger.error(f"Error loading config for {task_name}: {e}")
@@ -270,13 +277,13 @@ class IsaacGymEnvConfigLoader:
         except:
             return False
     
-    def _extract_env_node_config(self, task_config: Dict, ppo_config: Dict) -> Dict[str, Any]:
+    def _extract_env_node_config(self, task_config: Dict, ppo_config: Optional[Dict]) -> Dict[str, Any]:
         """Extract configuration for IsaacGymEnvs node."""
         env_cfg = task_config.get('env', {})
         sim_cfg = task_config.get('sim', {})
         
         # Get num_envs from PPO config if available
-        ppo_params = ppo_config.get('params', {}).get('config', {})
+        ppo_params = ppo_config.get('params', {}).get('config', {}) if ppo_config else {}
         num_actors = ppo_params.get('num_actors', '${....task.env.numEnvs}')
         
         # Resolve num_envs

@@ -53,9 +53,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Call the custom compute function
             output = self.compute_fn(input_tensor)
             
-            # Ensure output is a tensor
+            # Handle None return (filter mode - no output emitted)
+            if output is None:
+                return {}  # Empty dict means no output
+            
+            # Ensure output is a tensor if not None
             if not isinstance(output, torch.Tensor):
-                raise TypeError(f"compute() must return a torch.Tensor, got {type(output)}")
+                raise TypeError(f"compute() must return a torch.Tensor or None, got {type(output)}")
             
             return {"output": output}
             
