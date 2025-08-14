@@ -13,8 +13,8 @@ class CrossEntropyLossNode(RoboticsNodeBase):
     Computes cross-entropy loss for multi-class classification tasks."""
     
     DESCRIPTION = cleandoc(__doc__)
-    COLOR = get_node_colors("loss")["color"]
-    BGCOLOR = get_node_colors("loss")["bgcolor"]
+    COLOR = get_node_colors("training")["color"]
+    BGCOLOR = get_node_colors("training")["bgcolor"]
 
     @classmethod
     def INPUT_TYPES(cls):

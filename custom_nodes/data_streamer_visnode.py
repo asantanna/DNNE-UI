@@ -17,8 +17,8 @@ class DataStreamerNode(RoboticsNodeBase):
     Streams data from CSV files row-by-row with configurable synchronization modes for real-time robotics control."""
     
     DESCRIPTION = cleandoc(__doc__)
-    COLOR = get_node_colors("utility")["color"]
-    BGCOLOR = get_node_colors("utility")["bgcolor"]
+    COLOR = get_node_colors("data")["color"]
+    BGCOLOR = get_node_colors("data")["bgcolor"]
     CATEGORY = "utility"
 
     @classmethod

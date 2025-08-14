@@ -25,10 +25,16 @@ NODE_COLORS = {
         "bgcolor": "#335"
     },
     
-    # PURPLE: Balancing nodes (BalancingNode, BalancingConfig)
-    "balancing": {
+    # PURPLE: Simulation nodes (IsaacGymSim)
+    "simulation": {
         "color": "#323",
         "bgcolor": "#535"
+    },
+    
+    # PALE BLUE: Utility nodes (IsaacGymEnvs, PPOConfig, OR, CustomComputation, BalancingNode, BalancingConfig)
+    "utility": {
+        "color": "#334455",
+        "bgcolor": "#556677"
     },
     
     # GREEN: Layer nodes (LinearLayer, Conv2D, etc.)

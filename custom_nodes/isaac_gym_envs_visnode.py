@@ -21,8 +21,8 @@ class IsaacGymEnvs(RoboticsNodeBase):
     Provides GPU-accelerated physics simulation environments for reinforcement learning."""
     
     DESCRIPTION = cleandoc(__doc__)
-    COLOR = get_node_colors("simulation")["color"] 
-    BGCOLOR = get_node_colors("simulation")["bgcolor"]
+    COLOR = get_node_colors("utility")["color"] 
+    BGCOLOR = get_node_colors("utility")["bgcolor"]
     CATEGORY = "robotics"
     IS_VIRTUAL = True  # This is a virtual node
 

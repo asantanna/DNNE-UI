@@ -15,8 +15,8 @@ class PPOAgent(RoboticsNodeBase):
     DESCRIPTION = cleandoc(__doc__)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "rl"
-    COLOR = get_node_colors("learning")["color"]
-    BGCOLOR = get_node_colors("learning")["bgcolor"]
+    COLOR = get_node_colors("rl")["color"]
+    BGCOLOR = get_node_colors("rl")["bgcolor"]
 
     @classmethod
     def INPUT_TYPES(cls):

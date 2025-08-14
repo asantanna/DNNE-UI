@@ -126,8 +126,8 @@ class BalancingNode(RoboticsNodeBase):
     RETURN_NAMES = ("output",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     DESCRIPTION = cleandoc(__doc__)
-    COLOR = get_node_colors("balancing")["color"]
-    BGCOLOR = get_node_colors("balancing")["bgcolor"]
+    COLOR = get_node_colors("utility")["color"]
+    BGCOLOR = get_node_colors("utility")["bgcolor"]
 
 # Node registration
 NODE_CLASS_MAPPINGS = {

@@ -13,8 +13,8 @@ class SGDOptimizerNode(RoboticsNodeBase):
     Stochastic Gradient Descent optimizer for training neural networks."""
     
     DESCRIPTION = cleandoc(__doc__)
-    COLOR = get_node_colors("optimizer")["color"]
-    BGCOLOR = get_node_colors("optimizer")["bgcolor"]
+    COLOR = get_node_colors("training")["color"]
+    BGCOLOR = get_node_colors("training")["bgcolor"]
 
     @classmethod
     def INPUT_TYPES(cls):
