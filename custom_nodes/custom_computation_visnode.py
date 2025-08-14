@@ -21,7 +21,7 @@ class CustomComputationNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input": ("TENSOR", {
+                "input": ("*TENSOR", {
                     "tooltip": "Input tensor to process with custom function"
                 }),
                 "src_path": ("STRING", {
@@ -32,7 +32,7 @@ class CustomComputationNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("TENSOR",)
+    RETURN_TYPES = ("CUSTOMCOMP_OUTPUT_TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     

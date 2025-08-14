@@ -20,7 +20,7 @@ class SGDOptimizerNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("MODEL", {
+                "model": ("*MODEL", {
                     "tooltip": "Neural network model to optimize. Must have parameters to train."
                 }),
                 "learning_rate": ("FLOAT", {
@@ -47,7 +47,7 @@ class SGDOptimizerNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("OPTIMIZER",)
+    RETURN_TYPES = ("SGD_OPTIMIZER_OBJ",)
     RETURN_NAMES = ("optimizer",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"

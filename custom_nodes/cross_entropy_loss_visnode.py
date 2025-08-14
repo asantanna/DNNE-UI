@@ -20,16 +20,16 @@ class CrossEntropyLossNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "predictions": ("TENSOR", {
+                "predictions": ("*TENSOR", {
                     "tooltip": "Model predictions/logits tensor with shape (batch_size, num_classes). Raw output from neural network before softmax."
                 }),
-                "labels": ("TENSOR", {
+                "labels": ("*TENSOR", {
                     "tooltip": "Ground truth class labels tensor with shape (batch_size,). Integer values representing correct class indices (0 to num_classes-1)."
                 }),
             }
         }
 
-    RETURN_TYPES = ("TENSOR", "FLOAT")
+    RETURN_TYPES = ("CROSSENTROPY_LOSS_TENSOR", "CROSSENTROPY_ACCURACY_FLOAT")
     RETURN_NAMES = ("loss", "accuracy")
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"

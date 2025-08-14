@@ -35,7 +35,7 @@ class CIFAR10DatasetNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("DATASET", "SCHEMA")
+    RETURN_TYPES = ("CIFAR10_DATASET", "CIFAR10_DATASET_SCHEMA")
     RETURN_NAMES = ("dataset", "schema")
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"

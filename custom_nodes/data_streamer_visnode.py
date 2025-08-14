@@ -65,16 +65,16 @@ class DataStreamerNode(RoboticsNodeBase):
                 }),
             },
             "optional": {
-                "sync": ("TRIGGER", {
+                "sync": ("*TRIGGER", {
                     "tooltip": "Synchronization input (required when sync_mode is 'external')"
                 }),
-                "reset": ("TRIGGER", {
+                "reset": ("*TRIGGER", {
                     "tooltip": "Reset stream to beginning of file"
                 }),
             }
         }
 
-    RETURN_TYPES = ("TENSOR", "TRIGGER", "DICT")
+    RETURN_TYPES = ("DATASTREAMER_DATA_TENSOR", "DATASTREAMER_DONE_TRIGGER", "DATASTREAMER_METADATA")
     RETURN_NAMES = ("data", "done", "metadata")
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
 

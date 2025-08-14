@@ -28,13 +28,13 @@ class ORNode(RoboticsNodeBase):
         return {
             "required": {},
             "optional": {
-                "input_a": ("TENSOR",),
-                "input_b": ("TENSOR",),
-                "input_c": ("TENSOR",),
+                "input_a": ("*TENSOR",),
+                "input_b": ("*TENSOR",),
+                "input_c": ("*TENSOR",),
             }
         }
     
-    RETURN_TYPES = ("TENSOR",)
+    RETURN_TYPES = ("*TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     DESCRIPTION = cleandoc(__doc__)

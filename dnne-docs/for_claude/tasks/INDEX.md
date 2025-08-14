@@ -7,6 +7,7 @@
 
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
+| **Type System** | 🟡 In Progress | ~90% - Testing needed | High | 2025-08-14 |
 | **MCP Integration** | 🟢 Complete | 42 tools implemented | Low | 2025-08-12 |
 | **DNNE Agent** | 🟢 Complete | Fully functional | - | 2025-08-11 |
 | **Log Window** | 🟢 Working | ~98% - Minor UI polish needed | Low | 2025-08-12 |
@@ -15,6 +16,9 @@
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
 
 ## Active Priority Items
+
+### High Priority
+1. **Type System**: Test refined type system with existing workflows - link colors and validation working
 
 ### Medium Priority
 1. **Export System**: Fix UI export widget_values issue - exporters fail when reading from connected nodes
@@ -26,6 +30,13 @@
 4. **MCP**: Add util_set_DNNE_log_level and util_set_agent_server_log_level functions
 
 ## Component Details
+
+### Type System (`nodes/type_system.md`)
+- Refined types implemented (e.g., BATCH_IMAGE_TENSOR, NETWORK_MODEL)
+- Wildcard validation system working (*TENSOR matches any _TENSOR suffix)
+- Link color resolution based on resolved types
+- All node definitions updated with specific types
+- Frontend integration complete
 
 ### Export System (`export_system/TASKS.md`)
 - Test suite fully passing (163 tests)

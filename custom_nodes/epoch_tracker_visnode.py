@@ -20,10 +20,10 @@ class EpochTrackerNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "epoch_stats": ("DICT", {
+                "epoch_stats": ("*STATS", {
                     "tooltip": "Dictionary containing current epoch statistics like batch count, running totals, etc. Usually from GetBatch or similar nodes."
                 }),
-                "loss": ("TENSOR", {
+                "loss": ("*TENSOR", {
                     "tooltip": "Current batch loss tensor for tracking training progress. Used to compute epoch averages and convergence metrics."
                 }),
                 "accuracy": ("*", {
@@ -40,7 +40,7 @@ class EpochTrackerNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("DICT",)
+    RETURN_TYPES = ("EPOCH_TRAINING_SUMMARY",)
     RETURN_NAMES = ("training_summary",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"

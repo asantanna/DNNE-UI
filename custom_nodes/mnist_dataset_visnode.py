@@ -35,7 +35,7 @@ class MNISTDatasetNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("DATASET", "SCHEMA")
+    RETURN_TYPES = ("MNIST_DATASET", "MNIST_DATASET_SCHEMA")
     RETURN_NAMES = ("dataset", "schema")
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"

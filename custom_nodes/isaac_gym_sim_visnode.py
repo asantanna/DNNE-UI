@@ -24,12 +24,12 @@ class IsaacGymSimNode(RoboticsNodeBase):
                 "env_config": ("ISAAC_ENV_CONFIG", {
                     "tooltip": "Environment configuration from Isaac Gym Environment Config node"
                 }),
-                "action": ("TENSOR", {
+                "action": ("*TENSOR", {
                     "tooltip": "Actions to execute in the environment"
                 }),
             },
             "optional": {
-                "reset": ("TRIGGER", {
+                "reset": ("*TRIGGER", {
                     "tooltip": "Manual reset trigger (optional)"
                 }),
                 "reset_when_done": ("BOOLEAN", {
@@ -55,7 +55,7 @@ class IsaacGymSimNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("TENSOR", "TRIGGER")
+    RETURN_TYPES = ("SIM_OBSERVATION_TENSOR", "SIM_DONE_TRIGGER")
     RETURN_NAMES = ("observation", "done")
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
 

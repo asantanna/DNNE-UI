@@ -21,8 +21,8 @@ class NetworkNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input": ("TENSOR", {"tooltip": "Input tensor to process through the neural network"}),
-                "to_output": ("TENSOR", {"tooltip": "Loop-back connection from the last layer output"}),
+                "input": ("*TENSOR", {"tooltip": "Input tensor to process through the neural network"}),
+                "to_output": ("*TENSOR", {"tooltip": "Loop-back connection from the last layer output"}),
                 # Checkpoint parameters - must be widgets to save to widgets_values
                 "checkpoint_enabled": ("BOOLEAN", {"default": True, "widget": {"name": "checkpoint_enabled"}, "tooltip": "Enable automatic checkpoint saving for this network. Checkpoints saved to 'node_<ID>' subdirectories."}),
                 "checkpoint_trigger_type": (["epoch", "time", "best_metric"], {"default": "epoch", "widget": {"name": "checkpoint_trigger_type"}, "tooltip": "When to save checkpoints: every N steps, time intervals, or metric improvements"}),
@@ -35,7 +35,7 @@ class NetworkNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("TENSOR", "TENSOR", "MODEL")
+    RETURN_TYPES = ("LAYER_TENSOR", "NETWORK_OUTPUT_TENSOR", "NETWORK_MODEL")
     RETURN_NAMES = ("layers", "output", "model")
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"

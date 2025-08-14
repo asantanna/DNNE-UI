@@ -20,10 +20,10 @@ class BatchSamplerNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "dataset": ("DATASET", {
+                "dataset": ("*DATASET", {
                     "tooltip": "Input dataset to create batches from. Should be a PyTorch dataset object (e.g., from MNISTDatasetNode)."
                 }),
-                "schema": ("SCHEMA", {
+                "schema": ("*SCHEMA", {
                     "tooltip": "Dataset schema containing metadata about data shapes, types, and structure. Used for validation and downstream processing."
                 }),
                 "batch_size": ("INT", {
@@ -47,7 +47,7 @@ class BatchSamplerNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("DATALOADER", "SCHEMA")
+    RETURN_TYPES = ("SAMPLER_BATCH_DATALOADER", "SAMPLER_BATCH_SCHEMA")
     RETURN_NAMES = ("dataloader", "schema")
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"

@@ -20,16 +20,16 @@ class TrainingStepNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "loss": ("TENSOR", {
+                "loss": ("*TENSOR", {
                     "tooltip": "Loss tensor to backpropagate. Scalar tensor (single value) computed from loss function like CrossEntropyLoss."
                 }),
-                "optimizer": ("OPTIMIZER", {
+                "optimizer": ("*OPTIMIZER", {
                     "tooltip": "Optimizer instance (SGD, Adam, etc.) that will update model parameters. Connect from SGDOptimizer or similar node."
                 })
             }
         }
 
-    RETURN_TYPES = ("SYNC",)
+    RETURN_TYPES = ("TRAIN_STEP_TRIGGER",)
     RETURN_NAMES = ("ready",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"

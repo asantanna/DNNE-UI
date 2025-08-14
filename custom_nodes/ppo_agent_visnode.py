@@ -74,7 +74,7 @@ class PPOAgent(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("PPO_AGENT", "DICT", "DICT")
+    RETURN_TYPES = ("PPO_AGENT_OBJ", "PPO_TRAINING_STATS", "PPO_EVAL_STATS")
     RETURN_NAMES = ("agent", "training_stats", "eval_stats")
 
 

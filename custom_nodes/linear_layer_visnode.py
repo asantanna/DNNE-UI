@@ -20,7 +20,7 @@ class LinearLayerNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input": ("TENSOR", {"tooltip": "Input tensor to transform (automatically flattened if > 2D)"}),
+                "input": ("*TENSOR", {"tooltip": "Input tensor to transform (automatically flattened if > 2D)"}),
                 "output_size": ("INT", {
                     "default": 128,
                     "min": 1,
@@ -49,7 +49,7 @@ class LinearLayerNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("TENSOR",)
+    RETURN_TYPES = ("LAYER_TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"
