@@ -1,1 +1,751 @@
-{"id":"6d8136ba-0b40-4ee2-85de-30a42db9cbd4","revision":0,"last_node_id":18,"last_link_id":18,"nodes":[{"id":16,"type":"IsaacGymEnvs","pos":[-41.03757858276367,240.87803649902344],"size":[293.6441345214844,394],"flags":{},"order":0,"mode":0,"inputs":[{"localized_name":"task","name":"task","type":"COMBO","widget":{"name":"task"},"link":null},{"localized_name":"num_envs","name":"num_envs","type":"INT","widget":{"name":"num_envs"},"link":null},{"localized_name":"seed","name":"seed","type":"INT","widget":{"name":"seed"},"link":null},{"localized_name":"seed_control","name":"seed_control","type":"COMBO","widget":{"name":"seed_control"},"link":null},{"localized_name":"headless","name":"headless","type":"BOOLEAN","widget":{"name":"headless"},"link":null},{"localized_name":"graphics_device_id","name":"graphics_device_id","type":"INT","widget":{"name":"graphics_device_id"},"link":null},{"localized_name":"sim_device","name":"sim_device","type":"STRING","widget":{"name":"sim_device"},"link":null},{"localized_name":"physics_engine","name":"physics_engine","type":"COMBO","widget":{"name":"physics_engine"},"link":null},{"localized_name":"multi_gpu","name":"multi_gpu","type":"BOOLEAN","widget":{"name":"multi_gpu"},"link":null},{"localized_name":"enable_cameras","name":"enable_cameras","type":"BOOLEAN","widget":{"name":"enable_cameras"},"link":null},{"localized_name":"force_render","name":"force_render","shape":7,"type":"BOOLEAN","widget":{"name":"force_render"},"link":null},{"localized_name":"use_gpu_pipeline","name":"use_gpu_pipeline","shape":7,"type":"BOOLEAN","widget":{"name":"use_gpu_pipeline"},"link":null},{"localized_name":"num_threads","name":"num_threads","shape":7,"type":"INT","widget":{"name":"num_threads"},"link":null},{"localized_name":"solver_type","name":"solver_type","shape":7,"type":"INT","widget":{"name":"solver_type"},"link":null},{"localized_name":"num_subscenes","name":"num_subscenes","shape":7,"type":"INT","widget":{"name":"num_subscenes"},"link":null}],"outputs":[{"localized_name":"env","name":"env","type":"ISAAC_ENV_CONFIG","links":[16]}],"title":"Isaac Gym Environment Config (16)","properties":{"Node name for S&R":"IsaacGymEnvs"},"widgets_values":["Cartpole",512,42,"fixed",false,0,"cuda:0","physx",false,false,true,true,0,1,0],"color":"#232","bgcolor":"#353"},{"id":10,"type":"PPOConfig","pos":[-234.48760986328125,774.8899536132812],"size":[296.75,538],"flags":{},"order":1,"mode":0,"inputs":[{"localized_name":"learning_rate","name":"learning_rate","type":"FLOAT","widget":{"name":"learning_rate"},"link":null},{"localized_name":"num_epochs","name":"num_epochs","type":"INT","widget":{"name":"num_epochs"},"link":null},{"localized_name":"minibatch_size","name":"minibatch_size","type":"INT","widget":{"name":"minibatch_size"},"link":null},{"localized_name":"clip_param","name":"clip_param","type":"FLOAT","widget":{"name":"clip_param"},"link":null},{"localized_name":"value_loss_coef","name":"value_loss_coef","type":"FLOAT","widget":{"name":"value_loss_coef"},"link":null},{"localized_name":"entropy_coef","name":"entropy_coef","type":"FLOAT","widget":{"name":"entropy_coef"},"link":null},{"localized_name":"gamma","name":"gamma","type":"FLOAT","widget":{"name":"gamma"},"link":null},{"localized_name":"gae_lambda","name":"gae_lambda","type":"FLOAT","widget":{"name":"gae_lambda"},"link":null},{"localized_name":"max_grad_norm","name":"max_grad_norm","type":"FLOAT","widget":{"name":"max_grad_norm"},"link":null},{"localized_name":"horizon_length","name":"horizon_length","shape":7,"type":"INT","widget":{"name":"horizon_length"},"link":null},{"localized_name":"max_iterations","name":"max_iterations","shape":7,"type":"INT","widget":{"name":"max_iterations"},"link":null},{"localized_name":"lr_schedule","name":"lr_schedule","shape":7,"type":"COMBO","widget":{"name":"lr_schedule"},"link":null},{"localized_name":"lr_schedule_kl_threshold","name":"lr_schedule_kl_threshold","shape":7,"type":"FLOAT","widget":{"name":"lr_schedule_kl_threshold"},"link":null},{"localized_name":"use_clipped_value_loss","name":"use_clipped_value_loss","shape":7,"type":"BOOLEAN","widget":{"name":"use_clipped_value_loss"},"link":null},{"localized_name":"normalize_advantage","name":"normalize_advantage","shape":7,"type":"BOOLEAN","widget":{"name":"normalize_advantage"},"link":null},{"localized_name":"normalize_input","name":"normalize_input","shape":7,"type":"BOOLEAN","widget":{"name":"normalize_input"},"link":null},{"localized_name":"normalize_value","name":"normalize_value","shape":7,"type":"BOOLEAN","widget":{"name":"normalize_value"},"link":null},{"localized_name":"reward_shaper_scale","name":"reward_shaper_scale","shape":7,"type":"FLOAT","widget":{"name":"reward_shaper_scale"},"link":null},{"localized_name":"e_clip","name":"e_clip","shape":7,"type":"FLOAT","widget":{"name":"e_clip"},"link":null},{"localized_name":"truncate_grads","name":"truncate_grads","shape":7,"type":"BOOLEAN","widget":{"name":"truncate_grads"},"link":null},{"localized_name":"bounds_loss_coef","name":"bounds_loss_coef","shape":7,"type":"FLOAT","widget":{"name":"bounds_loss_coef"},"link":null}],"outputs":[{"localized_name":"config","name":"config","type":"PPO_CONFIG","links":[17]}],"title":"PPO Config (10)","properties":{"Node name for S&R":"PPOConfig"},"widgets_values":[0.00030000000000000014,8,8192,0.20000000000000004,4,0,0.9900000000000002,0.9500000000000002,1,16,100,"adaptive",0.008000000000000002,true,true,true,true,0.1,0.20000000000000004,true,0.00010000000000000002],"color":"#322","bgcolor":"#533"},{"id":18,"type":"PPOAgent","pos":[586.00927734375,539.6192626953125],"size":[287.89453125,242],"flags":{},"order":3,"mode":0,"inputs":[{"localized_name":"env_config","name":"env_config","type":"ISAAC_ENV_CONFIG","link":16},{"localized_name":"ppo_config","name":"ppo_config","type":"PPO_CONFIG","link":17},{"localized_name":"balancing_config","name":"balancing_config","shape":7,"type":"BALANCING_CONFIG","link":18},{"localized_name":"max_iterations","name":"max_iterations","type":"INT","widget":{"name":"max_iterations"},"link":null},{"localized_name":"checkpoint_interval","name":"checkpoint_interval","type":"INT","widget":{"name":"checkpoint_interval"},"link":null},{"localized_name":"eval_interval","name":"eval_interval","type":"INT","widget":{"name":"eval_interval"},"link":null},{"localized_name":"eval_episodes","name":"eval_episodes","type":"INT","widget":{"name":"eval_episodes"},"link":null},{"localized_name":"log_interval","name":"log_interval","type":"INT","widget":{"name":"log_interval"},"link":null},{"localized_name":"save_path","name":"save_path","type":"STRING","widget":{"name":"save_path"},"link":null},{"localized_name":"resume_from","name":"resume_from","shape":7,"type":"STRING","widget":{"name":"resume_from"},"link":null}],"outputs":[{"localized_name":"agent","name":"agent","type":"PPO_AGENT","links":null},{"localized_name":"training_stats","name":"training_stats","type":"DICT","links":null},{"localized_name":"eval_stats","name":"eval_stats","type":"DICT","links":null}],"title":"PPO Agent (18)","properties":{"Node name for S&R":"PPOAgent"},"widgets_values":[1000,100,50,10,10,"./ppo_checkpoints",""],"color":"#332922","bgcolor":"#593930"},{"id":14,"type":"BalancingConfig","pos":[149.16241455078125,826.6512451171875],"size":[270,226],"flags":{},"order":2,"mode":0,"inputs":[{"localized_name":"enabled","name":"enabled","shape":7,"type":"BOOLEAN","widget":{"name":"enabled"},"link":null},{"localized_name":"min_hz","name":"min_hz","shape":7,"type":"FLOAT","widget":{"name":"min_hz"},"link":null},{"localized_name":"max_hz","name":"max_hz","shape":7,"type":"FLOAT","widget":{"name":"max_hz"},"link":null},{"localized_name":"target_hz","name":"target_hz","shape":7,"type":"FLOAT","widget":{"name":"target_hz"},"link":null},{"localized_name":"target_percentage","name":"target_percentage","shape":7,"type":"FLOAT","widget":{"name":"target_percentage"},"link":null},{"localized_name":"priority","name":"priority","shape":7,"type":"INT","widget":{"name":"priority"},"link":null},{"localized_name":"guaranteed","name":"guaranteed","shape":7,"type":"BOOLEAN","widget":{"name":"guaranteed"},"link":null},{"localized_name":"max_latency_ms","name":"max_latency_ms","shape":7,"type":"FLOAT","widget":{"name":"max_latency_ms"},"link":null}],"outputs":[{"localized_name":"config","name":"config","type":"BALANCING_CONFIG","links":[18]}],"title":"Balancing Config (14)","properties":{"Node name for S&R":"BalancingConfig"},"widgets_values":[false,-1,-1,-1,-1,0,false,-1],"color":"#323","bgcolor":"#535"}],"links":[[16,16,0,18,0,"ISAAC_ENV_CONFIG"],[17,10,0,18,1,"PPO_CONFIG"],[18,14,0,18,2,"BALANCING_CONFIG"]],"groups":[],"config":{},"extra":{"ds":{"scale":0.6830134553650705,"offset":[1113.8108113220226,-164.09133649902353]}},"version":0.4}
+{
+    "id": "6d8136ba-0b40-4ee2-85de-30a42db9cbd4",
+    "revision": 0,
+    "last_node_id": 18,
+    "last_link_id": 18,
+    "nodes": [
+        {
+            "id": 16,
+            "type": "IsaacGymEnvs",
+            "pos": [
+                -41.03757858276367,
+                240.87803649902344
+            ],
+            "size": [
+                293.6441345214844,
+                394
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [
+                {
+                    "localized_name": "task",
+                    "name": "task",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "task"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "num_envs",
+                    "name": "num_envs",
+                    "type": "INT",
+                    "widget": {
+                        "name": "num_envs"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "seed",
+                    "name": "seed",
+                    "type": "INT",
+                    "widget": {
+                        "name": "seed"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "seed_control",
+                    "name": "seed_control",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "seed_control"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "headless",
+                    "name": "headless",
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "headless"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "graphics_device_id",
+                    "name": "graphics_device_id",
+                    "type": "INT",
+                    "widget": {
+                        "name": "graphics_device_id"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "sim_device",
+                    "name": "sim_device",
+                    "type": "STRING",
+                    "widget": {
+                        "name": "sim_device"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "physics_engine",
+                    "name": "physics_engine",
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "physics_engine"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "multi_gpu",
+                    "name": "multi_gpu",
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "multi_gpu"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "enable_cameras",
+                    "name": "enable_cameras",
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "enable_cameras"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "force_render",
+                    "name": "force_render",
+                    "shape": 7,
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "force_render"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "use_gpu_pipeline",
+                    "name": "use_gpu_pipeline",
+                    "shape": 7,
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "use_gpu_pipeline"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "num_threads",
+                    "name": "num_threads",
+                    "shape": 7,
+                    "type": "INT",
+                    "widget": {
+                        "name": "num_threads"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "solver_type",
+                    "name": "solver_type",
+                    "shape": 7,
+                    "type": "INT",
+                    "widget": {
+                        "name": "solver_type"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "num_subscenes",
+                    "name": "num_subscenes",
+                    "shape": 7,
+                    "type": "INT",
+                    "widget": {
+                        "name": "num_subscenes"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "localized_name": "env",
+                    "name": "env",
+                    "type": "ISAAC_ENV_CONFIG",
+                    "links": [
+                        16
+                    ]
+                }
+            ],
+            "title": "Isaac Gym Environment Config (16)",
+            "properties": {
+                "Node name for S&R": "IsaacGymEnvs"
+            },
+            "widgets_values": [
+                "Cartpole",
+                512,
+                42,
+                "fixed",
+                false,
+                0,
+                "cuda:0",
+                "physx",
+                false,
+                false,
+                true,
+                true,
+                0,
+                1,
+                0
+            ],
+            "color": "#334455",
+            "bgcolor": "#556677"
+        },
+        {
+            "id": 10,
+            "type": "PPOConfig",
+            "pos": [
+                -234.48760986328125,
+                774.8899536132812
+            ],
+            "size": [
+                296.75,
+                538
+            ],
+            "flags": {},
+            "order": 1,
+            "mode": 0,
+            "inputs": [
+                {
+                    "localized_name": "learning_rate",
+                    "name": "learning_rate",
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "learning_rate"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "num_epochs",
+                    "name": "num_epochs",
+                    "type": "INT",
+                    "widget": {
+                        "name": "num_epochs"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "minibatch_size",
+                    "name": "minibatch_size",
+                    "type": "INT",
+                    "widget": {
+                        "name": "minibatch_size"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "clip_param",
+                    "name": "clip_param",
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "clip_param"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "value_loss_coef",
+                    "name": "value_loss_coef",
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "value_loss_coef"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "entropy_coef",
+                    "name": "entropy_coef",
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "entropy_coef"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "gamma",
+                    "name": "gamma",
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "gamma"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "gae_lambda",
+                    "name": "gae_lambda",
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "gae_lambda"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "max_grad_norm",
+                    "name": "max_grad_norm",
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "max_grad_norm"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "horizon_length",
+                    "name": "horizon_length",
+                    "shape": 7,
+                    "type": "INT",
+                    "widget": {
+                        "name": "horizon_length"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "max_iterations",
+                    "name": "max_iterations",
+                    "shape": 7,
+                    "type": "INT",
+                    "widget": {
+                        "name": "max_iterations"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "lr_schedule",
+                    "name": "lr_schedule",
+                    "shape": 7,
+                    "type": "COMBO",
+                    "widget": {
+                        "name": "lr_schedule"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "lr_schedule_kl_threshold",
+                    "name": "lr_schedule_kl_threshold",
+                    "shape": 7,
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "lr_schedule_kl_threshold"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "use_clipped_value_loss",
+                    "name": "use_clipped_value_loss",
+                    "shape": 7,
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "use_clipped_value_loss"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "normalize_advantage",
+                    "name": "normalize_advantage",
+                    "shape": 7,
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "normalize_advantage"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "normalize_input",
+                    "name": "normalize_input",
+                    "shape": 7,
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "normalize_input"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "normalize_value",
+                    "name": "normalize_value",
+                    "shape": 7,
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "normalize_value"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "reward_shaper_scale",
+                    "name": "reward_shaper_scale",
+                    "shape": 7,
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "reward_shaper_scale"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "e_clip",
+                    "name": "e_clip",
+                    "shape": 7,
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "e_clip"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "truncate_grads",
+                    "name": "truncate_grads",
+                    "shape": 7,
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "truncate_grads"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "bounds_loss_coef",
+                    "name": "bounds_loss_coef",
+                    "shape": 7,
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "bounds_loss_coef"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "localized_name": "config",
+                    "name": "config",
+                    "type": "PPO_CONFIG",
+                    "links": [
+                        17
+                    ]
+                }
+            ],
+            "title": "PPO Config (10)",
+            "properties": {
+                "Node name for S&R": "PPOConfig"
+            },
+            "widgets_values": [
+                0.00030000000000000014,
+                8,
+                8192,
+                0.20000000000000004,
+                4,
+                0,
+                0.9900000000000002,
+                0.9500000000000002,
+                1,
+                16,
+                100,
+                "adaptive",
+                0.008000000000000002,
+                true,
+                true,
+                true,
+                true,
+                0.1,
+                0.20000000000000004,
+                true,
+                0.00010000000000000002
+            ],
+            "color": "#334455",
+            "bgcolor": "#556677"
+        },
+        {
+            "id": 18,
+            "type": "PPOAgent",
+            "pos": [
+                586.00927734375,
+                539.6192626953125
+            ],
+            "size": [
+                287.89453125,
+                242
+            ],
+            "flags": {},
+            "order": 3,
+            "mode": 0,
+            "inputs": [
+                {
+                    "localized_name": "env_config",
+                    "name": "env_config",
+                    "type": "ISAAC_ENV_CONFIG",
+                    "link": 16
+                },
+                {
+                    "localized_name": "ppo_config",
+                    "name": "ppo_config",
+                    "type": "PPO_CONFIG",
+                    "link": 17
+                },
+                {
+                    "localized_name": "balancing_config",
+                    "name": "balancing_config",
+                    "shape": 7,
+                    "type": "BALANCING_CONFIG",
+                    "link": 18
+                },
+                {
+                    "localized_name": "max_iterations",
+                    "name": "max_iterations",
+                    "type": "INT",
+                    "widget": {
+                        "name": "max_iterations"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "checkpoint_interval",
+                    "name": "checkpoint_interval",
+                    "type": "INT",
+                    "widget": {
+                        "name": "checkpoint_interval"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "eval_interval",
+                    "name": "eval_interval",
+                    "type": "INT",
+                    "widget": {
+                        "name": "eval_interval"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "eval_episodes",
+                    "name": "eval_episodes",
+                    "type": "INT",
+                    "widget": {
+                        "name": "eval_episodes"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "log_interval",
+                    "name": "log_interval",
+                    "type": "INT",
+                    "widget": {
+                        "name": "log_interval"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "save_path",
+                    "name": "save_path",
+                    "type": "STRING",
+                    "widget": {
+                        "name": "save_path"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "resume_from",
+                    "name": "resume_from",
+                    "shape": 7,
+                    "type": "STRING",
+                    "widget": {
+                        "name": "resume_from"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "localized_name": "agent",
+                    "name": "agent",
+                    "type": "PPO_AGENT",
+                    "links": null
+                },
+                {
+                    "localized_name": "training_stats",
+                    "name": "training_stats",
+                    "type": "DICT",
+                    "links": null
+                },
+                {
+                    "localized_name": "eval_stats",
+                    "name": "eval_stats",
+                    "type": "DICT",
+                    "links": null
+                }
+            ],
+            "title": "PPO Agent (18)",
+            "properties": {
+                "Node name for S&R": "PPOAgent"
+            },
+            "widgets_values": [
+                1000,
+                100,
+                50,
+                10,
+                10,
+                "./ppo_checkpoints",
+                ""
+            ],
+            "color": "#322",
+            "bgcolor": "#533"
+        },
+        {
+            "id": 14,
+            "type": "BalancingConfig",
+            "pos": [
+                149.16241455078125,
+                826.6512451171875
+            ],
+            "size": [
+                270,
+                226
+            ],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "inputs": [
+                {
+                    "localized_name": "enabled",
+                    "name": "enabled",
+                    "shape": 7,
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "enabled"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "min_hz",
+                    "name": "min_hz",
+                    "shape": 7,
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "min_hz"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "max_hz",
+                    "name": "max_hz",
+                    "shape": 7,
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "max_hz"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "target_hz",
+                    "name": "target_hz",
+                    "shape": 7,
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "target_hz"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "target_percentage",
+                    "name": "target_percentage",
+                    "shape": 7,
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "target_percentage"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "priority",
+                    "name": "priority",
+                    "shape": 7,
+                    "type": "INT",
+                    "widget": {
+                        "name": "priority"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "guaranteed",
+                    "name": "guaranteed",
+                    "shape": 7,
+                    "type": "BOOLEAN",
+                    "widget": {
+                        "name": "guaranteed"
+                    },
+                    "link": null
+                },
+                {
+                    "localized_name": "max_latency_ms",
+                    "name": "max_latency_ms",
+                    "shape": 7,
+                    "type": "FLOAT",
+                    "widget": {
+                        "name": "max_latency_ms"
+                    },
+                    "link": null
+                }
+            ],
+            "outputs": [
+                {
+                    "localized_name": "config",
+                    "name": "config",
+                    "type": "BALANCING_CONFIG",
+                    "links": [
+                        18
+                    ]
+                }
+            ],
+            "title": "Balancing Config (14)",
+            "properties": {
+                "Node name for S&R": "BalancingConfig"
+            },
+            "widgets_values": [
+                false,
+                -1,
+                -1,
+                -1,
+                -1,
+                0,
+                false,
+                -1
+            ],
+            "color": "#334455",
+            "bgcolor": "#556677"
+        }
+    ],
+    "links": [
+        [
+            16,
+            16,
+            0,
+            18,
+            0,
+            "ISAAC_ENV_CONFIG"
+        ],
+        [
+            17,
+            10,
+            0,
+            18,
+            1,
+            "PPO_CONFIG"
+        ],
+        [
+            18,
+            14,
+            0,
+            18,
+            2,
+            "BALANCING_CONFIG"
+        ]
+    ],
+    "groups": [],
+    "config": {},
+    "extra": {
+        "ds": {
+            "scale": 0.6830134553650705,
+            "offset": [
+                1113.8108113220226,
+                -164.09133649902353
+            ]
+        }
+    },
+    "version": 0.4
+}

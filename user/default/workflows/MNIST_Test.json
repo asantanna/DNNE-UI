@@ -502,8 +502,8 @@
                 0.9,
                 0
             ],
-            "color": "#222",
-            "bgcolor": "#333"
+            "color": "#432",
+            "bgcolor": "#653"
         },
         {
             "id": 64,
@@ -693,8 +693,8 @@
                 "Node name for S&R": "CrossEntropyLoss"
             },
             "widgets_values": [],
-            "color": "#222",
-            "bgcolor": "#333"
+            "color": "#432",
+            "bgcolor": "#653"
         },
         {
             "id": 37,
