@@ -11,6 +11,11 @@
 - ✅ Commented out `connectInputToOutput()` call to fully disable auto-rewiring
 - ✅ **Result**: Node deletion now properly removes all connections without reconnecting
 
+### Fixed Server URL Display for Windows
+- ✅ Updated server.py to display "localhost" instead of "0.0.0.0"
+- ✅ Server still binds to 0.0.0.0 for WSL2 access
+- ✅ **Result**: Windows users see clickable "http://localhost:8188" URL
+
 ### Dynamic Color Palette System Implementation
 - ✅ Identified CONFIG links showing wrong color (green instead of red/purple)
 - ✅ Implemented dynamic color substitution system in frontend

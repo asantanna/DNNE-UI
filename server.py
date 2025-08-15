@@ -2239,7 +2239,10 @@ class PromptServer():
                 self.address = address #TODO: remove this
                 self.port = port
 
-            if ':' in address:
+            # Display localhost instead of 0.0.0.0 for better Windows compatibility
+            if address == '0.0.0.0':
+                address_print = 'localhost'
+            elif ':' in address:
                 address_print = "[{}]".format(address)
             else:
                 address_print = address

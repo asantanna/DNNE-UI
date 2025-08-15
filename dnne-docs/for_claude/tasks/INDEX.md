@@ -11,8 +11,8 @@
 | **MCP Integration** | 🟢 Complete | 42 tools implemented | Low | 2025-08-12 |
 | **DNNE Agent** | 🟢 Complete | Fully functional | - | 2025-08-11 |
 | **Log Window** | 🟢 Working | ~98% - Minor UI polish needed | Low | 2025-08-12 |
-| **Server** | 🟢 Working | ~99% - Minor UX fixes | Low | 2025-08-11 |
-| **Export System** | 🟢 Working | ~96% - Widget values issue | Medium | 2025-08-14 |
+| **Server** | 🟢 Complete | 100% - All features done | - | 2025-08-15 |
+| **Export System** | 🟢 Complete | 100% - All issues resolved | - | 2025-08-15 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
 
 ## Active Priority Items
@@ -21,13 +21,12 @@
 None - All high priority items complete!
 
 ### Medium Priority
-1. **Export System**: Fix UI export widget_values issue - exporters fail when reading from connected nodes
+None - All medium priority items complete!
 
 ### Low Priority
 1. **Log Window**: Fix dropdown clickable when Local selected
 2. **Log Window**: Fix run logs briefly appearing in telemetry view
-3. **Server**: Show localhost instead of 0.0.0.0 in Windows console
-4. **MCP**: Add util_set_DNNE_log_level and util_set_agent_server_log_level functions
+3. **MCP**: Add util_set_DNNE_log_level and util_set_agent_server_log_level functions
 
 ## Component Details
 
