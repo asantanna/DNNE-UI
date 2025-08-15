@@ -1,8 +1,10 @@
 # DNNE Development Status
 
+$ARGUMENTS
+
 *For historical development sessions, see HISTORY.md*
 
-## 📋 Important References
+## READ THESE IMPORTANT GUIDELINES !!
 - **Coding Guidelines**: `.claude/commands/rules-for-DNNE.md`
 - **Task Tracking**: `dnne-docs/for_claude/tasks/INDEX.md`
 
@@ -32,8 +34,8 @@
 # Activate environment
 source /home/asantanna/miniconda/bin/activate DNNE_PY38
 
-# Start DNNE UI (Windows)
-./dnne.bat
+# Restart DNNE Server (runs on Windows)
+use MCP function: "util_restart_dnne"
 
 # Start Agent Client (WSL2)
 python dnne-agent/dnne_agent_client.py
