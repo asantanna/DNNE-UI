@@ -489,12 +489,6 @@ class GraphExporter:
                 class_name = self._export_node_to_file(nodes_dir, node_id, node_type, node_code, node_imports)
                 node_classes.append((node_id, node_type, class_name))
                 
-                # Handle node dependencies (e.g., rlgames_ppo_components.py)
-                if hasattr(node_class, 'get_dependencies'):
-                    dependencies = node_class.get_dependencies()
-                    for dep_file in dependencies:
-                        self._copy_dependency(nodes_dir, dep_file)
-                
                 # Create instance
                 instance_name = f"node_{node_id}"
                 
@@ -624,47 +618,6 @@ class GraphExporter:
             raise FileNotFoundError(f"Template not found: {template_path}")
         return template_path.read_text(encoding='utf-8')
     
-    def _copy_dependency(self, target_dir: Path, dep_filename: str):
-        """Copy a dependency file from templates to the target export directory
-        
-        Args:
-            target_dir: Base target directory (usually nodes_dir or framework_dir)
-            dep_filename: Relative path from templates/ directory (e.g., "framework/math_utils.py")
-        """
-        import shutil
-        
-        # Source path is relative to templates directory
-        source_path = self.templates_dir / dep_filename
-        
-        # Determine target path based on the dependency path structure
-        if '/' in dep_filename:
-            # Split into directory and filename
-            dep_parts = dep_filename.split('/')
-            dep_file = dep_parts[-1]
-            dep_subdir = '/'.join(dep_parts[:-1])
-            
-            # If it's a framework file, put it in the framework directory
-            if dep_parts[0] == 'framework':
-                # Framework files go to framework_dir
-                framework_dir = target_dir.parent / 'framework'
-                framework_dir.mkdir(parents=True, exist_ok=True)
-                target_path = framework_dir / dep_file
-            else:
-                # Other files maintain their subdirectory structure
-                target_subdir = target_dir / dep_subdir
-                target_subdir.mkdir(parents=True, exist_ok=True)
-                target_path = target_subdir / dep_file
-        else:
-            # Single file without subdirectory goes to target_dir
-            target_path = target_dir / dep_filename
-        
-        if source_path.exists():
-            # Copy the dependency file
-            shutil.copy2(source_path, target_path)
-            self.logger.info(f"Copied dependency: {dep_filename} -> {target_path}")
-        else:
-            raise FileNotFoundError(f"Required dependency file not found: {source_path}. "
-                                    f"The node requires '{dep_filename}' but it does not exist in templates/")
     
     def _process_file_copy_requests(self, nodes: List[Dict], output_path: Path):
         """Collect and process file copy requests from all nodes with collision detection."""

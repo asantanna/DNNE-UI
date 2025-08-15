@@ -39,9 +39,12 @@ class GeometricLossExporter(ExportableNode):
         ]
     
     @classmethod
-    def get_dependencies(cls):
-        """Return list of dependency files needed by this node"""
-        return ["framework/math_utils.py"]
+    def get_export_files(cls, node_id, node_data):
+        """Return list of files to copy during export."""
+        # Copy math_utils.py from templates to the framework directory
+        import os
+        templates_dir = os.path.join(os.path.dirname(__file__), "..", "templates", "framework", "math_utils.py")
+        return [(templates_dir, "framework")]
     
     @classmethod
     def get_input_names(cls):
