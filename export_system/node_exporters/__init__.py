@@ -23,6 +23,7 @@ from .isaac_gym_sim_exporter import IsaacGymSimExporter
 # RL Exporters
 from .ppo_config_exporter import PPOConfigExporter
 from .ppo_agent_exporter import PPOAgentExporter
+from .balancing_config_exporter import BalancingConfigExporter
 
 # Utility Exporters
 from .or_node_exporter import ORNodeExporter
@@ -59,6 +60,7 @@ def register_rl_exporters(exporter):
     """Register all RL node exporters"""
     exporter.register_node("PPOConfig", PPOConfigExporter)
     exporter.register_node("PPOAgent", PPOAgentExporter)
+    exporter.register_node("BalancingConfig", BalancingConfigExporter)
 
 def register_utility_exporters(exporter):
     """Register all utility node exporters"""
@@ -101,6 +103,7 @@ __all__ = [
     # RL nodes
     'PPOConfigExporter',
     'PPOAgentExporter',
+    'BalancingConfigExporter',
     # Utility nodes
     'ORNodeExporter',
     'ConcatNodeExporter',

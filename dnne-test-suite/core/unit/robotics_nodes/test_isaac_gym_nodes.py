@@ -46,8 +46,8 @@ def test_isaac_gym_env_node_structure():
     return_names = node.RETURN_NAMES
     assert len(return_types) == len(return_names)
     
-    # Should have environment config output
-    assert "GYM_CONFIG" in return_types or "ISAAC_ENV_CONFIG" in return_types
+    # Should have environment config output (check if any type contains these strings)
+    assert any("GYM_CONFIG" in rt or "ISAAC_ENV_CONFIG" in rt for rt in return_types)
 
 
 @pytest.mark.robotics

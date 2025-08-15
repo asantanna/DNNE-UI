@@ -71,14 +71,16 @@ class TestLinearLayerNode:
         # Test that exporter exists and works
         from export_system.node_exporters import LinearLayerExporter
         
-        # Test template name
+        # LinearLayer is now virtual - check that it has no template
         template_name = LinearLayerExporter.get_template_name()
-        assert template_name == "nodes/linear_layer_queue.tpl"
+        assert template_name is None  # Virtual nodes have no template
         
-        # Test imports
+        # Test that it's marked as virtual
+        assert LinearLayerExporter.is_virtual() == True
+        
+        # Virtual nodes have no imports
         imports = LinearLayerExporter.get_imports()
-        assert "import torch" in imports
-        assert "import torch.nn as nn" in imports
+        assert imports == []
     
     @pytest.mark.ml
     def test_linear_layer_template_variables(self):
@@ -95,17 +97,13 @@ class TestLinearLayerNode:
         
         # Test template variable preparation (may fail due to missing connections, which is expected)
         try:
+            # LinearLayer is virtual, so prepare_template_vars returns empty dict
             template_vars = LinearLayerExporter.prepare_template_vars(
                 "test_1", mock_data, mock_connections
             )
             
-            # If successful, validate the variables
-            assert template_vars["NODE_ID"] == "test_1"
-            assert template_vars["CLASS_NAME"] == "LinearLayerNode"
-            assert template_vars["OUTPUT_SIZE"] == 128
-            assert template_vars["BIAS_VALUE"] == True
-            assert template_vars["ACTIVATION_VALUE"] == "relu"
-            assert template_vars["DROPOUT"] == 0.1
+            # Virtual nodes return empty template vars
+            assert template_vars == {}
             
         except ValueError as e:
             # Expected when no input connections - this is normal for isolated node tests
@@ -205,8 +203,9 @@ class TestNetworkNode:
         # Network should return layers, output, and model
         assert len(return_types) == len(return_names)
         assert len(return_types) == 3  # Should return (layers, output, model)
-        assert "TENSOR" in return_types  # Should include tensor outputs
-        assert "MODEL" in return_types   # Should include model output
+        # Check for tensor outputs (Network uses specific tensor types)
+        assert any("TENSOR" in rt for rt in return_types)  # Should include tensor outputs
+        assert any("MODEL" in rt for rt in return_types)   # Should include model output
         
         # Test that node doesn't execute (DNNE nodes only export)
         assert hasattr(node, 'FUNCTION')
@@ -236,8 +235,8 @@ class TestLayerNodeIntegration:
             # All should be in ml category
             assert "ml" in node.CATEGORY.lower()
             
-            # All should return tensors
-            assert "TENSOR" in node.RETURN_TYPES
+            # All should return tensors (check if any return type contains "TENSOR")
+            assert any("TENSOR" in rt for rt in node.RETURN_TYPES)
     
     @pytest.mark.ml
     def test_layer_node_categories(self):

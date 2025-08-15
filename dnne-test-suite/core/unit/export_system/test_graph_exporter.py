@@ -115,7 +115,7 @@ class TestWorkflowParsing:
     
     @pytest.mark.export
     def test_minimal_workflow_parsing(self):
-        """Test parsing of minimal workflow (should fail due to missing connections)."""
+        """Test parsing of minimal workflow (LinearLayer is now virtual, so it succeeds)."""
         exporter = GraphExporter()
         register_all_exporters(exporter)
         
@@ -123,19 +123,11 @@ class TestWorkflowParsing:
         export_path = create_temp_export_dir(create_dir=False)
         
         try:
-            # This should fail for disconnected workflow
+            # LinearLayer is now virtual, so a workflow with just a LinearLayer should succeed
+            # (virtual nodes are skipped during export)
             result = exporter.export_workflow(workflow, export_path)
-            pytest.fail("Minimal workflow should fail due to missing input connections")
-            
-        except ValueError as e:
-            # Expected error for minimal workflow with no connections
-            assert "Could not determine input tensor size" in str(e), f"Expected connection error, got: {e}"
-            print(f"✓ Expected parsing error for minimal workflow: {e}")
-            
-        except Exception as e:
-            # Unexpected error type
-            pytest.fail(f"Expected ValueError for missing connections, got {type(e).__name__}: {e}")
-            
+            assert result is not None
+            print(f"✓ Minimal workflow with virtual LinearLayer exported successfully")
         finally:
             cleanup_export_dir(export_path)
     
@@ -304,19 +296,10 @@ class TestCodeGeneration:
         export_path = create_temp_export_dir(create_dir=False)
         
         try:
+            # LinearLayer is virtual, so this succeeds even without connections
             result = exporter.export_workflow(workflow, export_path)
-            
-            # This should fail for disconnected workflow
-            pytest.fail("Export should fail for disconnected workflow with missing input connections")
-                    
-        except ValueError as e:
-            # Expected error for missing input connections
-            assert "Could not determine input tensor size" in str(e), f"Expected input connection error, got: {e}"
-            print(f"✓ Expected error for disconnected workflow: {e}")
-            
-        except Exception as e:
-            pytest.fail(f"Got unexpected error type for disconnected workflow: {type(e).__name__}: {e}")
-            
+            assert result is not None
+            print(f"✓ Workflow with virtual nodes exported successfully")
         finally:
             cleanup_export_dir(export_path)
 

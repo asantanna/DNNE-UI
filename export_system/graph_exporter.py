@@ -8,6 +8,7 @@ from pathlib import Path
 import json
 from typing import Dict, List, Any, Optional, Tuple
 import logging
+from .utils import export_utils
 
 class ExportableNode:
     """Base class for nodes that can be exported to code"""
@@ -378,6 +379,13 @@ class GraphExporter:
         links = workflow.get("links", [])
         metadata = workflow.get("metadata", {})
         
+        # Set export context for utility functions
+        export_utils.set_export_context({
+            'nodes': nodes,
+            'links': links,
+            'node_registry': self.node_registry
+        })
+        
         # WORKAROUND: Fix corrupted to_slot values by reading original JSON
         # ComfyUI pipeline corrupts all to_slot values to 0, so we restore them
         links = self._fix_corrupted_slots(links, metadata)
@@ -524,6 +532,9 @@ class GraphExporter:
         self._generate_minimal_runner(output_path, node_instances, connections, nodes, metadata)
         
         self.logger.info(f"Exported modular package to: {output_path}")
+        
+        # Clear export context
+        export_utils.clear_export_context()
         
         # Return the path to the runner for backward compatibility
         return str(output_path / "runner.py")
@@ -827,18 +838,7 @@ class GraphExporter:
         """Generate connection tuples for wire_nodes"""
         connections = []
         
-        # First, identify which nodes are being skipped (consumed by networks)
-        network_consumed_nodes = set()
-        for node in nodes:
-            if (node.get("class_type") or node.get("type")) == "Network":
-                network_id = str(node["id"])
-                network_class = self.node_registry.get("Network")
-                if network_class:
-                    consumed_layers = network_class._detect_network_layers(network_id, nodes, links)
-                    for layer_info in consumed_layers:
-                        network_consumed_nodes.add(layer_info["node_id"])
-        
-        # Also identify virtual nodes that will be skipped
+        # Identify virtual nodes that will be skipped
         virtual_nodes = set()
         for node in nodes:
             node_id = str(node["id"])
@@ -865,11 +865,6 @@ class GraphExporter:
                 from_slot = link[2]
                 to_node = str(link[3])
                 to_slot = link[4]
-                
-                # Skip connections to/from consumed nodes
-                if from_node in network_consumed_nodes or to_node in network_consumed_nodes:
-                    self.logger.info(f"Skipping connection from {from_node} to {to_node} - involves consumed node")
-                    continue
                 
                 # Skip connections to/from virtual nodes
                 if from_node in virtual_nodes or to_node in virtual_nodes:

@@ -3,51 +3,38 @@
 *For historical accomplishments, see HISTORY.md*
 
 ## Current Status
-**Complete** - Test suite fully passing (163 tests)
-- Converts visual workflows to executable Python code
-- Queue-based async architecture
-- All nodes use FUNCTION = None (visual-only)
-- Custom Computation node with file export support
-- ✅ UI export widget_values issue fixed
+✅ **Complete** - All tests passing (164 passed, 1 skipped)
+- LinearLayer nodes properly virtualized within Networks
+- All 7 workflows export cleanly with zero warnings
 
 ## 📋 Active TODOs
+None - Export system is fully operational
 
-### Low Priority
-1. **Export profiling and metrics**
-   - Track export time and size metrics
-   - Identify bottlenecks in export process
-   - Add progress reporting for large exports
-
-2. **Custom node template support**
-   - Allow users to provide custom templates
-   - Template validation and testing framework
-   - Documentation for template creation
-
-## Future Enhancements
-1. **Optimize export for large workflows**
-   - Currently exports all nodes even if not connected
-   - Should prune disconnected subgraphs
-   - Add validation for required connections
-
-2. **Add export validation**
-   - Verify all required node inputs are connected
-   - Check for circular dependencies
-   - Validate data type compatibility between connections
+## Low Priority
+- [ ] Make other IsaacGym environments DNNE-compatible (add dnne: sections to YAMLs)
+- [ ] Export profiling and metrics (track time/size, add progress reporting)
+- [ ] Custom node template support (user templates, validation framework)
 
 ## 💡 Quick Reference
 
-### Directory Structure
+### Test Commands
+```bash
+# Activate environment
+source /home/asantanna/miniconda/bin/activate DNNE_PY38
+
+# Test all exports
+python claude_scripts/test_all_exports.py
+
+# Run unit tests
+./dnne-test quick
 ```
-exports/{workflow_name}_wf_{hash}/
+
+### Export Structure
+```
+exports/{workflow_name}/
 ├── runner.py              # Main entry point
 ├── metadata.json          # Workflow metadata
 ├── framework/             # Queue framework
 ├── nodes/                 # Generated node code
-├── custom_compute_funcs/  # Custom functions
-└── telemetry/            # Telemetry output
+└── custom_compute_funcs/  # Custom functions
 ```
-
-### Template System
-- Templates in `export_system/templates/nodes/`
-- Queue-based templates for async execution
-- String formatting for parameter injection

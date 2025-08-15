@@ -2,6 +2,41 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-08-15 - Major Refactoring Complete
+
+### LinearLayer/Network Architecture Refactored ✅
+- Made LinearLayer nodes properly virtual (no standalone code generation)
+- Network node now orchestrates layer code generation via `get_layer_pytorch_code()`
+- Removed "network_consumed_nodes" hack completely
+- LinearLayers marked with `is_virtual() = True`
+
+### Export Utilities Created ✅
+- Added `export_system/utils/export_utils.py` with context management
+- Global export context eliminates parameter passing everywhere
+- Helper functions: `follow_node_connection()`, `get_node_by_id()`, `get_node_exporter()`
+- Context set/cleared automatically during export
+
+### File Export Methods Consolidated ✅
+- Removed redundant `get_dependencies()` method
+- Unified to single `get_export_files()` approach
+- Cleaner file copying in CustomComputation and GeometricLoss
+
+### Isaac Gym Integration Fixed ✅
+- Added `dnne:` section to FrankaDNNE.yaml with subtask configuration
+- IsaacGymEnvs loads YAML directly for observation/action sizes
+- PPOAgent updated to work without IsaacGymEnvConfigLoader
+- Proper schema resolution through node connections
+
+### BalancingConfig Virtual Node Added ✅
+- Created BalancingConfigExporter as virtual configuration node
+- Eliminates all "Unknown node type" warnings
+- Properly registered in RL exporters
+
+### All Tests Pass ✅
+- 164 unit tests passing (1 skipped)
+- All 7 workflows export cleanly with zero warnings
+- Updated test expectations for virtual LinearLayer nodes
+
 ## Core Export Functionality ✅
 - Graph traversal and dependency resolution
 - Node template generation with queue-based patterns

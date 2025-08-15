@@ -4,6 +4,7 @@ Exporter for Network node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..utils import export_utils
 
 class NetworkExporter(ExportableNode):
     @classmethod
@@ -12,43 +13,67 @@ class NetworkExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Detect and analyze the network pattern
-        network_layers = cls._detect_network_layers(node_id, all_nodes, all_links)
-        
-        # Query input size for the first layer if not set
-        if network_layers and network_layers[0]["input_size"] is None:
-            # Get the input schema to determine tensor size
-            input_schema = cls.get_input_schema(node_data, connections, 
-                                              node_registry, all_nodes, all_links)
-            
-            if "input" in input_schema and input_schema["input"]:
-                input_tensor_schema = input_schema["input"]
-                if "flattened_size" in input_tensor_schema:
-                    network_layers[0]["input_size"] = input_tensor_schema["flattened_size"]
-                else:
-                    raise ValueError(f"Network node {node_id}: Could not determine input tensor size from connected node")
-            else:
-                raise ValueError(f"Network node {node_id}: No input connection found")
-        
-        # Generate layer definitions code
+        # Use new architecture to collect layer definitions
         layer_definitions = []
-        for i, layer in enumerate(network_layers):
-            # Add linear layer
-            layer_definitions.append(
-                f"        layers.append(nn.Linear({layer['input_size']}, {layer['output_size']}, bias={layer['bias']}))"
-            )
+        layers_info = []
+        
+        # Start at the "layers" output and follow the chain
+        current_node_id = export_utils.follow_node_connection(node_id, "layers")
+        
+        # Determine input size from the Network's input connection
+        input_size = None
+        input_schema = cls.get_input_schema(node_data, connections, 
+                                          node_registry, all_nodes, all_links)
+        if "input" in input_schema and input_schema["input"]:
+            input_tensor_schema = input_schema["input"]
+            if "flattened_size" in input_tensor_schema:
+                input_size = input_tensor_schema["flattened_size"]
+            else:
+                raise ValueError(f"Network node {node_id}: Could not determine input tensor size from connected node")
+        else:
+            raise ValueError(f"Network node {node_id}: No input connection found")
+        
+        # Follow the chain of layers
+        visited = set()
+        while current_node_id and current_node_id != node_id and current_node_id not in visited:
+            visited.add(current_node_id)
             
-            # Add activation
-            if layer["activation"] == "relu":
-                layer_definitions.append("        layers.append(nn.ReLU())")
-            elif layer["activation"] == "tanh":
-                layer_definitions.append("        layers.append(nn.Tanh())")
-            elif layer["activation"] == "sigmoid":
-                layer_definitions.append("        layers.append(nn.Sigmoid())")
+            # Get the current node
+            node = export_utils.get_node_by_id(current_node_id)
+            if not node:
+                break
             
-            # Add dropout
-            if layer["dropout"] > 0:
-                layer_definitions.append(f"        layers.append(nn.Dropout({layer['dropout']}))")
+            node_type = node.get('class_type') or node.get('type')
+            
+            # Get the exporter for this node type
+            exporter = export_utils.get_node_exporter(node_type)
+            if exporter and hasattr(exporter, 'get_layer_pytorch_code'):
+                # Ask the layer for its PyTorch code
+                layer_info = exporter.get_layer_pytorch_code(current_node_id, node, input_size)
+                
+                # Add layer definition
+                layer_definitions.append(f"        layers.append({layer_info['layer_code']})")
+                
+                # Add activation if present
+                if layer_info.get('activation_code'):
+                    layer_definitions.append(f"        layers.append({layer_info['activation_code']})")
+                
+                # Add dropout if present
+                if layer_info.get('dropout_code'):
+                    layer_definitions.append(f"        layers.append({layer_info['dropout_code']})")
+                
+                # Store layer info for debugging/reference
+                layers_info.append({
+                    'node_id': current_node_id,
+                    'input_size': input_size,
+                    'output_size': layer_info['output_size']
+                })
+                
+                # Update input size for next layer
+                input_size = layer_info['output_size']
+            
+            # Follow to the next node
+            current_node_id = export_utils.follow_node_connection(current_node_id, "output")
         
         # Read checkpoint settings - FAIL-FAST: no defaults
         checkpoint_specs = [
@@ -84,21 +109,21 @@ class NetworkExporter(ExportableNode):
         if not isinstance(checkpoint_load_on_start, bool):
             raise ValueError(f"Network node {node_id}: checkpoint_load_on_start must be boolean, got {type(checkpoint_load_on_start)}: {checkpoint_load_on_start}")
         
-        # Validate that we have determined input/output sizes
-        if not network_layers:
+        # Validate that we have layers
+        if not layer_definitions:
             raise ValueError(f"Network node {node_id}: No layers detected in network")
         
-        if network_layers[0]["input_size"] is None:
-            raise ValueError(f"Network node {node_id}: Could not determine input size for first layer")
+        # Get final output size
+        output_size = layers_info[-1]["output_size"] if layers_info else None
         
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "NetworkNode",
-            "NETWORK_LAYERS": str(network_layers),
+            "NETWORK_LAYERS": str(layers_info),  # For debugging/documentation
             "LAYER_DEFINITIONS": "\n".join(layer_definitions),
-            "NUM_LAYERS": len(network_layers),
-            "INPUT_SIZE": network_layers[0]["input_size"] if network_layers else None,
-            "OUTPUT_SIZE": network_layers[-1]["output_size"] if network_layers else None,
+            "NUM_LAYERS": len(layers_info),
+            "INPUT_SIZE": layers_info[0]["input_size"] if layers_info else None,
+            "OUTPUT_SIZE": output_size,
             "CHECKPOINT_ENABLED": checkpoint_enabled,
             "CHECKPOINT_TRIGGER_TYPE": checkpoint_trigger_type,
             "CHECKPOINT_TRIGGER_VALUE": checkpoint_trigger_value,
@@ -119,7 +144,7 @@ class NetworkExporter(ExportableNode):
     
     @classmethod
     def get_input_names(cls):
-        return ["input"]
+        return ["input", "to_output"]
     
     @classmethod
     def get_initial_output_schema(cls, node_data):
@@ -160,95 +185,3 @@ class NetworkExporter(ExportableNode):
                 return source_schema.get("type")
                 
         return None
-    
-    
-    @classmethod
-    def _detect_network_layers(cls, network_node_id, all_nodes, all_links):
-        """Detect the sequence of layers connected to this network node"""
-        layers = []
-        
-        # Find the "layers" output connection from the network node
-        layers_connection = None
-        if all_links:
-            for link in all_links:
-                if len(link) >= 5:
-                    from_node, from_slot, to_node, to_slot = str(link[1]), link[2], str(link[3]), link[4]
-                    if from_node == network_node_id and from_slot == 0:  # "layers" output (slot 0)
-                        layers_connection = (to_node, to_slot)
-                        break
-        
-        if not layers_connection:
-            return []
-        
-        # Follow the chain of layer connections
-        current_node = layers_connection[0]
-        visited = set()
-        
-        while current_node and current_node not in visited:
-            visited.add(current_node)
-            
-            # Find the node data
-            node_data = None
-            for node in all_nodes:
-                if str(node["id"]) == current_node:
-                    node_data = node
-                    break
-            
-            # Check both class_type and type for LinearLayer
-            node_type = node_data.get("class_type") or node_data.get("type")
-            if not node_data or node_type != "LinearLayer":
-                break
-            
-            # Extract layer information using the universal parameter reader
-            param_specs = [
-                {'name': 'output_size', 'widget_index': 0},
-                {'name': 'bias', 'widget_index': 1},
-                {'name': 'activation', 'widget_index': 2},
-                {'name': 'dropout', 'widget_index': 3}
-            ]
-            
-            params = cls.get_node_parameters_batch(node_data, param_specs)
-            
-            # Validate required parameters are present
-            if params.get('output_size') is None:
-                raise ValueError(
-                    f"LinearLayer node {current_node} missing widget values. "
-                    f"Could not extract output_size parameter."
-                )
-            
-            layer_info = {
-                "node_id": current_node,
-                "output_size": params['output_size'],
-                "bias": params['bias'],
-                "activation": params['activation'],
-                "dropout": params['dropout']
-            }
-            layers.append(layer_info)
-            
-            # Find the next layer in the chain
-            next_node = None
-            if all_links:
-                for link in all_links:
-                    if len(link) >= 5:
-                        from_node, to_node = str(link[1]), str(link[3])
-                        if from_node == current_node:
-                            # Check if this goes to another LinearLayer or back to network
-                            if to_node == network_node_id:
-                                # Loop back to network - we're done
-                                break
-                            else:
-                                next_node = to_node
-                                break
-            
-            current_node = next_node
-        
-        # Determine input sizes based on actual connections
-        for i, layer in enumerate(layers):
-            if i == 0:
-                # First layer input size must be determined from the Network node's input
-                # NetworkExporter will query this properly
-                layer["input_size"] = None  # To be determined by NetworkExporter
-            else:
-                layer["input_size"] = layers[i-1]["output_size"]
-        
-        return layers

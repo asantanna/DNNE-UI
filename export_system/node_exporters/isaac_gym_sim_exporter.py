@@ -4,6 +4,7 @@ Exporter for Isaac Gym Simulator node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
 
 class IsaacGymSimExporter(ExportableNode):
     @classmethod
@@ -33,11 +34,6 @@ class IsaacGymSimExporter(ExportableNode):
             )
         
         # Get config from connected Isaac Gym Environment Config node
-        # Debug: Check what connections and all_nodes look like
-        import logging
-        logging.info(f"[IsaacGymSim Export] Looking for env_config connection")
-        logging.info(f"[IsaacGymSim Export] Node ID: {node_id}")
-        logging.info(f"[IsaacGymSim Export] All nodes IDs: {[n.get('id') for n in all_nodes] if all_nodes else 'None'}")
         
         # Find connected IsaacGymEnvs node through links
         config_node = None
@@ -46,7 +42,6 @@ class IsaacGymSimExporter(ExportableNode):
                 # Link format: [link_id, from_node, from_slot, to_node, to_slot, type]
                 if len(link) >= 5 and str(link[3]) == str(node_id) and link[4] == 0:  # env_config is input 0
                     source_node_id = str(link[1])
-                    logging.info(f"[IsaacGymSim Export] Found connection from node {source_node_id}")
                     # Find the source node
                     for node in all_nodes:
                         if str(node.get('id')) == source_node_id:
@@ -80,9 +75,6 @@ class IsaacGymSimExporter(ExportableNode):
             # Get parameters using the helper that checks both inputs and widgets_values
             config_params = cls.get_node_parameters_batch(config_node, param_specs)
             
-            logging.info(f"[IsaacGymSim Export] Config node type: {config_node.get('type')}")
-            logging.info(f"[IsaacGymSim Export] Extracted config_params: {config_params}")
-            
             # Validate required parameters are present
             required_params = ['task', 'num_envs', 'seed', 'seed_control', 'headless',
                              'graphics_device_id', 'sim_device', 'physics_engine', 
@@ -96,7 +88,6 @@ class IsaacGymSimExporter(ExportableNode):
             
             # Extract individual values
             task = config_params['task']
-            logging.info(f"[IsaacGymSim Export] Extracted task: {task}")
             num_envs = config_params['num_envs']
             seed = config_params['seed']
             seed_control = config_params['seed_control']
@@ -186,19 +177,62 @@ class IsaacGymSimExporter(ExportableNode):
     
     @classmethod
     def get_initial_output_schema(cls, node_data):
-        # Output schema depends on the environment
-        # For now, return generic tensor output
+        """Return output schema - will be resolved with env config during export"""
+        # Basic schema - observation size will be resolved later
         return {
             "outputs": {
                 "observation": {
                     "type": "tensor",
-                    "dtype": "float32"
+                    "dtype": "float32",
+                    "needs_resolution": True  # Flag for resolution during export
                 },
                 "done": {
                     "type": "trigger"
                 }
             }
         }
+    
+    @classmethod
+    def get_output_schema(cls, node_data, connections=None, node_registry=None, 
+                         all_nodes=None, all_links=None):
+        """Get output schema by querying connected env config"""
+        # Start with initial schema
+        schema = cls.get_initial_output_schema(node_data)
+        
+        # Try to get env config from connected node
+        if all_nodes and all_links:
+            node_id = str(node_data.get('id', ''))
+            
+            # Find connected env_config node
+            env_config_node = None
+            for link in all_links:
+                if len(link) >= 5 and str(link[3]) == node_id and link[4] == 0:  # env_config is input 0
+                    source_node_id = str(link[1])
+                    # Find the source node
+                    for node in all_nodes:
+                        if str(node.get('id')) == source_node_id:
+                            env_config_node = node
+                            break
+                    break
+            
+            if env_config_node:
+                # Get the env config node's schema
+                node_type = env_config_node.get('class_type') or env_config_node.get('type')
+                if node_type == 'IsaacGymEnvs' and node_registry and 'IsaacGymEnvs' in node_registry:
+                    env_exporter = node_registry['IsaacGymEnvs']
+                    env_schema = env_exporter.get_output_schema(env_config_node, connections, 
+                                                                node_registry, all_nodes, all_links)
+                    
+                    # Extract observation size from env schema
+                    if 'outputs' in env_schema and 'env' in env_schema['outputs']:
+                        env_output = env_schema['outputs']['env']
+                        if 'observation_size' in env_output:
+                            # Update our observation output with the size
+                            schema['outputs']['observation']['flattened_size'] = env_output['observation_size']
+                            schema['outputs']['observation']['shape'] = [env_output['observation_size']]
+                            del schema['outputs']['observation']['needs_resolution']  # Remove flag
+        
+        return schema
     
     @classmethod
     def find_input_connection(cls, node_data, connections, input_name):

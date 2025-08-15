@@ -121,28 +121,24 @@ class TestLinearLayerExporter:
     
     @pytest.mark.export
     def test_template_name(self):
-        """Test template name generation."""
+        """Test that Linear layer exporter is virtual (no template)."""
+        # LinearLayer is now virtual - it doesn't have its own template
         template_name = LinearLayerExporter.get_template_name()
-        
-        assert isinstance(template_name, str)
-        assert template_name.endswith('.tpl')
-        assert 'linear' in template_name.lower() or 'layer' in template_name.lower()
+        assert template_name is None  # Virtual nodes have no template
     
     
     @pytest.mark.export
     def test_imports(self):
         """Test Linear layer imports."""
+        # LinearLayer is now virtual - it doesn't have imports
         imports = LinearLayerExporter.get_imports()
-        
         assert isinstance(imports, list)
-        
-        # Should include PyTorch imports
-        import_text = " ".join(imports).lower()
-        expected_imports = ["torch", "nn", "linear"]
-        
-        # At least some torch-related imports should be present
-        has_torch_import = any(imp in import_text for imp in expected_imports)
-        assert has_torch_import, f"Should have torch imports, got: {imports}"
+        assert len(imports) == 0  # Virtual nodes have no imports
+    
+    @pytest.mark.export
+    def test_is_virtual(self):
+        """Test that LinearLayer is marked as virtual."""
+        assert LinearLayerExporter.is_virtual() == True
 
 
 class TestNetworkExporter:
@@ -338,8 +334,15 @@ class TestNodeExporterIntegration:
                 
                 # Test basic functionality
                 template_name = node_exporter.get_template_name()
-                assert isinstance(template_name, str)
-                assert template_name.endswith('.tpl')
+                
+                # Check if it's a virtual node
+                if hasattr(node_exporter, 'is_virtual') and node_exporter.is_virtual():
+                    # Virtual nodes don't have templates
+                    assert template_name is None or isinstance(template_name, str)
+                else:
+                    # Non-virtual nodes must have templates
+                    assert isinstance(template_name, str)
+                    assert template_name.endswith('.tpl')
                 
                 imports = node_exporter.get_imports()
                 assert isinstance(imports, list)

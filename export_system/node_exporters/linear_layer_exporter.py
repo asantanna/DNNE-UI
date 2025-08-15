@@ -1,18 +1,39 @@
 #!/usr/bin/env python3
 """
-Exporter for Linear Layer node using queue-based template
+Exporter for Linear Layer node - Virtual node used within Networks
 """
 
 from ..graph_exporter import ExportableNode
 
 class LinearLayerExporter(ExportableNode):
     @classmethod
+    def is_virtual(cls):
+        """LinearLayers are always virtual - they only exist within Networks"""
+        return True
+    
+    @classmethod
     def get_template_name(cls):
-        return "nodes/linear_layer_queue.tpl"
+        # Virtual nodes don't need templates
+        return None
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Use universal parameter reader - FAIL-FAST: no defaults
+        # Virtual nodes don't generate code via templates
+        return {}
+    
+    @classmethod
+    def get_layer_pytorch_code(cls, node_id, node_data, input_size=None):
+        """Generate PyTorch layer definition code for use by Network node.
+        
+        Args:
+            node_id: ID of this layer node
+            node_data: Node data from workflow
+            input_size: Input size for this layer (provided by Network)
+        
+        Returns:
+            Dict with 'layer_code', 'activation_code', 'dropout_code', and 'output_size'
+        """
+        # Extract parameters
         param_specs = [
             {'name': 'output_size', 'widget_index': 0},
             {'name': 'bias', 'widget_index': 1},
@@ -23,42 +44,47 @@ class LinearLayerExporter(ExportableNode):
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
         
-        # Validate required parameters are present
-        required_params = ['output_size', 'bias', 'activation', 'dropout', 'weight_init']
+        # Validate required parameters
+        required_params = ['output_size', 'bias', 'activation', 'dropout']
         missing_params = [p for p in required_params if params.get(p) is None]
         if missing_params:
             raise ValueError(
-                f"LinearLayer node {node_id} missing required parameters: {missing_params}. "
-                f"The UI must provide all layer configuration parameters."
+                f"LinearLayer node {node_id} missing required parameters: {missing_params}"
             )
         
-        # Query input size from connected source node
-        input_schema = cls.get_input_schema(node_data, connections, 
-                                          node_registry, all_nodes, all_links)
+        if input_size is None:
+            raise ValueError(f"LinearLayer node {node_id}: input_size must be provided by Network")
         
-        if "input" in input_schema and input_schema["input"] and "flattened_size" in input_schema["input"]:
-            input_size = input_schema["input"]["flattened_size"]
-        else:
-            raise ValueError(f"LinearLayer node {node_id}: Could not determine input tensor size")
-        
-        return {
-            "NODE_ID": node_id,
-            "CLASS_NAME": "LinearLayerNode",
-            "INPUT_SIZE": input_size,
-            "OUTPUT_SIZE": params['output_size'],
-            "ACTIVATION_VALUE": params['activation'],
-            "BIAS_VALUE": params['bias'],
-            "DROPOUT": params['dropout'],
-            "WEIGHT_INIT": params['weight_init']
+        # Generate layer code
+        result = {
+            'layer_code': f"nn.Linear({input_size}, {params['output_size']}, bias={params['bias']})",
+            'activation_code': None,
+            'dropout_code': None,
+            'output_size': params['output_size']
         }
+        
+        # Add activation if specified
+        activation = params.get('activation', 'none')
+        if activation == 'relu':
+            result['activation_code'] = "nn.ReLU()"
+        elif activation == 'tanh':
+            result['activation_code'] = "nn.Tanh()"
+        elif activation == 'sigmoid':
+            result['activation_code'] = "nn.Sigmoid()"
+        elif activation == 'elu':
+            result['activation_code'] = "nn.ELU()"
+        
+        # Add dropout if specified
+        dropout = params.get('dropout', 0)
+        if dropout > 0:
+            result['dropout_code'] = f"nn.Dropout({dropout})"
+        
+        return result
     
     @classmethod
     def get_imports(cls):
-        return [
-            "import torch",
-            "import torch.nn as nn",
-            "import torch.nn.functional as F",
-        ]
+        # Virtual nodes don't generate files, so no imports needed
+        return []
     
     @classmethod
     def get_output_names(cls):
@@ -70,7 +96,7 @@ class LinearLayerExporter(ExportableNode):
     
     @classmethod
     def get_initial_output_schema(cls, node_data):
-        # Get output size using the universal parameter reader
+        # Get output size for schema
         output_size = cls.get_node_parameter(node_data, 'output_size', widget_index=0)
         
         if output_size is None:

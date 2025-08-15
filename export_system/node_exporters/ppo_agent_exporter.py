@@ -4,7 +4,7 @@ Exporter for PPOAgent node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
-from custom_nodes.utils.isaac_gym_config_loader import IsaacGymEnvConfigLoader
+from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
 
 class PPOAgentExporter(ExportableNode):
     """Exporter for PPO Agent node - the main RL training node"""
@@ -46,7 +46,7 @@ class PPOAgentExporter(ExportableNode):
             )
         
         # Extract configuration from connected virtual nodes
-        env_config = cls._extract_env_config(node_id, all_nodes, all_links)
+        env_config = IsaacGymEnvsExporter._extract_env_config(node_id, all_nodes, all_links)
         ppo_config = cls._extract_ppo_config(node_id, all_nodes, all_links)
         balancing_config = cls._extract_balancing_config(node_id, all_nodes, all_links)
         
@@ -54,10 +54,30 @@ class PPOAgentExporter(ExportableNode):
         task_ppo_config = {}
         if env_config and 'task' in env_config:
             task_name = env_config['task']
-            loader = IsaacGymEnvConfigLoader()
-            task_config = loader.get_task_config(task_name)
-            if task_config and 'ppo_agent' in task_config:
-                task_ppo_config = task_config['ppo_agent']
+            # Load PPO config YAML directly if it exists
+            try:
+                from pathlib import Path
+                import yaml
+                isaacgym_envs_path = Path('/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs')
+                ppo_cfg_path = isaacgym_envs_path / 'isaacgymenvs' / 'cfg' / 'train' / f'{task_name}PPO.yaml'
+                
+                if ppo_cfg_path.exists():
+                    with open(ppo_cfg_path, 'r') as f:
+                        ppo_yaml = yaml.safe_load(f)
+                    # Extract network config from PPO YAML if available
+                    if ppo_yaml and 'params' in ppo_yaml and 'network' in ppo_yaml['params']:
+                        net_config = ppo_yaml['params']['network']
+                        task_ppo_config['network_mlp_layers'] = net_config.get('mlp', {}).get('units', [256, 128, 64])
+                        task_ppo_config['network_activation'] = net_config.get('mlp', {}).get('activation', 'elu')
+                        task_ppo_config['separate_value_network'] = net_config.get('separate', False)
+                    # Extract other PPO params
+                    if ppo_yaml and 'params' in ppo_yaml and 'config' in ppo_yaml['params']:
+                        config = ppo_yaml['params']['config']
+                        task_ppo_config['mixed_precision'] = config.get('mixed_precision', False)
+                        task_ppo_config['multi_gpu'] = config.get('multi_gpu', False)
+            except Exception as e:
+                # If we can't load PPO config, just use defaults
+                pass
         
         # Get network configuration from task config with sensible defaults
         network_mlp_layers = task_ppo_config.get('network_mlp_layers', [256, 128, 64])
@@ -207,79 +227,8 @@ class PPOAgentExporter(ExportableNode):
     
     @classmethod  
     def get_input_names(cls):
-        # PPOAgent doesn't have inputs since it consolidates virtual nodes
-        return []
-    
-    @classmethod
-    def _extract_env_config(cls, ppo_node_id, all_nodes, all_links):
-        """Extract environment configuration from connected IsaacGymEnvs virtual node"""
-        if not all_links or not all_nodes:
-            return None
-            
-        # Find the env input connection (slot 0)
-        env_node_id = None
-        for link in all_links:
-            if len(link) >= 5:
-                to_node, to_slot = str(link[3]), link[4]
-                if to_node == ppo_node_id and to_slot == 0:  # env input
-                    env_node_id = str(link[1])
-                    break
-        
-        if not env_node_id:
-            return None
-            
-        # Find the node data
-        env_node_data = None
-        for node in all_nodes:
-            if str(node["id"]) == env_node_id:
-                env_node_data = node
-                break
-                
-        if not env_node_data:
-            return None
-            
-        # Check if it's an IsaacGymEnvs node
-        node_type = env_node_data.get("class_type") or env_node_data.get("type")
-        if node_type != "IsaacGymEnvs":
-            return None
-            
-        # Use parameter specs to extract values from either inputs dict or widgets_values
-        param_specs = [
-            {'name': 'task', 'widget_index': 0},
-            {'name': 'num_envs', 'widget_index': 1},
-            {'name': 'seed', 'widget_index': 2},
-            {'name': 'seed_control', 'widget_index': 3},
-            {'name': 'headless', 'widget_index': 4},
-            {'name': 'graphics_device_id', 'widget_index': 5},
-            {'name': 'sim_device', 'widget_index': 6},
-            {'name': 'physics_engine', 'widget_index': 7},
-            {'name': 'multi_gpu', 'widget_index': 8},
-            {'name': 'enable_cameras', 'widget_index': 9},
-            {'name': 'force_render', 'widget_index': 10},
-            {'name': 'use_gpu_pipeline', 'widget_index': 11},
-            {'name': 'num_threads', 'widget_index': 12},
-            {'name': 'solver_type', 'widget_index': 13},
-            {'name': 'num_subscenes', 'widget_index': 14},
-        ]
-        
-        # Get parameters using the helper that checks both inputs and widgets_values
-        params = cls.get_node_parameters_batch(env_node_data, param_specs)
-        
-        # Debug logging
-        import logging
-        logging.info(f"[DNNE Export] IsaacGymEnvs params: {params}")
-        
-        # Validate all required parameters are present
-        missing_params = [spec['name'] for spec in param_specs if params.get(spec['name']) is None]
-        if missing_params:
-            raise ValueError(
-                f"IsaacGymEnvs node {env_node_id} missing required parameters: {missing_params}. "
-                f"This may indicate the UI is not sending widget values correctly."
-            )
-        
-        # Return config with all parameters
-        params['isaac_gym_envs_path'] = '/home/asantanna/DNNE-LINUX-SUPPORT/IsaacGymEnvs'  # Always use default path
-        return params
+        # PPOAgent has inputs for virtual config nodes
+        return ["env_config", "ppo_config", "balancing_config"]
     
     @classmethod
     def _extract_ppo_config(cls, ppo_node_id, all_nodes, all_links):
