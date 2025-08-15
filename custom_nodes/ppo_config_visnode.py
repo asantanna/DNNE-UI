@@ -160,7 +160,7 @@ class PPOConfig(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("PPO_CONFIG",)
+    RETURN_TYPES = ("PPO_CONFIG_PYDICT",)
     RETURN_NAMES = ("config",)
 
 

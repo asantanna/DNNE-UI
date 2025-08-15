@@ -20,10 +20,10 @@ class GetBatchNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "dataloader": ("*DATALOADER", {
+                "dataloader": ("*DATALOADER_OBJ", {
                     "tooltip": "Configured PyTorch DataLoader that provides batched data. Should come from BatchSamplerNode."
                 }),
-                "schema": ("*SCHEMA", {
+                "schema": ("*SCHEMA_PYDICT", {
                     "tooltip": "Dataset schema with metadata about batch structure and data types. Used for output validation and downstream nodes."
                 }),
                 "trigger": ("*TRIGGER", {
@@ -32,7 +32,7 @@ class GetBatchNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("BATCH_IMAGE_TENSOR", "BATCH_LABEL_TENSOR", "BOOLEAN", "BATCH_EPOCH_STATS")
+    RETURN_TYPES = ("BATCH_IMAGE_TENSOR", "BATCH_LABEL_TENSOR", "BOOLEAN", "BATCH_EPOCH_STATS_PYDICT")
     RETURN_NAMES = ("images", "labels", "epoch_complete", "epoch_stats")
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"

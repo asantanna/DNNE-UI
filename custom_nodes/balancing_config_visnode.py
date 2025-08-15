@@ -94,7 +94,7 @@ class BalancingConfig(RoboticsNodeBase):
             }
         }
     
-    RETURN_TYPES = ("BALANCING_CONFIG",)
+    RETURN_TYPES = ("BALANCING_CONFIG_PYDICT",)
     RETURN_NAMES = ("config",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     DESCRIPTION = cleandoc(__doc__)

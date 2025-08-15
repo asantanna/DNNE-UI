@@ -74,7 +74,7 @@ class DataStreamerNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("DATASTREAMER_DATA_TENSOR", "DATASTREAMER_DONE_TRIGGER", "DATASTREAMER_METADATA")
+    RETURN_TYPES = ("DATASTREAMER_DATA_TENSOR", "DATASTREAMER_DONE_TRIGGER", "DATASTREAMER_METADATA_PYDICT")
     RETURN_NAMES = ("data", "done", "metadata")
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
 

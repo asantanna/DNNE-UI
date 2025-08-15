@@ -133,7 +133,7 @@ class IsaacGymEnvs(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("ISAAC_ENV_CONFIG",)
+    RETURN_TYPES = ("ISAAC_ENV_CONFIG_PYDICT",)
     RETURN_NAMES = ("env",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     

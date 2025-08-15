@@ -35,7 +35,7 @@ class NetworkNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("LAYER_TENSOR", "NETWORK_OUTPUT_TENSOR", "NETWORK_MODEL")
+    RETURN_TYPES = ("LAYER_TENSOR", "NETWORK_OUTPUT_TENSOR", "NETWORK_MODEL_OBJ")
     RETURN_NAMES = ("layers", "output", "model")
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"

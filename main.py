@@ -255,7 +255,7 @@ def check_and_start_agent_server():
         # Start the agent server (Windows only)
         if args.agent_server_terminal:
             # Start in a new terminal window
-            terminal_cmd = ['start', 'cmd', '/k'] + cmd
+            terminal_cmd = ['start', 'wt', '--profile','dnne_agent_server', 'cmd', '/k'] + cmd
             subprocess.Popen(terminal_cmd, shell=True)
             logging.info("Starting DNNE Agent Server in new terminal window...")
         else:

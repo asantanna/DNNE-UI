@@ -20,7 +20,7 @@ class SGDOptimizerNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("*MODEL", {
+                "model": ("*MODEL_OBJ", {
                     "tooltip": "Neural network model to optimize. Must have parameters to train."
                 }),
                 "learning_rate": ("FLOAT", {

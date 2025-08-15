@@ -22,10 +22,10 @@ class PPOAgent(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "env_config": ("ISAAC_ENV_CONFIG", {
+                "env_config": ("ISAAC_ENV_CONFIG_PYDICT", {
                     "tooltip": "Environment configuration from IsaacGymEnvs node"
                 }),
-                "ppo_config": ("PPO_CONFIG", {
+                "ppo_config": ("PPO_CONFIG_PYDICT", {
                     "tooltip": "PPO algorithm configuration from PPOConfig node"
                 }),
                 "max_iterations": ("INT", {
@@ -68,13 +68,13 @@ class PPOAgent(RoboticsNodeBase):
                     "default": "",
                     "tooltip": "Path to checkpoint to resume training from"
                 }),
-                "balancing_config": ("BALANCING_CONFIG", {
+                "balancing_config": ("BALANCING_CONFIG_PYDICT", {
                     "tooltip": "Optional balancing configuration from BalancingConfig node"
                 })
             }
         }
 
-    RETURN_TYPES = ("PPO_AGENT_OBJ", "PPO_TRAINING_STATS", "PPO_EVAL_STATS")
+    RETURN_TYPES = ("PPO_AGENT_OBJ", "PPO_TRAINING_STATS_PYDICT", "PPO_EVAL_STATS_PYDICT")
     RETURN_NAMES = ("agent", "training_stats", "eval_stats")
 
 

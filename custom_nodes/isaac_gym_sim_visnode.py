@@ -21,7 +21,7 @@ class IsaacGymSimNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "env_config": ("ISAAC_ENV_CONFIG", {
+                "env_config": ("ISAAC_ENV_CONFIG_PYDICT", {
                     "tooltip": "Environment configuration from Isaac Gym Environment Config node"
                 }),
                 "action": ("*TENSOR", {
