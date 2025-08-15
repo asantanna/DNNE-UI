@@ -28,6 +28,7 @@ from .balancing_config_exporter import BalancingConfigExporter
 # Utility Exporters
 from .or_node_exporter import ORNodeExporter
 from .concat_node_exporter import ConcatNodeExporter
+from .split_node_exporter import SplitNodeExporter
 from .balancing_node_exporter import BalancingNodeExporter
 from .data_streamer_exporter import DataStreamerExporter
 from .custom_computation_exporter import CustomComputationExporter
@@ -66,6 +67,7 @@ def register_utility_exporters(exporter):
     """Register all utility node exporters"""
     exporter.register_node("ORNode", ORNodeExporter)
     exporter.register_node("Concat", ConcatNodeExporter)
+    exporter.register_node("Split", SplitNodeExporter)
     exporter.register_node("BalancingNode", BalancingNodeExporter)
     exporter.register_node("DataStreamer", DataStreamerExporter)
     exporter.register_node("CustomComputation", CustomComputationExporter)
@@ -107,6 +109,7 @@ __all__ = [
     # Utility nodes
     'ORNodeExporter',
     'ConcatNodeExporter',
+    'SplitNodeExporter',
     'BalancingNodeExporter',
     'DataStreamerExporter',
     'CustomComputationExporter',
