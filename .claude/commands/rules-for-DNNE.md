@@ -12,9 +12,25 @@ Rules DNNE Development:
 
         ```
             x = obj.foo                     (GOOD)
-            x = getattr(obj, "foo", "baz")  (BAD)
-        ```    
-* **Don't guess - instrument and compare**: Always add debug prints to understand behavior
+            x = getattr(obj, "foo", "baz")  (BAD!)
+        ```
+* Node exporter rules:
+    * NEVER access widget_values directly
+    * ALWAYS use helper functions 'get_node_parameters_batch' or 'get_node_parameter'
+        ```
+            widgets = node_data.get("widgets_values", [])  (BAD!)
+
+            # Extract parameters using helper functions     (GOOD)
+            param_specs = [
+                {'name': 'dimension', 'widget_index': 0},
+                {'name': 'split_mode', 'widget_index': 1},
+                {'name': 'split_pos', 'widget_index': 2}
+            ]
+
+            params = cls.get_node_parameters_batch(node_data, param_specs)
+        ```
+
+* **DON'T GUESS, INSTRUMENT!**: Always add debug prints to understand behavior better
 * **Test incrementally**: Fix one issue at a time and verify
 * **Document discoveries**: Update guides with new insights
 
