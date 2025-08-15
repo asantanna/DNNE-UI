@@ -36,4 +36,11 @@ if [[ "$tool_name" == "Bash" ]] && [[ "$command" =~ (^|[[:space:]])npm[[:space:]
     exit 2
 fi
 
+# Check if trying to run dnne.bat
+if [[ "$tool_name" == "Bash" ]] && [[ "$command" =~ (^|[[:space:]])([./]*)?dnne\.bat($|[[:space:]]) ]]; then
+    echo "BLOCKED: DNNE runs on Windows! You are in WSL." >&2
+    echo "Use MCP to restart DNNE." >&2
+    exit 2
+fi
+
 exit 0
