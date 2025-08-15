@@ -26,6 +26,7 @@ $ARGUMENTS
 **dev-status.md** - Keep only:
 - Latest achievements (current week)
 - Essential commands & references
+- Do not modify anything in the "Essential Commands", "Key Ports" and "Key Documentation" sections!
 - Recent commits (last 5-10)
 - Move older sessions to HISTORY.md
 

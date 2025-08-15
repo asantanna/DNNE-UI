@@ -57,7 +57,7 @@ dnne_config.local.json
 *.config.local.json
 
 # mcp test logs
-mcp-dnne-ui/tests/test_results_comprehensive.json
+mcp_dnne_ui/tests/test_results_comprehensive.json
 
 # test suite datasets
-dnne-test-suite/DATASETS/cifar10/cifar-10-python.tar.gz
+dnne_test_suite/DATASETS/cifar10/cifar-10-python.tar.gz

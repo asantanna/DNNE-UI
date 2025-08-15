@@ -4,7 +4,7 @@
 
 ## READ THESE IMPORTANT GUIDELINES !!
 - **Coding Guidelines**: `.claude/commands/rules-for-DNNE.md`
-- **Task Tracking**: `dnne-docs/for_claude/tasks/INDEX.md`
+- **Task Tracking**: `dnne_docs/for_claude/tasks/INDEX.md`
 
 ## Latest Achievements (2025-01-15)
 
@@ -26,7 +26,7 @@ source /home/asantanna/miniconda/bin/activate DNNE_PY38
 use MCP function: "util_restart_dnne"
 
 # Start Agent Client (WSL2)
-python dnne-agent/dnne_agent_client.py
+python dnne_agent/dnne_agent_client.py
 
 # Export workflow
 python claude_scripts/programmatic_export.py MNIST_Test
@@ -36,7 +36,7 @@ cd export_system/exports/MNIST_Test
 python runner.py --epochs 10
 
 # Test telemetry
-./dnne-test telemetry
+./dnne_test telemetry
 
 # Build frontend
 ./build_frontend.sh
@@ -49,8 +49,8 @@ python runner.py --epochs 10
 - Telemetry: 8770
 
 ### Key Documentation
-- **Task Index**: `dnne-docs/for_claude/tasks/INDEX.md`
-- **Architecture**: `dnne-docs/architecture/`
+- **Task Index**: `dnne_docs/for_claude/tasks/INDEX.md`
+- **Architecture**: `dnne_docs/architecture/`
 - **CLAUDE.md**: Project overview
 
 ## Claude Code Capabilities

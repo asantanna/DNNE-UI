@@ -9,30 +9,30 @@ Successfully consolidated the DNNE test suite from 3 scattered locations into a 
 ### Changes Made
 
 1. **Moved Test Scripts**
-   - Moved 13 test command scripts from `claude_scripts/` to `dnne-test-suite/scripts/`
+   - Moved 13 test command scripts from `claude_scripts/` to `dnne_test_suite/scripts/`
    - Renamed `dnne_test_commands.sh` to `commands.sh` for simplicity
    - Updated all wrapper scripts to reference new location
 
 2. **Deleted Duplicates**
-   - Removed entire `tests-dnne/` directory (was exact duplicate of `dnne-test-suite/core/`)
+   - Removed entire `tests-dnne/` directory (was exact duplicate of `dnne_test_suite/core/`)
    - Saved ~200KB of duplicate test files
 
 3. **Updated Infrastructure**
-   - Updated `/dnne-test` to source from `dnne-test-suite/scripts/commands.sh`
+   - Updated `/dnne_test` to source from `dnne_test_suite/scripts/commands.sh`
    - Fixed PROJECT_ROOT path in commands.sh for new location
    - All test commands continue to work exactly as before
 
 4. **Documentation**
-   - Updated `dnne-test-suite/README.md` with new structure
+   - Updated `dnne_test_suite/README.md` with new structure
    - Added consolidation note explaining removal of tests-dnne/
 
 ### New Structure
 
 ```
-/dnne-test                    # Main entry point (unchanged)
-    └─> sources from dnne-test-suite/scripts/commands.sh
+/dnne_test                    # Main entry point (unchanged)
+    └─> sources from dnne_test_suite/scripts/commands.sh
 
-dnne-test-suite/              # ALL test-related files
+dnne_test_suite/              # ALL test-related files
 ├── core/                     # pytest tests (unit & integration)
 ├── specialized/              # Comprehensive test scripts
 ├── profiling/                # Performance tests
@@ -40,7 +40,7 @@ dnne-test-suite/              # ALL test-related files
 ├── utilities/                # Test utilities
 ├── scripts/                  # Test command infrastructure (NEW)
 │   ├── commands.sh           # Main implementation
-│   └── dnne-test-*           # All wrapper commands
+│   └── dnne_test-*           # All wrapper commands
 └── outputs/                  # Test outputs
 
 claude_scripts/               # Now cleaner - no test infrastructure
@@ -56,4 +56,4 @@ claude_scripts/               # Now cleaner - no test infrastructure
 
 ### Testing
 
-Verified `dnne-test help` works correctly after consolidation - all commands functional.
+Verified `dnne_test help` works correctly after consolidation - all commands functional.

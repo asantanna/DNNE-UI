@@ -52,7 +52,7 @@ def export_workflow_for_test(workflow_name: str, test_name: str = None) -> Path:
         target_dir = f"test_{workflow_name.lower().replace(' ', '_')}"
     
     # Get the path to the programmatic export utility
-    export_script = project_root / "dnne-test-suite" / "utilities" / "programmatic_export.py"
+    export_script = project_root / "dnne_test_suite" / "utilities" / "programmatic_export.py"
     
     # Run the export utility
     try:

@@ -28,6 +28,6 @@ templates/
 ## Documentation
 
 For detailed information, see:
-- **Template System**: `dnne-docs/architecture/templates.md`
-- **Variable Substitution**: `dnne-docs/architecture/templates.md#variable-substitution-rules`
-- **Creating Templates**: `dnne-docs/architecture/templates.md#template-development-guidelines`
+- **Template System**: `dnne_docs/architecture/templates.md`
+- **Variable Substitution**: `dnne_docs/architecture/templates.md#variable-substitution-rules`
+- **Creating Templates**: `dnne_docs/architecture/templates.md#template-development-guidelines`

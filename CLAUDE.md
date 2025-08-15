@@ -92,7 +92,7 @@ Note: Ensure the conda environment is activated before running scripts in `claud
 - All UI updates go through WebSocket
 - All data requests use WebSocket messages (e.g., `request_logs`, not `/api/logs`)
 - REST is ONLY for static resources and initial page load
-- See `dnne-docs/architecture/websocket-not-rest.md` for details
+- See `dnne_docs/architecture/websocket-not-rest.md` for details
 
 ### Core System Structure
 - **Entry Point**: `main.py` - Initializes DNNE server with ML/robotics extensions
@@ -170,7 +170,7 @@ The system has three main components:
 - All node communication uses async queue-based design similar to ROS (Robot Operating System)
 
 ### Testing Approach
-- Tests driven by script `dnne-test`
+- Tests driven by script `dnne_test`
 - Export system tests verify code generation and execution
 - Integration tests use example workflows like "MNIST Test.json"
 - Queue-based tests validate real-time execution patterns
@@ -185,7 +185,7 @@ The system has three main components:
 
 ### **CRITICAL FILE ORGANIZATION RULE**
 - NEVER create ANY files in the project root directory (/home/asantanna/DNNE/DNNE-UI/) unless directed to do so. ⚠️**
-- **ALL TEST FILES MUST GO TO**: `dnne-test-suite` directories ONLY
+- **ALL TEST FILES MUST GO TO**: `dnne_test_suite` directories ONLY
 
 ### File Structure Conventions
 - Queue templates end with `_queue.py` for async execution
@@ -263,4 +263,4 @@ The export system generates clean, executable Python code that correctly impleme
 - **Connection System**: Robust connection mapping that survives ComfyUI pipeline processing
 
 ## Workflow
-- **Future Features** (`dnne-docs/future/`): When you have ideas for future features or improvements, create a new markdown file in the appropriate subdirectory. Keep filenames short but descriptive. Update the README.md index when adding new features. Each feature file should include: Priority (High/Medium/Low), Description, Motivation, Implementation Notes, Dependencies, and Estimated Effort.
+- **Future Features** (`dnne_docs/future/`): When you have ideas for future features or improvements, create a new markdown file in the appropriate subdirectory. Keep filenames short but descriptive. Update the README.md index when adding new features. Each feature file should include: Priority (High/Medium/Low), Description, Motivation, Implementation Notes, Dependencies, and Estimated Effort.

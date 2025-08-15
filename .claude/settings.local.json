@@ -2,7 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(./build_frontend.sh:*)",
-      "Bash(./dnne-test:*)",
+      "Bash(./dnne_test:*)",
       "Bash(cat:*)",
       "Bash(chmod:*)",
       "Bash(find:*)",

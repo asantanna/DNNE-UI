@@ -83,8 +83,8 @@
 
 ### Telemetry Test Suite Completion ✅
 - Created telemetry_runner_aggregation.py for testing aggregation, batching, and grouping
-- Fixed critical bug: `dnne-test telemetry` only ran basic test due to `set -e` in scripts
-- Removed `set -e` from dnne-test and commands.sh to allow all tests to run
+- Fixed critical bug: `dnne_test telemetry` only ran basic test due to `set -e` in scripts
+- Removed `set -e` from dnne_test and commands.sh to allow all tests to run
 - Standardized node IDs across all tests (nodes 10-14) for consistency
 - Simplified test_telemetry.py validation logic
 - All 5 telemetry tests now run successfully: basic, long, ratelimit, aggregation, overhead
@@ -96,7 +96,7 @@
 - Added copy_dir parameter to deployment_helper for dataset caching
 - Fixed deployment confirmation flow - wait for client confirmation before deploy_success
 - Fixed monitor_workflow_execution timeout bug (was exiting after 1 second)
-- Integrated ALL telemetry tests into `dnne-test telemetry` command
+- Integrated ALL telemetry tests into `dnne_test telemetry` command
 - Telemetry storage VERIFIED WORKING - files created successfully!
 
 ## 2025-01-10 Session 2
@@ -128,7 +128,7 @@
 - Created agent-side ViolationAggregator (first 5 details, then summaries every 10s)
 - Efficient file storage in `telemetry/telem_{timestamp}/` directories
 - Fire-and-forget UDP from nodes, smart batching at agent level
-- Comprehensive documentation in `dnne-docs/architecture/telemetry.md`
+- Comprehensive documentation in `dnne_docs/architecture/telemetry.md`
 - Test scripts: `test_telemetry_simple.py` for verification
 
 ## 2025-08-08 Session 4

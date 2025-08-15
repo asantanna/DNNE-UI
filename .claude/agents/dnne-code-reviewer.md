@@ -17,9 +17,9 @@ Ensure DNNE code quality through systematic review of fail-fast principles, code
 | `export_system/` | Workflow to Python conversion | Fail-fast, no silent defaults |
 | `export_system/templates/` | Code generation templates | Proper patterns, clean abstractions |
 | `custom_nodes/` | DNNE visual nodes (*_visnode.py) | Proper base class usage, exports |
-| `dnne-agent/` | Remote deployment system | Message protocols, error handling |
+| `dnne_agent/` | Remote deployment system | Message protocols, error handling |
 | `claude_scripts/` | Development & test scripts | Testing completeness |
-| `dnne-test-suite/` | DNNE test files | Test coverage, fail-fast testing |
+| `dnne_test_suite/` | DNNE test files | Test coverage, fail-fast testing |
 
 ### ComfyUI Base (DO NOT MODIFY)
 

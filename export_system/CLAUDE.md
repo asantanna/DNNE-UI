@@ -28,6 +28,6 @@ export_system/
 ## Documentation
 
 For detailed information, see:
-- **Export System Architecture**: `dnne-docs/architecture/export_system.md`
-- **Template System**: `dnne-docs/architecture/templates.md`
-- **Queue Framework**: `dnne-docs/architecture/queue_framework.md`
+- **Export System Architecture**: `dnne_docs/architecture/export_system.md`
+- **Template System**: `dnne_docs/architecture/templates.md`
+- **Queue Framework**: `dnne_docs/architecture/queue_framework.md`

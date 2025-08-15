@@ -374,7 +374,7 @@ class GraphExporter:
                 f"runner_args.json updated: {json_time}\n\n"
                 f"The argument parser has been modified more recently than the UI configuration.\n"
                 f"Please update runner_args.json to match the arguments in arg_parser.tpl\n"
-                f"Run tests to verify: python -m unittest dnne-test-suite.test_runner_args_sync"
+                f"Run tests to verify: python -m unittest dnne_test_suite.test_runner_args_sync"
             )
     
     def export_workflow(self, workflow: Dict, output_path: Optional[Path] = None) -> str:

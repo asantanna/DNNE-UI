@@ -150,7 +150,7 @@ This should display your configuration settings.
 ### 5. Run Tests
 
 ```bash
-./dnne-test full
+./dnne_test full
 ```
 
 ## Common Configuration Scenarios
@@ -345,7 +345,7 @@ EOF
 python -c "from dnne_config import DNNEConfig; c = DNNEConfig(); print('Configuration loaded successfully!')"
 
 # Run tests
-./dnne-test full
+./dnne_test full
 
 echo "DNNE setup complete!"
 ```

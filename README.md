@@ -59,7 +59,7 @@ Note: Isaac Gym, IsaacGymEnvs, and rl_games_dnne require manual installation. Se
 ### 4. Run Tests
 
 ```bash
-./dnne-test full
+./dnne_test full
 ```
 
 ### 5. Start the Server (WINDOWS ONLY)
@@ -80,7 +80,7 @@ DNNE-UI/
 ├── export_system/         # Code export functionality
 │   ├── templates/        # Code generation templates
 │   └── exports/          # Generated Python scripts
-├── dnne-test-suite/      # Comprehensive test suite
+├── dnne_test_suite/      # Comprehensive test suite
 └── claude_scripts/       # Utility and development scripts
 ```
 
@@ -142,16 +142,16 @@ Run the comprehensive test suite:
 
 ```bash
 # Full test suite
-./dnne-test full
+./dnne_test full
 
 # Unit tests only
-./dnne-test unit
+./dnne_test unit
 
 # Integration tests only
-./dnne-test integration
+./dnne_test integration
 
 # With coverage report
-./dnne-test coverage
+./dnne_test coverage
 ```
 
 ## Related Repositories

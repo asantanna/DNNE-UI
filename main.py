@@ -235,7 +235,7 @@ def check_and_start_agent_server():
     
     # Try to start the agent server
     logging.info("Starting DNNE Agent Server...")
-    agent_script = os.path.join(os.path.dirname(__file__), "dnne-agent", "dnne_agent_server.py")
+    agent_script = os.path.join(os.path.dirname(__file__), "dnne_agent", "dnne_agent_server.py")
     
     if not os.path.exists(agent_script):
         logging.error(f"Agent server script not found at: {agent_script}")
