@@ -2,6 +2,19 @@
 
 *This file contains the historical record of daily achievements moved from INDEX.md*
 
+## 2025-08-15
+
+### Dynamic Color Palette System Implementation
+- ✅ Identified CONFIG links showing wrong color (green instead of red/purple)
+- ✅ Implemented dynamic color substitution system in frontend
+- ✅ Updated dark.json to use placeholders ({CONFIG_COLOR}, {DATA_COLOR}, etc.)
+- ✅ Created substitutePaletteColors() function in dnneColors.ts
+- ✅ Applied substitution in coreColorPalettes.ts on palette load
+- ✅ Removed TYPE_COLOR_MAP duplication - dark.json is now single source of truth
+- ✅ Updated backend types to use PYDICT suffix (PPO_CONFIG → PPO_CONFIG_PYDICT)
+- ✅ User color preferences applied (CONFIG=purple, TRAINING=blue, etc.)
+- ✅ **Result**: Complete type system with correct color coding for all link types
+
 ## 2025-08-14
 
 ### Custom Computation Node & Isaac Gym Improvements

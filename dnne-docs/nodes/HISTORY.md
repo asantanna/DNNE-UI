@@ -2,6 +2,29 @@
 
 *Component: DNNE Type System*
 
+## Session: 2025-08-15 - Dynamic Color Palette System
+
+### Problem
+CONFIG link types (PPO_CONFIG_PYDICT, BALANCING_CONFIG_PYDICT) were showing green (#37745C) instead of the intended red color defined in dnneColors.ts.
+
+### Solution
+Implemented dynamic color palette substitution system:
+1. Updated dark.json to use placeholders ({CONFIG_COLOR}, {DATA_COLOR}, etc.)
+2. Created substitutePaletteColors() function in dnneColors.ts
+3. Applied substitution when loading palette in coreColorPalettes.ts
+4. Removed TYPE_COLOR_MAP duplication - dark.json is now single source of truth
+
+### Color Updates (from user preferences)
+- CONFIG_COLOR: Changed from green to purple (dim(ORIGINAL_COLORS.PURPLE, 0.5))
+- TRAINING_COLOR: Changed to ORIGINAL_COLORS.BLUE (undimmed)
+- CONTROL_COLOR: Adjusted to 40% dimming (was 50%)
+- STATS_COLOR: Adjusted to 30% dimming
+
+### Result
+- Clean separation between color definitions and type mappings
+- CONFIG links now correctly show intended colors
+- Easy to update colors in one place (dnneColors.ts)
+
 ## Session: 2025-08-14 - Type System Refinement
 
 ### Phase 1: Analysis
