@@ -20,8 +20,8 @@ class TrainingStepNode(RoboticsNodeBase):
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "loss": ("*LOSS_TENSOR", {
-                    "tooltip": "Loss tensor to backpropagate. Scalar tensor (single value) computed from loss function like CrossEntropyLoss."
+                "loss": ("*LOSS_SCALAR", {
+                    "tooltip": "Loss scalar to backpropagate. Scalar value (single number) computed from loss function like CrossEntropyLoss."
                 }),
                 "optimizer": ("*OPTIMIZER_OBJ", {
                     "tooltip": "Optimizer instance (SGD, Adam, etc.) that will update model parameters. Connect from SGDOptimizer or similar node."

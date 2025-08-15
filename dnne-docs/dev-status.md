@@ -4,17 +4,18 @@
 
 ## Latest Achievements (This Week)
 
+### 2025-08-15: Type Refactoring & New Nodes
+- ✅ Refactored LOSS_TENSOR → LOSS_SCALAR system-wide
+- ✅ Created Concat node with wait/async modes and padding
+- ✅ Implemented GeometricLoss with 5 metrics (including Norm KL Div)
+- ✅ Enhanced dependency system for framework files
+- ✅ Created math_utils.py with reusable metric functions
+
 ### 2025-08-15: UI/UX Improvements
 - ✅ Disabled auto-rewiring when deleting nodes
-- ✅ Fixed CONFIG link colors with dynamic palette system
-- ✅ Removed TYPE_COLOR_MAP duplication
-- ✅ Clean separation between color definitions and type mappings
-
-### 2025-08-14: Type System Refinement
-- ✅ Refined type system with 95+ specific types
-- ✅ Wildcard validation (*TENSOR matches _TENSOR suffixes)
-- ✅ All nodes updated with PYDICT suffixes for configs
-- ✅ Frontend and backend fully integrated
+- ✅ Fixed input connector outlines (removed HollowCircle)
+- ✅ Fixed server URL display (localhost vs 0.0.0.0)
+- ✅ Removed unused Queue and Model Library tabs
 
 ### 2025-08-12: MCP Integration Complete
 - ✅ 42 DNNE UI automation tools implemented

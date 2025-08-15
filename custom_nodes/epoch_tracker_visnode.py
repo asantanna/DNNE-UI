@@ -23,8 +23,8 @@ class EpochTrackerNode(RoboticsNodeBase):
                 "epoch_stats": ("*STATS_PYDICT", {
                     "tooltip": "Dictionary containing current epoch statistics like batch count, running totals, etc. Usually from GetBatch or similar nodes."
                 }),
-                "loss": ("*LOSS_TENSOR", {
-                    "tooltip": "Current batch loss tensor for tracking training progress. Used to compute epoch averages and convergence metrics."
+                "loss": ("*LOSS_SCALAR", {
+                    "tooltip": "Current batch loss scalar for tracking training progress. Used to compute epoch averages and convergence metrics."
                 }),
                 "accuracy": ("*ACCURACY_FLOAT", {
                     "tooltip": "Current batch accuracy (float) or accuracy metrics. Can be from CrossEntropyLoss. Used for epoch averaging."

@@ -11,6 +11,7 @@ from .get_batch_exporter import GetBatchExporter
 from .linear_layer_exporter import LinearLayerExporter
 from .network_exporter import NetworkExporter
 from .cross_entropy_loss_exporter import CrossEntropyLossExporter
+from .geometric_loss_exporter import GeometricLossExporter
 from .sgd_optimizer_exporter import SGDOptimizerExporter
 from .training_step_exporter import TrainingStepExporter
 from .epoch_tracker_exporter import EpochTrackerExporter
@@ -25,6 +26,7 @@ from .ppo_agent_exporter import PPOAgentExporter
 
 # Utility Exporters
 from .or_node_exporter import ORNodeExporter
+from .concat_node_exporter import ConcatNodeExporter
 from .balancing_node_exporter import BalancingNodeExporter
 from .data_streamer_exporter import DataStreamerExporter
 from .custom_computation_exporter import CustomComputationExporter
@@ -40,6 +42,7 @@ def register_ml_exporters(exporter):
     exporter.register_node("LinearLayer", LinearLayerExporter)
     exporter.register_node("Network", NetworkExporter)
     exporter.register_node("CrossEntropyLoss", CrossEntropyLossExporter)
+    exporter.register_node("GeometricLoss", GeometricLossExporter)
     exporter.register_node("SGDOptimizer", SGDOptimizerExporter)
     exporter.register_node("TrainingStep", TrainingStepExporter)
     exporter.register_node("EpochTracker", EpochTrackerExporter)
@@ -60,6 +63,7 @@ def register_rl_exporters(exporter):
 def register_utility_exporters(exporter):
     """Register all utility node exporters"""
     exporter.register_node("ORNode", ORNodeExporter)
+    exporter.register_node("Concat", ConcatNodeExporter)
     exporter.register_node("BalancingNode", BalancingNodeExporter)
     exporter.register_node("DataStreamer", DataStreamerExporter)
     exporter.register_node("CustomComputation", CustomComputationExporter)
@@ -87,6 +91,7 @@ __all__ = [
     'LinearLayerExporter',
     'NetworkExporter',
     'CrossEntropyLossExporter',
+    'GeometricLossExporter',
     'SGDOptimizerExporter',
     'TrainingStepExporter',
     'EpochTrackerExporter',
@@ -98,6 +103,7 @@ __all__ = [
     'PPOAgentExporter',
     # Utility nodes
     'ORNodeExporter',
+    'ConcatNodeExporter',
     'BalancingNodeExporter',
     'DataStreamerExporter',
     'CustomComputationExporter',

@@ -625,26 +625,37 @@ class GraphExporter:
         return template_path.read_text(encoding='utf-8')
     
     def _copy_dependency(self, target_dir: Path, dep_filename: str):
-        """Copy a dependency file from templates to the target export directory"""
+        """Copy a dependency file from templates to the target export directory
+        
+        Args:
+            target_dir: Base target directory (usually nodes_dir or framework_dir)
+            dep_filename: Relative path from templates/ directory (e.g., "framework/math_utils.py")
+        """
         import shutil
         
-        # Handle paths that may include subdirectories
+        # Source path is relative to templates directory
+        source_path = self.templates_dir / dep_filename
+        
+        # Determine target path based on the dependency path structure
         if '/' in dep_filename:
             # Split into directory and filename
             dep_parts = dep_filename.split('/')
-            dep_subdir = '/'.join(dep_parts[:-1])
             dep_file = dep_parts[-1]
+            dep_subdir = '/'.join(dep_parts[:-1])
             
-            # Source path in templates/nodes
-            source_path = self.templates_dir / "nodes" / dep_subdir / dep_file
-            
-            # Target path maintains the same structure in nodes directory
-            target_subdir = target_dir / dep_subdir
-            target_subdir.mkdir(parents=True, exist_ok=True)
-            target_path = target_subdir / dep_file
+            # If it's a framework file, put it in the framework directory
+            if dep_parts[0] == 'framework':
+                # Framework files go to framework_dir
+                framework_dir = target_dir.parent / 'framework'
+                framework_dir.mkdir(parents=True, exist_ok=True)
+                target_path = framework_dir / dep_file
+            else:
+                # Other files maintain their subdirectory structure
+                target_subdir = target_dir / dep_subdir
+                target_subdir.mkdir(parents=True, exist_ok=True)
+                target_path = target_subdir / dep_file
         else:
-            # Single file without subdirectory - in nodes/
-            source_path = self.templates_dir / "nodes" / dep_filename
+            # Single file without subdirectory goes to target_dir
             target_path = target_dir / dep_filename
         
         if source_path.exists():

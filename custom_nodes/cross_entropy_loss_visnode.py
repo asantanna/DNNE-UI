@@ -29,7 +29,7 @@ class CrossEntropyLossNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("CROSSENTROPY_LOSS_TENSOR", "CROSSENTROPY_ACCURACY_FLOAT")
+    RETURN_TYPES = ("CROSSENTROPY_LOSS_SCALAR", "CROSSENTROPY_ACCURACY_FLOAT")
     RETURN_NAMES = ("loss", "accuracy")
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"
