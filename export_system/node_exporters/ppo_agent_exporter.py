@@ -15,11 +15,8 @@ from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
 
 class PPOAgentExporter(ExportableNode):
     """Exporter for PPO Agent node - the main RL training node"""
-    
-    @classmethod
-    def is_virtual(cls):
-        """PPOAgent is NOT virtual - it generates the actual training code"""
-        return False
+    # PPOAgent is NOT virtual - it generates the actual training code
+    # Virtual status is handled by @dnne_node decorator
     
     @classmethod
     def get_template_name(cls):

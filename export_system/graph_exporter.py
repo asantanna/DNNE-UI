@@ -328,16 +328,23 @@ class GraphExporter:
     
     def _is_virtual_node(self, node_type: str) -> bool:
         """Check if a node type is virtual (configuration-only)"""
-        if node_type not in self.node_registry:
-            return False
+        # Import decorator utilities
+        from custom_nodes.utils.dnne_decorator import is_virtual_node, get_all_node_classes
         
-        node_exporter_class = self.node_registry[node_type]
+        # Get all registered nodes
+        all_nodes = get_all_node_classes()
         
-        # Check if the exporter has is_virtual method
-        if hasattr(node_exporter_class, 'is_virtual'):
-            return node_exporter_class.is_virtual()
+        # Node type must have exact match with "Node" suffix
+        # e.g., "MNISTDataset" -> "MNISTDatasetNode"
+        expected_class_name = f"{node_type}Node"
         
-        return False
+        if expected_class_name not in all_nodes:
+            # This is a fatal error - all nodes must be registered
+            error_msg = f"Node type {node_type} (expected class {expected_class_name}) not found in decorator registry"
+            self.logger.error(error_msg)
+            raise RuntimeError(error_msg)
+        
+        return is_virtual_node(all_nodes[expected_class_name])
     
     def _validate_runner_args_timestamps(self):
         """Lightweight check that runner_args.json is up-to-date"""

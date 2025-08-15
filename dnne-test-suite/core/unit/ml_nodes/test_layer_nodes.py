@@ -75,8 +75,9 @@ class TestLinearLayerNode:
         template_name = LinearLayerExporter.get_template_name()
         assert template_name is None  # Virtual nodes have no template
         
-        # Test that it's marked as virtual
-        assert LinearLayerExporter.is_virtual() == True
+        # Test that it's marked as virtual using decorator
+        from custom_nodes.utils.dnne_decorator import is_virtual_node
+        assert is_virtual_node(LinearLayerNode) == True
         
         # Virtual nodes have no imports
         imports = LinearLayerExporter.get_imports()

@@ -5,7 +5,7 @@ Exporter for ConcatNode using queue-based template
 
 from ..graph_exporter import ExportableNode
 
-class ConcatNodeExporter(ExportableNode):
+class ConcatExporter(ExportableNode):
     """Exporter for the Concat tensor concatenation node"""
     
     @classmethod

@@ -15,11 +15,8 @@ from dnne_config import get_isaac_gym_envs_path
 
 class IsaacGymEnvsExporter(ExportableNode):
     """Exporter for IsaacGymEnvs virtual node - provides environment configuration"""
-    
-    @classmethod
-    def is_virtual(cls):
-        """IsaacGymEnvs is a virtual node - only provides configuration"""
-        return True
+    # IsaacGymEnvs is a virtual node - only provides configuration
+    # Virtual status is handled by @dnne_node decorator
     
     @classmethod
     def get_template_name(cls):

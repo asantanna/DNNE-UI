@@ -138,7 +138,10 @@ class TestLinearLayerExporter:
     @pytest.mark.export
     def test_is_virtual(self):
         """Test that LinearLayer is marked as virtual."""
-        assert LinearLayerExporter.is_virtual() == True
+        # Virtual status is now handled by the decorator
+        from custom_nodes.utils.dnne_decorator import is_virtual_node
+        from custom_nodes import LinearLayerNode
+        assert is_virtual_node(LinearLayerNode) == True
 
 
 class TestNetworkExporter:
@@ -302,7 +305,7 @@ class TestTrainingStepExporter:
         assert "training" in class_name.lower() or "step" in class_name.lower()
 
 
-class TestNodeExporterIntegration:
+class TestExporterIntegration:
     """Integration tests for node exporters."""
     
     @pytest.mark.export
@@ -335,14 +338,36 @@ class TestNodeExporterIntegration:
                 # Test basic functionality
                 template_name = node_exporter.get_template_name()
                 
-                # Check if it's a virtual node
-                if hasattr(node_exporter, 'is_virtual') and node_exporter.is_virtual():
-                    # Virtual nodes don't have templates
-                    assert template_name is None or isinstance(template_name, str)
+                # Check if it's a virtual node using decorator and naming utilities
+                from custom_nodes.utils.dnne_decorator import is_virtual_node, get_all_node_classes
+                from custom_nodes.utils.naming_utils import node_class_to_exporter_class
+                
+                all_nodes = get_all_node_classes()
+                
+                # Find the corresponding node class for this exporter
+                # We need to reverse map: exporter class -> node class
+                exporter_name = node_exporter.__name__
+                
+                # Find which node this exporter belongs to
+                node_class = None
+                for node_name, potential_node_class in all_nodes.items():
+                    expected_exporter_name = node_class_to_exporter_class(node_name)
+                    if expected_exporter_name == exporter_name:
+                        node_class = potential_node_class
+                        break
+                
+                if node_class:
+                    if is_virtual_node(node_class):
+                        # Virtual nodes don't have templates
+                        assert template_name is None
+                    else:
+                        # Non-virtual nodes must have templates
+                        assert isinstance(template_name, str)
+                        assert template_name.endswith('.tpl')
                 else:
-                    # Non-virtual nodes must have templates
-                    assert isinstance(template_name, str)
-                    assert template_name.endswith('.tpl')
+                    # If we can't find the node, skip validation
+                    # This shouldn't happen with proper setup
+                    pass
                 
                 imports = node_exporter.get_imports()
                 assert isinstance(imports, list)

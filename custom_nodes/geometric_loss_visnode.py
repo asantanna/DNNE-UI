@@ -6,8 +6,10 @@ Computes various geometric distance and divergence metrics between predictions a
 from inspect import cleandoc
 from custom_nodes.utils.visnode_base import RoboticsNodeBase
 from custom_nodes.utils.node_colors import get_node_colors
+from custom_nodes.utils.dnne_decorator import dnne_node
 
 
+@dnne_node(is_virtual=False)
 class GeometricLossNode(RoboticsNodeBase):
     """Geometric Loss Node
     Computes various geometric distance and divergence metrics between predictions and estimates.

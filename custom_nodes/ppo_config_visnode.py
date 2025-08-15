@@ -6,8 +6,10 @@ Configuration node for Proximal Policy Optimization algorithm parameters.
 from inspect import cleandoc
 from custom_nodes.utils.visnode_base import RoboticsNodeBase
 from custom_nodes.utils.node_colors import get_node_colors
+from custom_nodes.utils.dnne_decorator import dnne_node
 
 
+@dnne_node(is_virtual=True)
 class PPOConfig(RoboticsNodeBase):
     """PPO Config
     Configuration node for Proximal Policy Optimization algorithm parameters."""
@@ -15,7 +17,6 @@ class PPOConfig(RoboticsNodeBase):
     DESCRIPTION = cleandoc(__doc__)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "rl"
-    IS_VIRTUAL = True  # Configuration-only node
     COLOR = get_node_colors("utility")["color"]
     BGCOLOR = get_node_colors("utility")["bgcolor"]
 

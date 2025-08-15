@@ -10,8 +10,10 @@ from typing import Dict, Any, Optional, Tuple
 from inspect import cleandoc
 from custom_nodes.utils.visnode_base import RoboticsNodeBase
 from custom_nodes.utils.node_colors import get_node_colors
+from custom_nodes.utils.dnne_decorator import dnne_node
 
 
+@dnne_node(is_virtual=False)
 class DataStreamerNode(RoboticsNodeBase):
     """Data Streamer Node
     Streams data from CSV files row-by-row with configurable synchronization modes for real-time robotics control."""

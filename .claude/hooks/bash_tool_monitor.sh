@@ -24,7 +24,7 @@ fi
 
 # Check for stderr redirection followed by pipe
 if [[ "$tool_name" == "Bash" ]] && [[ "$command" =~ (2>&1|&>|>&)[[:space:]]*\| ]]; then
-    echo "BLOCKED: Do not use stderr redirection when using pipes. This does not work!" >&2
+    echo "BLOCKED: Incorrect syntax when redirecting stderr followed by a pipe." >&2
     echo "Instead, use parentheses: (command 2>&1) | next_command" >&2
     exit 2
 fi

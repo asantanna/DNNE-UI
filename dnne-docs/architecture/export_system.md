@@ -61,7 +61,7 @@ Specialized exporters for each node category:
 - **robotics_nodes.py**: Handles robotics/simulation nodes
 
 ```python
-class LinearLayerExporter(BaseNodeExporter):
+class LinearLayerExporter(BaseExporter):
     def get_template_path(self):
         return "linear_layer_queue.py"
     
@@ -335,7 +335,7 @@ Available in all templates:
 Customize export behavior:
 
 ```python
-class CustomExporter(BaseNodeExporter):
+class CustomExporter(BaseExporter):
     def post_process_code(self, code):
         # Modify generated code
         return code.replace("old", "new")

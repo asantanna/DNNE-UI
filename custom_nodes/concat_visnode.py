@@ -6,8 +6,10 @@ Concatenates up to 4 tensor inputs with configurable waiting/padding behavior
 from inspect import cleandoc
 from custom_nodes.utils.visnode_base import RoboticsNodeBase
 from custom_nodes.utils.node_colors import get_node_colors
+from custom_nodes.utils.dnne_decorator import dnne_node
 
 
+@dnne_node(is_virtual=False)
 class ConcatNode(RoboticsNodeBase):
     """
     Concat Node for tensor concatenation

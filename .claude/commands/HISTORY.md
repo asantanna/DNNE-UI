@@ -2,6 +2,38 @@
 
 *This file contains the historical record of development sessions moved from dev-status.md*
 
+## 2025-01-15
+
+### @dnne_node Decorator System ✅
+- Implemented `@dnne_node(*, is_virtual)` decorator with required keyword-only parameter
+- Automatic node registration - no more manual editing of registration files
+- Virtual node status enforcement at node definition
+- Auto-discovery of exporters based on strict naming conventions
+- Template validation - virtual nodes must NOT have templates, non-virtual must have them
+- Removed is_virtual() methods from exporters - decorator handles this
+- Updated all 22 nodes with decorator (4 virtual, 18 non-virtual)
+- Renamed mismatched exporter files to conform to naming convention
+- All 164 tests passing (100% success)
+
+## 2025-08-14
+
+### Custom Computation Node ✅
+- User-defined tensor operations via external Python files
+- File export with automatic copying to export package
+- Filter/sink capability (returning None = no output)
+- Example functions: identity, filter, sink
+
+### Isaac Gym Improvements ✅
+- FrankaDNNE environment now visible
+- Config loader handles environments without PPO configs
+- Widget reordering (subtask/dt at top)
+- Added FrankaDNNE to IsaacGymEnvs repository
+
+### Code Organization ✅
+- Moved utilities to custom_nodes/utils/
+- Renamed base.py → visnode_base.py
+- Created standard custom_compute_funcs directory
+
 ## 2025-08-13
 
 ### DataStreamer File Copy Mechanism ✅

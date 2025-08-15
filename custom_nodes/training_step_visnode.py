@@ -6,8 +6,10 @@ Executes a single training step: forward pass, loss computation, backpropagation
 from inspect import cleandoc
 from custom_nodes.utils.visnode_base import RoboticsNodeBase
 from custom_nodes.utils.node_colors import get_node_colors
+from custom_nodes.utils.dnne_decorator import dnne_node
 
 
+@dnne_node(is_virtual=False)
 class TrainingStepNode(RoboticsNodeBase):
     """Training Step Node
     Executes a single training step: forward pass, loss computation, backpropagation, and parameter update."""

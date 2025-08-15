@@ -12,10 +12,12 @@ from typing import Dict, Any, Optional, List
 from inspect import cleandoc
 from custom_nodes.utils.visnode_base import RoboticsNodeBase
 from custom_nodes.utils.node_colors import get_node_colors
+from custom_nodes.utils.dnne_decorator import dnne_node
 
 from .utils.isaac_gym_config_loader import IsaacGymEnvConfigLoader as IsaacGymConfigLoader
 
 
+@dnne_node(is_virtual=True)
 class IsaacGymEnvs(RoboticsNodeBase):
     """Isaac Gym Environments
     Provides GPU-accelerated physics simulation environments for reinforcement learning."""
@@ -24,7 +26,6 @@ class IsaacGymEnvs(RoboticsNodeBase):
     COLOR = get_node_colors("utility")["color"] 
     BGCOLOR = get_node_colors("utility")["bgcolor"]
     CATEGORY = "robotics"
-    IS_VIRTUAL = True  # This is a virtual node
 
     def __init__(self):
         super().__init__()

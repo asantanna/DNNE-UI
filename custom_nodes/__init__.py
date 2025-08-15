@@ -1,65 +1,83 @@
 # This file makes custom_nodes a package so that absolute imports work
-# Individual node files are loaded by nodes.py
+# Individual node files are loaded automatically using the decorator system
 
 # Collect all NODE_CLASS_MAPPINGS and NODE_DISPLAY_NAME_MAPPINGS
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
 
-# Import all node modules and collect their mappings
+# Import all node modules to trigger decorator registration
 import os
 import importlib
+import logging
 
-# First collect all nodes from modules
-temp_nodes = []
+logger = logging.getLogger(__name__)
+
+# Import decorator to access registry
+from custom_nodes.utils.dnne_decorator import get_all_node_classes
+
+# First import all visnode modules to trigger decorators
 current_dir = os.path.dirname(__file__)
 for filename in os.listdir(current_dir):
     if filename.endswith('_visnode.py'):
         module_name = filename[:-3]  # Remove .py extension
-        module = importlib.import_module(f'.{module_name}', package='custom_nodes')
-        if hasattr(module, 'NODE_CLASS_MAPPINGS'):
-            for key, cls in module.NODE_CLASS_MAPPINGS.items():
-                display_name = module.NODE_DISPLAY_NAME_MAPPINGS.get(key, key) if hasattr(module, 'NODE_DISPLAY_NAME_MAPPINGS') else key
-                temp_nodes.append((key, cls, display_name))
+        try:
+            module = importlib.import_module(f'.{module_name}', package='custom_nodes')
+            # Extract mappings from module if they exist (for display names)
+            if hasattr(module, 'NODE_DISPLAY_NAME_MAPPINGS'):
+                NODE_DISPLAY_NAME_MAPPINGS.update(module.NODE_DISPLAY_NAME_MAPPINGS)
+        except Exception as e:
+            logger.error(f"Failed to import {module_name}: {e}")
 
-# Sort by display name and build the dictionaries
-for key, node_class, display_name in sorted(temp_nodes, key=lambda x: x[2]):
+# Now get all registered nodes from the decorator
+all_nodes = get_all_node_classes()
+
+# Build NODE_CLASS_MAPPINGS from decorator registry
+for node_name, node_class in all_nodes.items():
+    # Determine the key for NODE_CLASS_MAPPINGS
+    # Remove "Node" suffix if present for the key
+    if node_name.endswith('Node'):
+        key = node_name[:-4]
+    else:
+        key = node_name
+    
     NODE_CLASS_MAPPINGS[key] = node_class
-    NODE_DISPLAY_NAME_MAPPINGS[key] = display_name
+    
+    # If no display name was provided, create one
+    if key not in NODE_DISPLAY_NAME_MAPPINGS:
+        # Convert PascalCase to Title Case
+        import re
+        display_name = re.sub(r'([A-Z])([A-Z][a-z])', r'\1 \2', key)
+        display_name = re.sub(r'([a-z\d])([A-Z])', r'\1 \2', display_name)
+        NODE_DISPLAY_NAME_MAPPINGS[key] = display_name
+
+# Sort by display name for consistent ordering
+sorted_items = sorted(NODE_DISPLAY_NAME_MAPPINGS.items(), key=lambda x: x[1])
+NODE_CLASS_MAPPINGS = {k: NODE_CLASS_MAPPINGS[k] for k, _ in sorted_items if k in NODE_CLASS_MAPPINGS}
+NODE_DISPLAY_NAME_MAPPINGS = dict(sorted_items)
 
 # For backward compatibility with tests - expose node classes with expected names
-node_aliases = {
-    'MNISTDataset': 'MNISTDatasetNode',
-    'BatchSampler': 'BatchSamplerNode', 
-    'GetBatch': 'GetBatchNode',
-    'Network': 'NetworkNode',
-    'LinearLayer': 'LinearLayerNode',
-    'CrossEntropyLoss': 'CrossEntropyLossNode',
-    'SGDOptimizer': 'SGDOptimizerNode',
-    'TrainingStep': 'TrainingStepNode',
-    'EpochTracker': 'EpochTrackerNode',
-    'IsaacGymEnvs': 'IsaacGymEnvs',
-    'IsaacGymSim': 'IsaacGymSimNode',
-    'PPOAgent': 'PPOAgentNode',
-    'PPOConfig': 'PPOConfigNode',
-    'OR': 'ORNode'
-}
-
-# Make nodes available for import
-for key, alias in node_aliases.items():
+# These aliases ensure tests can import nodes directly
+for key, node_class in NODE_CLASS_MAPPINGS.items():
+    # Make the class available as a module attribute
+    globals()[node_class.__name__] = node_class
+    
+    # Also add common aliases
     if key in NODE_CLASS_MAPPINGS:
-        globals()[alias] = NODE_CLASS_MAPPINGS[key]
-        
-# Also check for IsaacGymEnvNode and IsaacGymStepNode which tests expect
+        globals()[f"{key}Node"] = NODE_CLASS_MAPPINGS[key]
+
+# Special aliases for tests that expect specific names
 if 'IsaacGymEnvs' in NODE_CLASS_MAPPINGS:
     globals()['IsaacGymEnvNode'] = NODE_CLASS_MAPPINGS['IsaacGymEnvs']
 if 'IsaacGymStep' in NODE_CLASS_MAPPINGS:
     globals()['IsaacGymStepNode'] = NODE_CLASS_MAPPINGS['IsaacGymStep']
-    
+
 # ISAAC_GYM_AVAILABLE flag for tests
 try:
     import isaacgym
     ISAAC_GYM_AVAILABLE = True
 except ImportError:
     ISAAC_GYM_AVAILABLE = False
-    
+
 globals()['ISAAC_GYM_AVAILABLE'] = ISAAC_GYM_AVAILABLE
+
+logger.info(f"Registered {len(NODE_CLASS_MAPPINGS)} nodes via decorator system")

@@ -5,7 +5,7 @@ Exporter for ORNode node using queue-based template
 
 from ..graph_exporter import ExportableNode
 
-class ORNodeExporter(ExportableNode):
+class ORExporter(ExportableNode):
     """Exporter for the OR/ANY routing node"""
     
     @classmethod

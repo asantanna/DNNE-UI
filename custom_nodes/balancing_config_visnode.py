@@ -6,8 +6,10 @@ Configuration-only node for setting performance targets on monolithic nodes like
 from inspect import cleandoc
 from custom_nodes.utils.visnode_base import RoboticsNodeBase
 from custom_nodes.utils.node_colors import get_node_colors
+from custom_nodes.utils.dnne_decorator import dnne_node
 
 
+@dnne_node(is_virtual=True)
 class BalancingConfig(RoboticsNodeBase):
     """
     Balancing Configuration Node (Virtual)
@@ -21,9 +23,6 @@ class BalancingConfig(RoboticsNodeBase):
     - Priority settings: priority, guaranteed
     - Latency requirements: max_latency_ms
     """
-    
-    # Virtual node - doesn't generate runtime code
-    IS_VIRTUAL = True
     
     CATEGORY = "utility"
     

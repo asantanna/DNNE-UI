@@ -5,7 +5,7 @@ Exporter for SplitNode using queue-based template
 
 from ..graph_exporter import ExportableNode
 
-class SplitNodeExporter(ExportableNode):
+class SplitExporter(ExportableNode):
     """Exporter for the Split tensor splitting node"""
     
     @classmethod

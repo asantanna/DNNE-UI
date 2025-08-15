@@ -5,7 +5,7 @@ Exporter for BalancingNode node using queue-based template
 
 from ..graph_exporter import ExportableNode
 
-class BalancingNodeExporter(ExportableNode):
+class BalancingExporter(ExportableNode):
     """Exporter for Balancing Node (active passthrough)"""
     
     @classmethod

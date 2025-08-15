@@ -7,11 +7,8 @@ from ..graph_exporter import ExportableNode
 
 class PPOConfigExporter(ExportableNode):
     """Exporter for PPO configuration virtual node"""
-    
-    @classmethod
-    def is_virtual(cls):
-        """PPOConfig is a virtual node - only provides configuration"""
-        return True
+    # PPOConfig is a virtual node - only provides configuration
+    # Virtual status is handled by @dnne_node decorator
     
     @classmethod
     def get_template_name(cls):

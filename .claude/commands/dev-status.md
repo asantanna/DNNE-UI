@@ -1,31 +1,19 @@
 # DNNE Development Status
 
-$ARGUMENTS
-
 *For historical development sessions, see HISTORY.md*
 
 ## READ THESE IMPORTANT GUIDELINES !!
 - **Coding Guidelines**: `.claude/commands/rules-for-DNNE.md`
 - **Task Tracking**: `dnne-docs/for_claude/tasks/INDEX.md`
 
-## Latest Achievements (2025-08-14)
+## Latest Achievements (2025-01-15)
 
-### Custom Computation Node ✅
-- User-defined tensor operations via external Python files
-- File export with automatic copying to export package
-- Filter/sink capability (returning None = no output)
-- Example functions: identity, filter, sink
-
-### Isaac Gym Improvements ✅
-- FrankaDNNE environment now visible
-- Config loader handles environments without PPO configs
-- Widget reordering (subtask/dt at top)
-- Added FrankaDNNE to IsaacGymEnvs repository
-
-### Code Organization ✅
-- Moved utilities to custom_nodes/utils/
-- Renamed base.py → visnode_base.py
-- Created standard custom_compute_funcs directory
+### @dnne_node Decorator System ✅
+- Automatic node registration via decorator
+- Virtual node status enforcement  
+- Auto-discovery of exporters based on naming
+- Template validation (virtual nodes must NOT have templates)
+- All 164 tests passing (100% success)
 
 ## Quick Reference
 
@@ -71,10 +59,11 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
-- `63627331` - Add example filter and sink functions
-- `3d83c7b8` - Add Custom Computation node file export
-- `ba4fd4c` - Add setup.py for rl_games_dnne
-- `d6f20be` - Add FrankaDNNE environment
+- Implement @dnne_node decorator system
+- Auto-discovery for node registration and exporters  
+- Update all nodes with decorator
+- Fix naming convention mismatches
+- 100% test success
 
 ---
 *Focus on active tasks in INDEX.md*

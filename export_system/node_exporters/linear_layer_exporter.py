@@ -6,10 +6,8 @@ Exporter for Linear Layer node - Virtual node used within Networks
 from ..graph_exporter import ExportableNode
 
 class LinearLayerExporter(ExportableNode):
-    @classmethod
-    def is_virtual(cls):
-        """LinearLayers are always virtual - they only exist within Networks"""
-        return True
+    # LinearLayers are virtual - they only exist within Networks
+    # Virtual status is handled by @dnne_node decorator
     
     @classmethod
     def get_template_name(cls):

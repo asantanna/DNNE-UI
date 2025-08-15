@@ -1,122 +1,94 @@
 """
 Node exporter classes that handle code generation using queue-based templates
-Updated to use flat structure with individual exporter files
+Auto-discovery based on naming conventions
 """
 
-# ML Exporters
-from .mnist_dataset_exporter import MNISTDatasetExporter
-from .cifar10_dataset_exporter import CIFAR10DatasetExporter
-from .batch_sampler_exporter import BatchSamplerExporter
-from .get_batch_exporter import GetBatchExporter
-from .linear_layer_exporter import LinearLayerExporter
-from .network_exporter import NetworkExporter
-from .cross_entropy_loss_exporter import CrossEntropyLossExporter
-from .geometric_loss_exporter import GeometricLossExporter
-from .sgd_optimizer_exporter import SGDOptimizerExporter
-from .training_step_exporter import TrainingStepExporter
-from .epoch_tracker_exporter import EpochTrackerExporter
+import logging
+from pathlib import Path
+import importlib
+import sys
 
-# Robotics Exporters
-from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
-from .isaac_gym_sim_exporter import IsaacGymSimExporter
+# Add path for custom_nodes imports
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
-# RL Exporters
-from .ppo_config_exporter import PPOConfigExporter
-from .ppo_agent_exporter import PPOAgentExporter
-from .balancing_config_exporter import BalancingConfigExporter
+from custom_nodes.utils.dnne_decorator import get_all_node_classes, is_virtual_node
+from custom_nodes.utils.naming_utils import node_class_to_exporter_filename, node_class_to_exporter_class
+from ..utils.exporter_discovery import register_all_exporters_auto
 
-# Utility Exporters
-from .or_node_exporter import ORNodeExporter
-from .concat_node_exporter import ConcatNodeExporter
-from .split_node_exporter import SplitNodeExporter
-from .balancing_node_exporter import BalancingNodeExporter
-from .data_streamer_exporter import DataStreamerExporter
-from .custom_computation_exporter import CustomComputationExporter
+logger = logging.getLogger(__name__)
 
-
-# Registration functions
-def register_ml_exporters(exporter):
-    """Register all ML node exporters"""
-    exporter.register_node("MNISTDataset", MNISTDatasetExporter)
-    exporter.register_node("CIFAR10Dataset", CIFAR10DatasetExporter)
-    exporter.register_node("BatchSampler", BatchSamplerExporter)
-    exporter.register_node("GetBatch", GetBatchExporter)
-    exporter.register_node("LinearLayer", LinearLayerExporter)
-    exporter.register_node("Network", NetworkExporter)
-    exporter.register_node("CrossEntropyLoss", CrossEntropyLossExporter)
-    exporter.register_node("GeometricLoss", GeometricLossExporter)
-    exporter.register_node("SGDOptimizer", SGDOptimizerExporter)
-    exporter.register_node("TrainingStep", TrainingStepExporter)
-    exporter.register_node("EpochTracker", EpochTrackerExporter)
-    
-    # Aliases for compatibility
-    exporter.register_node("Linear", LinearLayerExporter)
-
-def register_robotics_exporters(exporter):
-    """Register all robotics node exporters"""
-    exporter.register_node("IsaacGymEnvs", IsaacGymEnvsExporter)
-    exporter.register_node("IsaacGymSim", IsaacGymSimExporter)
-
-def register_rl_exporters(exporter):
-    """Register all RL node exporters"""
-    exporter.register_node("PPOConfig", PPOConfigExporter)
-    exporter.register_node("PPOAgent", PPOAgentExporter)
-    exporter.register_node("BalancingConfig", BalancingConfigExporter)
-
-def register_utility_exporters(exporter):
-    """Register all utility node exporters"""
-    exporter.register_node("ORNode", ORNodeExporter)
-    exporter.register_node("Concat", ConcatNodeExporter)
-    exporter.register_node("Split", SplitNodeExporter)
-    exporter.register_node("BalancingNode", BalancingNodeExporter)
-    exporter.register_node("DataStreamer", DataStreamerExporter)
-    exporter.register_node("CustomComputation", CustomComputationExporter)
-
-# Main registration function
+# Main registration function using auto-discovery
 def register_all_exporters(exporter):
-    """Register all node exporters with the graph exporter"""
-    register_ml_exporters(exporter)
-    register_robotics_exporters(exporter)
-    register_rl_exporters(exporter)
-    register_utility_exporters(exporter)
+    """
+    Register all node exporters with the graph exporter using auto-discovery.
     
-    # Log registration summary
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"Registered {len(exporter.node_registry)} node types for export")
+    Args:
+        exporter: The GraphExporter instance to register with
+        
+    Raises:
+        RuntimeError: If registration fails
+    """
+    return register_all_exporters_auto(exporter)
 
-# Export all classes for direct access
-__all__ = [
-    # ML nodes
-    'MNISTDatasetExporter',
-    'CIFAR10DatasetExporter',
-    'BatchSamplerExporter',
-    'GetBatchExporter',
-    'LinearLayerExporter',
-    'NetworkExporter',
-    'CrossEntropyLossExporter',
-    'GeometricLossExporter',
-    'SGDOptimizerExporter',
-    'TrainingStepExporter',
-    'EpochTrackerExporter',
-    # Robotics nodes
-    'IsaacGymEnvsExporter',
-    'IsaacGymSimExporter',
-    # RL nodes
-    'PPOConfigExporter',
-    'PPOAgentExporter',
-    'BalancingConfigExporter',
-    # Utility nodes
-    'ORNodeExporter',
-    'ConcatNodeExporter',
-    'SplitNodeExporter',
-    'BalancingNodeExporter',
-    'DataStreamerExporter',
-    'CustomComputationExporter',
-    # Registration functions
-    'register_all_exporters',
-    'register_ml_exporters',
-    'register_robotics_exporters',
-    'register_rl_exporters',
-    'register_utility_exporters'
-]
+# Dynamically import all exporter classes based on decorator metadata
+# This allows direct imports like: from export_system.node_exporters import MNISTDatasetExporter
+__all__ = ['register_all_exporters']
+
+# Get all registered nodes from decorator
+all_nodes = get_all_node_classes()
+
+# Track errors for non-virtual nodes
+import_errors = []
+
+# For each node, try to import its corresponding exporter
+for node_name, node_class in all_nodes.items():
+    # Check if node is virtual
+    is_virtual = is_virtual_node(node_class)
+    
+    # Generate expected exporter class name
+    exporter_class_name = node_class_to_exporter_class(node_name)
+    exporter_filename = node_class_to_exporter_filename(node_name)[:-3]  # Remove .py
+    
+    # Try to import the exporter
+    try:
+        module = importlib.import_module(f'.{exporter_filename}', package='export_system.node_exporters')
+        
+        # Get the exporter class if it exists
+        if hasattr(module, exporter_class_name):
+            exporter_class = getattr(module, exporter_class_name)
+            
+            # Make it available as a module attribute
+            globals()[exporter_class_name] = exporter_class
+            __all__.append(exporter_class_name)
+            
+            logger.debug(f"Imported exporter: {exporter_class_name}")
+        else:
+            # Class not found in module
+            if not is_virtual:
+                error_msg = f"Exporter class {exporter_class_name} not found in module {exporter_filename}"
+                logger.error(error_msg)
+                import_errors.append(error_msg)
+                
+    except ImportError as e:
+        # ImportError is only expected for virtual nodes
+        if is_virtual:
+            logger.debug(f"Skipping exporter for virtual node {node_name}")
+        else:
+            error_msg = f"Failed to import exporter for non-virtual node {node_name}: {e}"
+            logger.error(error_msg)
+            import_errors.append(error_msg)
+            
+    except Exception as e:
+        # Unexpected errors are always bad
+        error_msg = f"Unexpected error importing exporter for {node_name}: {e}"
+        logger.error(error_msg)
+        import_errors.append(error_msg)
+
+# Fail fast if there were errors for non-virtual nodes
+if import_errors:
+    raise RuntimeError(
+        f"Failed to import required exporters:\n" + 
+        '\n'.join(f"  - {err}" for err in import_errors)
+    )
+
+logger.info(f"Auto-imported {len(__all__) - 1} exporter classes")

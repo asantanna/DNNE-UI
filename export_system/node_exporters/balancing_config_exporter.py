@@ -7,11 +7,8 @@ from ..graph_exporter import ExportableNode
 
 class BalancingConfigExporter(ExportableNode):
     """Exporter for BalancingConfig virtual node - provides balancing configuration to PPOAgent"""
-    
-    @classmethod
-    def is_virtual(cls):
-        """BalancingConfig is a virtual node - only provides configuration"""
-        return True
+    # BalancingConfig is a virtual node - only provides configuration
+    # Virtual status is handled by @dnne_node decorator
     
     @classmethod
     def get_template_name(cls):
