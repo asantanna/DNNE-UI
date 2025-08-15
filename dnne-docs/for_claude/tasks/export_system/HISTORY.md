@@ -37,6 +37,12 @@
 - All 7 workflows export cleanly with zero warnings
 - Updated test expectations for virtual LinearLayer nodes
 
+### Configuration-Based Paths ✅
+- Replaced hardcoded `/home/asantanna/DNNE` paths with dnne_config.py functions
+- `isaac_gym_envs_exporter.py` now uses `get_isaac_gym_envs_path()`
+- `ppo_agent_exporter.py` now uses `get_isaac_gym_envs_path()`
+- All exports work correctly with configuration-based paths
+
 ## Core Export Functionality ✅
 - Graph traversal and dependency resolution
 - Node template generation with queue-based patterns

@@ -3,6 +3,13 @@
 Exporter for PPOAgent node using queue-based template
 """
 
+import sys
+import os
+
+# Add parent directory to path to import dnne_config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from dnne_config import get_isaac_gym_envs_path
+
 from ..graph_exporter import ExportableNode
 from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
 
@@ -58,7 +65,7 @@ class PPOAgentExporter(ExportableNode):
             try:
                 from pathlib import Path
                 import yaml
-                isaacgym_envs_path = Path('/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs')
+                isaacgym_envs_path = get_isaac_gym_envs_path()
                 ppo_cfg_path = isaacgym_envs_path / 'isaacgymenvs' / 'cfg' / 'train' / f'{task_name}PPO.yaml'
                 
                 if ppo_cfg_path.exists():

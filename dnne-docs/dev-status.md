@@ -54,7 +54,7 @@ dnne.bat
 - `export_system/node_exporters/linear_layer_exporter.py` - Virtualized
 - `export_system/node_exporters/network_exporter.py` - Refactored
 - `export_system/node_exporters/balancing_config_exporter.py` - NEW
-- `export_system/node_exporters/isaac_gym_envs_exporter.py` - YAML loading
-- `export_system/node_exporters/ppo_agent_exporter.py` - Updated
+- `export_system/node_exporters/isaac_gym_envs_exporter.py` - YAML loading, config-based paths
+- `export_system/node_exporters/ppo_agent_exporter.py` - Updated, config-based paths
 - `/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FrankaDNNE.yaml` - dnne: section added
 - Multiple test files updated for virtual LinearLayer

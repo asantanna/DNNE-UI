@@ -5,8 +5,13 @@ Exporter for IsaacGymEnvs node using queue-based template
 
 import yaml
 import os
+import sys
 from pathlib import Path
 from ..graph_exporter import ExportableNode
+
+# Add parent directory to path to import dnne_config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from dnne_config import get_isaac_gym_envs_path
 
 class IsaacGymEnvsExporter(ExportableNode):
     """Exporter for IsaacGymEnvs virtual node - provides environment configuration"""
@@ -57,7 +62,7 @@ class IsaacGymEnvsExporter(ExportableNode):
         
         try:
             # Load YAML directly instead of using the processed config
-            isaacgym_envs_path = Path('/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs')
+            isaacgym_envs_path = get_isaac_gym_envs_path()
             task_cfg_path = isaacgym_envs_path / 'isaacgymenvs' / 'cfg' / 'task' / f'{task_name}.yaml'
             
             if task_cfg_path.exists():
@@ -182,7 +187,7 @@ class IsaacGymEnvsExporter(ExportableNode):
             )
         
         # Add isaac_gym_envs_path
-        params['isaac_gym_envs_path'] = '/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs'
+        params['isaac_gym_envs_path'] = str(get_isaac_gym_envs_path())
         
         return params
 
