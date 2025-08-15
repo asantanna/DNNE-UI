@@ -18,8 +18,8 @@ Type system refactored (LOSS_TENSOR → LOSS_SCALAR). New nodes: Concat, Geometr
 
 ### Low Priority
 1. **UI Improvements**
-   - [ ] Add copy, paste and paste with links to Edit menu
    - [ ] Add node search functionality
+   - See frontend/TASKS.md for UI-specific tasks
 
 ## Quick Reference
 
