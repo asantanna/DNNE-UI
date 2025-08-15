@@ -10,10 +10,11 @@
 | **Type System** | 🟢 Complete | 100% - Color system fixed | - | 2025-08-15 |
 | **MCP Integration** | 🟢 Complete | 42 tools implemented | Low | 2025-08-12 |
 | **DNNE Agent** | 🟢 Complete | Fully functional | - | 2025-08-11 |
-| **Log Window** | 🟢 Working | ~98% - Minor UI polish needed | Low | 2025-08-12 |
+| **Log Window** | 🟡 Working | ~95% - Stream end issue | Medium | 2025-08-15 |
 | **Server** | 🟢 Complete | 100% - All features done | - | 2025-08-15 |
 | **Export System** | 🟢 Complete | 100% - All issues resolved | - | 2025-08-15 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
+| **Node System** | 🟡 Working | New features planned | Medium | 2025-08-15 |
 
 ## Active Priority Items
 
@@ -21,12 +22,16 @@
 None - All high priority items complete!
 
 ### Medium Priority
-None - All medium priority items complete!
+1. **Log Window**: Fix streaming logs missing final DNNE stop line
+2. **Node System**: Add 'group' widget to Balancing nodes
+3. **Node System**: Create Split node (opposite of Concat)
 
 ### Low Priority
 1. **Log Window**: Fix dropdown clickable when Local selected
 2. **Log Window**: Fix run logs briefly appearing in telemetry view
 3. **MCP**: Add util_set_DNNE_log_level and util_set_agent_server_log_level functions
+4. **Node System**: Fix balancing_node → network_node connection color
+5. **Node System**: Rename GeometricLoss output to "loss"
 
 ## Component Details
 
@@ -37,10 +42,15 @@ None - All medium priority items complete!
 - CONFIG types now correctly show red instead of green
 - All node definitions updated with PYDICT suffixes for config types
 
+### Node System (`nodes/TASKS.md`)
+- All core nodes operational
+- New features planned: Split node, group widgets
+- Minor fixes needed for colors and naming
+
 ### Export System (`export_system/TASKS.md`)
-- Test suite fully passing (163 tests)
-- Custom Computation node with file export support added
-- Widget values issue needs fix for UI exports
+- All tests passing (164 tests)
+- LinearLayer/Network architecture refactored
+- Configuration-based paths implemented
 
 ### Log Window (`log_window/TASKS.md`)
 - Telemetry viewing implemented
