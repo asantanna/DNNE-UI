@@ -115,7 +115,9 @@ The exporter reads the ComfyUI workflow JSON:
 
 ### 2. Slot Corruption Fix
 
-ComfyUI's pipeline corrupts slot indices to 0. The exporter:
+ComfyUI's pipeline can corrupts slot indices to 0 sometimes.
+This is probably due to ComfyUI not supporting cycles in graphs,
+which are ok in DNNE. To compensate, the exporter:
 1. Reads the original workflow file
 2. Extracts correct slot mappings
 3. Restores proper connections
