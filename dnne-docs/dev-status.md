@@ -4,9 +4,9 @@
 
 ## Latest Achievements (This Week)
 
-### 2025-08-15: Dynamic Color Palette System
-- ✅ Fixed CONFIG link colors (were green, now purple)
-- ✅ Implemented dynamic palette substitution from dnneColors.ts
+### 2025-08-15: UI/UX Improvements
+- ✅ Disabled auto-rewiring when deleting nodes
+- ✅ Fixed CONFIG link colors with dynamic palette system
 - ✅ Removed TYPE_COLOR_MAP duplication
 - ✅ Clean separation between color definitions and type mappings
 

@@ -4,6 +4,13 @@
 
 ## 2025-08-15
 
+### Disabled Auto-Rewiring on Node Deletion
+- ✅ Identified ComfyUI feature that auto-reconnects links when deleting nodes
+- ✅ Found `connectInputToOutput()` call in LiteGraph's `deleteSelected()` method
+- ✅ Changed `Comfy.Node.BypassAllLinksOnDelete` default to false
+- ✅ Commented out `connectInputToOutput()` call to fully disable auto-rewiring
+- ✅ **Result**: Node deletion now properly removes all connections without reconnecting
+
 ### Dynamic Color Palette System Implementation
 - ✅ Identified CONFIG links showing wrong color (green instead of red/purple)
 - ✅ Implemented dynamic color substitution system in frontend
