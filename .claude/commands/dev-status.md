@@ -6,13 +6,21 @@
 - **Coding Guidelines**: `.claude/commands/rules-for-DNNE.md`
 - **Task Tracking**: `dnne_docs/for_claude/tasks/INDEX.md`
 
-## Latest Achievements (2025-01-15)
+## Latest Achievements (2025-01-16)
 
-### @dnne_node Decorator System ✅
+### Dynamic Widget System (IN PROGRESS)
+- ✅ Backend endpoint enhanced to handle widget updates and schema display
+- ✅ Frontend callback system for task and dynamic widget changes
+- ✅ Widget update mechanism for showing/hiding dynamic dropdowns
+- 🔧 Issues found with LiteGraph widget rendering:
+  - Initial widget labels show as "dynamic_1/2/3" on load
+  - Hidden widgets leave gaps (Y positioning not updated)
+  - Need to manually recompute widget positions
+
+### @dnne_node Decorator System ✅  
 - Automatic node registration via decorator
 - Virtual node status enforcement  
 - Auto-discovery of exporters based on naming
-- Template validation (virtual nodes must NOT have templates)
 - All 164 tests passing (100% success)
 
 ## Quick Reference

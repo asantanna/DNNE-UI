@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-15*  
+*Last Updated: 2025-08-16*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
@@ -14,12 +14,15 @@
 | **Server** | 🟢 Complete | 100% - All features done | - | 2025-08-15 |
 | **Export System** | 🟢 Complete | 100% - All issues resolved | - | 2025-08-15 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
-| **Node System** | 🟡 Working | New features planned | Medium | 2025-08-15 |
+| **Node System** | 🟡 Working | Dynamic widgets in progress | High | 2025-08-16 |
 
 ## Active Priority Items
 
 ### High Priority
-None - All high priority items complete!
+1. **Node System**: Fix dynamic widget display issues
+   - Initial widget labels showing as "dynamic_1/2/3"
+   - Widget hiding leaves gaps (Y positioning)
+   - Widget labels not updating to actual names
 
 ### Medium Priority
 1. **Log Window**: Fix streaming logs missing final DNNE stop line
