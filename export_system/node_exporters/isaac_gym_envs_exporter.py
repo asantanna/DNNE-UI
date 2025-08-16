@@ -53,9 +53,11 @@ class IsaacGymEnvsExporter(ExportableNode):
         task_name = params.get('task', 'Cartpole')
         subtask = params.get('subtask', '')
         
-        # Load task configuration to get observation/action sizes
+        # Load task configuration to get observation/action sizes and schemas
         observation_size = None
         action_size = None
+        observation_schema = None
+        action_schema = None
         
         try:
             # Load YAML directly instead of using the processed config
@@ -66,10 +68,14 @@ class IsaacGymEnvsExporter(ExportableNode):
                 with open(task_cfg_path, 'r') as f:
                     task_config = yaml.safe_load(f)
                 
-                # Look for dnne section at the root level
-                if 'dnne' in task_config:
+                # Look for dnne section - check both root level and env level
+                dnne_config = None
+                if 'env' in task_config and 'dnne' in task_config['env']:
+                    dnne_config = task_config['env']['dnne']
+                elif 'dnne' in task_config:
                     dnne_config = task_config['dnne']
-                    
+                
+                if dnne_config:
                     if 'subtasks' in dnne_config:
                         # Get the specific subtask or default
                         if not subtask and 'defaultSubtask' in dnne_config:
@@ -79,6 +85,8 @@ class IsaacGymEnvsExporter(ExportableNode):
                             subtask_config = dnne_config['subtasks'][subtask]
                             observation_size = subtask_config.get('numObservations')
                             action_size = subtask_config.get('numActions')
+                            observation_schema = subtask_config.get('observationSchema')
+                            action_schema = subtask_config.get('actionSchema')
                 
                 # Fallback to env section for sizes
                 if observation_size is None and 'env' in task_config:
@@ -87,7 +95,7 @@ class IsaacGymEnvsExporter(ExportableNode):
                     action_size = task_config['env'].get('numActions')
                 
         except Exception as e:
-            # If we can't load the config, sizes will remain None
+            # If we can't load the config, sizes and schemas will remain None
             pass
         
         # Build schema
@@ -108,6 +116,13 @@ class IsaacGymEnvsExporter(ExportableNode):
         
         if action_size is not None:
             schema["outputs"]["env"]["action_size"] = action_size
+        
+        # Add semantic schemas if available
+        if observation_schema is not None:
+            schema["outputs"]["env"]["observation_schema"] = observation_schema
+        
+        if action_schema is not None:
+            schema["outputs"]["env"]["action_schema"] = action_schema
         
         return schema
     

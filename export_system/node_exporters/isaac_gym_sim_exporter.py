@@ -185,7 +185,7 @@ class IsaacGymSimExporter(ExportableNode):
                     env_schema = env_exporter.get_output_schema(env_config_node, connections, 
                                                                 node_registry, all_nodes, all_links)
                     
-                    # Extract observation size from env schema
+                    # Extract observation size and schema from env schema
                     if 'outputs' in env_schema and 'env' in env_schema['outputs']:
                         env_output = env_schema['outputs']['env']
                         if 'observation_size' in env_output:
@@ -193,6 +193,10 @@ class IsaacGymSimExporter(ExportableNode):
                             schema['outputs']['observation']['flattened_size'] = env_output['observation_size']
                             schema['outputs']['observation']['shape'] = [env_output['observation_size']]
                             del schema['outputs']['observation']['needs_resolution']  # Remove flag
+                        
+                        # Also propagate the observation schema if available
+                        if 'observation_schema' in env_output:
+                            schema['outputs']['observation']['observation_schema'] = env_output['observation_schema']
         
         return schema
     

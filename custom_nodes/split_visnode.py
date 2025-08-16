@@ -18,10 +18,12 @@ class SplitNode(RoboticsNodeBase):
     Modes:
     - by index: Split at specific indices (e.g., "10,20,30" splits at positions 10, 20, 30)
     - by size: Split into chunks of specific sizes (e.g., "10,10,10,10" creates 4 chunks of size 10)
+    - by name: Split using semantic names from upstream schema (e.g., "joint_positions,joint_velocities")
     
     The number of outputs depends on the split_pos specification:
     - For "by index" with N indices: Creates N+1 outputs
     - For "by size" with N non-zero sizes: Creates N outputs
+    - For "by name" with N names: Creates N outputs
     """
     
     CATEGORY = "utility"
@@ -39,13 +41,13 @@ class SplitNode(RoboticsNodeBase):
                     "max": 3,
                     "tooltip": "Dimension along which to split the tensor (0=batch, 1=channels, etc.)"
                 }),
-                "split_mode": (["by index", "by size"], {
+                "split_mode": (["by index", "by size", "by name"], {
                     "default": "by index",
-                    "tooltip": "How to interpret split_pos: as split indices or as chunk sizes"
+                    "tooltip": "How to interpret split_pos: indices, sizes, or semantic names from schema"
                 }),
                 "split_pos": ("STRING", {
                     "default": "10,20,30",
-                    "tooltip": "Comma-separated values. For 'by index': split points. For 'by size': chunk sizes."
+                    "tooltip": "Comma-separated values. 'by index': split points. 'by size': chunk sizes. 'by name': semantic names from schema."
                 }),
             }
         }
