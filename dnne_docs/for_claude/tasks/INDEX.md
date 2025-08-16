@@ -10,28 +10,33 @@
 | **Type System** | 🟢 Complete | 100% - Color system fixed | - | 2025-08-15 |
 | **MCP Integration** | 🟢 Complete | 42 tools implemented | Low | 2025-08-12 |
 | **DNNE Agent** | 🟢 Complete | Fully functional | - | 2025-08-11 |
-| **Log Window** | 🟡 Working | ~95% - Stream end issue | Medium | 2025-08-15 |
-| **Server** | 🟢 Complete | 100% - All features done | - | 2025-08-15 |
+| **Log Viewer** | 🟡 Working | ~95% - Stream end issue | Medium | 2025-08-15 |
+| **Core Infrastructure** | 🟢 Complete | 100% - All features done | - | 2025-08-15 |
 | **Export System** | 🟢 Complete | 100% - All issues resolved | - | 2025-08-15 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
 | **Node System** | 🟡 Working | Dynamic widgets in progress | High | 2025-08-16 |
+| **DNNE Combo Widget** | 🔴 In Development | 0% - Replacing hack with generic | High | 2025-08-16 |
 
 ## Active Priority Items
 
 ### High Priority
-1. **Node System**: Fix dynamic widget display issues
+1. **DNNE Combo Widget**: Replace hardcoded hack with generic system
+   - Create generic callback-based combo widget
+   - Implement WebSocket protocol for widget callbacks
+   - Remove IsaacGymEnvs hardcoding from frontend
+2. **Node System**: Fix dynamic widget display issues
    - Initial widget labels showing as "dynamic_1/2/3"
    - Widget hiding leaves gaps (Y positioning)
    - Widget labels not updating to actual names
 
 ### Medium Priority
-1. **Log Window**: Fix streaming logs missing final DNNE stop line
+1. **Log Viewer**: Fix streaming logs missing final DNNE stop line
 2. **Node System**: Add 'group' widget to Balancer nodes
 3. **Node System**: Create Split node (opposite of Concat)
 
 ### Low Priority
-1. **Log Window**: Fix dropdown clickable when Local selected
-2. **Log Window**: Fix run logs briefly appearing in telemetry view
+1. **Log Viewer**: Fix dropdown clickable when Local selected
+2. **Log Viewer**: Fix run logs briefly appearing in telemetry view
 3. **MCP**: Add util_set_DNNE_log_level and util_set_agent_server_log_level functions
 4. **Node System**: Fix balancing_node → network_node connection color
 5. **Node System**: Rename GeometricLoss output to "loss"
@@ -55,13 +60,18 @@
 - LinearLayer/Network architecture refactored
 - Configuration-based paths implemented
 
-### Log Window (`log_window/TASKS.md`)
+### Log Viewer (`log_viewer/TASKS.md`)
 - Telemetry viewing implemented
 - Minor dropdown behavior issues remain
 
 ### MCP Integration (`MCP/TASKS.md`)
 - All 42 tools implemented and tested
 - Few low-priority utility functions to add
+
+### DNNE Combo Widget (`dnne_combo_widget/TASKS.md`)
+- Generic callback-based widget system
+- WebSocket protocol for widget events
+- Replaces hardcoded IsaacGymEnvs hack
 
 ### DNNE Agent (`dnne_agent/TASKS.md`)
 - Phase 12 complete - fully functional
@@ -70,7 +80,7 @@
 ### Runner Args Dialog (`runner_args_dialog/TASKS.md`)
 - Complete - JSON-driven UI working perfectly
 
-### Server (`server/TASKS.md`)
+### Core Infrastructure (`core_infrastructure/TASKS.md`)
 - All features operational
 - Minor Windows URL display issue
 

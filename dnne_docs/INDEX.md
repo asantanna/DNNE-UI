@@ -35,6 +35,8 @@ None - System is fully operational
 
 ### Architecture
 - [`architecture/`](architecture/) - System design
+  - [`ui_callbacks.md`](architecture/ui_callbacks.md) - WebSocket-based UI widget callback system
+  - [`websocket-not-rest.md`](architecture/websocket-not-rest.md) - WebSocket communication principles
 - [`nodes/`](nodes/) - Node guides
 - [`tasks/`](tasks/) - Task tracking
 

@@ -1,4 +1,4 @@
-# DNNE Server - Task Tracking
+# Core Infrastructure - Task Tracking
 
 *For historical accomplishments, see HISTORY.md*
 

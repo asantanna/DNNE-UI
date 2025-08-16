@@ -1,4 +1,4 @@
-# Log Window Tasks
+# Log Viewer Tasks
 
 *For historical accomplishments, see HISTORY.md*
 
