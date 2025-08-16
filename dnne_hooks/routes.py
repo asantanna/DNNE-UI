@@ -55,8 +55,6 @@ def dnne_add_routes(server_instance, routes):
         trigger_widget = request.rel_url.query.get("trigger_widget", None)
         widget_values_str = request.rel_url.query.get("widget_values", None)
         
-        logging.info(f" get_env_config called with task_name: {task_name}, requesting_node: {requesting_node_type}, trigger: {trigger_widget}")
-        
         if not task_name or task_name == "none":
             logging.warning(f" Invalid task name: {task_name}")
             return web.json_response({"error": "Invalid task name"}, status=400)
@@ -115,16 +113,30 @@ def dnne_add_routes(server_instance, routes):
                 
                 # Always update schema display based on current selections
                 selections = {}
+                
+                # Get schema info to know what levels we need
+                schema_info = IsaacGymEnvsNode.get_task_schema_info(task_name)
+                
                 for key, value in widget_values.items():
                     # Extract selections from dynamic widgets
-                    if key.startswith('dynamic_') and value != 'none':
-                        # Need to map widget to its label - get from widget updates
-                        widget_updates = response.get("widget_updates", {})
-                        if key in widget_updates and 'label' in widget_updates[key]:
-                            selections[widget_updates[key]['label']] = value
-                
+                    if key.startswith('dynamic_'):
+                        # Get the widget index (dynamic_1 -> 0, dynamic_2 -> 1, etc.)
+                        widget_index = int(key.split('_')[1]) - 1
+                        
+                        # Check if this widget corresponds to a schema level
+                        if widget_index < len(schema_info['schema_levels']):
+                            level_name = schema_info['schema_levels'][widget_index]
+                            
+                            # Use the widget value if it's not 'none', otherwise use the default
+                            if value != 'none':
+                                selections[level_name] = value
+                            elif level_name in schema_info['defaults']:
+                                # Use default value if widget is 'none'
+                                selections[level_name] = schema_info['defaults'][level_name]
+
                 # Format schema display
                 response["schema_display"] = IsaacGymEnvsNode.format_schema_display(task_name, selections)
+
             
             logging.info(f" Sending config for task {task_name}: {list(config_dict.keys())}")
             return web.json_response(response)
