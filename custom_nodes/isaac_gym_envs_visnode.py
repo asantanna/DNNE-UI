@@ -218,7 +218,7 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
             "default": "",
             "tooltip": "Current observation and action schema",
             "readonly": True,  # Make it read-only
-            "height": 300,  # Approximate height in pixels
+            "height": 600,  # Doubled height in pixels
         })
         
         return widgets
@@ -326,7 +326,8 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
             if description:
                 lines.append(f"\nDescription: {description}")
         
-        return "\n".join(lines) if lines else "No schema details available"
+        result = "\n".join(lines) if lines else "No schema details available"
+        return result
     
     # Standard node interface
     RETURN_TYPES = ("ISAAC_ENV_CONFIG_PYDICT",)
