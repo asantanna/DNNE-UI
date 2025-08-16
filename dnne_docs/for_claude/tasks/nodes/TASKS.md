@@ -16,26 +16,29 @@
 1. **Hierarchical Schema System Implementation**
    
    **Phase 1: YAML Structure** 
-   - [ ] Update FrankaDNNE.yaml with schema_levels: ["subtask", "controlType"]
-   - [ ] Add subtask_options and controlType_options arrays
-   - [ ] Restructure using nested_schemas hierarchy
-   - [ ] Document schema format in architecture/yaml_schema.md
+   - [x] Update FrankaDNNE.yaml with schema_levels: ["subtask", "controlType"]
+   - [x] Add subtask_options and controlType_options arrays
+   - [x] Restructure using nested_schemas hierarchy
+   - [x] Document schema format in architecture/yaml_schema.md
    
    **Phase 2: Dynamic Widget System**
-   - [ ] Implement dynamic widget creation in IsaacGymEnvs visnode
-   - [ ] Add callbacks for dynamic widgets (subtask, controlType)
-   - [ ] Add schema_display widget (multiline text, always last)
-   - [ ] Implement widget ordering: task → [dynamic] → fixed → schema_display
+   - [x] Implement dynamic widget creation in IsaacGymEnvs visnode
+   - [x] Add callbacks for dynamic widgets (subtask, controlType)
+   - [x] Add schema_display widget (multiline text, always last)
+   - [x] Implement widget ordering: task → [dynamic] → fixed → schema_display
+   
+   **Phase 2.1: Widget Display Issues** (IN PROGRESS)
+   - [ ] Fix initial widget update on workflow load (dynamic_1/2/3 names showing)
+   - [ ] Fix widget hiding without gaps (need to reposition Y coordinates)
+   - [x] Update dynamic widget labels to show actual names (subtask, controlType)
+   - [ ] Ensure schema display updates when selections change
    
    **Phase 3: Index Management**
-   - [ ] Update IsaacGymEnvs exporter to handle dynamic widget indices
-   - [ ] Calculate offsets: num_dynamic = len(schema_levels)
-   - [ ] Update all param_specs with dynamic offsets
-   - [ ] Test widget value extraction with 0, 1, and 2 dynamic widgets
-   
+   - [x] Index management not necessary since we only show/hide widgets
+      
    **Phase 4: Schema Resolution**
-   - [ ] Navigate nested_schemas based on all widget selections
-   - [ ] Update schema display on any widget change
+   - [x] Navigate nested_schemas based on all widget selections
+   - [x] Update schema display on any widget change (backend ready)
    - [ ] Propagate complete schema through graph
    - [ ] Ensure Split node receives observation_schema
    
