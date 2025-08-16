@@ -11,6 +11,47 @@
 
 ## 📋 TODO
 
+### High Priority
+
+1. **Hierarchical Schema System Implementation**
+   
+   **Phase 1: YAML Structure** 
+   - [ ] Update FrankaDNNE.yaml with schema_levels: ["subtask", "controlType"]
+   - [ ] Add subtask_options and controlType_options arrays
+   - [ ] Restructure using nested_schemas hierarchy
+   - [ ] Document schema format in architecture/yaml_schema.md
+   
+   **Phase 2: Dynamic Widget System**
+   - [ ] Implement dynamic widget creation in IsaacGymEnvs visnode
+   - [ ] Add callbacks for dynamic widgets (subtask, controlType)
+   - [ ] Add schema_display widget (multiline text, always last)
+   - [ ] Implement widget ordering: task → [dynamic] → fixed → schema_display
+   
+   **Phase 3: Index Management**
+   - [ ] Update IsaacGymEnvs exporter to handle dynamic widget indices
+   - [ ] Calculate offsets: num_dynamic = len(schema_levels)
+   - [ ] Update all param_specs with dynamic offsets
+   - [ ] Test widget value extraction with 0, 1, and 2 dynamic widgets
+   
+   **Phase 4: Schema Resolution**
+   - [ ] Navigate nested_schemas based on all widget selections
+   - [ ] Update schema display on any widget change
+   - [ ] Propagate complete schema through graph
+   - [ ] Ensure Split node receives observation_schema
+   
+   **Testing Requirements:**
+   - [ ] Test Cartpole with direct schema (no levels)
+   - [ ] Test FrankaDNNE with 2 levels (subtask, controlType)
+   - [ ] Create and test 1-level example
+   - [ ] Verify Split node works with all schema variants
+   - [ ] Test slice notation with new schemas
+   
+   **Acceptance Criteria:**
+   - Dynamic widgets appear/disappear based on task selection
+   - Schema display updates immediately on any change
+   - Split node can use semantic names from any schema type
+   - All existing workflows continue to work
+
 ### Medium Priority
 
 1. **Add 'group' widget to Balancer nodes**
@@ -19,12 +60,13 @@
    - Enable coordination between multiple balancing points
    - Consider other group-based metrics
 
-2. **Create Split node**
-   - Opposite of Concat node
-   - Up to 4 outputs
-   - Widget specifies slices for each output
-   - Example: input[0:10] → output1, input[10:20] → output2
-   - Category: utility
+2. ~~**Create Split node**~~ ✅ COMPLETED
+   - ~~Opposite of Concat node~~
+   - ~~Up to 4 outputs~~
+   - ~~Widget specifies slices for each output~~
+   - ~~Example: input[0:10] → output1, input[10:20] → output2~~
+   - ~~Category: utility~~
+   - **Enhancement added**: "by name" mode with schema support and slice notation
 
 ### Low Priority
 
