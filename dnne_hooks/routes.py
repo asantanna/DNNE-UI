@@ -52,15 +52,19 @@ def dnne_add_routes(server_instance, routes):
         """Get environment-specific configuration and metadata for connected nodes"""
         task_name = request.match_info.get("task_name", None)
         requesting_node_type = request.rel_url.query.get("node_type", None)
-        logging.info(f" get_env_config called with task_name: {task_name}, requesting_node: {requesting_node_type}")
+        trigger_widget = request.rel_url.query.get("trigger_widget", None)
+        widget_values_str = request.rel_url.query.get("widget_values", None)
+        
+        logging.info(f" get_env_config called with task_name: {task_name}, requesting_node: {requesting_node_type}, trigger: {trigger_widget}")
         
         if not task_name or task_name == "none":
             logging.warning(f" Invalid task name: {task_name}")
             return web.json_response({"error": "Invalid task name"}, status=400)
         
         try:
-            # Import the config loader
+            # Import the config loader and IsaacGymEnvsNode
             from custom_nodes.utils.isaac_gym_config_loader import IsaacGymEnvConfigLoader
+            from custom_nodes.isaac_gym_envs_visnode import IsaacGymEnvsNode
             
             # Get singleton instance
             loader = IsaacGymEnvConfigLoader()
@@ -93,6 +97,34 @@ def dnne_add_routes(server_instance, routes):
                 except NotImplementedError:
                     # dt not found, that's ok for some tasks
                     pass
+            
+            # If this is triggered by a widget change, add widget updates and schema display
+            if trigger_widget:
+                # Parse widget values if provided
+                widget_values = {}
+                if widget_values_str:
+                    try:
+                        widget_values = json.loads(widget_values_str)
+                    except json.JSONDecodeError:
+                        logging.warning(f"Failed to parse widget_values: {widget_values_str}")
+                
+                # Get widget updates for dynamic widgets
+                if trigger_widget == 'task':
+                    # Task changed - update dynamic widgets
+                    response["widget_updates"] = IsaacGymEnvsNode.update_widgets_for_task(task_name)
+                
+                # Always update schema display based on current selections
+                selections = {}
+                for key, value in widget_values.items():
+                    # Extract selections from dynamic widgets
+                    if key.startswith('dynamic_') and value != 'none':
+                        # Need to map widget to its label - get from widget updates
+                        widget_updates = response.get("widget_updates", {})
+                        if key in widget_updates and 'label' in widget_updates[key]:
+                            selections[widget_updates[key]['label']] = value
+                
+                # Format schema display
+                response["schema_display"] = IsaacGymEnvsNode.format_schema_display(task_name, selections)
             
             logging.info(f" Sending config for task {task_name}: {list(config_dict.keys())}")
             return web.json_response(response)
