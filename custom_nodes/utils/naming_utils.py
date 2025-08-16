@@ -92,6 +92,7 @@ def visnode_filename_to_node_class(filename: str) -> str:
         'sgd_optimizer': 'SGDOptimizer',
         'ppo_agent': 'PPOAgent',
         'ppo_config': 'PPOConfig',
+        'isaac_gym_envs': 'IsaacGymEnvs',
         'or': 'OR',
     }
     

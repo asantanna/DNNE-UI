@@ -18,7 +18,7 @@ from .utils.isaac_gym_config_loader import IsaacGymEnvConfigLoader as IsaacGymCo
 
 
 @dnne_node(is_virtual=True)
-class IsaacGymEnvs(RoboticsNodeBase):
+class IsaacGymEnvsNode(RoboticsNodeBase):
     """Isaac Gym Environments
     Provides GPU-accelerated physics simulation environments for reinforcement learning."""
     
@@ -173,7 +173,7 @@ class IsaacGymEnvs(RoboticsNodeBase):
 
 # Node registration
 NODE_CLASS_MAPPINGS = {
-    "IsaacGymEnvs": IsaacGymEnvs
+    "IsaacGymEnvs": IsaacGymEnvsNode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {

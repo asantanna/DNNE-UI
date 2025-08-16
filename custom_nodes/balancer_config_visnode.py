@@ -10,7 +10,7 @@ from custom_nodes.utils.dnne_decorator import dnne_node
 
 
 @dnne_node(is_virtual=True)
-class BalancerConfig(RoboticsNodeBase):
+class BalancerConfigNode(RoboticsNodeBase):
     """
     Balancer Configuration Node (Virtual)
     
@@ -103,7 +103,7 @@ class BalancerConfig(RoboticsNodeBase):
 
 # Node registration
 NODE_CLASS_MAPPINGS = {
-    "BalancerConfig": BalancerConfig
+    "BalancerConfig": BalancerConfigNode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {

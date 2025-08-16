@@ -10,7 +10,7 @@ from custom_nodes.utils.dnne_decorator import dnne_node
 
 
 @dnne_node(is_virtual=False)
-class PPOAgent(RoboticsNodeBase):
+class PPOAgentNode(RoboticsNodeBase):
     """PPO Agent
     Complete Proximal Policy Optimization agent implementation for reinforcement learning."""
     
@@ -82,7 +82,7 @@ class PPOAgent(RoboticsNodeBase):
 
 # Node registration
 NODE_CLASS_MAPPINGS = {
-    "PPOAgent": PPOAgent
+    "PPOAgent": PPOAgentNode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {

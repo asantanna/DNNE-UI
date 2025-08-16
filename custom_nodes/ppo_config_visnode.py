@@ -10,7 +10,7 @@ from custom_nodes.utils.dnne_decorator import dnne_node
 
 
 @dnne_node(is_virtual=True)
-class PPOConfig(RoboticsNodeBase):
+class PPOConfigNode(RoboticsNodeBase):
     """PPO Config
     Configuration node for Proximal Policy Optimization algorithm parameters."""
     
@@ -167,7 +167,7 @@ class PPOConfig(RoboticsNodeBase):
 
 # Node registration
 NODE_CLASS_MAPPINGS = {
-    "PPOConfig": PPOConfig
+    "PPOConfig": PPOConfigNode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
