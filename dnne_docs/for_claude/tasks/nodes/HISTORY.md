@@ -34,7 +34,7 @@
 ### RL Integration ✅
 - PPO Agent node
 - PPO Config node
-- BalancingConfig (virtual)
+- BalancerConfig (virtual)
 - Isaac Gym environment support
 
 ### Robotics Nodes ✅

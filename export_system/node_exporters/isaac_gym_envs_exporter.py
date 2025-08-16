@@ -112,42 +112,19 @@ class IsaacGymEnvsExporter(ExportableNode):
         return schema
     
     @classmethod
-    def _extract_env_config(cls, target_node_id, all_nodes, all_links):
-        """Extract environment configuration from connected IsaacGymEnvs node.
+    def get_env_config(cls, node_id, node_data):
+        """Query method to get environment configuration from this virtual node.
         
-        This method is used by other exporters (PPOAgent, IsaacGymSim) to get
-        environment configuration from a connected IsaacGymEnvs node.
+        This method is called by non-virtual nodes (like PPOAgent, IsaacGymSim) to retrieve
+        environment configuration without directly accessing this node's widgets.
+        
+        Args:
+            node_id: The ID of this IsaacGymEnvs node
+            node_data: The node data dictionary containing widget values
+            
+        Returns:
+            Dictionary with environment configuration parameters
         """
-        if not all_links or not all_nodes:
-            return None
-            
-        # Find the env input connection to the target node
-        env_node_id = None
-        for link in all_links:
-            if len(link) >= 5:
-                to_node, to_slot = str(link[3]), link[4]
-                if to_node == target_node_id and to_slot == 0:  # env input is typically slot 0
-                    env_node_id = str(link[1])
-                    break
-        
-        if not env_node_id:
-            return None
-            
-        # Find the node data
-        env_node_data = None
-        for node in all_nodes:
-            if str(node["id"]) == env_node_id:
-                env_node_data = node
-                break
-                
-        if not env_node_data:
-            return None
-            
-        # Check if it's an IsaacGymEnvs node
-        node_type = env_node_data.get("class_type") or env_node_data.get("type")
-        if node_type != "IsaacGymEnvs":
-            return None
-            
         # Use parameter specs to extract values
         param_specs = [
             {'name': 'task', 'widget_index': 0},
@@ -170,7 +147,7 @@ class IsaacGymEnvsExporter(ExportableNode):
         ]
         
         # Get parameters using the helper
-        params = cls.get_node_parameters_batch(env_node_data, param_specs)
+        params = cls.get_node_parameters_batch(node_data, param_specs)
         
         # Validate required parameters are present
         required_params = ['task', 'num_envs', 'seed', 'seed_control', 'headless',
@@ -179,7 +156,7 @@ class IsaacGymEnvsExporter(ExportableNode):
         missing_params = [p for p in required_params if params.get(p) is None]
         if missing_params:
             raise ValueError(
-                f"IsaacGymEnvs node {env_node_id} missing required parameters: {missing_params}. "
+                f"IsaacGymEnvs node {node_id} missing required parameters: {missing_params}. "
                 f"This may indicate the UI is not sending widget values correctly."
             )
         

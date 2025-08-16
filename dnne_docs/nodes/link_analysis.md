@@ -54,14 +54,14 @@
   - Used in: CIFAR10_Test, MNIST_Test, Yield_Test, Yield_Test_Async
 - **SGDOptimizer.optimizer** (SGD_OPTIMIZER_OBJ) → **TrainingStep.optimizer** (*OPTIMIZER)
   - Used in: CIFAR10_Test, MNIST_Test, Yield_Test, Yield_Test_Async
-- **TrainingStep.ready** (TRAIN_STEP_DONE_TRIGGER) → **BalancingNode.input** (*)
+- **TrainingStep.ready** (TRAIN_STEP_DONE_TRIGGER) → **BalancerNode.input** (*)
   - Used in: CIFAR10_Test, Yield_Test
-- **TrainingStep.trigger** (TRAIN_STEP_TRIGGER) → **BalancingNode.input** (*)
+- **TrainingStep.trigger** (TRAIN_STEP_TRIGGER) → **BalancerNode.input** (*)
   - Used in: Yield_Test_Async
 
 ### Control Flow
 
-- **BalancingNode.output** (*) → **GetBatch.trigger** (*TRIGGER)
+- **BalancerNode.output** (*) → **GetBatch.trigger** (*TRIGGER)
   - Used in: CIFAR10_Test, Yield_Test, Yield_Test_Async
 - **IsaacGymSim.done** (SIM_DONE_TRIGGER) → **DataStreamer.reset** (*TRIGGER)
   - Used in: Franka_Minimal_Test
@@ -70,7 +70,7 @@
 
 ### Config Connections
 
-- **BalancingConfig.config** (BALANCING_CONFIG) → **PPOAgent.balancing_config** (BALANCING_CONFIG)
+- **BalancerConfig.config** (BALANCING_CONFIG) → **PPOAgent.balancing_config** (BALANCING_CONFIG)
   - Used in: Cartpole_PPO, Yield_Test
 - **IsaacGymEnvs.env** (ISAAC_ENV_CONFIG) → **IsaacGymSim.env_config** (ISAAC_ENV_CONFIG)
   - Used in: Franka_Coop_Nodes, Franka_Minimal_Test

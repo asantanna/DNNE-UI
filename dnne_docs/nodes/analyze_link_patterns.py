@@ -164,8 +164,8 @@ def suggest_type_with_format(type_name: str, slot_name: str = "", node_type: str
         elif slot_name == "optimizer" and not is_output:
             return "*OPTIMIZER"
     
-    # BalancingNode
-    if node_type == "BalancingNode":
+    # BalancerNode
+    if node_type == "BalancerNode":
         if slot_name == "input":
             return "*"  # Accepts anything
         elif slot_name == "output":

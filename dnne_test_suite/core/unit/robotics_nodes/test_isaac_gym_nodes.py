@@ -51,15 +51,6 @@ def test_isaac_gym_env_node_structure():
 
 
 @pytest.mark.robotics
-@pytest.mark.isaac_gym  
-@pytest.mark.timeout(30)
-@pytest.mark.skip(reason="IsaacGymStepNode not implemented in flat structure")
-def test_isaac_gym_step_node_structure():
-    """Test IsaacGymStepNode basic structure."""
-    pass  # Node not implemented in flat structure
-
-
-@pytest.mark.robotics
 @pytest.mark.timeout(30)
 def test_or_node_structure():
     """Test OR node basic structure."""

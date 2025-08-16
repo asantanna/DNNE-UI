@@ -13,7 +13,7 @@
 
 ### Medium Priority
 
-1. **Add 'group' widget to Balancing nodes**
+1. **Add 'group' widget to Balancer nodes**
    - Add string widget for group identification
    - Nodes in same group can enforce percent-based execution rates
    - Enable coordination between multiple balancing points

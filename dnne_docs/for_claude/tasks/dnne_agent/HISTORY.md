@@ -97,8 +97,8 @@
 
 ### 4.1 Export System Fixes
 - Fix missing telemetry.py module in export system
-- Fix BalancingNode output_queues AttributeError
-- Fix variable scope issue in BalancingNode violation reporting
+- Fix BalancerNode output_queues AttributeError
+- Fix variable scope issue in BalancerNode violation reporting
 - Fix path normalization for cross-platform deployment (Windows → Linux)
 
 ### 4.2 Telemetry Control

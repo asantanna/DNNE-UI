@@ -64,7 +64,7 @@ return config["learning_rate"]
 
 ### 3a. Virtual Node Pattern
 **CRITICAL**: PPOAgent and IsaacGymSim use virtual nodes for configuration
-- **Virtual Nodes**: Nodes with `IS_VIRTUAL=True` (PPOConfig, IsaacGymEnvs, BalancingConfig)
+- **Virtual Nodes**: Nodes with `IS_VIRTUAL=True` (PPOConfig, IsaacGymEnvs, BalancerConfig)
 - **Config Extraction**: Non-virtual nodes extract config from connected virtual nodes via links
 - **NO BACKWARDS COMPATIBILITY**: Old workflows missing parameters must fail
 ```python

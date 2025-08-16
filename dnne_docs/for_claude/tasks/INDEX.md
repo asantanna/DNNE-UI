@@ -23,7 +23,7 @@ None - All high priority items complete!
 
 ### Medium Priority
 1. **Log Window**: Fix streaming logs missing final DNNE stop line
-2. **Node System**: Add 'group' widget to Balancing nodes
+2. **Node System**: Add 'group' widget to Balancer nodes
 3. **Node System**: Create Split node (opposite of Concat)
 
 ### Low Priority

@@ -7,10 +7,10 @@ General utility nodes for workflow control and configuration in DNNE.
 ### [ORNode](or_node.md)
 Logical OR operation for conditional workflow control.
 
-### [BalancingConfig](balancing_config.md)
+### [BalancerConfig](balancing_config.md)
 Configuration node for balancing task parameters.
 
-### [BalancingNode](balancing_node.md)
+### [BalancerNode](balancing_node.md)
 Control logic for balancing tasks and simulations.
 
 ## Overview
@@ -29,11 +29,11 @@ Utility nodes provide essential workflow control and configuration capabilities 
 - Future: AND, NOT, XOR nodes
 
 ### Configuration Nodes
-- **BalancingConfig**: Parameters for balance control tasks
+- **BalancerConfig**: Parameters for balance control tasks
 - Task-specific configuration management
 
 ### Control Nodes
-- **BalancingNode**: Implements balancing control algorithms
+- **BalancerNode**: Implements balancing control algorithms
 - Task execution and monitoring
 
 ## Common Use Cases
@@ -51,7 +51,7 @@ Configuration nodes:
 - Support configuration reuse
 
 ### Control Algorithms
-Control nodes like BalancingNode:
+Control nodes like BalancerNode:
 - Implement domain-specific algorithms
 - Bridge between RL agents and environments
 - Provide reference implementations
@@ -60,16 +60,16 @@ Control nodes like BalancingNode:
 
 ### With ML Nodes
 ```
-BalancingConfig → parameters
+BalancerConfig → parameters
         ↓
-  BalancingNode → control_signal
+  BalancerNode → control_signal
         ↓
    Environment
 ```
 
 ### With RL Nodes
 ```
-PPOConfig + BalancingConfig → combined_config
+PPOConfig + BalancerConfig → combined_config
               ↓
           PPOAgent
 ```

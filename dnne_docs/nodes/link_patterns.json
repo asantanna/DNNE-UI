@@ -64,8 +64,8 @@
           ]
         },
         "10": {
-          "type": "BalancingNode",
-          "title": "Balancing Node (10)",
+          "type": "BalancerNode",
+          "title": "Balancer Node (10)",
           "inputs": {
             "input": {
               "type": "*",
@@ -744,7 +744,7 @@
           },
           "target": {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_index": 0,
             "slot_name": "input",
             "type": "*"
@@ -754,7 +754,7 @@
           "link_id": 17,
           "source": {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_index": 0,
             "slot_name": "output",
             "type": "SYNC"
@@ -915,67 +915,67 @@
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "item_name",
             "slot_type": "STRING"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "enabled",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "min_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "max_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "target_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "target_percentage",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "priority",
             "slot_type": "INT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "guaranteed",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "max_latency_ms",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "window_size",
             "slot_type": "INT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "log_violations",
             "slot_type": "BOOLEAN"
           },
@@ -2922,8 +2922,8 @@
           ]
         },
         "10": {
-          "type": "BalancingNode",
-          "title": "MNIST Balancing (10)",
+          "type": "BalancerNode",
+          "title": "MNIST Balancer (10)",
           "inputs": {
             "input": {
               "type": "*",
@@ -3261,8 +3261,8 @@
           ]
         },
         "21": {
-          "type": "BalancingNode",
-          "title": "CIFAR Balancing (21)",
+          "type": "BalancerNode",
+          "title": "CIFAR Balancer (21)",
           "inputs": {
             "input": {
               "type": "*",
@@ -4004,7 +4004,7 @@
           },
           "target": {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_index": 0,
             "slot_name": "input",
             "type": "*"
@@ -4014,7 +4014,7 @@
           "link_id": 30,
           "source": {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_index": 0,
             "slot_name": "output",
             "type": "SYNC"
@@ -4218,7 +4218,7 @@
           "link_id": 40,
           "source": {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_index": 0,
             "slot_name": "output",
             "type": "SYNC"
@@ -4276,7 +4276,7 @@
           },
           "target": {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_index": 0,
             "slot_name": "input",
             "type": "*"
@@ -4485,67 +4485,67 @@
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "item_name",
             "slot_type": "STRING"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "enabled",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "min_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "max_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "target_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "target_percentage",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "priority",
             "slot_type": "INT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "guaranteed",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "max_latency_ms",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "window_size",
             "slot_type": "INT"
           },
           {
             "node_id": 10,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "log_violations",
             "slot_type": "BOOLEAN"
           },
@@ -4647,67 +4647,67 @@
           },
           {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "item_name",
             "slot_type": "STRING"
           },
           {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "enabled",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "min_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "max_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "target_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "target_percentage",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "priority",
             "slot_type": "INT"
           },
           {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "guaranteed",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "max_latency_ms",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "window_size",
             "slot_type": "INT"
           },
           {
             "node_id": 21,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "log_violations",
             "slot_type": "BOOLEAN"
           },
@@ -5197,8 +5197,8 @@
           "connected_outputs": []
         },
         "14": {
-          "type": "BalancingConfig",
-          "title": "Balancing Config (14)",
+          "type": "BalancerConfig",
+          "title": "Balancer Config (14)",
           "inputs": {
             "enabled": {
               "type": "BOOLEAN",
@@ -5295,7 +5295,7 @@
           "link_id": 18,
           "source": {
             "node_id": 14,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_index": 0,
             "slot_name": "config",
             "type": "BALANCING_CONFIG"
@@ -5571,49 +5571,49 @@
           },
           {
             "node_id": 14,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "enabled",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 14,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "min_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 14,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "max_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 14,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "target_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 14,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "target_percentage",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 14,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "priority",
             "slot_type": "INT"
           },
           {
             "node_id": 14,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "guaranteed",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 14,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "max_latency_ms",
             "slot_type": "FLOAT"
           }
@@ -6488,8 +6488,8 @@
           "connected_outputs": []
         },
         "67": {
-          "type": "BalancingNode",
-          "title": "Balancing Node (67)",
+          "type": "BalancerNode",
+          "title": "Balancer Node (67)",
           "inputs": {
             "input": {
               "type": "*",
@@ -7030,8 +7030,8 @@
           ]
         },
         "65": {
-          "type": "BalancingConfig",
-          "title": "Balancing Config (65)",
+          "type": "BalancerConfig",
+          "title": "Balancer Config (65)",
           "inputs": {
             "enabled": {
               "type": "BOOLEAN",
@@ -7392,7 +7392,7 @@
           },
           "target": {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_index": 0,
             "slot_name": "input",
             "type": "*"
@@ -7402,7 +7402,7 @@
           "link_id": 133,
           "source": {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_index": 0,
             "slot_name": "output",
             "type": "SYNC"
@@ -7555,7 +7555,7 @@
           "link_id": 143,
           "source": {
             "node_id": 65,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_index": 0,
             "slot_name": "config",
             "type": "BALANCING_CONFIG"
@@ -7687,67 +7687,67 @@
           },
           {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "item_name",
             "slot_type": "STRING"
           },
           {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "enabled",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "min_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "max_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "target_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "target_percentage",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "priority",
             "slot_type": "INT"
           },
           {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "guaranteed",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "max_latency_ms",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "window_size",
             "slot_type": "INT"
           },
           {
             "node_id": 67,
-            "node_type": "BalancingNode",
+            "node_type": "BalancerNode",
             "slot_name": "log_violations",
             "slot_type": "BOOLEAN"
           },
@@ -8017,49 +8017,49 @@
           },
           {
             "node_id": 65,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "enabled",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 65,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "min_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 65,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "max_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 65,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "target_hz",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 65,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "target_percentage",
             "slot_type": "FLOAT"
           },
           {
             "node_id": 65,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "priority",
             "slot_type": "INT"
           },
           {
             "node_id": 65,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "guaranteed",
             "slot_type": "BOOLEAN"
           },
           {
             "node_id": 65,
-            "node_type": "BalancingConfig",
+            "node_type": "BalancerConfig",
             "slot_name": "max_latency_ms",
             "slot_type": "FLOAT"
           },

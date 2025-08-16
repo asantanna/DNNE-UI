@@ -94,7 +94,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # IsaacGymEnvs path
         self.isaac_gym_envs_path = "{ISAAC_GYM_ENVS_PATH}"
         
-        # Balancing configuration
+        # Balancer configuration
         self.has_balancing_config = {HAS_BALANCING_CONFIG}
         if self.has_balancing_config:
             self.balancing_config = {{

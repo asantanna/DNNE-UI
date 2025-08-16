@@ -31,7 +31,7 @@ NODE_COLORS = {
         "bgcolor": "#535"
     },
     
-    # PALE BLUE: Utility nodes (IsaacGymEnvs, PPOConfig, OR, CustomComputation, BalancingNode, BalancingConfig)
+    # PALE BLUE: Utility nodes (IsaacGymEnvs, PPOConfig, OR, CustomComputation, BalancerNode, BalancerConfig)
     "utility": {
         "color": "#334455",
         "bgcolor": "#556677"

@@ -120,7 +120,7 @@ All nodes are implemented in `custom_nodes/` directory with `*_visnode.py` namin
 
 #### Utility Nodes (Category: "utility")
 - **Logic Nodes**: OR node for conditional logic
-- **Configuration**: Balancing config and control nodes
+- **Configuration**: Balancer config and control nodes
 
 ### Export System Architecture (`export_system/`)
 

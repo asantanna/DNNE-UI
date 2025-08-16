@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Centralized Metrics Logger for DNNE Balancing System
+Centralized Metrics Logger for DNNE Balancer System
 Collects and logs performance metrics from all balancing nodes
 """
 

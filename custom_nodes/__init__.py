@@ -68,8 +68,6 @@ for key, node_class in NODE_CLASS_MAPPINGS.items():
 # Special aliases for tests that expect specific names
 if 'IsaacGymEnvs' in NODE_CLASS_MAPPINGS:
     globals()['IsaacGymEnvNode'] = NODE_CLASS_MAPPINGS['IsaacGymEnvs']
-if 'IsaacGymStep' in NODE_CLASS_MAPPINGS:
-    globals()['IsaacGymStepNode'] = NODE_CLASS_MAPPINGS['IsaacGymStep']
 
 # ISAAC_GYM_AVAILABLE flag for tests
 try:

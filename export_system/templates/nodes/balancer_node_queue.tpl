@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Balancing Node - Active passthrough node with performance monitoring
+Balancer Node - Active passthrough node with performance monitoring
 """
 
 import torch
@@ -15,7 +15,7 @@ from framework import telemetry
 # Template variables
 template_vars = {
     "NODE_ID": "balancing_1",
-    "CLASS_NAME": "BalancingNode",
+    "CLASS_NAME": "BalancerNode",
     "ITEM_NAME": "items",
     "ENABLED": True,
     "MIN_HZ": -1.0,
@@ -31,7 +31,7 @@ template_vars = {
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """
-    Balancing Node that measures and enforces performance targets
+    Balancer Node that measures and enforces performance targets
     while forwarding data unchanged
     """
     
@@ -104,7 +104,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Register with metrics logger (fail-fast if not available)
         from framework.metrics_logger import get_metrics_logger
         logger = get_metrics_logger()
-        logger.register_node(self.node_id, f"BalancingNode_{self.node_id}", config)
+        logger.register_node(self.node_id, f"BalancerNode_{self.node_id}", config)
         
         # Always register with Global balancing system to track throughput
         # TODO: The subgraph name should be determined from workflow connections
@@ -163,9 +163,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         logger = get_metrics_logger()
         
         # Record current metrics
-        logger.record_metric(self.node_id, f"BalancingNode_{self.node_id}", "frequency", 
+        logger.record_metric(self.node_id, f"BalancerNode_{self.node_id}", "frequency", 
                            self.current_frequency)
-        logger.record_metric(self.node_id, f"BalancingNode_{self.node_id}", "latency", 
+        logger.record_metric(self.node_id, f"BalancerNode_{self.node_id}", "latency", 
                            self.current_latency)
         
         # Check violations
@@ -182,7 +182,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Always record violations in metrics logger for persistence
         for v in violations:
             logger.record_violation(
-                self.node_id, f"BalancingNode_{self.node_id}",
+                self.node_id, f"BalancerNode_{self.node_id}",
                 v["type"], v["expected"], v["actual"], False  # guaranteed param still needed for metrics logger
             )
         
@@ -247,7 +247,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if current_time - self.last_violation_log > self.violation_log_interval:
             # Dump accumulated violations
             if self.violations:
-                self.node_logger.warning(f"⚠️  Balancing Node {self.node_id} - {len(self.violations)} violations in last {self.violation_log_interval}s:")
+                self.node_logger.warning(f"⚠️  Balancer Node {self.node_id} - {len(self.violations)} violations in last {self.violation_log_interval}s:")
                 
                 # Group violations by type
                 by_type = {}
@@ -276,7 +276,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     def _report_metrics(self):
         """Report metrics summary"""
         uptime = time.time() - self.start_time
-        self.node_logger.info(f"📊 Balancing Node {self.node_id} Metrics:")
+        self.node_logger.info(f"📊 Balancer Node {self.node_id} Metrics:")
         self.node_logger.info(f"  - Executions: {self.execution_count}")
         self.node_logger.info(f"  - Average frequency: {self.average_frequency:.1f} Hz")
         self.node_logger.info(f"  - Current frequency: {self.current_frequency:.1f} Hz")

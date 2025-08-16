@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from dnne_config import get_isaac_gym_envs_path
 
 from ..graph_exporter import ExportableNode
-from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
+from ..utils import export_utils
 
 class PPOAgentExporter(ExportableNode):
     """Exporter for PPO Agent node - the main RL training node"""
@@ -49,10 +49,10 @@ class PPOAgentExporter(ExportableNode):
                 f"The UI must provide all training control parameters."
             )
         
-        # Extract configuration from connected virtual nodes
-        env_config = IsaacGymEnvsExporter._extract_env_config(node_id, all_nodes, all_links)
-        ppo_config = cls._extract_ppo_config(node_id, all_nodes, all_links)
-        balancing_config = cls._extract_balancing_config(node_id, all_nodes, all_links)
+        # Extract configuration from connected virtual nodes using proper query methods
+        env_config = cls._get_env_config_via_query(node_id, all_nodes, all_links)
+        ppo_config = cls._get_ppo_config_via_query(node_id, all_nodes, all_links)
+        balancing_config = cls._get_balancing_config_via_query(node_id, all_nodes, all_links)
         
         # Load task-specific configuration from YAML if we have a task
         task_ppo_config = {}
@@ -235,192 +235,184 @@ class PPOAgentExporter(ExportableNode):
         return ["env_config", "ppo_config", "balancing_config"]
     
     @classmethod
-    def _extract_ppo_config(cls, ppo_node_id, all_nodes, all_links):
-        """Extract PPO configuration from connected PPOConfig virtual node"""
-        if not all_links or not all_nodes:
-            return None
-            
-        # Find the config input connection (slot 1)
-        config_node_id = None
-        for link in all_links:
-            if len(link) >= 5:
-                to_node, to_slot = str(link[3]), link[4]
-                if to_node == ppo_node_id and to_slot == 1:  # config input
-                    config_node_id = str(link[1])
-                    break
+    def _get_ppo_config_via_query(cls, ppo_node_id, all_nodes, all_links):
+        """Get PPO configuration from connected PPOConfig virtual node using query method.
         
-        if not config_node_id:
-            return None
-            
-        # Find the node data
-        config_node_data = None
-        for node in all_nodes:
-            if str(node["id"]) == config_node_id:
-                config_node_data = node
-                break
+        This method respects widget encapsulation by calling the PPOConfig exporter's
+        query method instead of directly accessing its widgets.
+        """
+        # Set export context so export_utils can work
+        export_utils.set_export_context({
+            'nodes': all_nodes,
+            'links': all_links,
+            'node_registry': cls._get_node_registry()
+        })
+        
+        try:
+            if not all_links or not all_nodes:
+                return None
                 
-        if not config_node_data:
-            return None
+            # Find the config input connection (slot 1)
+            config_node_id = None
+            for link in all_links:
+                if len(link) >= 5:
+                    to_node, to_slot = str(link[3]), link[4]
+                    if to_node == ppo_node_id and to_slot == 1:  # config input
+                        config_node_id = str(link[1])
+                        break
             
-        # Check if it's a PPOConfig node
-        node_type = config_node_data.get("class_type") or config_node_data.get("type")
-        if node_type != "PPOConfig":
-            return None
+            if not config_node_id:
+                return None
+                
+            # Find the node data
+            config_node_data = export_utils.get_node_by_id(config_node_id)
+            if not config_node_data:
+                return None
+                
+            # Check if it's a PPOConfig node
+            node_type = config_node_data.get("class_type") or config_node_data.get("type")
+            if node_type != "PPOConfig":
+                return None
+                
+            # Get the PPOConfig exporter and call its query method
+            ppo_config_exporter = export_utils.get_node_exporter("PPOConfig")
+            if not ppo_config_exporter or not hasattr(ppo_config_exporter, 'get_ppo_config'):
+                raise ValueError(
+                    f"PPOConfig exporter missing get_ppo_config() query method. "
+                    f"This indicates an incomplete virtual node implementation."
+                )
             
-        # Use parameter specs matching PPOConfig INPUT_TYPES order
-        param_specs = [
-            {'name': 'learning_rate', 'widget_index': 0},
-            {'name': 'num_epochs', 'widget_index': 1},  # maps to mini_epochs
-            {'name': 'minibatch_size', 'widget_index': 2},
-            {'name': 'clip_param', 'widget_index': 3},  # maps to e_clip
-            {'name': 'value_loss_coef', 'widget_index': 4},  # maps to critic_coef
-            {'name': 'entropy_coef', 'widget_index': 5},
-            {'name': 'gamma', 'widget_index': 6},
-            {'name': 'gae_lambda', 'widget_index': 7},  # maps to tau
-            {'name': 'max_grad_norm', 'widget_index': 8},  # maps to grad_norm
-            {'name': 'horizon_length', 'widget_index': 9},
-            {'name': 'max_iterations', 'widget_index': 10},  # maps to max_epochs
-            {'name': 'lr_schedule', 'widget_index': 11},  # maps to schedule_type
-            {'name': 'lr_schedule_kl_threshold', 'widget_index': 12},
-            {'name': 'use_clipped_value_loss', 'widget_index': 13},  # maps to clip_value
-            {'name': 'normalize_advantage', 'widget_index': 14},
-            {'name': 'normalize_input', 'widget_index': 15},
-            {'name': 'normalize_value', 'widget_index': 16},
-            {'name': 'reward_shaper_scale', 'widget_index': 17},  # not used but in node
-            {'name': 'e_clip', 'widget_index': 18},  # duplicate param
-            {'name': 'truncate_grads', 'widget_index': 19},  # not used
-            {'name': 'bounds_loss_coef', 'widget_index': 20},
-        ]
-        
-        # Get parameters using the helper that checks both inputs and widgets_values
-        raw_params = cls.get_node_parameters_batch(config_node_data, param_specs)
-        
-        # Validate required parameters are present
-        required_params = [
-            'learning_rate', 'num_epochs', 'minibatch_size', 'clip_param',
-            'value_loss_coef', 'entropy_coef', 'gamma', 'gae_lambda',
-            'max_grad_norm', 'horizon_length', 'max_iterations', 'lr_schedule',
-            'lr_schedule_kl_threshold', 'use_clipped_value_loss', 'normalize_advantage',
-            'normalize_input', 'normalize_value', 'bounds_loss_coef'
-        ]
-        missing_params = [p for p in required_params if raw_params.get(p) is None]
-        if missing_params:
-            raise ValueError(
-                f"PPOConfig node {config_node_id} missing required parameters: {missing_params}. "
-                f"This may indicate the UI is not sending widget values correctly."
-            )
-        
-        # Map to the expected output format
-        return {
-            'learning_rate': raw_params['learning_rate'],
-            'mini_epochs': raw_params['num_epochs'],
-            'minibatch_size': raw_params['minibatch_size'],
-            'e_clip': raw_params['clip_param'],
-            'critic_coef': raw_params['value_loss_coef'],
-            'entropy_coef': raw_params['entropy_coef'],
-            'gamma': raw_params['gamma'],
-            'tau': raw_params['gae_lambda'],
-            'grad_norm': raw_params['max_grad_norm'],
-            'horizon_length': raw_params['horizon_length'],
-            'max_epochs': raw_params['max_iterations'],
-            'schedule_type': raw_params['lr_schedule'],
-            'lr_schedule_kl_threshold': raw_params['lr_schedule_kl_threshold'],
-            'clip_value': raw_params['use_clipped_value_loss'],
-            'normalize_advantage': raw_params['normalize_advantage'],
-            'normalize_input': raw_params['normalize_input'],
-            'normalize_value': raw_params['normalize_value'],
-            'bounds_loss_coef': raw_params['bounds_loss_coef'],
-        }
+            # Call the query method to get configuration
+            return ppo_config_exporter.get_ppo_config(config_node_id, config_node_data)
+            
+        finally:
+            # Clear context after use
+            export_utils.clear_export_context()
     
     @classmethod
-    def _extract_balancing_config(cls, ppo_node_id, all_nodes, all_links):
-        """Extract balancing configuration from connected BalancingConfig virtual node"""
-        if not all_links or not all_nodes:
-            return None
-            
-        # Find balancing_config input connection (in optional inputs)
-        # PPO Agent has env (slot 0), config (slot 1), and balancing_config (slot 2)
-        balancing_node_id = None
-        for link in all_links:
-            if len(link) >= 5:
-                to_node, to_slot = str(link[3]), link[4]
-                if to_node == ppo_node_id and to_slot == 2:  # balancing_config input
-                    balancing_node_id = str(link[1])
-                    break
+    def _get_env_config_via_query(cls, ppo_node_id, all_nodes, all_links):
+        """Get environment configuration from connected IsaacGymEnvs virtual node using query method.
         
-        if not balancing_node_id:
-            return None
-            
-        # Find the node data
-        balancing_node_data = None
-        for node in all_nodes:
-            if str(node["id"]) == balancing_node_id:
-                balancing_node_data = node
-                break
+        This method respects widget encapsulation by calling the IsaacGymEnvs exporter's
+        query method instead of directly accessing its widgets.
+        """
+        # Set export context so export_utils can work
+        export_utils.set_export_context({
+            'nodes': all_nodes,
+            'links': all_links,
+            'node_registry': cls._get_node_registry()
+        })
+        
+        try:
+            if not all_links or not all_nodes:
+                return None
                 
-        if not balancing_node_data:
-            return None
+            # Find the env input connection (slot 0)
+            env_node_id = None
+            for link in all_links:
+                if len(link) >= 5:
+                    to_node, to_slot = str(link[3]), link[4]
+                    if to_node == ppo_node_id and to_slot == 0:  # env input
+                        env_node_id = str(link[1])
+                        break
             
-        # Check if it's a BalancingConfig node
-        node_type = balancing_node_data.get("class_type") or balancing_node_data.get("type")
-        if node_type != "BalancingConfig":
-            return None
+            if not env_node_id:
+                return None
+                
+            # Find the node data
+            env_node_data = export_utils.get_node_by_id(env_node_id)
+            if not env_node_data:
+                return None
+                
+            # Check if it's an IsaacGymEnvs node
+            node_type = env_node_data.get("class_type") or env_node_data.get("type")
+            if node_type != "IsaacGymEnvs":
+                return None
+                
+            # Get the IsaacGymEnvs exporter and call its query method
+            env_exporter = export_utils.get_node_exporter("IsaacGymEnvs")
+            if not env_exporter or not hasattr(env_exporter, 'get_env_config'):
+                raise ValueError(
+                    f"IsaacGymEnvs exporter missing get_env_config() query method. "
+                    f"This indicates an incomplete virtual node implementation."
+                )
             
-        # Use parameter specs matching BalancingConfig INPUT_TYPES order
-        param_specs = [
-            {'name': 'enabled', 'widget_index': 0},
-            {'name': 'min_hz', 'widget_index': 1},
-            {'name': 'max_hz', 'widget_index': 2},
-            {'name': 'target_hz', 'widget_index': 3},
-            {'name': 'target_percentage', 'widget_index': 4},
-            {'name': 'priority', 'widget_index': 5},
-            {'name': 'guaranteed', 'widget_index': 6},
-            {'name': 'max_latency_ms', 'widget_index': 7},
-        ]
-        
-        # Get parameters using the helper that checks both inputs and widgets_values
-        params = cls.get_node_parameters_batch(balancing_node_data, param_specs)
-        
-        # Check if config is enabled
-        enabled = params.get('enabled')
-        if enabled is None:
-            raise ValueError(
-                f"BalancingConfig node {balancing_node_id} missing 'enabled' parameter. "
-                f"This may indicate the UI is not sending widget values correctly."
-            )
-        
-        if not enabled:
-            return {"enabled": False, "type": "balancing_config"}
+            # Call the query method to get configuration
+            return env_exporter.get_env_config(env_node_id, env_node_data)
             
-        # Build configuration structure matching what BalancingConfig.create_config() returns
-        config = {
-            'enabled': True,
-            'frequency': {},
-            'throughput': {},
-            'scheduling': {},
-            'latency': {},
+        finally:
+            # Clear context after use
+            export_utils.clear_export_context()
+    
+    @classmethod
+    def _get_balancing_config_via_query(cls, ppo_node_id, all_nodes, all_links):
+        """Get balancing configuration from connected BalancerConfig virtual node using query method.
+        
+        This method respects widget encapsulation by calling the BalancerConfig exporter's
+        query method instead of directly accessing its widgets.
+        """
+        # Set export context so export_utils can work
+        export_utils.set_export_context({
+            'nodes': all_nodes,
+            'links': all_links,
+            'node_registry': cls._get_node_registry()
+        })
+        
+        try:
+            if not all_links or not all_nodes:
+                return None
+                
+            # Find balancing_config input connection (slot 2)
+            balancing_node_id = None
+            for link in all_links:
+                if len(link) >= 5:
+                    to_node, to_slot = str(link[3]), link[4]
+                    if to_node == ppo_node_id and to_slot == 2:  # balancing_config input
+                        balancing_node_id = str(link[1])
+                        break
+            
+            if not balancing_node_id:
+                return None
+                
+            # Find the node data
+            balancing_node_data = export_utils.get_node_by_id(balancing_node_id)
+            if not balancing_node_data:
+                return None
+                
+            # Check if it's a BalancerConfig node
+            node_type = balancing_node_data.get("class_type") or balancing_node_data.get("type")
+            if node_type != "BalancerConfig":
+                return None
+                
+            # Get the BalancerConfig exporter and call its query method
+            balancing_exporter = export_utils.get_node_exporter("BalancerConfig")
+            if not balancing_exporter or not hasattr(balancing_exporter, 'get_balancing_config'):
+                raise ValueError(
+                    f"BalancerConfig exporter missing get_balancing_config() query method. "
+                    f"This indicates an incomplete virtual node implementation."
+                )
+            
+            # Call the query method to get configuration
+            return balancing_exporter.get_balancing_config(balancing_node_id, balancing_node_data)
+            
+        finally:
+            # Clear context after use
+            export_utils.clear_export_context()
+    
+    @classmethod
+    def _get_node_registry(cls):
+        """Get the node registry for exporter lookups.
+        
+        This helper method builds a registry of node exporters.
+        In production, this would be passed from GraphExporter.
+        """
+        # Import the exporters we need
+        from .ppo_config_exporter import PPOConfigExporter
+        from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
+        from .balancer_config_exporter import BalancerConfigExporter
+        
+        return {
+            'PPOConfig': PPOConfigExporter,
+            'IsaacGymEnvs': IsaacGymEnvsExporter,
+            'BalancerConfig': BalancerConfigExporter,
         }
-        
-        # Add scheduling settings (always include if present)
-        if params.get('priority') is not None:
-            config['scheduling']['priority'] = params['priority']
-        if params.get('guaranteed') is not None:
-            config['scheduling']['guaranteed'] = params['guaranteed']
-        
-        # Add frequency settings if specified (>= 0 means care, -1 means don't care)
-        if params.get('min_hz') is not None and params['min_hz'] >= 0:
-            config['frequency']['min_hz'] = params['min_hz']
-        if params.get('max_hz') is not None and params['max_hz'] >= 0:
-            config['frequency']['max_hz'] = params['max_hz']
-        if params.get('target_hz') is not None and params['target_hz'] >= 0:
-            config['frequency']['target_hz'] = params['target_hz']
-            
-        # Add throughput settings if specified
-        if params.get('target_percentage') is not None and params['target_percentage'] >= 0:
-            config['throughput']['target_percentage'] = params['target_percentage']
-            
-        # Add latency settings if specified
-        if params.get('max_latency_ms') is not None and params['max_latency_ms'] >= 0:
-            config['latency']['max_latency_ms'] = params['max_latency_ms']
-        
-        return config

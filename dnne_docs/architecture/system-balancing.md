@@ -1,4 +1,4 @@
-# System Balancing in DNNE
+# System Balancer in DNNE
 
 ## Overview
 
@@ -14,18 +14,18 @@ Traditional load balancing aims for equal resource distribution. However, in ML/
 
 The goal is to meet each node's specific requirements while efficiently using system resources.
 
-## Balancing Node Types
+## Balancer Node Types
 
 DNNE provides two types of balancing nodes:
 
-### 1. Balancing Node
+### 1. Balancer Node
 A regular node that acts as a passthrough while measuring and enforcing performance targets:
 - Has input and output ports
 - Inserted into data flow paths
 - Minimal overhead (just timestamps and forwards data)
 - Actively participates in execution
 
-### 2. Balancing Config (Virtual)
+### 2. Balancer Config (Virtual)
 A configuration-only node for monolithic nodes like PPO_Agent:
 - Only has output port for visual wiring
 - Connects to special nodes but produces no runtime node
@@ -143,32 +143,32 @@ Future implementations will consult balancing node requirements to adjust yield 
 
 ## Example Workflows
 
-### 1. Yield_Test with Balancing
+### 1. Yield_Test with Balancer
 ```
 MNIST Subgraph:
-TrainingStep.ready → [Balancing Node] → GetBatch.trigger
+TrainingStep.ready → [Balancer Node] → GetBatch.trigger
                      (max_hz: 100)
 
 PPO Subgraph:
-[Balancing Config] → PPO_Agent
+[Balancer Config] → PPO_Agent
 (target_percentage: 70)
 ```
 
-The Balancing Node in MNIST enforces a maximum training rate, while the Balancing Config tells PPO_Agent it should aim for 70% of system resources.
+The Balancer Node in MNIST enforces a maximum training rate, while the Balancer Config tells PPO_Agent it should aim for 70% of system resources.
 
 ### 2. Robotics Control System
 ```
-Sensors(100Hz) → [Balancing] → Processing(50Hz) → [Balancing] → Control(100Hz)
+Sensors(100Hz) → [Balancer] → Processing(50Hz) → [Balancer] → Control(100Hz)
                  (guaranteed)                       (guaranteed)
                       ↓
                   Logger(10Hz)
 ```
 
-Balancing nodes ensure control loop maintains timing while logger is best-effort.
+Balancer nodes ensure control loop maintains timing while logger is best-effort.
 
 ### 3. ML Training Pipeline
 ```
-Dataset → Augmentation → Training → [Balancing] → Validation
+Dataset → Augmentation → Training → [Balancer] → Validation
                              ↓       (target_percentage: 90)
                          Checkpointing(every 100 batches)
 ```
@@ -234,20 +234,20 @@ class PPOAgentNode:
 
 ## Implementation Considerations
 
-### Balancing Node Placement
+### Balancer Node Placement
 - After high-frequency sources (sensors)
 - Before resource-intensive operations (training)
 - At workflow convergence points (fusion nodes)
 - Between independent subgraphs (e.g., MNIST and PPO)
 
 ### Performance Overhead
-- Balancing nodes have near-zero overhead
+- Balancer nodes have near-zero overhead
 - Just timestamp and forward data
 - Metrics tracked through unified yield API
 - Minimal yielding (0.0 delay) for maximum performance
 
 ### User Interface
-- Visual distinction between Balancing Node and Balancing Config
+- Visual distinction between Balancer Node and Balancer Config
 - Real-time rate display on nodes (e.g., "87.3 Hz")
 - Green/red indicators for meeting/missing targets
 - Configuration through node properties panel
@@ -256,8 +256,8 @@ class PPOAgentNode:
 
 ### What's Implemented ✅
 
-1. **Measurement-Only Balancing**
-   - Balancing Node measures throughput and frequency
+1. **Measurement-Only Balancer**
+   - Balancer Node measures throughput and frequency
    - No enforcement of targets (measurement only)
    - Metrics collection through unified yield API
 
@@ -266,8 +266,8 @@ class PPOAgentNode:
    - Distinguishes sync vs async nodes
    - Custom item units (env_steps, batches, etc.)
 
-3. **Virtual Balancing Config**
-   - Balancing Config node for monolithic nodes like PPO_Agent
+3. **Virtual Balancer Config**
+   - Balancer Config node for monolithic nodes like PPO_Agent
    - PPO_Agent reads config and registers with balancing system
 
 4. **Unified Yield API**
@@ -301,7 +301,7 @@ Yield functions accept subgraph identification:
 Global.sync_adaptive_yield(subgraph="ppo", is_item_ref=True)  # For work items
 Global.sync_adaptive_yield(subgraph="ppo", is_item_ref=False)  # For responsiveness
 
-# Async nodes (via Balancing nodes) 
+# Async nodes (via Balancer nodes) 
 await Global.async_adaptive_yield(subgraph="mnist", is_item_ref=True)  # For work items
 await Global.async_adaptive_yield(subgraph="mnist", is_item_ref=False)  # For responsiveness
 ```
@@ -316,7 +316,7 @@ Track different metrics based on node type:
 - Both metrics are accurate and meaningful
 
 **For Asynchronous Nodes (MNIST)**:
-- **Throughput**: Items/second through Balancing nodes
+- **Throughput**: Items/second through Balancer nodes
 - **CPU Time**: Not measurable due to async switching
 - Focus on throughput as primary metric
 
@@ -332,15 +332,15 @@ Track different metrics based on node type:
 Nodes register with the balancer during initialization:
 
 ```python
-# In Balancing node init
+# In Balancer node init
 Global.register_balancing_node(
     node_id=self.node_id,
     subgraph="mnist",  # Identified from configuration
     item_unit=self.item_name,  # From item_name widget (e.g., "batches")
-    requirements=self.config  # From Balancing Config node
+    requirements=self.config  # From Balancer Config node
 )
 
-# In PPO_Agent init (reads Balancing Config)
+# In PPO_Agent init (reads Balancer Config)
 Global.register_sync_node(
     node_id=self.node_id,
     subgraph="ppo",
@@ -503,7 +503,7 @@ Currently `_compute_adaptive_delay()` returns `0.0` (minimal yield). Future impl
 
 System balancing in DNNE provides requirement-based measurement and monitoring for diverse workflows. The current implementation offers:
 
-- **Measurement without enforcement**: Balancing nodes track metrics without interfering with execution
+- **Measurement without enforcement**: Balancer nodes track metrics without interfering with execution
 - **Subgraph-level metrics**: Clear visibility into which parts of the workflow are running
 - **Unified yield API**: Consistent interface for both sync and async nodes
 - **Custom item units**: Meaningful metrics like "env_steps/sec" instead of generic "items/sec"

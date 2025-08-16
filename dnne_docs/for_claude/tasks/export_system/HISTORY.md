@@ -2,6 +2,21 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-08-16 - Widget Encapsulation & Naming Fixes
+
+### Widget Encapsulation Refactoring ✅
+- Implemented query methods for all virtual node exporters
+- Added `get_ppo_config()`, `get_env_config()`, `get_balancing_config()` methods
+- Refactored PPOAgent and IsaacGymSim to use query methods instead of direct widget access
+- Documented virtual node processing principles in export_system.md
+
+### Balancer Node Naming Consistency ✅
+- Global rename from "BalancingNode" to "Balancer" for consistency
+- Fixed NODE_CLASS_MAPPINGS key from "BalancingNode" to "Balancer"
+- Updated workflow JSON files (CIFAR10_Test.json, Yield_Test_Async.json)
+- Fixed template reference from "balancing_node_queue.tpl" to "balancer_node_queue.tpl"
+- All 164 tests passing with 0 skipped
+
 ## Session: 2025-08-15 - Major Refactoring Complete
 
 ### LinearLayer/Network Architecture Refactored ✅
@@ -27,8 +42,8 @@
 - PPOAgent updated to work without IsaacGymEnvConfigLoader
 - Proper schema resolution through node connections
 
-### BalancingConfig Virtual Node Added ✅
-- Created BalancingConfigExporter as virtual configuration node
+### BalancerConfig Virtual Node Added ✅
+- Created BalancerConfigExporter as virtual configuration node
 - Eliminates all "Unknown node type" warnings
 - Properly registered in RL exporters
 

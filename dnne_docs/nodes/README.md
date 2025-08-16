@@ -28,7 +28,7 @@ Robotics simulation nodes for Isaac Gym integration.
 General utility nodes for workflow control and configuration.
 
 - **Logic**: OR Node
-- **Configuration**: Balancing Config, Balancing Node
+- **Configuration**: Balancer Config, Balancer Node
 
 ## Node Documentation Format
 
@@ -67,8 +67,8 @@ Each node documentation includes:
 | IsaacGymSim | Robotics | Isaac Gym physics simulator |
 | IsaacGymEnvs | Robotics | Isaac Gym RL environments |
 | ORNode | Utility | Logical OR operation |
-| BalancingConfig | Utility | Balancing task configuration |
-| BalancingNode | Utility | Balancing control logic |
+| BalancerConfig | Utility | Balancer task configuration |
+| BalancerNode | Utility | Balancer control logic |
 
 ## Implementation Location
 

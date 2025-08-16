@@ -22,8 +22,8 @@ NODE_COLOR_MAP = {
     'CIFAR10Dataset': {'color': '#332922', 'bgcolor': '#593930'}, # data
     'PPOAgent': {'color': '#322', 'bgcolor': '#533'},             # rl
     'PPOConfig': {'color': '#334455', 'bgcolor': '#556677'},      # utility
-    'BalancingNode': {'color': '#334455', 'bgcolor': '#556677'},  # utility
-    'BalancingConfig': {'color': '#334455', 'bgcolor': '#556677'}, # utility
+    'BalancerNode': {'color': '#334455', 'bgcolor': '#556677'},  # utility
+    'BalancerConfig': {'color': '#334455', 'bgcolor': '#556677'}, # utility
     'IsaacGymSim': {'color': '#323', 'bgcolor': '#535'},          # simulation
     'IsaacGymEnvs': {'color': '#334455', 'bgcolor': '#556677'},   # utility
     'DataStreamer': {'color': '#332922', 'bgcolor': '#593930'},   # data

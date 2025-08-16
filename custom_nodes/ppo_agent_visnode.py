@@ -71,7 +71,7 @@ class PPOAgent(RoboticsNodeBase):
                     "tooltip": "Path to checkpoint to resume training from"
                 }),
                 "balancing_config": ("BALANCING_CONFIG_PYDICT", {
-                    "tooltip": "Optional balancing configuration from BalancingConfig node"
+                    "tooltip": "Optional balancing configuration from BalancerConfig node"
                 })
             }
         }

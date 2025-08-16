@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-Exporter for BalancingNode node using queue-based template
+Exporter for BalancerNode node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
 
-class BalancingExporter(ExportableNode):
-    """Exporter for Balancing Node (active passthrough)"""
+class BalancerExporter(ExportableNode):
+    """Exporter for Balancer Node (active passthrough)"""
     
     @classmethod
     def get_template_name(cls):
-        return "nodes/balancing_node_queue.tpl"
+        return "nodes/balancer_node_queue.tpl"
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        """Prepare template variables for Balancing Node"""
+        """Prepare template variables for Balancer Node"""
         # Define parameter specifications - FAIL-FAST: no defaults
         param_specs = [
             {'name': 'item_name', 'widget_index': 0},
@@ -39,13 +39,13 @@ class BalancingExporter(ExportableNode):
         missing_params = [p for p in required_params if params.get(p) is None]
         if missing_params:
             raise ValueError(
-                f"BalancingNode {node_id} missing required parameters: {missing_params}. "
+                f"BalancerNode {node_id} missing required parameters: {missing_params}. "
                 f"The UI must provide all balancing configuration parameters."
             )
         
         return {
             "NODE_ID": node_id,
-            "CLASS_NAME": "BalancingNode",
+            "CLASS_NAME": "BalancerNode",
             "ITEM_NAME": params['item_name'],
             "ENABLED": params['enabled'],
             "MIN_HZ": params['min_hz'],
@@ -79,7 +79,7 @@ class BalancingExporter(ExportableNode):
     
     @classmethod
     def get_initial_output_schema(cls, node_data):
-        # BalancingNode is a passthrough - it outputs whatever it receives as input
+        # BalancerNode is a passthrough - it outputs whatever it receives as input
         # The actual schema will be resolved from the input connection
         return {
             "outputs": {

@@ -1,21 +1,21 @@
 # DNNE Development Status
 
-*Last Updated: 2025-08-15*
+*Last Updated: 2025-08-16*
 
 ## Latest Achievements (This Week)
+
+### 2025-08-16: Widget Encapsulation & Naming Fixes ✅
+- **Widget Encapsulation** - Query methods for virtual node exporters
+- **Balancer Naming** - Global rename for consistency
+- **Workflow Updates** - Fixed JSON files with old references
+- **Template Fix** - Corrected template filename reference
+- **All Tests Pass** - 164 tests, 0 skipped
 
 ### 2025-08-15: Export System Major Refactoring ✅
 - **LinearLayer/Network Architecture** - Virtual nodes with clean delegation
 - **Export Utilities** - Context management eliminates parameter passing
 - **Isaac Gym Integration** - YAML-based configuration with dnne: sections
-- **BalancingConfig** - Virtual node eliminates warnings
-- **All Tests Pass** - 164 tests, 7 workflows export cleanly
-
-### Key Technical Changes
-- `LinearLayerExporter.is_virtual() = True`
-- `NetworkExporter` uses `get_layer_pytorch_code()`
-- `export_utils.py` provides global context during export
-- FrankaDNNE.yaml includes subtask configuration
+- **BalancerConfig** - Virtual node eliminates warnings
 
 ## Essential Commands
 
@@ -38,7 +38,7 @@ dnne.bat
 
 ## Test Results
 ```
-✅ 164 tests passed (1 skipped)
+✅ 164 tests passed (0 skipped)
 ✅ All 7 workflows export with zero warnings
 - CIFAR10_Test ✅
 - Cartpole_PPO ✅

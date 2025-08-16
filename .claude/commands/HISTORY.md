@@ -51,7 +51,7 @@
 - Fixed visual node architecture - all nodes properly use FUNCTION = None
 - Removed all dead execution methods (load_dataset, create_dataloader, etc.)
 - Deleted 7 incomplete node implementations and their exporters
-- Deleted BalancingConfig exporter/template (it's a virtual node)
+- Deleted BalancerConfig exporter/template (it's a virtual node)
 - Updated all tests to check UI interface instead of execution behavior
 - Fixed test data formats to use widgets_values arrays
 - Added workflow_name to fixtures for slot correction

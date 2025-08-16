@@ -4,7 +4,7 @@ Exporter for Isaac Gym Simulator node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
-from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
+from ..utils import export_utils
 
 class IsaacGymSimExporter(ExportableNode):
     @classmethod
@@ -33,76 +33,38 @@ class IsaacGymSimExporter(ExportableNode):
                 f"This may indicate the UI is not sending widget values correctly."
             )
         
-        # Get config from connected Isaac Gym Environment Config node
+        # Get config from connected Isaac Gym Environment Config node using proper query method
+        config_params = cls._get_env_config_via_query(node_id, all_nodes, all_links, node_registry)
         
-        # Find connected IsaacGymEnvs node through links
-        config_node = None
-        if all_links:
-            for link in all_links:
-                # Link format: [link_id, from_node, from_slot, to_node, to_slot, type]
-                if len(link) >= 5 and str(link[3]) == str(node_id) and link[4] == 0:  # env_config is input 0
-                    source_node_id = str(link[1])
-                    # Find the source node
-                    for node in all_nodes:
-                        if str(node.get('id')) == source_node_id:
-                            config_node = node
-                            break
-                    break
-        
-        if config_node:
-            
-            # Use parameter specs to extract values from either inputs dict or widgets_values
-            param_specs = [
-                {'name': 'task', 'widget_index': 0},
-                {'name': 'subtask', 'widget_index': 1},
-                {'name': 'dt', 'widget_index': 2},
-                {'name': 'num_envs', 'widget_index': 3},
-                {'name': 'seed', 'widget_index': 4},
-                {'name': 'seed_control', 'widget_index': 5},
-                {'name': 'headless', 'widget_index': 6},
-                {'name': 'graphics_device_id', 'widget_index': 7},
-                {'name': 'sim_device', 'widget_index': 8},
-                {'name': 'physics_engine', 'widget_index': 9},
-                {'name': 'multi_gpu', 'widget_index': 10},
-                {'name': 'enable_cameras', 'widget_index': 11},
-                {'name': 'force_render', 'widget_index': 12},
-                {'name': 'use_gpu_pipeline', 'widget_index': 13},
-                {'name': 'num_threads', 'widget_index': 14},
-                {'name': 'solver_type', 'widget_index': 15},
-                {'name': 'num_subscenes', 'widget_index': 16},
-            ]
-            
-            # Get parameters using the helper that checks both inputs and widgets_values
-            config_params = cls.get_node_parameters_batch(config_node, param_specs)
-            
-            # Validate required parameters are present
-            required_params = ['task', 'num_envs', 'seed', 'seed_control', 'headless',
-                             'graphics_device_id', 'sim_device', 'physics_engine', 
-                             'multi_gpu', 'enable_cameras']
-            missing_params = [p for p in required_params if config_params.get(p) is None]
-            if missing_params:
-                raise ValueError(
-                    f"IsaacGymEnvs node missing required parameters: {missing_params}. "
-                    f"This may indicate the UI is not sending widget values correctly."
-                )
-            
-            # Extract individual values
-            task = config_params['task']
-            num_envs = config_params['num_envs']
-            seed = config_params['seed']
-            seed_control = config_params['seed_control']
-            headless = config_params['headless']
-            graphics_device_id = config_params['graphics_device_id']
-            sim_device = config_params['sim_device']
-            physics_engine = config_params['physics_engine']
-            multi_gpu = config_params['multi_gpu']
-            enable_cameras = config_params['enable_cameras']
-        else:
+        if not config_params:
             # Fail-fast: no config connected is an error
             raise ValueError(
                 f"IsaacGymSim node {node_id} has no connected IsaacGymEnvs configuration node. "
                 f"Please connect an IsaacGymEnvs node to the env_config input."
             )
+        
+        # Validate required parameters are present
+        required_params = ['task', 'num_envs', 'seed', 'seed_control', 'headless',
+                         'graphics_device_id', 'sim_device', 'physics_engine', 
+                         'multi_gpu', 'enable_cameras']
+        missing_params = [p for p in required_params if config_params.get(p) is None]
+        if missing_params:
+            raise ValueError(
+                f"IsaacGymEnvs configuration missing required parameters: {missing_params}. "
+                f"This may indicate the UI is not sending widget values correctly."
+            )
+        
+        # Extract individual values
+        task = config_params['task']
+        num_envs = config_params['num_envs']
+        seed = config_params['seed']
+        seed_control = config_params['seed_control']
+        headless = config_params['headless']
+        graphics_device_id = config_params['graphics_device_id']
+        sim_device = config_params['sim_device']
+        physics_engine = config_params['physics_engine']
+        multi_gpu = config_params['multi_gpu']
+        enable_cameras = config_params['enable_cameras']
         
         # Parse null action string to list
         null_action_str = params['null_action'].strip()
@@ -233,6 +195,73 @@ class IsaacGymSimExporter(ExportableNode):
                             del schema['outputs']['observation']['needs_resolution']  # Remove flag
         
         return schema
+    
+    @classmethod
+    def _get_env_config_via_query(cls, node_id, all_nodes, all_links, node_registry):
+        """Get environment configuration from connected IsaacGymEnvs virtual node using query method.
+        
+        This method respects widget encapsulation by calling the IsaacGymEnvs exporter's
+        query method instead of directly accessing its widgets.
+        """
+        # Set export context so export_utils can work
+        export_utils.set_export_context({
+            'nodes': all_nodes,
+            'links': all_links,
+            'node_registry': node_registry or cls._get_node_registry()
+        })
+        
+        try:
+            if not all_links or not all_nodes:
+                return None
+                
+            # Find the env_config input connection (slot 0)
+            env_node_id = None
+            for link in all_links:
+                if len(link) >= 5 and str(link[3]) == str(node_id) and link[4] == 0:  # env_config is input 0
+                    env_node_id = str(link[1])
+                    break
+            
+            if not env_node_id:
+                return None
+                
+            # Find the node data
+            env_node_data = export_utils.get_node_by_id(env_node_id)
+            if not env_node_data:
+                return None
+                
+            # Check if it's an IsaacGymEnvs node
+            node_type = env_node_data.get("class_type") or env_node_data.get("type")
+            if node_type != "IsaacGymEnvs":
+                return None
+                
+            # Get the IsaacGymEnvs exporter and call its query method
+            env_exporter = export_utils.get_node_exporter("IsaacGymEnvs")
+            if not env_exporter or not hasattr(env_exporter, 'get_env_config'):
+                raise ValueError(
+                    f"IsaacGymEnvs exporter missing get_env_config() query method. "
+                    f"This indicates an incomplete virtual node implementation."
+                )
+            
+            # Call the query method to get configuration
+            return env_exporter.get_env_config(env_node_id, env_node_data)
+            
+        finally:
+            # Clear context after use
+            export_utils.clear_export_context()
+    
+    @classmethod
+    def _get_node_registry(cls):
+        """Get the node registry for exporter lookups.
+        
+        This helper method builds a registry of node exporters.
+        In production, this would be passed from GraphExporter.
+        """
+        # Import the exporters we need
+        from .isaac_gym_envs_exporter import IsaacGymEnvsExporter
+        
+        return {
+            'IsaacGymEnvs': IsaacGymEnvsExporter,
+        }
     
     @classmethod
     def find_input_connection(cls, node_data, connections, input_name):
