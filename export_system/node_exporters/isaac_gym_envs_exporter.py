@@ -266,4 +266,7 @@ class IsaacGymEnvsExporter(ExportableNode):
                 if value and value != 'none':
                     config[level] = value
         
+        # Add isaac_gym_envs_path for PPOAgent exporter
+        config['isaac_gym_envs_path'] = str(get_isaac_gym_envs_path())
+        
         return config
