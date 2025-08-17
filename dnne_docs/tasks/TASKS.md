@@ -1,7 +1,7 @@
 # DNNE Tasks
 
 ## Current Status
-Type system refactored (LOSS_TENSOR → LOSS_SCALAR). New nodes: Concat, GeometricLoss with math_utils dependency system.
+Fail-fast principles enforced across codebase. Removed 71+ silent defaults. Isaac Gym configs with Hydra inheritance properly skipped.
 
 ## Active TODOs
 

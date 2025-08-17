@@ -136,11 +136,22 @@ class IsaacGymEnvConfigLoader:
             with open(task_file, 'r') as f:
                 task_config = yaml.safe_load(f)
                 
+            # Check if this config uses Hydra defaults (inheritance)
+            # DNNE doesn't support Hydra inheritance, so skip these configs
+            if 'defaults' in task_config:
+                logger.info(f"Skipping {task_name}: Uses Hydra defaults (inheritance not supported by DNNE)")
+                return None
+                
             # Load PPO config if it exists
             ppo_config = None
             if ppo_file.exists():
                 with open(ppo_file, 'r') as f:
                     ppo_config = yaml.safe_load(f)
+                    
+                # Skip PPO configs that use Hydra defaults too
+                if ppo_config and 'defaults' in ppo_config:
+                    logger.info(f"Skipping {task_name}: PPO config uses Hydra defaults (inheritance not supported)")
+                    return None
                 
             # Extract configurations for each node
             result = {
@@ -291,20 +302,22 @@ class IsaacGymEnvConfigLoader:
         env_cfg = task_config.get('env', None)
         sim_cfg = task_config.get('sim', None)
         
-        # Get num_envs from PPO config if available
+        # Resolve num_envs first
+        if env_cfg is None or 'numEnvs' not in env_cfg:
+            raise ValueError("Task config missing required 'env.numEnvs' field")
+        num_envs_raw = env_cfg['numEnvs']
+        num_envs = self._resolve_value(num_envs_raw, None)
+        
+        # Get num_actors from PPO config if available
+        # PPO config is optional - workflow may be incomplete
         if ppo_config and 'params' in ppo_config and 'config' in ppo_config['params']:
             ppo_params = ppo_config['params']['config']
             if 'num_actors' not in ppo_params:
                 raise ValueError("PPO config missing required 'num_actors' field")
             num_actors = ppo_params['num_actors']
         else:
-            raise ValueError("PPO config missing required params.config section")
-        
-        # Resolve num_envs
-        if env_cfg is None or 'numEnvs' not in env_cfg:
-            raise ValueError("Task config missing required 'env.numEnvs' field")
-        num_envs_raw = env_cfg['numEnvs']
-        num_envs = self._resolve_value(num_envs_raw, None)
+            # PPO config not available - skip num_actors
+            num_actors = None
         
         # If num_actors references numEnvs, use the resolved value
         if isinstance(num_actors, str) and 'numEnvs' in num_actors:
@@ -318,14 +331,10 @@ class IsaacGymEnvConfigLoader:
         # Get global config values
         global_cfg = self._global_config
         
-        # Extract null action - required if env_cfg exists
-        if env_cfg and 'nullAction' in env_cfg:
-            null_action = env_cfg['nullAction']
-            # Convert to string format for widget
-            null_action_str = ', '.join(str(x) for x in null_action)
-        else:
-            # Required field missing
-            raise ValueError("Task config missing required 'env.nullAction' field")
+        # Skip nullAction extraction here - we don't have schema keys yet
+        # For DNNE environments, nullAction is in nested_schemas which requires selection
+        # For non-DNNE environments, it's optional in env:
+        # This will be handled at export time when schema is known
         
         # Extract dt value - required if sim_cfg exists
         if sim_cfg is None or 'dt' not in sim_cfg:
@@ -354,9 +363,8 @@ class IsaacGymEnvConfigLoader:
         else:
             raise ValueError("Neither task nor global config specifies 'physics_engine'")
         
-        # Enable cameras - required in env_cfg
-        if 'enableCameraSensors' not in env_cfg:
-            raise ValueError("Task config missing required 'env.enableCameraSensors' field")
+        # Enable cameras - optional field
+        enable_cameras = env_cfg.get('enableCameraSensors') if env_cfg else None
         
         # GPU pipeline - check sim first, then global pipeline setting
         if sim_cfg and 'use_gpu_pipeline' in sim_cfg:
@@ -397,16 +405,18 @@ class IsaacGymEnvConfigLoader:
             "sim_device": global_cfg['sim_device'],
             "physics_engine": physics_engine,
             "multi_gpu": global_cfg['multi_gpu'],
-            "enable_cameras": env_cfg['enableCameraSensors'],
             "force_render": global_cfg['force_render'],  # From global config!
             "use_gpu_pipeline": use_gpu_pipeline,
             "num_threads": num_threads,
             "solver_type": solver_type,
             "num_subscenes": num_subscenes,
-            "null_action": null_action_str,  # Add null action to config
+            # null_action excluded - requires schema selection for DNNE envs
         }
         
-        # Add dt if available (for DNNE environments)
+        # Add optional fields only if they exist
+        if enable_cameras is not None:
+            config["enable_cameras"] = enable_cameras
+        
         if dt is not None:
             config["sim_dt"] = float(dt)
             
