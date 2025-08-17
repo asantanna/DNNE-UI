@@ -96,7 +96,8 @@ def is_loopback(host):
             return True
         else:
             return False
-    except:
+    except ValueError:
+        # Not a valid IP address, will try hostname resolution below
         pass
 
     loopback = False
@@ -109,6 +110,7 @@ def is_loopback(host):
                 else:
                     loopback = True
         except socket.gaierror:
+            # Unable to resolve hostname, continue checking other address families
             pass
 
     return loopback

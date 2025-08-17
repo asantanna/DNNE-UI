@@ -728,6 +728,7 @@ class DNNEAgentClient:
                     try:
                         await workflow.log_reader_task
                     except asyncio.CancelledError:
+                        # Expected when task is cancelled, no action needed
                         pass
                 except asyncio.CancelledError:
                     logger.error(f"Log reader task for workflow {workflow_id} was already cancelled - final status may not have been sent")
@@ -766,6 +767,7 @@ class DNNEAgentClient:
                     }))
                 
         except asyncio.CancelledError:
+            # Task was cancelled during shutdown, expected behavior
             pass
         except Exception as e:
             logger.error(f"Log reader error: {e}")

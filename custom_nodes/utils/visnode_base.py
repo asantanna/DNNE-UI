@@ -144,13 +144,15 @@ class LearningNodeBase(RoboticsNodeBase):
     
     def save_checkpoint(self, path: str):
         """Save node state/weights"""
-        # Override in subclasses
-        pass
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement save_checkpoint() method"
+        )
     
     def load_checkpoint(self, path: str):
         """Load node state/weights"""
-        # Override in subclasses
-        pass
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement load_checkpoint() method"
+        )
 
 
 class VisualizationNodeBase(RoboticsNodeBase):
