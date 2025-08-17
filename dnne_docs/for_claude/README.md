@@ -10,7 +10,7 @@ The `tasks/` subdirectory contains component-specific task tracking files for on
 - **`tasks/INDEX.md`** - Quick overview of all component task statuses
 - **`tasks/MCP/TASKS.md`** - MCP (Model Context Protocol) browser automation tasks
 - **`tasks/dnne_agent/TASKS.md`** - DNNE Agent integration for remote deployment
-- **`tasks/log_window/TASKS.md`** - Log window UI implementation tasks
+- **`tasks/log_viewer/TASKS.md`** - Log viewer UI implementation tasks
 - **`tasks/TEMPLATE.md`** - Template for creating new task tracking files
 
 ### Key Documentation References

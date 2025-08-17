@@ -15,16 +15,12 @@
 | **Export System** | 🟢 Complete | 100% - All issues resolved | - | 2025-08-15 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
 | **Node System** | 🟡 Working | Dynamic widgets in progress | High | 2025-08-16 |
-| **DNNE Combo Widget** | 🔴 In Development | 0% - Replacing hack with generic | High | 2025-08-16 |
+| **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
 
 ## Active Priority Items
 
 ### High Priority
-1. **DNNE Combo Widget**: Replace hardcoded hack with generic system
-   - Create generic callback-based combo widget
-   - Implement WebSocket protocol for widget callbacks
-   - Remove IsaacGymEnvs hardcoding from frontend
-2. **Node System**: Fix dynamic widget display issues
+1. **Node System**: Fix dynamic widget display issues
    - Initial widget labels showing as "dynamic_1/2/3"
    - Widget hiding leaves gaps (Y positioning)
    - Widget labels not updating to actual names
