@@ -15,21 +15,23 @@
 - Use LiteGraph's widget repositioning methods if available
 - Remove and re-add widgets instead of hiding
 
-### 2. Node Doesn't Re-render on Task Change
+### 2. ✅ Node Doesn't Re-render on Task Change (FIXED)
 **Problem**: When selecting a new task, the node size doesn't update until mouse movement triggers a redraw.
 
-**Current Code**:
+**Solution Implemented**:
 ```javascript
 targetNode.setSize(targetNode.computeSize());
-app.graph.setDirtyCanvas(true);
+app.graph.setDirtyCanvas(true, true);
+requestAnimationFrame(() => {
+    app.canvas.draw(true, true);
+});
 ```
 
-**Issue**: `setDirtyCanvas(true)` might not force immediate redraw
-
-**Potential Solutions**:
-- Call `app.canvas.draw(true, true)` to force immediate redraw
-- Trigger a fake mouse event to force redraw
-- Use `app.graph.change()` method if available
+**Fix Details**: 
+- Used `setDirtyCanvas(true, true)` with both flags to mark immediate redraw needed
+- Added `requestAnimationFrame` to ensure draw happens on next frame
+- Called `app.canvas.draw(true, true)` within the animation frame for forced redraw
+- Applied fix to all three callback handlers: task onChange, task onLoad, and dynamic widget onChange
 
 ### 3. Schema Display Widget Height Ignored
 **Problem**: The `schema_display` STRING widget should be 3x taller, but the height setting is being ignored.
@@ -54,6 +56,6 @@ app.graph.setDirtyCanvas(true);
 - Check if there's a different parameter name for DOM widget height
 
 ## Priority
-1. **High**: Node re-render issue (affects usability)
+1. ~~**High**: Node re-render issue (affects usability)~~ ✅ FIXED
 2. **Medium**: Schema display height (affects readability)
 3. **Low**: Hidden widget gaps (cosmetic issue)

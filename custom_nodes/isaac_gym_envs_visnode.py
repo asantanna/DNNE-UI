@@ -434,7 +434,14 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                     
                     // Update node size
                     targetNode.setSize(targetNode.computeSize());
-                    app.graph.setDirtyCanvas(true);
+                    
+                    // Force immediate redraw with both dirty flags
+                    app.graph.setDirtyCanvas(true, true);
+                    
+                    // Use requestAnimationFrame to ensure draw happens
+                    requestAnimationFrame(() => {{
+                        app.canvas.draw(true, true);
+                    }});
                 }}
                 """
                 
@@ -498,7 +505,8 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                     }}
                     
                     targetNode.setSize(targetNode.computeSize());
-                    app.graph.setDirtyCanvas(true);
+                    // Force immediate redraw with both dirty flags
+                    app.graph.setDirtyCanvas(true, true);
                 }}
                 """
                 
@@ -549,7 +557,13 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                         schemaWidget.value = {json.dumps(schema_display_text)};
                     }}
                     
-                    app.graph.setDirtyCanvas(true);
+                    // Force immediate redraw with both dirty flags
+                    app.graph.setDirtyCanvas(true, true);
+                    
+                    // Use requestAnimationFrame to ensure draw happens
+                    requestAnimationFrame(() => {{
+                        app.canvas.draw(true, true);
+                    }});
                 }}
                 """
                 
