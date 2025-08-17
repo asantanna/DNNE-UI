@@ -1,0 +1,85 @@
+"""
+Tensor Constant Node
+Generates constant tensors with various initialization schemes for ML workflows.
+"""
+
+from inspect import cleandoc
+from custom_nodes.utils.visnode_base import RoboticsNodeBase
+from custom_nodes.utils.node_colors import get_node_colors
+from custom_nodes.utils.dnne_decorator import dnne_node
+
+
+@dnne_node(is_virtual=False)
+class TensorNode(RoboticsNodeBase):
+    """
+    Tensor Constant Node
+    Generates constant tensors with configurable dimensions and initialization.
+    
+    Features:
+    - Flexible dimension specification (e.g., "3", "2,3", "[2,3,4]")
+    - Multiple initialization schemes (zeros, ones, normal, uniform, Kaiming, Xavier)
+    - Configurable data type and random seed
+    - Queue-based output for async execution
+    """
+    
+    CATEGORY = "utils"
+    COLOR = get_node_colors("utility")["color"]
+    BGCOLOR = get_node_colors("utility")["bgcolor"]
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "tensor_dims": ("STRING", {
+                    "default": "10",
+                    "multiline": False,
+                    "tooltip": "Tensor dimensions: single number '10', comma-separated '2,3', or bracket notation '[2,3,4]'"
+                }),
+                "fill_mode": ([
+                    "zeros", 
+                    "ones", 
+                    "uniform", 
+                    "normal", 
+                    "kaiming_normal", 
+                    "kaiming_uniform", 
+                    "xavier_normal", 
+                    "xavier_uniform", 
+                    "custom"
+                ], {
+                    "default": "zeros",
+                    "tooltip": "Initialization method for tensor values"
+                }),
+                "custom_fill": ("FLOAT", {
+                    "default": 0.0,
+                    "min": -10000.0,
+                    "max": 10000.0,
+                    "step": 0.1,
+                    "tooltip": "Custom value to fill tensor with (only used when fill_mode is 'custom')"
+                }),
+                "dtype": (["float32", "float64", "int32", "int64", "bool"], {
+                    "default": "float32",
+                    "tooltip": "Data type of the tensor"
+                }),
+                "seed": ("INT", {
+                    "default": -1,
+                    "min": -1,
+                    "max": 2147483647,
+                    "tooltip": "Random seed for reproducibility (-1 for random seed)"
+                })
+            }
+        }
+    
+    RETURN_TYPES = ("TENSOR",)
+    RETURN_NAMES = ("tensor",)
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
+    DESCRIPTION = cleandoc(__doc__)
+
+
+# Node registration
+NODE_CLASS_MAPPINGS = {
+    "Tensor": TensorNode
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "Tensor": "Tensor"
+}

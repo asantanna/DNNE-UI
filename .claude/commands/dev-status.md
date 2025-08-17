@@ -10,6 +10,14 @@ $ARGUMENTS$
 
 ## Latest Achievements (2025-08-17)
 
+### Tensor Constant Node ✅
+- Implemented TensorNode for generating constant tensors in ML workflows
+- Supports 9 initialization modes (zeros, ones, uniform, normal, Kaiming, Xavier, custom)
+- Flexible dimension parsing ("10", "2,3", "[2,3,4]")
+- Configurable dtype and seed for reproducibility
+- Complete with export template and unit tests
+- Successfully integrated in Franka_Coop_Nodes workflow
+
 ### Export System Schema Resolution ✅
 - Fixed ConcatExporter missing get_initial_output_schema() method
 - Fixed SplitExporter missing schema methods with proper size calculation
@@ -22,12 +30,6 @@ $ARGUMENTS$
 - Split node exporter handles both `[x,x]` array and `x` number formats
 - UI displays single elements aesthetically as `[x]` instead of `[x-x]`
 - Full backward compatibility maintained
-
-### @dnne_node Decorator System ✅  
-- Automatic node registration via decorator
-- Virtual node status enforcement  
-- Auto-discovery of exporters based on naming
-- All 164 tests passing (100% success)
 
 ## Quick Reference
 
@@ -73,6 +75,8 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
+- Implement Tensor constant node with 9 initialization modes
+- Add comprehensive unit tests for Tensor node
 - Support simplified schema format (single number for single elements)
 - Update Split node exporter for both schema formats
 - Enhance IsaacGymEnvs display aesthetics for single elements

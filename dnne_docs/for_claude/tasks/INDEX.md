@@ -14,7 +14,7 @@
 | **Core Infrastructure** | 🟢 Complete | 100% - All features done | - | 2025-08-15 |
 | **Export System** | 🟢 Complete | 100% - Schema resolution fixed | - | 2025-08-17 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
-| **Node System** | 🟡 Working | Schema formats done, widget issues remain | High | 2025-08-17 |
+| **Node System** | 🟡 Working | Tensor node added, widget issues remain | High | 2025-08-17 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
 
 ## Active Priority Items
