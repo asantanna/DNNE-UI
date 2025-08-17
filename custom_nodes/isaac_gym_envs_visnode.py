@@ -8,8 +8,7 @@ This version uses pre-allocated dynamic widgets with static indices for stabilit
 import yaml
 import os
 import sys
-from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict
 from inspect import cleandoc
 from custom_nodes.utils.visnode_base import RoboticsNodeBase
 from custom_nodes.utils.node_colors import get_node_colors
@@ -111,9 +110,11 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
         widgets = {
             "required": {
                 "task": (task_list, {
-                    "default": "FrankaDNNE" if "FrankaDNNE" in task_list else "Cartpole",
+                    # No default - will be set by onLoad callback
                     "tooltip": "Select an IsaacGymEnvs task - REQUIRED for export",
-                    "on_change": "update_dynamic_widgets"  # Callback hint for UI
+                    "widgetType": "DNNE_COMBO",  # Use new generic widget
+                    "widget_id": "IsaacGymEnvsNode.task",
+                    "listen_to": ["onChange", "onLoad"]
                 }),
             },
             "optional": {}
@@ -123,11 +124,12 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
         # These will be shown/hidden and relabeled based on task selection
         for i in range(1, cls.MAX_DYNAMIC_LEVELS + 1):
             widgets["optional"][f"dynamic_{i}"] = (["none"], {
-                "default": "none",
                 "tooltip": f"Dynamic selection level {i}",
                 "hidden": True,  # Initially hidden
                 "dynamic": True,  # Mark as dynamic for UI
-                "on_change": "update_schema_display"  # Callback hint
+                "widgetType": "DNNE_COMBO",  # Use callback-enabled widget
+                "widget_id": f"IsaacGymEnvsNode.dynamic_{i}",
+                "listen_to": ["onChange"]  # Only onChange - task.onLoad handles initialization
             })
         
         # Add standard fixed widgets (starting from index 4)
@@ -240,8 +242,8 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
             if i <= len(schema_info['schema_levels']):
                 # This widget should be visible
                 level_name = schema_info['schema_levels'][i-1]
-                options = schema_info['level_options'].get(level_name, [])
-                default = schema_info['defaults'].get(level_name, options[0] if options else "")
+                options = schema_info['level_options'].get(level_name)
+                default = schema_info['defaults'].get(level_name)
                 
                 updates[widget_key] = {
                     'hidden': False,
@@ -350,8 +352,8 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
             selected = kwargs.get(widget_key)
             
             if selected and selected != "none":
-                valid_options = schema_info['level_options'].get(level, [])
-                if selected not in valid_options:
+                valid_options = schema_info['level_options'].get(level)
+                if valid_options and selected not in valid_options:
                     return f"Invalid {level}: '{selected}'. Valid options: {valid_options}"
         
         # DNNE environment validation
@@ -362,6 +364,204 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                 return f"DNNE environment '{task}' must use num_envs=1, got {num_envs}"
         
         return True
+    
+    @classmethod
+    async def handle_widget_callback(cls, message):
+        """Handle widget callbacks for this node type"""
+        import json
+        import logging
+        
+        widget_id = message.get("widget_id", "")
+        widget_name = widget_id.split(".")[1] if "." in widget_id else ""
+        event = message.get("event", "")
+        event_params = message.get("event_params", {})
+        
+        logging.debug(f"[IsaacGymEnvsNode] Handling callback: {widget_name} - {event}")
+        
+        # Handle task widget callbacks
+        if widget_name == "task":
+            if event == "onChange":
+                new_task = event_params.get("value")
+                node_id = event_params.get("node_id")
+                
+                # Get schema info for the new task
+                schema_info = cls.get_task_schema_info(new_task)
+                
+                # Format the schema display for the new task with defaults
+                schema_display_text = cls.format_schema_display(new_task, schema_info.get('defaults', {}))
+                
+                # Generate JavaScript to update dynamic widgets
+                js_code = f"""
+                // Update dynamic widgets for task: {new_task}
+                const targetNode = app.graph.getNodeById({node_id});
+                if (targetNode) {{
+                    const schemaInfo = {json.dumps(schema_info)};
+                    
+                    // Update dynamic widgets based on schema
+                    for (let i = 1; i <= {cls.MAX_DYNAMIC_LEVELS}; i++) {{
+                        const widgetName = 'dynamic_' + i;
+                        const widget = targetNode.widgets.find(w => w.name === widgetName);
+                        
+                        if (widget) {{
+                            const levelIndex = i - 1;
+                            if (levelIndex < schemaInfo.schema_levels.length) {{
+                                const level = schemaInfo.schema_levels[levelIndex];
+                                const options = schemaInfo.level_options[level];
+                                const defaultValue = schemaInfo.defaults[level];
+                                
+                                // Update widget
+                                widget.label = level;
+                                widget.options.values = options;
+                                widget.value = defaultValue;
+                                widget.hidden = false;
+                            }} else {{
+                                // Hide unused widgets
+                                widget.hidden = true;
+                                widget.value = 'none';
+                            }}
+                        }}
+                    }}
+                    
+                    // Update schema_display widget
+                    const schemaWidget = targetNode.widgets.find(w => w.name === 'schema_display');
+                    if (schemaWidget) {{
+                        schemaWidget.value = {json.dumps(schema_display_text)};
+                    }}
+                    
+                    // Update node size
+                    targetNode.setSize(targetNode.computeSize());
+                    app.graph.setDirtyCanvas(true);
+                }}
+                """
+                
+                return {
+                    "type": "widget_callback_response",
+                    "widget_id": widget_id,
+                    "code_payload": js_code,
+                    "chain": True
+                }
+            
+            elif event == "onLoad":
+                # Initialize widget on load
+                node_id = event_params.get("node_id")
+                initial_value = event_params.get("initial_value")
+                if not initial_value:
+                    # If no initial value, don't initialize
+                    return {
+                        "type": "widget_callback_response",
+                        "widget_id": widget_id,
+                        "chain": True
+                    }
+                
+                # Get initial schema info
+                schema_info = cls.get_task_schema_info(initial_value)
+                
+                # Format the schema display for initial task with defaults
+                schema_display_text = cls.format_schema_display(initial_value, schema_info.get('defaults', {}))
+                
+                js_code = f"""
+                // Initialize dynamic widgets on load
+                const targetNode = app.graph.getNodeById({node_id});
+                if (targetNode) {{
+                    const schemaInfo = {json.dumps(schema_info)};
+                    
+                    // Initialize dynamic widgets
+                    for (let i = 1; i <= {cls.MAX_DYNAMIC_LEVELS}; i++) {{
+                        const widgetName = 'dynamic_' + i;
+                        const widget = targetNode.widgets.find(w => w.name === widgetName);
+                        
+                        if (widget) {{
+                            const levelIndex = i - 1;
+                            if (levelIndex < schemaInfo.schema_levels.length) {{
+                                const level = schemaInfo.schema_levels[levelIndex];
+                                const options = schemaInfo.level_options[level];
+                                const defaultValue = schemaInfo.defaults[level];
+                                
+                                widget.label = level;
+                                widget.options.values = options;
+                                widget.value = defaultValue;
+                                widget.hidden = false;
+                            }} else {{
+                                widget.hidden = true;
+                            }}
+                        }}
+                    }}
+                    
+                    // Initialize schema_display widget
+                    const schemaWidget = targetNode.widgets.find(w => w.name === 'schema_display');
+                    if (schemaWidget) {{
+                        schemaWidget.value = {json.dumps(schema_display_text)};
+                    }}
+                    
+                    targetNode.setSize(targetNode.computeSize());
+                    app.graph.setDirtyCanvas(true);
+                }}
+                """
+                
+                return {
+                    "type": "widget_callback_response",
+                    "widget_id": widget_id,
+                    "code_payload": js_code,
+                    "chain": False
+                }
+        
+        # Handle dynamic widget callbacks (dynamic_1, dynamic_2, dynamic_3)
+        elif widget_name.startswith("dynamic_"):
+            if event == "onChange":
+                node_id = event_params.get("node_id")
+                node_data = event_params.get("node_data", {})
+                
+                # Get task and build selections from node_data
+                task = node_data.get("task")
+                if not task:
+                    logging.error(f"Dynamic widget change without task in node_data")
+                    return {
+                        "type": "widget_callback_response",
+                        "widget_id": widget_id,
+                        "chain": True
+                    }
+                
+                # Get schema info for the task
+                schema_info = cls.get_task_schema_info(task)
+                
+                # Build selections from dynamic widget values
+                selections = {}
+                for i, level in enumerate(schema_info['schema_levels']):
+                    widget_value = node_data.get(f"dynamic_{i+1}")
+                    if widget_value and widget_value != 'none':
+                        selections[level] = widget_value
+                
+                # Format the updated schema display
+                schema_display_text = cls.format_schema_display(task, selections)
+                
+                # Generate JavaScript to update schema_display widget
+                js_code = f"""
+                // Update schema display when dynamic widget changes
+                const targetNode = app.graph.getNodeById({node_id});
+                if (targetNode) {{
+                    // Update schema_display widget
+                    const schemaWidget = targetNode.widgets.find(w => w.name === 'schema_display');
+                    if (schemaWidget) {{
+                        schemaWidget.value = {json.dumps(schema_display_text)};
+                    }}
+                    
+                    app.graph.setDirtyCanvas(true);
+                }}
+                """
+                
+                return {
+                    "type": "widget_callback_response",
+                    "widget_id": widget_id,
+                    "code_payload": js_code,
+                    "chain": True
+                }
+        
+        # Default response
+        return {
+            "type": "widget_callback_response",
+            "widget_id": widget_id,
+            "chain": True
+        }
     
     @classmethod
     def IS_DNNE_ENVIRONMENT(cls, task_name):

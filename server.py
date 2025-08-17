@@ -258,6 +258,62 @@ class PromptServer():
                                 runner_args = data.get('runner_args', '')
                                 logging.debug(f"▶️ Running workflow {workflow_id} on {client_id}")
                                 await self.run_existing_workflow(ws, client_id, workflow_id, runner_args)
+                            elif msg_type == 'widget_callback':
+                                # Handle widget callback from frontend
+                                widget_id = data.get('widget_id')
+                                event = data.get('event')
+                                event_params = data.get('event_params', {})
+                                
+                                logging.debug(f"🔄 Widget callback received: {widget_id} - {event}")
+                                logging.debug(f"    Event params: {event_params}")
+                                
+                                # Route to appropriate node handler
+                                if widget_id:
+                                    node_type = widget_id.split('.')[0] if '.' in widget_id else None
+                                    
+                                    # Import node handlers dynamically
+                                    response = None
+                                    try:
+                                        # Check if it's IsaacGymEnvsNode
+                                        if node_type == 'IsaacGymEnvsNode':
+                                            logging.debug(f"    Routing to IsaacGymEnvsNode handler")
+                                            from custom_nodes.isaac_gym_envs_visnode import IsaacGymEnvsNode
+                                            if hasattr(IsaacGymEnvsNode, 'handle_widget_callback'):
+                                                response = await IsaacGymEnvsNode.handle_widget_callback(data)
+                                                logging.debug(f"    Handler returned response: {response.get('type') if response else None}")
+                                        
+                                        # Send response if we got one
+                                        if response:
+                                            logging.debug(f"    Sending response to frontend: {response['type']}")
+                                            # Wrap the response data properly for the frontend
+                                            await ws.send_json({
+                                                'type': 'widget_callback_response',
+                                                'data': {
+                                                    'widget_id': response.get('widget_id'),
+                                                    'code_payload': response.get('code_payload'),
+                                                    'chain': response.get('chain', True)
+                                                }
+                                            })
+                                        else:
+                                            # Send default response
+                                            logging.debug(f"    Sending default response")
+                                            await ws.send_json({
+                                                'type': 'widget_callback_response',
+                                                'data': {
+                                                    'widget_id': widget_id,
+                                                    'chain': True
+                                                }
+                                            })
+                                    except Exception as e:
+                                        logging.error(f"Error handling widget callback: {e}")
+                                        await ws.send_json({
+                                            'type': 'widget_callback_response',
+                                            'data': {
+                                                'widget_id': widget_id,
+                                                'error': str(e),
+                                                'chain': True
+                                            }
+                                        })
                             elif msg_type == 'request_runner_args':
                                 # Handle request for runner arguments configuration
                                 import os
