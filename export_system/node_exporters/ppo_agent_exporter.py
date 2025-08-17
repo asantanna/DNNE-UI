@@ -241,53 +241,52 @@ class PPOAgentExporter(ExportableNode):
         This method respects widget encapsulation by calling the PPOConfig exporter's
         query method instead of directly accessing its widgets.
         """
-        # Set export context so export_utils can work
-        export_utils.set_export_context({
-            'nodes': all_nodes,
-            'links': all_links,
-            'node_registry': cls._get_node_registry()
-        })
+        # Export context should already be set by GraphExporter
+        if not all_links or not all_nodes:
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Cannot get PPO config - missing nodes or links data"
+            )
+            
+        # Find the config input connection (slot 1)
+        config_node_id = None
+        for link in all_links:
+            if len(link) >= 5:
+                to_node, to_slot = str(link[3]), link[4]
+                if to_node == ppo_node_id and to_slot == 1:  # config input
+                    config_node_id = str(link[1])
+                    break
         
-        try:
-            if not all_links or not all_nodes:
-                return None
-                
-            # Find the config input connection (slot 1)
-            config_node_id = None
-            for link in all_links:
-                if len(link) >= 5:
-                    to_node, to_slot = str(link[3]), link[4]
-                    if to_node == ppo_node_id and to_slot == 1:  # config input
-                        config_node_id = str(link[1])
-                        break
+        if not config_node_id:
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: No PPO configuration connected to ppo_config input. "
+                f"Please connect a PPOConfig node."
+            )
             
-            if not config_node_id:
-                return None
-                
-            # Find the node data
-            config_node_data = export_utils.get_node_by_id(config_node_id)
-            if not config_node_data:
-                return None
-                
-            # Check if it's a PPOConfig node
-            node_type = config_node_data.get("class_type") or config_node_data.get("type")
-            if node_type != "PPOConfig":
-                return None
-                
-            # Get the PPOConfig exporter and call its query method
-            ppo_config_exporter = export_utils.get_node_exporter("PPOConfig")
-            if not ppo_config_exporter or not hasattr(ppo_config_exporter, 'get_ppo_config'):
-                raise ValueError(
-                    f"PPOConfig exporter missing get_ppo_config() query method. "
-                    f"This indicates an incomplete virtual node implementation."
-                )
+        # Find the node data
+        config_node_data = export_utils.get_node_by_id(config_node_id)
+        if not config_node_data:
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Connected PPO config node {config_node_id} not found in workflow"
+            )
             
-            # Call the query method to get configuration
-            return ppo_config_exporter.get_ppo_config(config_node_id, config_node_data)
+        # Check if it's a PPOConfig node
+        node_type = config_node_data.get("class_type") or config_node_data.get("type")
+        if node_type != "PPOConfig":
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Expected PPOConfig node connected to ppo_config input, "
+                f"but got {node_type} node instead"
+            )
             
-        finally:
-            # Clear context after use
-            export_utils.clear_export_context()
+        # Get the PPOConfig exporter and call its query method
+        ppo_config_exporter = export_utils.get_node_exporter("PPOConfig")
+        if not ppo_config_exporter or not hasattr(ppo_config_exporter, 'get_ppo_config'):
+            raise ValueError(
+                f"PPOConfig exporter missing get_ppo_config() query method. "
+                f"This indicates an incomplete virtual node implementation."
+            )
+        
+        # Call the query method to get configuration
+        return ppo_config_exporter.get_ppo_config(config_node_id, config_node_data)
     
     @classmethod
     def _get_env_config_via_query(cls, ppo_node_id, all_nodes, all_links):
@@ -296,53 +295,52 @@ class PPOAgentExporter(ExportableNode):
         This method respects widget encapsulation by calling the IsaacGymEnvs exporter's
         query method instead of directly accessing its widgets.
         """
-        # Set export context so export_utils can work
-        export_utils.set_export_context({
-            'nodes': all_nodes,
-            'links': all_links,
-            'node_registry': cls._get_node_registry()
-        })
+        # Export context should already be set by GraphExporter
+        if not all_links or not all_nodes:
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Cannot get environment config - missing nodes or links data"
+            )
+            
+        # Find the env input connection (slot 0)
+        env_node_id = None
+        for link in all_links:
+            if len(link) >= 5:
+                to_node, to_slot = str(link[3]), link[4]
+                if to_node == ppo_node_id and to_slot == 0:  # env input
+                    env_node_id = str(link[1])
+                    break
         
-        try:
-            if not all_links or not all_nodes:
-                return None
-                
-            # Find the env input connection (slot 0)
-            env_node_id = None
-            for link in all_links:
-                if len(link) >= 5:
-                    to_node, to_slot = str(link[3]), link[4]
-                    if to_node == ppo_node_id and to_slot == 0:  # env input
-                        env_node_id = str(link[1])
-                        break
+        if not env_node_id:
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: No environment configuration connected to env_config input. "
+                f"Please connect an IsaacGymEnvs node."
+            )
             
-            if not env_node_id:
-                return None
-                
-            # Find the node data
-            env_node_data = export_utils.get_node_by_id(env_node_id)
-            if not env_node_data:
-                return None
-                
-            # Check if it's an IsaacGymEnvs node
-            node_type = env_node_data.get("class_type") or env_node_data.get("type")
-            if node_type != "IsaacGymEnvs":
-                return None
-                
-            # Get the IsaacGymEnvs exporter and call its query method
-            env_exporter = export_utils.get_node_exporter("IsaacGymEnvs")
-            if not env_exporter or not hasattr(env_exporter, 'get_env_config'):
-                raise ValueError(
-                    f"IsaacGymEnvs exporter missing get_env_config() query method. "
-                    f"This indicates an incomplete virtual node implementation."
-                )
+        # Find the node data
+        env_node_data = export_utils.get_node_by_id(env_node_id)
+        if not env_node_data:
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Connected environment node {env_node_id} not found in workflow"
+            )
             
-            # Call the query method to get configuration
-            return env_exporter.get_env_config(env_node_id, env_node_data)
+        # Check if it's an IsaacGymEnvs node
+        node_type = env_node_data.get("class_type") or env_node_data.get("type")
+        if node_type != "IsaacGymEnvs":
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Expected IsaacGymEnvs node connected to env_config input, "
+                f"but got {node_type} node instead"
+            )
             
-        finally:
-            # Clear context after use
-            export_utils.clear_export_context()
+        # Get the IsaacGymEnvs exporter and call its query method
+        env_exporter = export_utils.get_node_exporter("IsaacGymEnvs")
+        if not env_exporter or not hasattr(env_exporter, 'get_env_config'):
+            raise ValueError(
+                f"IsaacGymEnvs exporter missing get_env_config() query method. "
+                f"This indicates an incomplete virtual node implementation."
+            )
+        
+        # Call the query method to get configuration
+        return env_exporter.get_env_config(env_node_id, env_node_data)
     
     @classmethod
     def _get_balancing_config_via_query(cls, ppo_node_id, all_nodes, all_links):
@@ -351,53 +349,49 @@ class PPOAgentExporter(ExportableNode):
         This method respects widget encapsulation by calling the BalancerConfig exporter's
         query method instead of directly accessing its widgets.
         """
-        # Set export context so export_utils can work
-        export_utils.set_export_context({
-            'nodes': all_nodes,
-            'links': all_links,
-            'node_registry': cls._get_node_registry()
-        })
+        # Export context should already be set by GraphExporter
+        if not all_links or not all_nodes:
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Cannot get balancing config - missing nodes or links data"
+            )
+            
+        # Find balancing_config input connection (slot 2)
+        balancing_node_id = None
+        for link in all_links:
+            if len(link) >= 5:
+                to_node, to_slot = str(link[3]), link[4]
+                if to_node == ppo_node_id and to_slot == 2:  # balancing_config input
+                    balancing_node_id = str(link[1])
+                    break
         
-        try:
-            if not all_links or not all_nodes:
-                return None
-                
-            # Find balancing_config input connection (slot 2)
-            balancing_node_id = None
-            for link in all_links:
-                if len(link) >= 5:
-                    to_node, to_slot = str(link[3]), link[4]
-                    if to_node == ppo_node_id and to_slot == 2:  # balancing_config input
-                        balancing_node_id = str(link[1])
-                        break
+        if not balancing_node_id:
+            return None  # This is optional, so returning None is OK
             
-            if not balancing_node_id:
-                return None
-                
-            # Find the node data
-            balancing_node_data = export_utils.get_node_by_id(balancing_node_id)
-            if not balancing_node_data:
-                return None
-                
-            # Check if it's a BalancerConfig node
-            node_type = balancing_node_data.get("class_type") or balancing_node_data.get("type")
-            if node_type != "BalancerConfig":
-                return None
-                
-            # Get the BalancerConfig exporter and call its query method
-            balancing_exporter = export_utils.get_node_exporter("BalancerConfig")
-            if not balancing_exporter or not hasattr(balancing_exporter, 'get_balancing_config'):
-                raise ValueError(
-                    f"BalancerConfig exporter missing get_balancing_config() query method. "
-                    f"This indicates an incomplete virtual node implementation."
-                )
+        # Find the node data
+        balancing_node_data = export_utils.get_node_by_id(balancing_node_id)
+        if not balancing_node_data:
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Connected balancing config node {balancing_node_id} not found in workflow"
+            )
             
-            # Call the query method to get configuration
-            return balancing_exporter.get_balancing_config(balancing_node_id, balancing_node_data)
+        # Check if it's a BalancerConfig node
+        node_type = balancing_node_data.get("class_type") or balancing_node_data.get("type")
+        if node_type != "BalancerConfig":
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Expected BalancerConfig node connected to balancing_config input, "
+                f"but got {node_type} node instead"
+            )
             
-        finally:
-            # Clear context after use
-            export_utils.clear_export_context()
+        # Get the BalancerConfig exporter and call its query method
+        balancing_exporter = export_utils.get_node_exporter("BalancerConfig")
+        if not balancing_exporter or not hasattr(balancing_exporter, 'get_balancing_config'):
+            raise ValueError(
+                f"BalancerConfig exporter missing get_balancing_config() query method. "
+                f"This indicates an incomplete virtual node implementation."
+            )
+        
+        # Call the query method to get configuration
+        return balancing_exporter.get_balancing_config(balancing_node_id, balancing_node_data)
     
     @classmethod
     def _get_node_registry(cls):

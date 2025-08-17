@@ -207,51 +207,50 @@ class IsaacGymSimExporter(ExportableNode):
         This method respects widget encapsulation by calling the IsaacGymEnvs exporter's
         query method instead of directly accessing its widgets.
         """
-        # Set export context so export_utils can work
-        export_utils.set_export_context({
-            'nodes': all_nodes,
-            'links': all_links,
-            'node_registry': node_registry or cls._get_node_registry()
-        })
+        # Export context should already be set by GraphExporter
+        if not all_links or not all_nodes:
+            raise RuntimeError(
+                f"IsaacGymSim node {node_id}: Cannot get environment config - missing nodes or links data"
+            )
+            
+        # Find the env_config input connection (slot 0)
+        env_node_id = None
+        for link in all_links:
+            if len(link) >= 5 and str(link[3]) == str(node_id) and link[4] == 0:  # env_config is input 0
+                env_node_id = str(link[1])
+                break
         
-        try:
-            if not all_links or not all_nodes:
-                return None
-                
-            # Find the env_config input connection (slot 0)
-            env_node_id = None
-            for link in all_links:
-                if len(link) >= 5 and str(link[3]) == str(node_id) and link[4] == 0:  # env_config is input 0
-                    env_node_id = str(link[1])
-                    break
+        if not env_node_id:
+            raise RuntimeError(
+                f"IsaacGymSim node {node_id}: No environment configuration connected to env_config input. "
+                f"Please connect an IsaacGymEnvs node."
+            )
             
-            if not env_node_id:
-                return None
-                
-            # Find the node data
-            env_node_data = export_utils.get_node_by_id(env_node_id)
-            if not env_node_data:
-                return None
-                
-            # Check if it's an IsaacGymEnvs node
-            node_type = env_node_data.get("class_type") or env_node_data.get("type")
-            if node_type != "IsaacGymEnvs":
-                return None
-                
-            # Get the IsaacGymEnvs exporter and call its query method
-            env_exporter = export_utils.get_node_exporter("IsaacGymEnvs")
-            if not env_exporter or not hasattr(env_exporter, 'get_env_config'):
-                raise ValueError(
-                    f"IsaacGymEnvs exporter missing get_env_config() query method. "
-                    f"This indicates an incomplete virtual node implementation."
-                )
+        # Find the node data
+        env_node_data = export_utils.get_node_by_id(env_node_id)
+        if not env_node_data:
+            raise RuntimeError(
+                f"IsaacGymSim node {node_id}: Connected environment node {env_node_id} not found in workflow"
+            )
             
-            # Call the query method to get configuration
-            return env_exporter.get_env_config(env_node_id, env_node_data)
+        # Check if it's an IsaacGymEnvs node
+        node_type = env_node_data.get("class_type") or env_node_data.get("type")
+        if node_type != "IsaacGymEnvs":
+            raise RuntimeError(
+                f"IsaacGymSim node {node_id}: Expected IsaacGymEnvs node connected to env_config, "
+                f"but got {node_type} node instead"
+            )
             
-        finally:
-            # Clear context after use
-            export_utils.clear_export_context()
+        # Get the IsaacGymEnvs exporter and call its query method
+        env_exporter = export_utils.get_node_exporter("IsaacGymEnvs")
+        if not env_exporter or not hasattr(env_exporter, 'get_env_config'):
+            raise ValueError(
+                f"IsaacGymEnvs exporter missing get_env_config() query method. "
+                f"This indicates an incomplete virtual node implementation."
+            )
+        
+        # Call the query method to get configuration
+        return env_exporter.get_env_config(env_node_id, env_node_data)
     
     @classmethod
     def _get_node_registry(cls):
