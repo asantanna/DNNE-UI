@@ -23,7 +23,7 @@ class SGDOptimizerExporter(ExportableNode):
         
         # Validate required parameters are present
         required_params = ['learning_rate', 'momentum', 'weight_decay']
-        missing_params = [p for p in required_params if params.get(p) is None]
+        missing_params = [p for p in required_params if p not in params or params[p] is None]
         if missing_params:
             raise ValueError(
                 f"SGDOptimizer node {node_id} missing required parameters: {missing_params}. "

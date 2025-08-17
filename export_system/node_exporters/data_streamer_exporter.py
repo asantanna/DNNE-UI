@@ -32,7 +32,7 @@ class DataStreamerExporter(ExportableNode):
         # FAIL-FAST: Validate required parameters
         required_params = ['src_path', 'dest_dir', 'sync_mode', 'frequency_hz', 'auto_first_row',
                           'loop_data', 'eof_mode', 'delimiter', 'skip_header']
-        missing_params = [p for p in required_params if params.get(p) is None]
+        missing_params = [p for p in required_params if p not in params or params[p] is None]
         if missing_params:
             raise ValueError(
                 f"DataStreamer node {node_id} missing required parameters: {missing_params}. "
@@ -132,9 +132,11 @@ class DataStreamerExporter(ExportableNode):
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
-        # Strip whitespace from paths to handle user input
-        src_path = params.get('src_path', '').strip() if params.get('src_path') else ''
-        dest_dir = params.get('dest_dir', '').strip() if params.get('dest_dir') else ''
+        # Strip whitespace from paths to handle user input - fail if missing
+        if 'src_path' not in params or 'dest_dir' not in params:
+            raise ValueError(f"DataStreamer node {node_id}: src_path and dest_dir parameters must be present")
+        src_path = params['src_path'].strip() if params['src_path'] else ''
+        dest_dir = params['dest_dir'].strip() if params['dest_dir'] else ''
         
         # If no source path, nothing to copy
         if not src_path:

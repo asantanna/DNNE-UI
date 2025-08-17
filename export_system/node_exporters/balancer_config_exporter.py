@@ -47,17 +47,26 @@ class BalancerConfigExporter(ExportableNode):
         ]
         params = cls.get_node_parameters_batch(node_data, param_specs)
         
-        # Build schema with configuration
+        # Build schema with configuration - fail if required params missing
+        required_params = ['enabled', 'target_yield_rate', 'balance_interval', 
+                          'min_batch_size', 'max_batch_size', 'adjustment_factor']
+        missing_params = [p for p in required_params if p not in params or params[p] is None]
+        if missing_params:
+            raise ValueError(
+                f"BalancerConfig node missing required parameters: {missing_params}. "
+                f"All balancing configuration parameters must be provided."
+            )
+        
         return {
             "outputs": {
                 "config": {
                     "type": "balancing_config",
-                    "enabled": params.get('enabled', False),
-                    "target_yield_rate": params.get('target_yield_rate', 0.95),
-                    "balance_interval": params.get('balance_interval', 100),
-                    "min_batch_size": params.get('min_batch_size', 16),
-                    "max_batch_size": params.get('max_batch_size', 256),
-                    "adjustment_factor": params.get('adjustment_factor', 1.1),
+                    "enabled": params['enabled'],
+                    "target_yield_rate": params['target_yield_rate'],
+                    "balance_interval": params['balance_interval'],
+                    "min_batch_size": params['min_batch_size'],
+                    "max_batch_size": params['max_batch_size'],
+                    "adjustment_factor": params['adjustment_factor'],
                 }
             }
         }
@@ -91,8 +100,13 @@ class BalancerConfigExporter(ExportableNode):
         # Get parameters using the helper that checks both inputs and widgets_values
         params = cls.get_node_parameters_batch(node_data, param_specs)
         
-        # Check if config is enabled
-        enabled = params.get('enabled')
+        # Check if config is enabled - fail if missing
+        if 'enabled' not in params:
+            raise ValueError(
+                f"BalancerConfig node {node_id} missing 'enabled' parameter. "
+                f"This indicates the UI is not sending widget values correctly."
+            )
+        enabled = params['enabled']
         if enabled is None:
             raise ValueError(
                 f"BalancerConfig node {node_id} missing 'enabled' parameter. "
@@ -111,26 +125,45 @@ class BalancerConfigExporter(ExportableNode):
             'latency': {},
         }
         
-        # Add scheduling settings (always include if present)
-        if params.get('priority') is not None:
-            config['scheduling']['priority'] = params['priority']
-        if params.get('guaranteed') is not None:
-            config['scheduling']['guaranteed'] = params['guaranteed']
+        # Add scheduling settings - fail if missing when enabled
+        if 'priority' not in params:
+            raise ValueError(f"BalancerConfig node {node_id}: priority parameter missing")
+        if 'guaranteed' not in params:
+            raise ValueError(f"BalancerConfig node {node_id}: guaranteed parameter missing")
         
-        # Add frequency settings if specified (>= 0 means care, -1 means don't care)
-        if params.get('min_hz') is not None and params['min_hz'] >= 0:
+        config['scheduling']['priority'] = params['priority']
+        config['scheduling']['guaranteed'] = params['guaranteed']
+        
+        # Add frequency settings - fail if params missing, -1 means don't care
+        if 'min_hz' not in params:
+            raise ValueError(f"BalancerConfig node {node_id}: min_hz parameter missing")
+        if 'max_hz' not in params:
+            raise ValueError(f"BalancerConfig node {node_id}: max_hz parameter missing")
+        if 'target_hz' not in params:
+            raise ValueError(f"BalancerConfig node {node_id}: target_hz parameter missing")
+        
+        # Only add to config if >= 0 (negative means don't care)
+        if params['min_hz'] >= 0:
             config['frequency']['min_hz'] = params['min_hz']
-        if params.get('max_hz') is not None and params['max_hz'] >= 0:
+        if params['max_hz'] >= 0:
             config['frequency']['max_hz'] = params['max_hz']
-        if params.get('target_hz') is not None and params['target_hz'] >= 0:
+        if params['target_hz'] >= 0:
             config['frequency']['target_hz'] = params['target_hz']
             
-        # Add throughput settings if specified
-        if params.get('target_percentage') is not None and params['target_percentage'] >= 0:
+        # Add throughput settings - fail if param missing
+        if 'target_percentage' not in params:
+            raise ValueError(f"BalancerConfig node {node_id}: target_percentage parameter missing")
+        
+        # Only add to config if >= 0 (negative means don't care)
+        if params['target_percentage'] >= 0:
             config['throughput']['target_percentage'] = params['target_percentage']
             
-        # Add latency settings if specified
-        if params.get('max_latency_ms') is not None and params['max_latency_ms'] >= 0:
+        # Add latency settings - fail if param missing
+        if 'max_latency_ms' not in params:
+            raise ValueError(f"BalancerConfig node {node_id}: max_latency_ms parameter missing")
+        
+        # Only add to config if >= 0 (negative means don't care)
+        if params['max_latency_ms'] >= 0:
             config['latency']['max_latency_ms'] = params['max_latency_ms']
         
         return config

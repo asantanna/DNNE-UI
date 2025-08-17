@@ -243,13 +243,13 @@ class IsaacGymSimExporter(ExportableNode):
             
         # Get the IsaacGymEnvs exporter and call its query method
         env_exporter = export_utils.get_node_exporter("IsaacGymEnvs")
-        if not env_exporter or not hasattr(env_exporter, 'get_env_config'):
+        if not env_exporter:
             raise ValueError(
-                f"IsaacGymEnvs exporter missing get_env_config() query method. "
-                f"This indicates an incomplete virtual node implementation."
+                f"IsaacGymEnvs exporter not found. "
+                f"This indicates a missing virtual node implementation."
             )
         
-        # Call the query method to get configuration
+        # Call the query method to get configuration - let AttributeError propagate if method missing
         return env_exporter.get_env_config(env_node_id, env_node_data)
     
     @classmethod

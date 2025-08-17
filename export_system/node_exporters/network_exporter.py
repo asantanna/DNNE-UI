@@ -46,34 +46,43 @@ class NetworkExporter(ExportableNode):
             if not node:
                 break
             
-            node_type = node.get('class_type') or node.get('type')
+            # Get node type - fail if missing
+            if 'class_type' not in node and 'type' not in node:
+                raise RuntimeError(f"Network: Connected node {current_node_id} has no type information")
+            node_type = node.get('class_type') or node['type']
             
             # Get the exporter for this node type
             exporter = export_utils.get_node_exporter(node_type)
-            if exporter and hasattr(exporter, 'get_layer_pytorch_code'):
-                # Ask the layer for its PyTorch code
-                layer_info = exporter.get_layer_pytorch_code(current_node_id, node, input_size)
+            if exporter:
+                # Try to call get_layer_pytorch_code - let AttributeError propagate if missing
+                try:
+                    # Ask the layer for its PyTorch code
+                    layer_info = exporter.get_layer_pytorch_code(current_node_id, node, input_size)
+                except AttributeError:
+                    # Node doesn't support layer code generation - skip it
+                    layer_info = None
                 
-                # Add layer definition
-                layer_definitions.append(f"        layers.append({layer_info['layer_code']})")
+                if layer_info:
+                    # Add layer definition
+                    layer_definitions.append(f"        layers.append({layer_info['layer_code']})")
                 
-                # Add activation if present
-                if layer_info.get('activation_code'):
-                    layer_definitions.append(f"        layers.append({layer_info['activation_code']})")
+                    # Add activation if present
+                    if 'activation_code' in layer_info and layer_info['activation_code']:
+                        layer_definitions.append(f"        layers.append({layer_info['activation_code']})")
+                    
+                    # Add dropout if present
+                    if 'dropout_code' in layer_info and layer_info['dropout_code']:
+                        layer_definitions.append(f"        layers.append({layer_info['dropout_code']})")
                 
-                # Add dropout if present
-                if layer_info.get('dropout_code'):
-                    layer_definitions.append(f"        layers.append({layer_info['dropout_code']})")
-                
-                # Store layer info for debugging/reference
-                layers_info.append({
-                    'node_id': current_node_id,
-                    'input_size': input_size,
-                    'output_size': layer_info['output_size']
-                })
-                
-                # Update input size for next layer
-                input_size = layer_info['output_size']
+                    # Store layer info for debugging/reference
+                    layers_info.append({
+                        'node_id': current_node_id,
+                        'input_size': input_size,
+                        'output_size': layer_info['output_size']
+                    })
+                    
+                    # Update input size for next layer
+                    input_size = layer_info['output_size']
             
             # Follow to the next node
             current_node_id = export_utils.follow_node_connection(current_node_id, "output")
@@ -91,7 +100,7 @@ class NetworkExporter(ExportableNode):
         # Validate required checkpoint parameters are present
         required_checkpoint = ['checkpoint_enabled', 'checkpoint_trigger_type', 
                               'checkpoint_trigger_value', 'checkpoint_load_on_start']
-        missing_checkpoint = [p for p in required_checkpoint if checkpoint_params.get(p) is None]
+        missing_checkpoint = [p for p in required_checkpoint if p not in checkpoint_params or checkpoint_params[p] is None]
         if missing_checkpoint:
             raise ValueError(
                 f"Network node {node_id} missing checkpoint parameters: {missing_checkpoint}. "

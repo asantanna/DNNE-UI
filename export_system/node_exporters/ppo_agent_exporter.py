@@ -42,7 +42,7 @@ class PPOAgentExporter(ExportableNode):
         # Validate required parameters are present (resume_from can be empty)
         required_params = ['max_iterations', 'checkpoint_interval', 'eval_interval', 
                           'eval_episodes', 'log_interval', 'save_path']
-        missing_params = [p for p in required_params if params.get(p) is None]
+        missing_params = [p for p in required_params if p not in params or params[p] is None]
         if missing_params:
             raise ValueError(
                 f"PPOAgent node {node_id} missing required parameters: {missing_params}. "
@@ -71,29 +71,61 @@ class PPOAgentExporter(ExportableNode):
                     # Extract network config from PPO YAML if available
                     if ppo_yaml and 'params' in ppo_yaml and 'network' in ppo_yaml['params']:
                         net_config = ppo_yaml['params']['network']
-                        task_ppo_config['network_mlp_layers'] = net_config.get('mlp', {}).get('units', [256, 128, 64])
-                        task_ppo_config['network_activation'] = net_config.get('mlp', {}).get('activation', 'elu')
+                        # Extract network config - fail if structure is missing
+                        if 'mlp' not in net_config:
+                            raise ValueError(f"PPO config for task {task_name} missing 'mlp' network configuration")
+                        mlp_config = net_config['mlp']
+                        if 'units' not in mlp_config:
+                            raise ValueError(f"PPO config for task {task_name} missing 'units' in mlp configuration")
+                        if 'activation' not in mlp_config:
+                            raise ValueError(f"PPO config for task {task_name} missing 'activation' in mlp configuration")
+                        task_ppo_config['network_mlp_layers'] = mlp_config['units']
+                        task_ppo_config['network_activation'] = mlp_config['activation']
+                        # 'separate' is optional - false if not specified
                         task_ppo_config['separate_value_network'] = net_config.get('separate', False)
                     # Extract other PPO params
                     if ppo_yaml and 'params' in ppo_yaml and 'config' in ppo_yaml['params']:
                         config = ppo_yaml['params']['config']
+                        # These are optional performance flags - false if not specified
                         task_ppo_config['mixed_precision'] = config.get('mixed_precision', False)
                         task_ppo_config['multi_gpu'] = config.get('multi_gpu', False)
+            except (FileNotFoundError, yaml.YAMLError) as e:
+                # Missing config file or YAML parsing error is acceptable - use defaults
+                print(f"Note: Could not load PPO config for task {task_name}: {e}")
             except Exception as e:
-                # If we can't load PPO config, just use defaults
-                pass
+                # Unexpected errors should propagate
+                raise RuntimeError(f"Failed to load PPO config for task {task_name}: {e}") from e
         
-        # Get network configuration from task config with sensible defaults
-        network_mlp_layers = task_ppo_config.get('network_mlp_layers', [256, 128, 64])
-        network_activation = task_ppo_config.get('network_activation', 'elu')
+        # Get network configuration from task config - fail if not loaded
+        if 'network_mlp_layers' not in task_ppo_config:
+            raise ValueError(
+                f"Network MLP layers configuration not found. "
+                f"Either the task PPO config is missing or incorrectly formatted."
+            )
+        if 'network_activation' not in task_ppo_config:
+            raise ValueError(
+                f"Network activation configuration not found. "
+                f"Either the task PPO config is missing or incorrectly formatted."
+            )
+        
+        network_mlp_layers = task_ppo_config['network_mlp_layers']
+        network_activation = task_ppo_config['network_activation']
+        # These are genuinely optional performance flags
         separate_value_network = task_ppo_config.get('separate_value_network', False)
         mixed_precision = task_ppo_config.get('mixed_precision', False)
         multi_gpu = task_ppo_config.get('multi_gpu', False)
         
-        # Get other parameters from task config or use defaults
+        # Get other parameters from task config - use reasonable defaults only if not in YAML
+        # These are less critical and can have defaults if not specified in task YAML
         keep_checkpoints = task_ppo_config.get('keep_checkpoints', 5)
         save_interval = task_ppo_config.get('save_interval', 1000)
-        experiment_name = task_ppo_config.get('experiment_name', f"{env_config.get('task', 'PPO')}_PPO")
+        # Build experiment name from task if not specified
+        if 'experiment_name' in task_ppo_config:
+            experiment_name = task_ppo_config['experiment_name']
+        elif env_config and 'task' in env_config:
+            experiment_name = f"{env_config['task']}_PPO"
+        else:
+            raise ValueError("Cannot determine experiment name - no task or experiment_name specified")
         
         # Merge all configuration
         template_vars = {
@@ -118,7 +150,7 @@ class PPOAgentExporter(ExportableNode):
             "MIXED_PRECISION": mixed_precision,
             "MULTI_GPU": multi_gpu,
             # For compatibility - some templates might still use this
-            "LOAD_CHECKPOINT": params.get('resume_from', ''),
+            "LOAD_CHECKPOINT": params['resume_from'],  # Already validated, can be empty
         }
         
         # Add environment configuration
@@ -200,6 +232,7 @@ class PPOAgentExporter(ExportableNode):
         # Add balancing configuration if present
         if balancing_config:
             # Extract values from the config we built - use 0 only for truly optional fields
+            # These sub-dicts are optional within balancing config
             freq = balancing_config.get('frequency', {})
             throughput = balancing_config.get('throughput', {})
             scheduling = balancing_config.get('scheduling', {})
@@ -269,8 +302,12 @@ class PPOAgentExporter(ExportableNode):
                 f"PPOAgent node {ppo_node_id}: Connected PPO config node {config_node_id} not found in workflow"
             )
             
-        # Check if it's a PPOConfig node
-        node_type = config_node_data.get("class_type") or config_node_data.get("type")
+        # Check if it's a PPOConfig node - fail if type missing
+        if 'class_type' not in config_node_data and 'type' not in config_node_data:
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Connected config node {config_node_id} has no type information"
+            )
+        node_type = config_node_data.get("class_type") or config_node_data['type']
         if node_type != "PPOConfig":
             raise RuntimeError(
                 f"PPOAgent node {ppo_node_id}: Expected PPOConfig node connected to ppo_config input, "
@@ -279,13 +316,13 @@ class PPOAgentExporter(ExportableNode):
             
         # Get the PPOConfig exporter and call its query method
         ppo_config_exporter = export_utils.get_node_exporter("PPOConfig")
-        if not ppo_config_exporter or not hasattr(ppo_config_exporter, 'get_ppo_config'):
+        if not ppo_config_exporter:
             raise ValueError(
-                f"PPOConfig exporter missing get_ppo_config() query method. "
-                f"This indicates an incomplete virtual node implementation."
+                f"PPOConfig exporter not found. "
+                f"This indicates a missing virtual node implementation."
             )
         
-        # Call the query method to get configuration
+        # Call the query method to get configuration - let AttributeError propagate if method missing
         return ppo_config_exporter.get_ppo_config(config_node_id, config_node_data)
     
     @classmethod
@@ -323,8 +360,12 @@ class PPOAgentExporter(ExportableNode):
                 f"PPOAgent node {ppo_node_id}: Connected environment node {env_node_id} not found in workflow"
             )
             
-        # Check if it's an IsaacGymEnvs node
-        node_type = env_node_data.get("class_type") or env_node_data.get("type")
+        # Check if it's an IsaacGymEnvs node - fail if type missing
+        if 'class_type' not in env_node_data and 'type' not in env_node_data:
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Connected env node {env_node_id} has no type information"
+            )
+        node_type = env_node_data.get("class_type") or env_node_data['type']
         if node_type != "IsaacGymEnvs":
             raise RuntimeError(
                 f"PPOAgent node {ppo_node_id}: Expected IsaacGymEnvs node connected to env_config input, "
@@ -333,13 +374,13 @@ class PPOAgentExporter(ExportableNode):
             
         # Get the IsaacGymEnvs exporter and call its query method
         env_exporter = export_utils.get_node_exporter("IsaacGymEnvs")
-        if not env_exporter or not hasattr(env_exporter, 'get_env_config'):
+        if not env_exporter:
             raise ValueError(
-                f"IsaacGymEnvs exporter missing get_env_config() query method. "
-                f"This indicates an incomplete virtual node implementation."
+                f"IsaacGymEnvs exporter not found. "
+                f"This indicates a missing virtual node implementation."
             )
         
-        # Call the query method to get configuration
+        # Call the query method to get configuration - let AttributeError propagate if method missing
         return env_exporter.get_env_config(env_node_id, env_node_data)
     
     @classmethod
@@ -374,8 +415,12 @@ class PPOAgentExporter(ExportableNode):
                 f"PPOAgent node {ppo_node_id}: Connected balancing config node {balancing_node_id} not found in workflow"
             )
             
-        # Check if it's a BalancerConfig node
-        node_type = balancing_node_data.get("class_type") or balancing_node_data.get("type")
+        # Check if it's a BalancerConfig node - fail if type missing
+        if 'class_type' not in balancing_node_data and 'type' not in balancing_node_data:
+            raise RuntimeError(
+                f"PPOAgent node {ppo_node_id}: Connected balancing node {balancing_node_id} has no type information"
+            )
+        node_type = balancing_node_data.get("class_type") or balancing_node_data['type']
         if node_type != "BalancerConfig":
             raise RuntimeError(
                 f"PPOAgent node {ppo_node_id}: Expected BalancerConfig node connected to balancing_config input, "
@@ -384,13 +429,13 @@ class PPOAgentExporter(ExportableNode):
             
         # Get the BalancerConfig exporter and call its query method
         balancing_exporter = export_utils.get_node_exporter("BalancerConfig")
-        if not balancing_exporter or not hasattr(balancing_exporter, 'get_balancing_config'):
+        if not balancing_exporter:
             raise ValueError(
-                f"BalancerConfig exporter missing get_balancing_config() query method. "
-                f"This indicates an incomplete virtual node implementation."
+                f"BalancerConfig exporter not found. "
+                f"This indicates a missing virtual node implementation."
             )
         
-        # Call the query method to get configuration
+        # Call the query method to get configuration - let AttributeError propagate if method missing
         return balancing_exporter.get_balancing_config(balancing_node_id, balancing_node_data)
     
     @classmethod

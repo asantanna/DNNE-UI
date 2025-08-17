@@ -21,7 +21,7 @@ class EpochTrackerExporter(ExportableNode):
         params = cls.get_node_parameters_batch(node_data, param_specs)
         
         # Validate required parameters are present
-        if params.get('max_epochs') is None:
+        if 'max_epochs' not in params or params['max_epochs'] is None:
             raise ValueError(
                 f"EpochTracker node {node_id} missing required parameter: max_epochs. "
                 f"The UI must provide the maximum number of epochs."

@@ -176,7 +176,8 @@ class IsaacGymEnvsExporter(ExportableNode):
                             }
         
         except Exception as e:
-            print(f"Warning: Could not load schema for {task_name}: {e}")
+            # Unexpected errors should propagate
+            raise RuntimeError(f"Failed to load schema for task {task_name}: {e}") from e
         
         return schema_info
     

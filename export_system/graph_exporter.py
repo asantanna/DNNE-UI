@@ -12,18 +12,19 @@ from .utils import export_utils
 
 class ExportableNode:
     """Base class for nodes that can be exported to code"""
+    _schema_cache = {}  # Initialize cache at class level
     
     @classmethod
     def get_template_name(cls) -> str:
         """Return the template file name for this node type"""
-        raise NotImplementedError
+        raise NotImplementedError(f"Subclass {cls.__name__} must implement get_template_name() method")
     
     @classmethod
     def prepare_template_vars(cls, node_id: str, node_data: Dict, 
                             connections: Dict, node_registry: Dict = None, 
                             all_nodes: List = None, all_links: List = None) -> Dict[str, Any]:
         """Prepare variables for template substitution"""
-        raise NotImplementedError
+        raise NotImplementedError(f"Subclass {cls.__name__} must implement prepare_template_vars() method")
     
     @classmethod
     def get_imports(cls) -> List[str]:
@@ -47,6 +48,35 @@ class ExportableNode:
         if slot < len(input_names):
             return input_names[slot]
         return f"input_{slot}"
+    
+    @classmethod
+    def validate_required_parameters(cls, params: Dict[str, Any], required_params: List[str], 
+                                    node_id: str, node_type: str) -> bool:
+        """Validate that all required parameters are present.
+        
+        This centralized method enforces fail-fast principles by checking that all
+        required parameters exist and are not None. This prevents silent defaults
+        from hiding configuration errors.
+        
+        Args:
+            params: Dictionary of parameters extracted from node
+            required_params: List of parameter names that must be present
+            node_id: ID of the node being validated
+            node_type: Type/class name of the node for error messages
+            
+        Returns:
+            True if all required parameters are present
+            
+        Raises:
+            ValueError: If any required parameters are missing or None
+        """
+        missing_params = [p for p in required_params if p not in params or params[p] is None]
+        if missing_params:
+            raise ValueError(
+                f"{node_type} node {node_id} missing required parameters: {missing_params}. "
+                f"The UI must provide all required configuration parameters."
+            )
+        return True
     
     @classmethod
     def get_export_files(cls, node_id: str, node_data: Dict) -> List[Tuple[str, str]]:
@@ -136,7 +166,7 @@ class ExportableNode:
         
         # Check if we have cached the output schema
         cache_key = f"output_schema_{id(node_data)}"
-        if hasattr(cls, '_schema_cache') and cache_key in cls._schema_cache:
+        if cache_key in cls._schema_cache:
             return cls._schema_cache[cache_key]
         
         # Get initial schema and resolve None values
@@ -147,8 +177,6 @@ class ExportableNode:
         if cls._resolve_schema_nones(schema_copy, node_data, connections, 
                                      node_registry, all_nodes, all_links):
             # Cache the resolved schema
-            if not hasattr(cls, '_schema_cache'):
-                cls._schema_cache = {}
             cls._schema_cache[cache_key] = schema_copy
         
         return schema_copy
@@ -162,7 +190,7 @@ class ExportableNode:
         """
         # Check if we have cached the input schema
         cache_key = f"input_schema_{id(node_data)}"
-        if hasattr(cls, '_schema_cache') and cache_key in cls._schema_cache:
+        if cache_key in cls._schema_cache:
             return cls._schema_cache[cache_key]
         
         # Build input schema by querying each connected input
@@ -203,8 +231,6 @@ class ExportableNode:
                 input_schema[input_name] = None
         
         # Cache the resolved schema
-        if not hasattr(cls, '_schema_cache'):
-            cls._schema_cache = {}
         cls._schema_cache[cache_key] = input_schema
         
         return input_schema

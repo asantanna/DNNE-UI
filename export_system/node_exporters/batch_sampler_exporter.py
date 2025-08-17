@@ -24,7 +24,7 @@ class BatchSamplerExporter(ExportableNode):
         
         # Validate required parameters are present
         required_params = ['batch_size', 'shuffle', 'seed', 'seed_control']
-        missing_params = [p for p in required_params if params.get(p) is None]
+        missing_params = [p for p in required_params if p not in params or params[p] is None]
         if missing_params:
             raise ValueError(
                 f"BatchSampler node {node_id} missing required parameters: {missing_params}. "
@@ -69,7 +69,7 @@ class BatchSamplerExporter(ExportableNode):
         params = cls.get_node_parameters_batch(node_data, param_specs)
         
         # Check if we got the required parameters
-        if params.get('batch_size') is None:
+        if 'batch_size' not in params or params['batch_size'] is None:
             raise ValueError(
                 f"BatchSampler node missing widget values. "
                 f"Could not extract batch_size parameter from node data."
@@ -96,7 +96,7 @@ class BatchSamplerExporter(ExportableNode):
     def _resolve_schema_value(cls, key, parent_schema, node_data, connections, 
                             node_registry, all_nodes, all_links):
         """Pass through the schema from input"""
-        if key == "value" and parent_schema.get("type") == "schema":
+        if key == "value" and parent_schema and parent_schema.get("type") == "schema":
             # Get the schema from our "schema" input
             input_schema = cls.get_input_schema(node_data, connections, 
                                               node_registry, all_nodes, all_links)

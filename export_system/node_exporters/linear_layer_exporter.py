@@ -44,7 +44,7 @@ class LinearLayerExporter(ExportableNode):
         
         # Validate required parameters
         required_params = ['output_size', 'bias', 'activation', 'dropout']
-        missing_params = [p for p in required_params if params.get(p) is None]
+        missing_params = [p for p in required_params if p not in params or params[p] is None]
         if missing_params:
             raise ValueError(
                 f"LinearLayer node {node_id} missing required parameters: {missing_params}"
@@ -61,8 +61,10 @@ class LinearLayerExporter(ExportableNode):
             'output_size': params['output_size']
         }
         
-        # Add activation if specified
-        activation = params.get('activation', 'none')
+        # Add activation - fail if missing
+        if 'activation' not in params:
+            raise ValueError(f"LinearLayer node {node_id}: activation parameter missing")
+        activation = params['activation']
         if activation == 'relu':
             result['activation_code'] = "nn.ReLU()"
         elif activation == 'tanh':
@@ -72,8 +74,10 @@ class LinearLayerExporter(ExportableNode):
         elif activation == 'elu':
             result['activation_code'] = "nn.ELU()"
         
-        # Add dropout if specified
-        dropout = params.get('dropout', 0)
+        # Add dropout - fail if missing
+        if 'dropout' not in params:
+            raise ValueError(f"LinearLayer node {node_id}: dropout parameter missing")
+        dropout = params['dropout']
         if dropout > 0:
             result['dropout_code'] = f"nn.Dropout({dropout})"
         
