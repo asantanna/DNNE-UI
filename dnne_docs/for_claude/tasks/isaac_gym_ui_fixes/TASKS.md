@@ -33,29 +33,22 @@ requestAnimationFrame(() => {
 - Called `app.canvas.draw(true, true)` within the animation frame for forced redraw
 - Applied fix to all three callback handlers: task onChange, task onLoad, and dynamic widget onChange
 
-### 3. Schema Display Widget Height Ignored
-**Problem**: The `schema_display` STRING widget should be 3x taller, but the height setting is being ignored.
+### 3. ✅ Schema Display Widget Height Ignored (FIXED)
+**Problem**: The `schema_display` STRING widget should be taller, but the height setting was being ignored.
 
-**Current Setting**:
-```python
-"schema_display": ("STRING", {
-    "multiline": True,
-    "default": "",
-    "tooltip": "Current observation and action schema",
-    "readonly": True,
-    "height": 600,  # This is being ignored
-})
-```
+**Solution Implemented**:
+- Added `widgetHeight` property support in frontend (`useStringWidget.ts`)
+- Widget now accepts `widgetHeight` parameter from backend
+- Set CSS custom property `--comfy-widget-min-height` on textarea element
+- Backend passes `widgetHeight: 200` for proper sizing
 
-**Issue**: DOM-based widgets (STRING with multiline) might not respect the height parameter
-
-**Potential Solutions**:
-- Set height via CSS after widget creation
-- Use JavaScript to modify the textarea element directly
-- Override widget creation to set custom height
-- Check if there's a different parameter name for DOM widget height
+**Fix Details**:
+- Modified frontend to check for `widgetHeight` in inputSpec and apply it via CSS custom property
+- Added `widgetHeight` to zStringInputOptions schema for TypeScript support
+- Removed element count text from schema display to prevent line wrapping
+- Widget now properly displays at 200px height with clean formatting
 
 ## Priority
 1. ~~**High**: Node re-render issue (affects usability)~~ ✅ FIXED
-2. **Medium**: Schema display height (affects readability)
+2. ~~**Medium**: Schema display height (affects readability)~~ ✅ FIXED
 3. **Low**: Hidden widget gaps (cosmetic issue)

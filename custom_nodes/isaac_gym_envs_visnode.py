@@ -220,7 +220,7 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
             "default": "",
             "tooltip": "Current observation and action schema",
             "readonly": True,  # Make it read-only
-            "height": 600,  # Doubled height in pixels
+            "widgetHeight": 200  # Set to 200px height
         })
         
         return widgets
@@ -304,28 +304,22 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
             obs_schema = current_schema.get('observationSchema', {})
             
             if obs_count:
-                lines.append(f"\nObservations ({obs_count} elements):")
+                lines.append(f"\nObservations:")
                 for name, indices in obs_schema.items():
                     if isinstance(indices, list) and len(indices) == 2:
-                        # Inclusive ranges: [0, 6] means 7 elements (0-6 inclusive)
-                        size = indices[1] - indices[0] + 1
-                        desc = f"{size} element{'s' if size > 1 else ''}"
                         # Display as [start-end] to show inclusive range
-                        lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]  {desc}")
+                        lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
             
             # Add action schema
             act_count = current_schema.get('numActions', 0)
             act_schema = current_schema.get('actionSchema', {})
             
             if act_count:
-                lines.append(f"\nActions ({act_count} elements):")
+                lines.append(f"\nActions:")
                 for name, indices in act_schema.items():
                     if isinstance(indices, list) and len(indices) == 2:
-                        # Inclusive ranges: [0, 6] means 7 elements (0-6 inclusive)
-                        size = indices[1] - indices[0] + 1
-                        desc = f"{size} element{'s' if size > 1 else ''}"
                         # Display as [start-end] to show inclusive range
-                        lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]  {desc}")
+                        lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
             
             # Add description if available
             description = current_schema.get('description')
