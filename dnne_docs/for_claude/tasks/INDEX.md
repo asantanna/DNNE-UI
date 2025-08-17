@@ -12,7 +12,7 @@
 | **DNNE Agent** | 🟢 Complete | Fully functional | - | 2025-08-11 |
 | **Log Viewer** | 🟡 Working | ~95% - Stream end issue | Medium | 2025-08-15 |
 | **Core Infrastructure** | 🟢 Complete | 100% - All features done | - | 2025-08-15 |
-| **Export System** | 🟢 Complete | 100% - All issues resolved | - | 2025-08-15 |
+| **Export System** | 🟢 Complete | 100% - Inclusive ranges implemented | - | 2025-08-17 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
 | **Node System** | 🟡 Working | Dynamic widgets in progress | High | 2025-08-16 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
@@ -28,7 +28,6 @@
 ### Medium Priority
 1. **Log Viewer**: Fix streaming logs missing final DNNE stop line
 2. **Node System**: Add 'group' widget to Balancer nodes
-3. **Node System**: Create Split node (opposite of Concat)
 
 ### Low Priority
 1. **Log Viewer**: Fix dropdown clickable when Local selected

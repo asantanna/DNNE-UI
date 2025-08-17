@@ -307,9 +307,11 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                 lines.append(f"\nObservations ({obs_count} elements):")
                 for name, indices in obs_schema.items():
                     if isinstance(indices, list) and len(indices) == 2:
-                        size = indices[1] - indices[0]
+                        # Inclusive ranges: [0, 6] means 7 elements (0-6 inclusive)
+                        size = indices[1] - indices[0] + 1
                         desc = f"{size} element{'s' if size > 1 else ''}"
-                        lines.append(f"  • {name:<20} [{indices[0]:2}:{indices[1]:2}]  {desc}")
+                        # Display as [start-end] to show inclusive range
+                        lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]  {desc}")
             
             # Add action schema
             act_count = current_schema.get('numActions', 0)
@@ -319,9 +321,11 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                 lines.append(f"\nActions ({act_count} elements):")
                 for name, indices in act_schema.items():
                     if isinstance(indices, list) and len(indices) == 2:
-                        size = indices[1] - indices[0]
+                        # Inclusive ranges: [0, 6] means 7 elements (0-6 inclusive)
+                        size = indices[1] - indices[0] + 1
                         desc = f"{size} element{'s' if size > 1 else ''}"
-                        lines.append(f"  • {name:<20} [{indices[0]:2}:{indices[1]:2}]  {desc}")
+                        # Display as [start-end] to show inclusive range
+                        lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]  {desc}")
             
             # Add description if available
             description = current_schema.get('description')

@@ -3,9 +3,9 @@
 *For historical accomplishments, see HISTORY.md*
 
 ## Current Status
-✅ **Complete** - All tests passing (164 passed, 1 skipped)
-- LinearLayer nodes properly virtualized within Networks
-- All 7 workflows export cleanly with zero warnings
+✅ **Complete** - All tests passing, inclusive range system implemented
+- Split node with semantic name support ("by name" mode)
+- Inclusive ranges throughout (YAML schemas, UI, export)
 
 ## 📋 Active TODOs
 None - Export system is fully operational

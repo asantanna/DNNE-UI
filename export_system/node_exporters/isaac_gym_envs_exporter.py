@@ -51,9 +51,12 @@ class IsaacGymEnvsExporter(ExportableNode):
         # Index 4+: fixed widgets (dt, num_envs, seed, etc.)
         
         # Get task first
-        task_name = cls.get_node_parameter(node_data, {'name': 'task', 'widget_index': 0})
+        task_name = cls.get_node_parameter(node_data, 'task', widget_index=0)
         if not task_name:
-            task_name = 'Cartpole'
+            raise ValueError(
+                f"IsaacGymEnvs node: 'task' parameter is required but was not found. "
+                f"Available widgets: {node_data.get('widgets_values', [])[:5]}"
+            )
         
         # Load schema information for this task
         schema_info = cls._load_task_schema(task_name)
@@ -63,10 +66,11 @@ class IsaacGymEnvsExporter(ExportableNode):
         for i, level in enumerate(schema_info.get('schema_levels', [])):
             if i < cls.MAX_DYNAMIC_LEVELS:
                 # Dynamic widgets are at indices 1, 2, 3
-                widget_value = cls.get_node_parameter(node_data, {
-                    'name': f'dynamic_{i+1}', 
-                    'widget_index': i + 1
-                })
+                widget_value = cls.get_node_parameter(
+                    node_data, 
+                    f'dynamic_{i+1}', 
+                    widget_index=i + 1
+                )
                 if widget_value and widget_value != 'none':
                     level_values[level] = widget_value
         

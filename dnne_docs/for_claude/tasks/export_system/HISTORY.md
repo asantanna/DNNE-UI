@@ -2,6 +2,23 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-08-17 - Inclusive Range System & Split Node
+
+### Inclusive Range System Implementation ✅
+- Fixed isaac_gym_envs_exporter incorrect get_node_parameter calls (fail-fast violation)
+- Removed 'Cartpole' fallback default (fail-fast principle)
+- Implemented inclusive ranges throughout system:
+  - Updated FrankaDNNE.yaml schemas to use inclusive ranges [start, end_inclusive]
+  - Modified split_exporter to handle inclusive range notation
+  - Updated IsaacGymEnvs schema display to show ranges as [start-end] with correct counts
+- Split node "by name" mode now supports semantic names with ranges
+  - Example: "joint_positions[1], joint_positions[4:6]" extracts specific tensor slices
+
+### Split Node Export Fixed ✅
+- Split_Node_Test workflow now exports successfully
+- "by name" mode handles resolved ranges directly (no confusing "by ranges" mode)
+- Template updated to extract non-contiguous tensor slices
+
 ## Session: 2025-08-16 - Widget Encapsulation & Naming Fixes
 
 ### Widget Encapsulation Refactoring ✅

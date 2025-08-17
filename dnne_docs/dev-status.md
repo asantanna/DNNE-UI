@@ -1,8 +1,14 @@
 # DNNE Development Status
 
-*Last Updated: 2025-08-16*
+*Last Updated: 2025-08-17*
 
 ## Latest Achievements (This Week)
+
+### 2025-08-17: Inclusive Range System & Split Node Export ✅
+- **Inclusive Ranges** - Consistent [start, end_inclusive] notation throughout
+- **Split Node Fixed** - Semantic name support with "by name" mode
+- **Fail-Fast Fixes** - Removed improper fallback defaults
+- **Schema Display** - Updated to show [start-end] with correct element counts
 
 ### 2025-08-16: Widget Encapsulation & Naming Fixes ✅
 - **Widget Encapsulation** - Query methods for virtual node exporters

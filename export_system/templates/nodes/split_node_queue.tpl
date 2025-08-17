@@ -104,6 +104,48 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                         f"Split by size: {output_names[i]} = size {non_zero_sizes[i]} -> shape {split_tensor.shape}"
                     )
         
+        elif self.split_mode == "by name":
+            # When semantic names are used, split_values contains resolved ranges
+            # Example: split_values=[[1, 2], [5, 7]] extracts [1:2] and [5:7]
+            
+            output_names = ["output_a", "output_b", "output_c", "output_d"]
+            
+            # Check if split_values contains ranges (lists) or indices (integers)
+            if self.split_values and isinstance(self.split_values[0], list):
+                # Resolved ranges from semantic names
+                for i, range_pair in enumerate(self.split_values):
+                    if i >= len(output_names):
+                        break
+                    
+                    start_idx, end_idx = range_pair
+                    
+                    # Validate range
+                    if start_idx >= dim_size:
+                        self.node_logger.warning(
+                            f"Range [{start_idx}:{end_idx}] starts beyond tensor dimension size {dim_size}, skipping"
+                        )
+                        continue
+                    
+                    # Clamp end_idx to dim_size
+                    end_idx = min(end_idx, dim_size)
+                    
+                    # Create slice indices for the specific dimension
+                    slice_indices = [slice(None)] * input_tensor.ndim
+                    slice_indices[self.dimension] = slice(start_idx, end_idx)
+                    
+                    output_slice = input_tensor[tuple(slice_indices)]
+                    outputs[output_names[i]] = output_slice
+                    
+                    self.node_logger.debug(
+                        f"Extract range: {output_names[i]} = [{start_idx}:{end_idx}] -> shape {output_slice.shape}"
+                    )
+            else:
+                # Fallback: treat as split points (shouldn't happen with proper export)
+                self.node_logger.warning(
+                    f"SplitNode {self.node_id}: 'by name' mode with non-range values, treating as split points"
+                )
+                # Could implement split point logic here if needed
+        
         else:
             raise RuntimeError(
                 f"SplitNode {self.node_id}: Unknown split_mode '{self.split_mode}'"

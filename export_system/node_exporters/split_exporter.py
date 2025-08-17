@@ -86,7 +86,7 @@ class SplitExporter(ExportableNode):
                         f"Available names: {', '.join(available_names)}"
                     )
                 
-                # Get the base range for this name
+                # Get the base range for this name (INCLUSIVE ranges in schema)
                 base_range = observation_schema[base_name]
                 if len(base_range) != 2:
                     raise ValueError(
@@ -94,23 +94,26 @@ class SplitExporter(ExportableNode):
                         f"Expected [start, end] format."
                     )
                 
-                start_idx, end_idx = base_range
+                # Schema uses inclusive ranges, so [0, 6] means indices 0-6 inclusive
+                start_idx, end_idx_inclusive = base_range
+                end_idx = end_idx_inclusive + 1  # Convert to exclusive for Python range
                 
                 # Apply slice if specified
                 if slice_str is not None:
-                    # Parse the slice notation
+                    # Parse the slice notation with INCLUSIVE end semantics
                     if ':' in slice_str:
-                        # It's a slice like [2:5], [:3], [::2]
+                        # It's a slice like [2:5] meaning elements 2,3,4,5 (inclusive)
                         parts = slice_str.split(':')
                         slice_start = int(parts[0]) if parts[0] else None
-                        slice_stop = int(parts[1]) if len(parts) > 1 and parts[1] else None
+                        # For inclusive end, add 1 to the stop value
+                        slice_stop = (int(parts[1]) + 1) if len(parts) > 1 and parts[1] else None
                         slice_step = int(parts[2]) if len(parts) > 2 and parts[2] else None
                     else:
-                        # Single index like [3] - convert to [3:4]
+                        # Single index like [3] - extracts just element 3
                         try:
                             single_idx = int(slice_str)
                             slice_start = single_idx
-                            slice_stop = single_idx + 1
+                            slice_stop = single_idx + 1  # Extract single element
                             slice_step = None
                         except ValueError:
                             raise ValueError(
@@ -137,14 +140,10 @@ class SplitExporter(ExportableNode):
                 
                 split_ranges.append([final_start, final_end])
             
-            # Convert ranges to split indices for "by index" mode
-            # We use the end of each range (except the last) as split points
-            split_indices = []
-            for i, range_pair in enumerate(split_ranges[:-1]):
-                split_indices.append(range_pair[1])
-            
-            split_values = split_indices
-            split_mode = "by index"  # Convert to index mode for the template
+            # Keep ranges as-is for extraction
+            # The Split node will extract these specific ranges
+            split_values = split_ranges
+            # Keep as "by name" but with resolved ranges
             
         else:
             # Original parsing for "by index" and "by size" modes
