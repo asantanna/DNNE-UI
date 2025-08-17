@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 # Isaac Gym must be imported - no skipping
 import isaacgym
-from custom_nodes import IsaacGymEnvs
+from custom_nodes import IsaacGymEnvsNode
 
 # Set ISAAC_GYM_AVAILABLE for compatibility
 ISAAC_GYM_AVAILABLE = True
@@ -28,7 +28,7 @@ def test_isaac_gym_availability():
 @pytest.mark.timeout(30)
 def test_isaac_gym_env_node_structure():
     """Test IsaacGymEnvs basic structure."""
-    node = IsaacGymEnvs()
+    node = IsaacGymEnvsNode()
     
     # Test basic node structure
     assert hasattr(node, 'INPUT_TYPES')
