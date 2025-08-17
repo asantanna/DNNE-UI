@@ -28,10 +28,10 @@
    - [x] Implement widget ordering: task → [dynamic] → fixed → schema_display
    
    **Phase 2.1: Widget Display Issues** (IN PROGRESS)
-   - [ ] Fix initial widget update on workflow load (dynamic_1/2/3 names showing)
+   - [x] Fix initial widget update on workflow load (dynamic_1/2/3 names showing)
    - [ ] Fix widget hiding without gaps (need to reposition Y coordinates)
    - [x] Update dynamic widget labels to show actual names (subtask, controlType)
-   - [ ] Ensure schema display updates when selections change
+   - [x] Ensure schema display updates when selections change
    
    **Phase 3: Index Management**
    - [x] Index management not necessary since we only show/hide widgets
@@ -41,21 +41,21 @@
    - [x] Update schema display on any widget change (backend ready)
    - [x] Support both array [x,x] and single number x schema formats
    - [x] Display single elements as [x] in UI for aesthetics
-   - [ ] Propagate complete schema through graph
+   - [x] Propagate complete schema through graph
    - [x] Ensure Split node receives and handles both schema formats
    
    **Testing Requirements:**
-   - [ ] Test Cartpole with direct schema (no levels)
-   - [ ] Test FrankaDNNE with 2 levels (subtask, controlType)
-   - [ ] Create and test 1-level example
+   - [x] Test Cartpole with direct schema (no levels)
+   - [x] Test FrankaDNNE with 2 levels (subtask, controlType)
+   - [x] Create and test 1-level example
    - [x] Verify Split node works with all schema variants
-   - [ ] Test slice notation with new schemas
+   - [x] Test slice notation with new schemas
    
    **Acceptance Criteria:**
-   - Dynamic widgets appear/disappear based on task selection
-   - Schema display updates immediately on any change
-   - Split node can use semantic names from any schema type
-   - All existing workflows continue to work
+   - Dynamic widgets appear/disappear based on task selection - OK
+   - Schema display updates immediately on any change - OK
+   - Split node can use semantic names from any schema type - OK
+   - All existing workflows continue to work - OK
 
 ### Medium Priority
 
