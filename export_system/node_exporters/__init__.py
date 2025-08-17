@@ -53,16 +53,16 @@ for node_name, node_class in all_nodes.items():
     try:
         module = importlib.import_module(f'.{exporter_filename}', package='export_system.node_exporters')
         
-        # Get the exporter class if it exists
-        if hasattr(module, exporter_class_name):
-            exporter_class = getattr(module, exporter_class_name)
+        # Get the exporter class - fail fast if missing
+        try:
+            exporter_class = module.__dict__[exporter_class_name]
             
             # Make it available as a module attribute
             globals()[exporter_class_name] = exporter_class
             __all__.append(exporter_class_name)
             
             logger.debug(f"Imported exporter: {exporter_class_name}")
-        else:
+        except KeyError:
             # Class not found in module
             if not is_virtual:
                 error_msg = f"Exporter class {exporter_class_name} not found in module {exporter_filename}"

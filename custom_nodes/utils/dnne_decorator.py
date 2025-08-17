@@ -33,11 +33,14 @@ def dnne_node(*, is_virtual: bool):
             'module': cls.__module__,
         }
         
-        # Add a class attribute for easy access (but don't override if it exists)
-        if not hasattr(cls, '_dnne_metadata'):
-            cls._dnne_metadata = {
-                'is_virtual': is_virtual,
-            }
+        # Add a class attribute for easy access
+        # Raise error if it already exists (node registered twice)
+        if hasattr(cls, '_dnne_metadata'):
+            raise RuntimeError(f"Node {node_name} is being registered twice - '_dnne_metadata' already exists")
+        
+        cls._dnne_metadata = {
+            'is_virtual': is_virtual,
+        }
         
         logger.debug(f"Registered node {node_name} (virtual={is_virtual})")
         
@@ -88,7 +91,8 @@ def is_virtual_node(node_class_or_name) -> bool:
     """
     metadata = get_node_metadata(node_class_or_name)
     if metadata:
-        return metadata.get('is_virtual', False)
+        # is_virtual is required in metadata
+        return metadata['is_virtual']
     return False
 
 

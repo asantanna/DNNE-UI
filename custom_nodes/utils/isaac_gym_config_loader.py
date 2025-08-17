@@ -105,8 +105,10 @@ class IsaacGymEnvConfigLoader:
             Dictionary of default values for the node's widgets
         """
         config = self.get_task_config(task_name)
-        # Use node_type directly as the key (no longer append "_node")
-        return config.get(node_type, {})
+        # Node type must exist in config
+        if node_type not in config:
+            raise ValueError(f"Task '{task_name}' has no configuration for node type '{node_type}'")
+        return config[node_type]
     
     def _load_all_configs(self):
         """Load all configurations and cache them."""
@@ -157,7 +159,7 @@ class IsaacGymEnvConfigLoader:
             logger.error(f"Error loading config for {task_name}: {e}")
             raise ConfigurationError(f"Failed to load config for {task_name}") from e
     
-    def _resolve_value(self, value, default=None):
+    def _resolve_value(self, value, default):
         """Resolve OmegaConf interpolations to concrete values."""
         if isinstance(value, str) and value.startswith('${'):
             # Handle resolve_default pattern: ${resolve_default:default_value,${...path}}
@@ -210,7 +212,7 @@ class IsaacGymEnvConfigLoader:
         config = self.get_task_config(task_name)
         
         # Look for dt in the cached task config
-        if 'sim_dt' in config.get('isaac_gym_env', {}):
+        if 'isaac_gym_env' in config and 'sim_dt' in config['isaac_gym_env']:
             return config['isaac_gym_env']['sim_dt']
             
         # If not cached, load from file directly
@@ -221,9 +223,12 @@ class IsaacGymEnvConfigLoader:
         with open(task_file, 'r') as f:
             task_config = yaml.safe_load(f)
             
-        dt = task_config.get('sim', {}).get('dt')
-        if dt is None:
+        # sim and dt are required fields
+        if 'sim' not in task_config:
+            raise NotImplementedError(f"Task '{task_name}' does not have 'sim' section in its YAML configuration")
+        if 'dt' not in task_config['sim']:
             raise NotImplementedError(f"Task '{task_name}' does not specify sim.dt in its YAML configuration")
+        dt = task_config['sim']['dt']
             
         return float(dt)
     
@@ -246,6 +251,7 @@ class IsaacGymEnvConfigLoader:
             task_config = yaml.safe_load(f)
             
         # Check if this is a DNNE environment
+        # Default to False for non-DNNE environments (valid per comment)
         if not task_config.get('is_dnne_environment', False):
             return []
             
@@ -273,22 +279,32 @@ class IsaacGymEnvConfigLoader:
         try:
             with open(task_file, 'r') as f:
                 task_config = yaml.safe_load(f)
+            # Default to False for non-DNNE environments (valid per comment)
             return task_config.get('is_dnne_environment', False)
-        except:
+        except (yaml.YAMLError, IOError) as e:
+            logger.error(f"Error checking if {task_name} is DNNE environment: {e}")
             return False
     
     def _extract_env_node_config(self, task_config: Dict, ppo_config: Optional[Dict]) -> Dict[str, Any]:
         """Extract configuration for IsaacGymEnvs node."""
-        env_cfg = task_config.get('env', {})
-        sim_cfg = task_config.get('sim', {})
+        # env and sim sections may not exist - set to None for later validation
+        env_cfg = task_config.get('env', None)
+        sim_cfg = task_config.get('sim', None)
         
         # Get num_envs from PPO config if available
-        ppo_params = ppo_config.get('params', {}).get('config', {}) if ppo_config else {}
-        num_actors = ppo_params.get('num_actors', '${....task.env.numEnvs}')
+        if ppo_config and 'params' in ppo_config and 'config' in ppo_config['params']:
+            ppo_params = ppo_config['params']['config']
+            if 'num_actors' not in ppo_params:
+                raise ValueError("PPO config missing required 'num_actors' field")
+            num_actors = ppo_params['num_actors']
+        else:
+            raise ValueError("PPO config missing required params.config section")
         
         # Resolve num_envs
-        num_envs_raw = env_cfg.get('numEnvs', 512)
-        num_envs = self._resolve_value(num_envs_raw, 512)
+        if env_cfg is None or 'numEnvs' not in env_cfg:
+            raise ValueError("Task config missing required 'env.numEnvs' field")
+        num_envs_raw = env_cfg['numEnvs']
+        num_envs = self._resolve_value(num_envs_raw, None)
         
         # If num_actors references numEnvs, use the resolved value
         if isinstance(num_actors, str) and 'numEnvs' in num_actors:
@@ -296,54 +312,97 @@ class IsaacGymEnvConfigLoader:
         else:
             num_actors = self._resolve_value(num_actors, num_envs)
         
-        # Get physics config with proper resolution
-        physx_cfg = sim_cfg.get('physx', {})
+        # Get physics config - may not exist
+        physx_cfg = sim_cfg.get('physx', {}) if sim_cfg else {}
         
         # Get global config values
         global_cfg = self._global_config
         
-        # Extract null action if available
-        null_action = env_cfg.get('nullAction', None)
-        if null_action is not None:
+        # Extract null action - required if env_cfg exists
+        if env_cfg and 'nullAction' in env_cfg:
+            null_action = env_cfg['nullAction']
             # Convert to string format for widget
             null_action_str = ', '.join(str(x) for x in null_action)
         else:
-            # Leave blank if not specified - will cause error if user tries to use IsaacGymSimNode
-            null_action_str = ""
+            # Required field missing
+            raise ValueError("Task config missing required 'env.nullAction' field")
         
-        # Extract dt value if present
-        dt = sim_cfg.get('dt')
+        # Extract dt value - required if sim_cfg exists
+        if sim_cfg is None or 'dt' not in sim_cfg:
+            raise ValueError("Task config missing required 'sim.dt' field")
+        dt = sim_cfg['dt']
+        
+        # All global config values are required
+        if 'seed' not in global_cfg:
+            raise ValueError("Global config missing required 'seed' field")
+        if 'headless' not in global_cfg:
+            raise ValueError("Global config missing required 'headless' field")
+        if 'graphics_device_id' not in global_cfg:
+            raise ValueError("Global config missing required 'graphics_device_id' field")
+        if 'sim_device' not in global_cfg:
+            raise ValueError("Global config missing required 'sim_device' field")
+        if 'multi_gpu' not in global_cfg:
+            raise ValueError("Global config missing required 'multi_gpu' field")
+        if 'force_render' not in global_cfg:
+            raise ValueError("Global config missing required 'force_render' field")
+        
+        # Physics engine - check task config first, then global
+        if 'physics_engine' in task_config:
+            physics_engine = self._resolve_value(task_config['physics_engine'], None)
+        elif 'physics_engine' in global_cfg:
+            physics_engine = self._resolve_value(global_cfg['physics_engine'], None)
+        else:
+            raise ValueError("Neither task nor global config specifies 'physics_engine'")
+        
+        # Enable cameras - required in env_cfg
+        if 'enableCameraSensors' not in env_cfg:
+            raise ValueError("Task config missing required 'env.enableCameraSensors' field")
+        
+        # GPU pipeline - check sim first, then global pipeline setting
+        if sim_cfg and 'use_gpu_pipeline' in sim_cfg:
+            use_gpu_pipeline = self._resolve_value(sim_cfg['use_gpu_pipeline'], None)
+        elif 'pipeline' in global_cfg:
+            use_gpu_pipeline = global_cfg['pipeline'] == 'gpu'
+        else:
+            raise ValueError("Neither sim nor global config specifies GPU pipeline setting")
+        
+        # PhysX settings - check physx_cfg first, then global
+        if 'num_threads' in physx_cfg:
+            num_threads = self._resolve_value(physx_cfg['num_threads'], None)
+        elif 'num_threads' in global_cfg:
+            num_threads = global_cfg['num_threads']
+        else:
+            raise ValueError("Neither physx nor global config specifies 'num_threads'")
+            
+        if 'solver_type' in physx_cfg:
+            solver_type = self._resolve_value(physx_cfg['solver_type'], None)
+        elif 'solver_type' in global_cfg:
+            solver_type = global_cfg['solver_type']
+        else:
+            raise ValueError("Neither physx nor global config specifies 'solver_type'")
+            
+        if 'num_subscenes' in physx_cfg:
+            num_subscenes = self._resolve_value(physx_cfg['num_subscenes'], None)
+        elif 'num_subscenes' in global_cfg:
+            num_subscenes = global_cfg['num_subscenes']
+        else:
+            raise ValueError("Neither physx nor global config specifies 'num_subscenes'")
         
         config = {
             "num_envs": num_envs,
-            "seed": global_cfg.get('seed', 42),
+            "seed": global_cfg['seed'],
             "seed_control": "fixed",  # Use the actual widget name
-            "headless": global_cfg.get('headless', False),
-            "graphics_device_id": global_cfg.get('graphics_device_id', 0),
-            "sim_device": global_cfg.get('sim_device', 'cuda:0'),
-            "physics_engine": self._resolve_value(
-                task_config.get('physics_engine', global_cfg.get('physics_engine', 'physx')), 
-                'physx'
-            ),
-            "multi_gpu": global_cfg.get('multi_gpu', False),
-            "enable_cameras": env_cfg.get('enableCameraSensors', False),
-            "force_render": global_cfg.get('force_render', True),  # From global config!
-            "use_gpu_pipeline": self._resolve_value(
-                sim_cfg.get('use_gpu_pipeline', global_cfg.get('pipeline', 'gpu') == 'gpu'), 
-                True
-            ),
-            "num_threads": self._resolve_value(
-                physx_cfg.get('num_threads', global_cfg.get('num_threads', 4)), 
-                4
-            ),
-            "solver_type": self._resolve_value(
-                physx_cfg.get('solver_type', global_cfg.get('solver_type', 1)), 
-                1
-            ),
-            "num_subscenes": self._resolve_value(
-                physx_cfg.get('num_subscenes', global_cfg.get('num_subscenes', 4)), 
-                4
-            ),
+            "headless": global_cfg['headless'],
+            "graphics_device_id": global_cfg['graphics_device_id'],
+            "sim_device": global_cfg['sim_device'],
+            "physics_engine": physics_engine,
+            "multi_gpu": global_cfg['multi_gpu'],
+            "enable_cameras": env_cfg['enableCameraSensors'],
+            "force_render": global_cfg['force_render'],  # From global config!
+            "use_gpu_pipeline": use_gpu_pipeline,
+            "num_threads": num_threads,
+            "solver_type": solver_type,
+            "num_subscenes": num_subscenes,
             "null_action": null_action_str,  # Add null action to config
         }
         
@@ -355,59 +414,94 @@ class IsaacGymEnvConfigLoader:
     
     def _extract_ppo_config_node(self, ppo_config: Dict) -> Dict[str, Any]:
         """Extract configuration for PPOConfig node."""
-        params = ppo_config.get('params', {})
-        algo_config = params.get('config', {})
+        # Validate PPO config structure
+        if 'params' not in ppo_config:
+            raise ValueError("PPO config missing required 'params' section")
+        params = ppo_config['params']
         
-        # Critical: Get the actual minibatch_size, not num_minibatches!
-        minibatch_size = algo_config.get('minibatch_size', 32768)
-        horizon_length = algo_config.get('horizon_length', 16)
+        if 'config' not in params:
+            raise ValueError("PPO params missing required 'config' section")
+        algo_config = params['config']
         
-        # Some configs use mini_epochs, some use num_epochs
-        mini_epochs = algo_config.get('mini_epochs', algo_config.get('num_epochs', 8))
+        # All algorithm parameters are required
+        if 'minibatch_size' not in algo_config:
+            raise ValueError("PPO config missing required 'minibatch_size'")
+        if 'horizon_length' not in algo_config:
+            raise ValueError("PPO config missing required 'horizon_length'")
+        
+        minibatch_size = algo_config['minibatch_size']
+        horizon_length = algo_config['horizon_length']
+        
+        # Some configs use mini_epochs, some use num_epochs - check both
+        if 'mini_epochs' in algo_config:
+            mini_epochs = algo_config['mini_epochs']
+        elif 'num_epochs' in algo_config:
+            mini_epochs = algo_config['num_epochs']
+        else:
+            raise ValueError("PPO config missing required epochs parameter (mini_epochs or num_epochs)")
         
         # DNNE now uses minibatch_size directly, matching the YAML configuration
         
+        # Validate all required PPO parameters
+        required_params = [
+            'learning_rate', 'e_clip', 'critic_coef', 'entropy_coef',
+            'gamma', 'tau', 'lr_schedule', 'kl_threshold',
+            'grad_norm', 'truncate_grads', 'normalize_advantage',
+            'normalize_input', 'normalize_value', 'clip_value',
+            'max_epochs', 'bounds_loss_coef'
+        ]
+        
+        for param in required_params:
+            if param not in algo_config:
+                raise ValueError(f"PPO config missing required parameter: '{param}'")
+        
+        # Handle reward shaper separately as it's nested
+        if 'reward_shaper' in algo_config and 'scale_value' in algo_config['reward_shaper']:
+            reward_shaper_scale = algo_config['reward_shaper']['scale_value']
+        else:
+            raise ValueError("PPO config missing required 'reward_shaper.scale_value'")
+        
         config_dict = {
             # Core PPO parameters
-            "learning_rate": float(algo_config.get('learning_rate', 3e-4)),
+            "learning_rate": float(algo_config['learning_rate']),
             "num_epochs": mini_epochs,  # DNNE calls it num_epochs
             "minibatch_size": minibatch_size,  # Direct from YAML
             "horizon_length": horizon_length,
             
             # PPO specific
-            "clip_param": algo_config.get('e_clip', 0.2),
-            "value_loss_coef": algo_config.get('critic_coef', 2.0),
-            "entropy_coef": algo_config.get('entropy_coef', 0.0),
-            "gamma": algo_config.get('gamma', 0.99),
-            "gae_lambda": algo_config.get('tau', 0.95),
+            "clip_param": algo_config['e_clip'],
+            "value_loss_coef": algo_config['critic_coef'],
+            "entropy_coef": algo_config['entropy_coef'],
+            "gamma": algo_config['gamma'],
+            "gae_lambda": algo_config['tau'],
             
             # Learning rate schedule
-            "lr_schedule": algo_config.get('lr_schedule', 'adaptive'),
-            "lr_schedule_kl_threshold": algo_config.get('kl_threshold', 0.008),
+            "lr_schedule": algo_config['lr_schedule'],
+            "lr_schedule_kl_threshold": algo_config['kl_threshold'],
             
             # Gradient clipping
-            "max_grad_norm": algo_config.get('grad_norm', 1.0),
-            "truncate_grads": algo_config.get('truncate_grads', True),
+            "max_grad_norm": algo_config['grad_norm'],
+            "truncate_grads": algo_config['truncate_grads'],
             
             # Normalization
-            "normalize_advantage": algo_config.get('normalize_advantage', True),
-            "normalize_input": algo_config.get('normalize_input', True),
-            "normalize_value": algo_config.get('normalize_value', True),
+            "normalize_advantage": algo_config['normalize_advantage'],
+            "normalize_input": algo_config['normalize_input'],
+            "normalize_value": algo_config['normalize_value'],
             
             # Value function
-            "use_clipped_value_loss": algo_config.get('clip_value', True),
+            "use_clipped_value_loss": algo_config['clip_value'],
             
             # Training duration
-            "max_iterations": self._resolve_value(algo_config.get('max_epochs', 1000), 1000),
+            "max_iterations": self._resolve_value(algo_config['max_epochs'], None),
             
             # Reward shaping
-            "reward_shaper_scale": algo_config.get('reward_shaper', {}).get('scale_value', 1.0),
+            "reward_shaper_scale": reward_shaper_scale,
             
             # Additional e_clip parameter that might be in UI
-            "e_clip": algo_config.get('e_clip', 0.2),
+            "e_clip": algo_config['e_clip'],
             
             # Bounds loss coefficient
-            "bounds_loss_coef": algo_config.get('bounds_loss_coef', 0.0001),
+            "bounds_loss_coef": algo_config['bounds_loss_coef'],
         }
         
         # Only add these parameters if they exist in the YAML
@@ -420,32 +514,60 @@ class IsaacGymEnvConfigLoader:
     
     def _extract_ppo_agent_node(self, ppo_config: Dict, task_name: str = "PPO") -> Dict[str, Any]:
         """Extract configuration for PPOAgent node."""
-        params = ppo_config.get('params', {})
-        network_cfg = params.get('network', {})
-        mlp_cfg = network_cfg.get('mlp', {})
-        algo_config = params.get('config', {})
+        # Validate PPO config structure for agent
+        if 'params' not in ppo_config:
+            raise ValueError("PPO config missing required 'params' section")
+        params = ppo_config['params']
+        
+        if 'network' not in params:
+            raise ValueError("PPO params missing required 'network' section")
+        network_cfg = params['network']
+        
+        if 'mlp' not in network_cfg:
+            raise ValueError("PPO network config missing required 'mlp' section")
+        mlp_cfg = network_cfg['mlp']
+        
+        if 'config' not in params:
+            raise ValueError("PPO params missing required 'config' section")
+        algo_config = params['config']
+        
+        # All network parameters are required
+        if 'units' not in mlp_cfg:
+            raise ValueError("PPO mlp config missing required 'units' parameter")
+        if 'activation' not in mlp_cfg:
+            raise ValueError("PPO mlp config missing required 'activation' parameter")
+        if 'separate' not in network_cfg:
+            raise ValueError("PPO network config missing required 'separate' parameter")
         
         # Convert units list to string format for UI
-        units = mlp_cfg.get('units', [256, 256])
+        units = mlp_cfg['units']
         units_str = str(units).replace("'", '"')  # Convert to JSON-like format
+        
+        # Validate required training settings
+        if 'mixed_precision' not in algo_config:
+            raise ValueError("PPO config missing required 'mixed_precision' parameter")
+        if 'multi_gpu' not in algo_config:
+            raise ValueError("PPO config missing required 'multi_gpu' parameter")
+        if 'save_frequency' not in algo_config:
+            raise ValueError("PPO config missing required 'save_frequency' parameter")
         
         return {
             # Network architecture
             "network_mlp_layers": units_str,
-            "network_activation": mlp_cfg.get('activation', 'elu'),
-            "separate_value_network": network_cfg.get('separate', False),
+            "network_activation": mlp_cfg['activation'],
+            "separate_value_network": network_cfg['separate'],
             
             # Training settings
-            "mixed_precision": algo_config.get('mixed_precision', False),
-            "multi_gpu": self._resolve_value(algo_config.get('multi_gpu', False), False),
+            "mixed_precision": algo_config['mixed_precision'],
+            "multi_gpu": self._resolve_value(algo_config['multi_gpu'], None),
             
             # Checkpointing
-            "checkpoint_interval": algo_config.get('save_frequency', 100),
-            "keep_checkpoints": 5,  # Default value
+            "checkpoint_interval": algo_config['save_frequency'],
+            "keep_checkpoints": 5,  # Default value - TODO: should this be in config?
             
             # Logging
-            "log_interval": 10,  # Default value
-            "save_interval": algo_config.get('save_frequency', 1000),
+            "log_interval": 10,  # Default value - TODO: should this be in config?
+            "save_interval": algo_config['save_frequency'],
             
             # Experiment name
             "experiment_name": f"{task_name}_PPO",

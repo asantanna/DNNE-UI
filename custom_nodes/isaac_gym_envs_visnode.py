@@ -60,27 +60,33 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                 task_config = yaml.safe_load(f)
             
             # Look for dnne section - check both root level and env level
-            dnne_config = None
+            dnne_section = None
             if 'env' in task_config and 'dnne' in task_config['env']:
-                dnne_config = task_config['env']['dnne']
+                dnne_section = task_config['env']['dnne']
             elif 'dnne' in task_config:
-                dnne_config = task_config['dnne']
+                dnne_section = task_config['dnne']
             
-            if dnne_config:
-                schema_info['schema_levels'] = dnne_config.get('schema_levels', [])
-                schema_info['nested_schemas'] = dnne_config.get('nested_schemas', {})
+            if dnne_section:
+                # Required fields - fail if missing
+                if 'schema_levels' not in dnne_section:
+                    raise ValueError(f"Task {task}: dnne section missing required 'schema_levels' field")
+                if 'nested_schemas' not in dnne_section:
+                    raise ValueError(f"Task {task}: dnne section missing required 'nested_schemas' field")
+                
+                schema_info['schema_levels'] = dnne_section['schema_levels']
+                schema_info['nested_schemas'] = dnne_section['nested_schemas']
                 
                 # Load options and defaults for each level
                 for level in schema_info['schema_levels']:
                     # Get options
                     options_key = f"{level}_options"
-                    if options_key in dnne_config:
-                        schema_info['level_options'][level] = dnne_config[options_key]
+                    if options_key in dnne_section:
+                        schema_info['level_options'][level] = dnne_section[options_key]
                     
                     # Get default value
                     default_key = f"default_{level}"
-                    if default_key in dnne_config:
-                        schema_info['defaults'][level] = dnne_config[default_key]
+                    if default_key in dnne_section:
+                        schema_info['defaults'][level] = dnne_section[default_key]
             else:
                 # No DNNE config - check for basic env info
                 if 'env' in task_config:
@@ -242,7 +248,11 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
             if i <= len(schema_info['schema_levels']):
                 # This widget should be visible
                 level_name = schema_info['schema_levels'][i-1]
-                options = schema_info['level_options'].get(level_name)
+                # Options are required for visible levels
+                if level_name not in schema_info['level_options']:
+                    raise ValueError(f"Task {task}: Missing options for level '{level_name}'")
+                options = schema_info['level_options'][level_name]
+                # Default is optional - None is valid
                 default = schema_info['defaults'].get(level_name)
                 
                 updates[widget_key] = {
@@ -300,8 +310,14 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
         
         # Add observation schema
         if isinstance(current_schema, dict):
-            obs_count = current_schema.get('numObservations', 0)
-            obs_schema = current_schema.get('observationSchema', {})
+            # Observations are required in schema
+            if 'numObservations' not in current_schema:
+                raise ValueError(f"Schema missing required 'numObservations' field")
+            if 'observationSchema' not in current_schema:
+                raise ValueError(f"Schema missing required 'observationSchema' field")
+            
+            obs_count = current_schema['numObservations']
+            obs_schema = current_schema['observationSchema']
             
             if obs_count:
                 lines.append(f"\nObservations:")
@@ -317,8 +333,14 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                             lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
             
             # Add action schema
-            act_count = current_schema.get('numActions', 0)
-            act_schema = current_schema.get('actionSchema', {})
+            # Actions are required in schema
+            if 'numActions' not in current_schema:
+                raise ValueError(f"Schema missing required 'numActions' field")
+            if 'actionSchema' not in current_schema:
+                raise ValueError(f"Schema missing required 'actionSchema' field")
+            
+            act_count = current_schema['numActions']
+            act_schema = current_schema['actionSchema']
             
             if act_count:
                 lines.append(f"\nActions:")
@@ -333,10 +355,11 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                         else:
                             lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
             
-            # Add description if available
-            description = current_schema.get('description')
-            if description:
-                lines.append(f"\nDescription: {description}")
+            # Add description - required field
+            if 'description' not in current_schema:
+                raise ValueError(f"Schema missing required 'description' field")
+            description = current_schema['description']
+            lines.append(f"\nDescription: {description}")
         
         result = "\n".join(lines) if lines else "No schema details available"
         return result
@@ -349,7 +372,10 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs):
         """Validate inputs including dynamic selections"""
-        task = kwargs.get("task")
+        # Task is required
+        if "task" not in kwargs:
+            return "Task parameter is required"
+        task = kwargs["task"]
         if not task:
             return "Task selection is required"
         
@@ -359,17 +385,25 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
         # Validate dynamic widget selections
         for i, level in enumerate(schema_info['schema_levels']):
             widget_key = f"dynamic_{i+1}"
-            selected = kwargs.get(widget_key)
+            if widget_key not in kwargs:
+                return f"Missing required parameter: {widget_key}"
+            selected = kwargs[widget_key]
             
             if selected and selected != "none":
-                valid_options = schema_info['level_options'].get(level)
-                if valid_options and selected not in valid_options:
+                # Validate options are available for this level
+                if level not in schema_info['level_options']:
+                    return f"No options available for level: {level}"
+                valid_options = schema_info['level_options'][level]
+                if selected not in valid_options:
                     return f"Invalid {level}: '{selected}'. Valid options: {valid_options}"
         
         # DNNE environment validation
         loader = IsaacGymConfigLoader()
         if loader.is_dnne_environment(task):
-            num_envs = kwargs.get("num_envs", 1)
+            # num_envs is required
+            if "num_envs" not in kwargs:
+                return "num_envs parameter is required"
+            num_envs = kwargs["num_envs"]
             if num_envs != 1:
                 return f"DNNE environment '{task}' must use num_envs=1, got {num_envs}"
         
@@ -381,18 +415,32 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
         import json
         import logging
         
-        widget_id = message.get("widget_id", "")
+        # Validate required message fields
+        if "widget_id" not in message:
+            raise ValueError("WebSocket message missing required 'widget_id' field")
+        if "event" not in message:
+            raise ValueError("WebSocket message missing required 'event' field")
+        if "event_params" not in message:
+            raise ValueError("WebSocket message missing required 'event_params' field")
+        
+        widget_id = message["widget_id"]
         widget_name = widget_id.split(".")[1] if "." in widget_id else ""
-        event = message.get("event", "")
-        event_params = message.get("event_params", {})
+        event = message["event"]
+        event_params = message["event_params"]
         
         logging.debug(f"[IsaacGymEnvsNode] Handling callback: {widget_name} - {event}")
         
         # Handle task widget callbacks
         if widget_name == "task":
             if event == "onChange":
-                new_task = event_params.get("value")
-                node_id = event_params.get("node_id")
+                # Validate required event parameters
+                if "value" not in event_params:
+                    raise ValueError("onChange event missing required 'value' parameter")
+                if "node_id" not in event_params:
+                    raise ValueError("onChange event missing required 'node_id' parameter")
+                
+                new_task = event_params["value"]
+                node_id = event_params["node_id"]
                 
                 # Get schema info for the new task
                 schema_info = cls.get_task_schema_info(new_task)
@@ -460,8 +508,13 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
             
             elif event == "onLoad":
                 # Initialize widget on load
-                node_id = event_params.get("node_id")
-                initial_value = event_params.get("initial_value")
+                if "node_id" not in event_params:
+                    raise ValueError("onLoad event missing required 'node_id' parameter")
+                if "initial_value" not in event_params:
+                    raise ValueError("onLoad event missing required 'initial_value' parameter")
+                    
+                node_id = event_params["node_id"]
+                initial_value = event_params["initial_value"]
                 if not initial_value:
                     # If no initial value, don't initialize
                     return {
@@ -526,11 +579,19 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
         # Handle dynamic widget callbacks (dynamic_1, dynamic_2, dynamic_3)
         elif widget_name.startswith("dynamic_"):
             if event == "onChange":
-                node_id = event_params.get("node_id")
-                node_data = event_params.get("node_data", {})
+                # Validate required event parameters
+                if "node_id" not in event_params:
+                    raise ValueError("onChange event missing required 'node_id' parameter")
+                if "node_data" not in event_params:
+                    raise ValueError("onChange event missing required 'node_data' parameter")
+                    
+                node_id = event_params["node_id"]
+                node_data = event_params["node_data"]
                 
                 # Get task and build selections from node_data
-                task = node_data.get("task")
+                if "task" not in node_data:
+                    raise ValueError("node_data missing required 'task' field")
+                task = node_data["task"]
                 if not task:
                     logging.error(f"Dynamic widget change without task in node_data")
                     return {
@@ -545,7 +606,11 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                 # Build selections from dynamic widget values
                 selections = {}
                 for i, level in enumerate(schema_info['schema_levels']):
-                    widget_value = node_data.get(f"dynamic_{i+1}")
+                    widget_key = f"dynamic_{i+1}"
+                    # Dynamic widgets should be present in node_data
+                    if widget_key not in node_data:
+                        raise ValueError(f"node_data missing required field: {widget_key}")
+                    widget_value = node_data[widget_key]
                     if widget_value and widget_value != 'none':
                         selections[level] = widget_value
                 

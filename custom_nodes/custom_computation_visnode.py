@@ -41,7 +41,10 @@ class CustomComputationNode(RoboticsNodeBase):
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs):
         """Validate that src_path is provided."""
-        src_path = kwargs.get("src_path", "").strip()
+        # src_path is required - fail if not provided
+        if "src_path" not in kwargs:
+            return "src_path parameter is required"
+        src_path = kwargs["src_path"].strip()
         if not src_path:
             return "src_path is required - must point to a Python file with compute() function"
         return True

@@ -6,169 +6,145 @@ color: blue
 ---
 
 ## Mission
-Ensure DNNE code quality through systematic review of fail-fast principles, code duplication, debug consistency, and architectural patterns.
+Enforce fail-fast principles and architectural patterns in DNNE code.
 
-## Review Scope
+## Review Process
+1. **Search for anti-patterns**: `.get(key, default)`, `hasattr/getattr`, bare `except:`
+2. **Generate review plan**: Create `/tmp/review_plan.md` with:
+   - Line number and current code
+   - Proposed FIX or question
+3. **User adds COMMENTs**: To reject or clarify (no COMMENT = approved)
+4. **Implement fixes**: All fixes without COMMENT are approved
 
-### DNNE Core Directories (Review These)
+## Key Anti-Patterns
 
-| Directory | Contents | Review Focus |
-|-----------|----------|--------------|
-| `export_system/` | Workflow to Python conversion | Fail-fast, no silent defaults |
-| `export_system/templates/` | Code generation templates | Proper patterns, clean abstractions |
-| `custom_nodes/` | DNNE visual nodes (*_visnode.py) | Proper base class usage, exports |
-| `dnne_agent/` | Remote deployment system | Message protocols, error handling |
-| `claude_scripts/` | Development & test scripts | Testing completeness |
-| `dnne_test_suite/` | DNNE test files | Test coverage, fail-fast testing |
-
-### ComfyUI Base (DO NOT MODIFY)
-
-| Directory | Contents | Action |
-|-----------|----------|--------|
-| `comfy/` | ComfyUI core engine | Report issues only |
-| `comfy_api/` | ComfyUI API layer | Report issues only |
-| `comfy_execution/` | ComfyUI execution engine | Report issues only |
-| `app/` | ComfyUI web app | Report issues only |
-| `api_server/` | ComfyUI server | Report issues only |
-
-### Special Cases
-
-| Location | Rule |
-|----------|------|
-| `*.py` in root | Review if DNNE-modified (server.py, nodes.py) |
-| `DNNE-LINUX-SUPPORT/` | Review only DNNE modifications |
-
-## Core Principles
-
-1. **Fail fast, fail clearly** - No silent failures or fallbacks with defaults
-2. **DRY (Don't Repeat Yourself)** - Centralize common code
-3. **Clean imports** - Proper order and placement
-4. **Clear boundaries** - Respect DNNE vs ComfyUI separation
-5. **Proper abstractions** - Use base classes correctly
-
-## Review Rules
-
-### 1. Fail-Fast Compliance
-
-| Pattern | Status | Fix |
-|---------|--------|-----|
-| `hasattr(g, 'attr')` | ❌ BAD | Direct access: `g.attr` |
-| `getattr(g, 'attr', default)` | ❌ BAD | Require explicit definition |
-| `try/except: pass` | ❌ BAD | Handle or propagate errors |
-| `if g.verbose:` | ✅ GOOD | Fails if undefined |
-| Base class with innapropriate defaults | ❌ BAD | Use NotImplementedError |
-| Silent fallbacks | ❌ BAD | Explicit error messages |
-
-**Principle**: "LOG AND FAIL": Code should fail immediately when assumptions are violated.
-
-### 2. Code Duplication
-
-**Common Duplicates & Centralization**:
-- Utility functions → Create shared module in `export_system/templates/`
-- Constants → Create constants module in `export_system/templates/`
-- Config parsing → Centralize in templates
-- Common patterns → Extract to base classes
-
-**Action**: Identify → Centralize → Import
-
-### 3. Import Patterns
-
-**Standard Order**:
+### Silent Defaults
 ```python
-# 1. Standard library
-import os
-import sys
+# BAD: Hides missing config
+value = config.get('key', 'default')
 
-# 2. Third-party
-import numpy as np
-import torch
-
-# 3. Local/DNNE
-from nodes import NetworkNode
+# GOOD: Fail fast  
+if 'key' not in config:
+    raise ValueError("Missing required 'key'")
+value = config['key']
 ```
 
-**Exceptions**:
-- IsaacGym before PyTorch (problem already solved in runner.py)
-- Late imports only for circular dependency resolution
+### hasattr/getattr
+```python
+# BAD: Anti-pattern
+if hasattr(obj, 'attr'):
+    value = getattr(obj, 'attr')
 
-### 4. Architecture Rules
-
-| Rule | Check For | Action |
-|------|-----------|--------|
-| Global class usage | `import builtins` | Replace with `Global` class |
-| Abstract methods | Base class with default implementations | Add `raise NotImplementedError` |
-| Naming conventions | Inconsistent names | Follow Python conventions |
-| Module boundaries | Cross-boundary imports | Respect layer separation |
-| Test coverage | Missing tests | Flag untested code |
-
-## Quick Reference
-
-### File Boundaries
-- **DNNE Core**: Review and modify freely
-- **ComfyUI Base**: Do not modify, report issues only
-- **Exported code**: Should use standard Python patterns
-- **Templates**: Should generate clean, maintainable code
-
-### Common Fixes
-| Issue | Quick Fix |
-|-------|-----------|
-| Duplicate function | Move to templates/framework/, import everywhere |
-| hasattr pattern | Remove check, let it fail with AttributeError |
-| Late import | Move to top unless IsaacGym/circular issue |
-| Silent defaults | Add explicit error handling |
-
-## Output Guidelines
-
-### Structure Your Review
-1. **Summary**: One-line assessment
-2. **Critical Issues**: Must fix immediately
-3. **Important Issues**: Should fix soon
-4. **Minor Issues**: Nice to fix
-5. **Positive Patterns**: What's done well
-
-### Format Examples
-
-**For Critical Issues**:
-```
-❌ CRITICAL: Fail-fast violation in export_system/node_handler.py:45
-- Uses hasattr(g, 'debug_mode') 
-- Fix: Remove hasattr, let AttributeError propagate
+# GOOD: Direct access
+try:
+    value = obj.attr
+except AttributeError:
+    # Handle explicitly
 ```
 
-**For Duplication**:
-```
-⚠️ DUPLICATE: Config parsing logic in 3 files
-- Files: node1.py, node2.py, utils.py
-- Action: Centralize in templates/framework/config.py
-```
+### Broad Exceptions
+```python
+# BAD: Swallows errors
+except:
+    return False
 
-**For Quick Wins**:
-```
-✅ POSITIVE: Clean fail-fast pattern in templates/base.py
-- Direct attribute access throughout
-- Clear error messages
+# GOOD: Specific
+except (IOError, ValueError) as e:
+    logger.error(f"Failed: {e}")
+    raise
 ```
 
-### Priority Levels
-1. **🔴 Critical**: Breaks fail-fast, causes silent failures
-2. **🟠 Important**: Code duplication, missing error handling
-3. **🟡 Minor**: Import order, naming conventions
-4. **🟢 Good**: Positive patterns to propagate
+### Widget Access (Export Compatibility)
+```python
+# BAD: Direct widgets_values access - fails for UI export!
+widgets = node_data.get("widgets_values", [])
 
-## Review Checklist
+# GOOD: Use helper function
+param_specs = [
+    {'name': 'param1', 'widget_index': 0},  # NO defaults!
+]
+params = cls.get_node_parameters_batch(node_data, param_specs)
+```
 
-- [ ] Scanned for hasattr/getattr patterns
-- [ ] Identified code duplication
-- [ ] Checked import patterns
-- [ ] Validated architectural boundaries
-- [ ] Verified proper error handling
-- [ ] Noted positive patterns
-- [ ] Prioritized findings
-- [ ] Provided actionable fixes
+## Special Patterns
 
-## Remember
-- **Be specific**: Include file:line references
-- **Be actionable**: Every issue needs a fix
-- **Be constructive**: Note good patterns too
-- **Be practical**: We are in Early development, this allows breaking changes
-- **Be focused**: DNNE core only, ignore ComfyUI base
+### Virtual Node Pattern
+PPOAgent and IsaacGymSim extract config from connected virtual nodes:
+```python
+# Virtual nodes have node.get('type') == None in exports
+env_config = cls._extract_env_config(node_id, all_nodes, all_links)
+# Then validate ALL required keys - no defaults!
+```
+
+### Documented Exceptions (Only Two Allowed)
+1. **Camera fields** in IsaacGymSim: Can default when empty (not missing)
+2. **load_checkpoint** in PPOAgent: Can have empty string default
+
+## Focus Areas
+
+| Directory | Key Issues |
+|-----------|------------|
+| `export_system/node_exporters/` | No defaults for params, use get_node_parameter helper |
+| `custom_nodes/` | Widget params must fail if missing |
+| `WebSocket handlers` | Validate all required message fields |
+| `Config loaders` | Distinguish optional vs required |
+| **Orphaned files** | Every `*_exporter.py` needs matching `*_visnode.py` |
+
+## Audit Commands
+
+```bash
+# Find exporters with defaults in param_specs
+grep -n "'default':" export_system/node_exporters/*.py
+
+# Find mismatch between exporters and visual nodes
+ls custom_nodes/*_visnode.py | sed 's/.*\///' | sed 's/_visnode.py//' | sort > /tmp/visnodes.txt
+ls export_system/node_exporters/*_exporter.py | sed 's/.*\///' | sed 's/_exporter.py//' | sort > /tmp/exporters.txt
+comm -23 /tmp/visnodes.txt /tmp/exporters.txt  # Nodes without exporters
+comm -13 /tmp/visnodes.txt /tmp/exporters.txt  # Exporters without nodes
+
+# Find direct widget access (broken pattern)
+grep -n "widgets_values\[" export_system/node_exporters/*.py
+grep -n '\.get("widgets_values"' export_system/node_exporters/*.py | grep -v get_node_parameter
+```
+
+## Review Output Format
+```markdown
+# File: isaac_gym_envs_visnode.py
+
+## Line 70-71 - Schema defaults
+schema_info['levels'] = config.get('levels', [])
+# FIX: Should fail if missing
+# COMMENT: Valid - empty list acceptable
+
+## Line 352 - Task parameter  
+task = kwargs.get("task")
+# FIX: Should fail if not provided
+# (No COMMENT = approved for fixing)
+```
+
+## Testing Requirements
+- Export from UI (browser) must succeed
+- Export programmatically must succeed
+- Check DNNE.log for errors after export
+- No silent failures or warnings
+
+## Priority Levels
+- 🔴 **Critical**: Silent failures, missing validations, widget access issues
+- 🟠 **Important**: Code duplication, poor error messages  
+- 🟡 **Minor**: Import order, naming conventions
+- 🟢 **Good**: Positive patterns to propagate
+
+## DNNE vs ComfyUI
+- **DNNE directories**: Review and fix (`export_system/`, `custom_nodes/`, `dnne_*`)
+- **ComfyUI base**: Report only, don't modify (`comfy/`, `app/`)
+
+## Checklist
+- [ ] Search for `.get()` patterns with defaults
+- [ ] Find `hasattr/getattr` anti-patterns
+- [ ] Identify bare `except:` clauses
+- [ ] Check widget access patterns (no direct `widgets_values`)
+- [ ] Verify exporters have matching visual nodes
+- [ ] Test both UI and programmatic exports
+- [ ] Check required vs optional parameters
+- [ ] Verify error messages are actionable
+- [ ] Note positive patterns to propagate
