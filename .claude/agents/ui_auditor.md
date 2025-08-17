@@ -23,11 +23,10 @@ Audits DNNE codebase for UI/export compatibility issues and fail-fast compliance
 - [ ] **Widget Access**: No direct `widgets_values` access - use `get_node_parameter`
 - [ ] **No Defaults**: No fallback defaults in param_specs or validation
 - [ ] **Orphaned Files**: Every exporter has matching visnode
-- [ ] **Virtual Nodes**: PPOAgent/IsaacGymSim properly extract from virtual nodes
 - [ ] **Camera Exception**: Only camera fields can default when empty (not missing)
 - [ ] **Data Format**: Test both UI and programmatic exports (handled by helper functions)
 - [ ] **WebSocket Only**: Dynamic features use WebSocket, not REST
-- [ ] **Base Classes**: All throw NotImplementedError, no default implementations
+- [ ] **Base Classes**: Code that must be implemented by subclasses throw NotImplementedError
 - [ ] **Export Testing**: Both UI and programmatic exports work
 
 ### 1. Exporter Widget Access
@@ -60,11 +59,9 @@ return config["learning_rate"]
 ### 3. Orphaned Files
 - **Exporters without visual nodes**: Delete immediately
 - **Check**: Every `*_exporter.py` needs matching `*_visnode.py`
-- **Registry**: Verify all exporters in `__init__.py` have implementations
 
 ### 3a. Virtual Node Pattern
 **CRITICAL**: PPOAgent and IsaacGymSim use virtual nodes for configuration
-- **Virtual Nodes**: Nodes with `IS_VIRTUAL=True` (PPOConfig, IsaacGymEnvs, BalancerConfig)
 - **Config Extraction**: Non-virtual nodes extract config from connected virtual nodes via links
 - **NO BACKWARDS COMPATIBILITY**: Old workflows missing parameters must fail
 ```python
@@ -133,27 +130,18 @@ grep -n '\.get("widgets_values"' export_system/node_exporters/*.py | grep -v get
 grep -n "@routes\." server.py | grep -v "/ws" | grep -E "(get|post).*(queue|history|prompt|log)"
 ```
 
-### Find Virtual Nodes
-```bash
-# Find all nodes marked as virtual
-grep -n "IS_VIRTUAL = True" custom_nodes/*.py
-```
-
 ### Test Export System
 ```bash
-# Test MNIST workflow (should work)
-python claude_scripts/programmatic_export.py "MNIST_Test"
-# Test old workflows (should fail with missing params)
-python claude_scripts/programmatic_export.py "Cartpole_PPO"
+# Test MNIST workflow (all should work)
+python claude_scripts/export_all_workflows.py
 ```
 
 ## Common Pitfalls
 
 1. **Variable Collision**: Don't reuse variable names (e.g., `params` for different data)
 2. **Config Node Type**: Virtual nodes have `node.get('type') == None` in exports
-3. **Default Camera Positions**: OK for visualization, not for critical params
-4. **Nested Widget Access**: Use proper validation at each level
-5. **Boolean Conversion**: Explicit `bool()` conversion for checkbox values
+3. **Nested Widget Access**: Use proper validation at each level
+4. **Boolean Conversion**: Explicit `bool()` conversion for checkbox values
 
 ## Testing Protocol
 
@@ -163,8 +151,5 @@ python claude_scripts/programmatic_export.py "Cartpole_PPO"
 4. Verify no silent failures or warnings
 
 ## Red Flags
-- `len(widgets) < expected` without raising error
 - `try/except` blocks that swallow exceptions
 - Default values in `param_specs` dictionaries
-- Missing validation before accessing dict keys
-- Hardcoded array indices without bounds checking
