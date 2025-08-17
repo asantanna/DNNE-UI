@@ -28,6 +28,9 @@ class NetworkExporter(ExportableNode):
             input_tensor_schema = input_schema["input"]
             if "flattened_size" in input_tensor_schema:
                 input_size = input_tensor_schema["flattened_size"]
+                if input_size is None:
+                    # The connected node couldn't determine size
+                    raise ValueError(f"Network node {node_id}: Connected node returned None for flattened_size")
             else:
                 raise ValueError(f"Network node {node_id}: Could not determine input tensor size from connected node")
         else:

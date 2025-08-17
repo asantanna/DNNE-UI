@@ -4,37 +4,13 @@
 
 ## Current Status
 **✅ COMPLETE** - Generic callback-based combo widget fully implemented (100%)
-- ✅ Clean generic system with node_data context passing
-- ✅ WebSocket-based callbacks work perfectly
-- ✅ IsaacGymEnvsNode schema display updates correctly
-- ✅ All dynamic widgets update schema properly
+- Clean generic system with node_data context passing
+- WebSocket-based callbacks work perfectly  
+- All dynamic widgets update schema properly
 
 ## 📋 TODO
 
-### ✅ Completed - Core Implementation
-
-1. **Create useDnneComboWidget.ts**
-   - ✅ Implemented base combo widget with callback override
-   - ✅ Added WebSocket message sending for events
-   - ✅ Handle callback responses with code execution
-   - ✅ Support onLoad, onChange events
-
-2. **Register widget in system**
-   - ✅ Added DNNE_COMBO to widgets.ts registry
-   - ✅ Proper widget type selection working
-
-3. **Backend WebSocket handler**
-   - ✅ Added widget_callback message handler in server.py
-   - ✅ Routes callbacks to appropriate node handlers
-   - ✅ Sends widget_callback_response messages
-
-4. **Update IsaacGymEnvsNode**
-   - ✅ Changed INPUT_TYPES to use widgetType: "DNNE_COMBO"
-   - ✅ Added widget_id and listen_to parameters
-   - ✅ Implemented callback handler for task widget
-
 ### Future Enhancements (Optional)
-
 - [ ] Test with additional node types beyond IsaacGymEnvs
 - [ ] Add onFocus/onBlur event support if needed
 - [ ] Create developer guide with examples

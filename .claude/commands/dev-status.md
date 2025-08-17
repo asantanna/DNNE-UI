@@ -1,27 +1,27 @@
 # DNNE Development Status
 
-*For historical development sessions, see HISTORY.md*
-
-## READ THESE IMPORTANT GUIDELINES !!
+## !!IMPORTANT!! READ THESE IMPORTANT GUIDELINES !!
 - **Coding Guidelines**: `.claude/commands/rules-for-DNNE.md`
 - **Task Tracking**: `dnne_docs/for_claude/tasks/INDEX.md`
 
-## Latest Achievements (2025-01-17)
+$ARGUMENTS$
+
+*For historical development sessions, see HISTORY.md*
+
+## Latest Achievements (2025-08-17)
+
+### Export System Schema Resolution ✅
+- Fixed ConcatExporter missing get_initial_output_schema() method
+- Fixed SplitExporter missing schema methods with proper size calculation
+- Refactored to eliminate DRY violations in parse_split_positions()
+- Fixed FAIL-FAST rule violations (no silent fallbacks)
+- Franka_Coop_Nodes workflow export issues resolved
 
 ### Schema Format Enhancement ✅
 - Support for simplified single-element schema format in YAML
 - Split node exporter handles both `[x,x]` array and `x` number formats
 - UI displays single elements aesthetically as `[x]` instead of `[x-x]`
 - Full backward compatibility maintained
-
-### Dynamic Widget System (IN PROGRESS)
-- ✅ Backend endpoint enhanced to handle widget updates and schema display
-- ✅ Frontend callback system for task and dynamic widget changes
-- ✅ Widget update mechanism for showing/hiding dynamic dropdowns
-- 🔧 Issues found with LiteGraph widget rendering:
-  - Initial widget labels show as "dynamic_1/2/3" on load
-  - Hidden widgets leave gaps (Y positioning not updated)
-  - Need to manually recompute widget positions
 
 ### @dnne_node Decorator System ✅  
 - Automatic node registration via decorator
