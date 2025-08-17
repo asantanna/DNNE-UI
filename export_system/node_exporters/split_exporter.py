@@ -88,14 +88,22 @@ class SplitExporter(ExportableNode):
                 
                 # Get the base range for this name (INCLUSIVE ranges in schema)
                 base_range = observation_schema[base_name]
-                if len(base_range) != 2:
+                
+                # Handle both array format [start, end] and single number format
+                if isinstance(base_range, (int, float)):
+                    # Single element: number represents both start and end (inclusive)
+                    start_idx = int(base_range)
+                    end_idx_inclusive = int(base_range)
+                elif isinstance(base_range, list) and len(base_range) == 2:
+                    # Array format [start, end] (inclusive)
+                    start_idx, end_idx_inclusive = base_range
+                else:
                     raise ValueError(
                         f"SplitNode {node_id}: Invalid range for '{base_name}': {base_range}. "
-                        f"Expected [start, end] format."
+                        f"Expected [start, end] format or single number."
                     )
                 
                 # Schema uses inclusive ranges, so [0, 6] means indices 0-6 inclusive
-                start_idx, end_idx_inclusive = base_range
                 end_idx = end_idx_inclusive + 1  # Convert to exclusive for Python range
                 
                 # Apply slice if specified

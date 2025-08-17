@@ -6,7 +6,13 @@
 - **Coding Guidelines**: `.claude/commands/rules-for-DNNE.md`
 - **Task Tracking**: `dnne_docs/for_claude/tasks/INDEX.md`
 
-## Latest Achievements (2025-01-16)
+## Latest Achievements (2025-01-17)
+
+### Schema Format Enhancement ✅
+- Support for simplified single-element schema format in YAML
+- Split node exporter handles both `[x,x]` array and `x` number formats
+- UI displays single elements aesthetically as `[x]` instead of `[x-x]`
+- Full backward compatibility maintained
 
 ### Dynamic Widget System (IN PROGRESS)
 - ✅ Backend endpoint enhanced to handle widget updates and schema display
@@ -67,11 +73,11 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
+- Support simplified schema format (single number for single elements)
+- Update Split node exporter for both schema formats
+- Enhance IsaacGymEnvs display aesthetics for single elements
 - Implement @dnne_node decorator system
-- Auto-discovery for node registration and exporters  
-- Update all nodes with decorator
-- Fix naming convention mismatches
-- 100% test success
+- Auto-discovery for node registration and exporters
 
 ---
 *Focus on active tasks in INDEX.md*

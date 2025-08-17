@@ -2,6 +2,16 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-08-17 - Schema Format Enhancement
+
+### Schema Format Support ✅
+- Added support for single-number schema format in YAML (e.g., `gripper_width: 6`)
+- Updated Split node exporter to handle both formats:
+  - Array format `[start, end]` for ranges
+  - Single number format for single elements
+- Enhanced IsaacGymEnvs display to show single elements as `[x]` for aesthetics
+- Maintains backward compatibility with existing YAML files
+
 ## Session: 2025-08-15 - LinearLayer/Network Refactoring
 
 ### Virtual Node Architecture ✅

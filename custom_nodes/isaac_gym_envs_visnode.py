@@ -306,9 +306,15 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
             if obs_count:
                 lines.append(f"\nObservations:")
                 for name, indices in obs_schema.items():
-                    if isinstance(indices, list) and len(indices) == 2:
-                        # Display as [start-end] to show inclusive range
-                        lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
+                    if isinstance(indices, (int, float)):
+                        # Single element: display as [x]
+                        lines.append(f"  • {name:<20} [{int(indices):2}]")
+                    elif isinstance(indices, list) and len(indices) == 2:
+                        # Range: display as [start-end] if different, [x] if same
+                        if indices[0] == indices[1]:
+                            lines.append(f"  • {name:<20} [{indices[0]:2}]")
+                        else:
+                            lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
             
             # Add action schema
             act_count = current_schema.get('numActions', 0)
@@ -317,9 +323,15 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
             if act_count:
                 lines.append(f"\nActions:")
                 for name, indices in act_schema.items():
-                    if isinstance(indices, list) and len(indices) == 2:
-                        # Display as [start-end] to show inclusive range
-                        lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
+                    if isinstance(indices, (int, float)):
+                        # Single element: display as [x]
+                        lines.append(f"  • {name:<20} [{int(indices):2}]")
+                    elif isinstance(indices, list) and len(indices) == 2:
+                        # Range: display as [start-end] if different, [x] if same
+                        if indices[0] == indices[1]:
+                            lines.append(f"  • {name:<20} [{indices[0]:2}]")
+                        else:
+                            lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
             
             # Add description if available
             description = current_schema.get('description')

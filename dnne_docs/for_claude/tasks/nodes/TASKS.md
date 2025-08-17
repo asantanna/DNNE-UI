@@ -39,14 +39,16 @@
    **Phase 4: Schema Resolution**
    - [x] Navigate nested_schemas based on all widget selections
    - [x] Update schema display on any widget change (backend ready)
+   - [x] Support both array [x,x] and single number x schema formats
+   - [x] Display single elements as [x] in UI for aesthetics
    - [ ] Propagate complete schema through graph
-   - [ ] Ensure Split node receives observation_schema
+   - [x] Ensure Split node receives and handles both schema formats
    
    **Testing Requirements:**
    - [ ] Test Cartpole with direct schema (no levels)
    - [ ] Test FrankaDNNE with 2 levels (subtask, controlType)
    - [ ] Create and test 1-level example
-   - [ ] Verify Split node works with all schema variants
+   - [x] Verify Split node works with all schema variants
    - [ ] Test slice notation with new schemas
    
    **Acceptance Criteria:**
