@@ -6,26 +6,31 @@
 |-----------|--------|----------|-------|
 | Export System | ✅ Complete | - | Widget encapsulation implemented |
 | LinearLayer/Network | ✅ Refactored | - | Virtual nodes architecture |
-| Isaac Gym Integration | ✅ Fixed | - | YAML-based configuration |
+| Isaac Gym Integration | ✅ Fixed | - | Circular dependency resolved |
 | Test Suite | ✅ Passing | - | 164 tests pass, 0 skipped |
-| RL Nodes | ✅ Working | - | PPO with BalancerConfig |
+| Franka Coop Workflow | ✅ Running | - | Bootstrap with null_action working |
 | Balancer Node | ✅ Fixed | - | Naming consistency resolved |
 
-## Today's Achievements (Jan 17, 2025)
-- Enforced fail-fast principles across entire codebase
-- Removed 71+ silent defaults that were hiding errors
-- Fixed Isaac Gym config loader to skip Hydra inheritance
-- Enhanced code reviewer with streamlined review process
+## Today's Achievements (Jan 18, 2025)
+- Fixed Franka_Coop_Nodes circular dependency blocking workflow execution
+- Implemented IsaacGymSim bootstrap with null_action via custom run() method  
+- Added JavaScript widget update callbacks for task/schema changes
+- Fixed asyncio blocking and FrankaDNNE import issues
 
 ## Active Priorities
 
 ### High Priority
-None - System is fully operational
+1. Fix --timeout to be more reliable (almost never works)
+2. Test complete Franka workflow with training loop
+
+### Medium Priority  
+1. Add YAML caching for get_task_schema_info
+2. Update PPOAgent/PPOConfig on IsaacGymEnvs changes
+3. Fix Concat node set_connections() calls
 
 ### Low Priority
-1. Add dnne: sections to other Isaac Gym environment YAMLs
+1. Add more FrankaDNNE subtasks (reach_pose, trajectory_follow)
 2. Export profiling and metrics
-3. Custom node template support
 
 ## Documentation Structure
 

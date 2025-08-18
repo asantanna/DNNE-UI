@@ -4,7 +4,14 @@
 
 ## Latest Achievements (This Week)
 
-### 2025-01-18: Franka Cooperative Control Workflow ✅
+### 2025-01-18: Fixed Franka_Coop_Nodes Circular Dependency ✅
+- **Root Cause** - IsaacGymSim blocked waiting for actions before bootstrapping with null_action
+- **Template Fix** - Override run() method to bootstrap, fixed fail-fast validation
+- **Widget Updates** - JavaScript callbacks update null_action when task/schema changes
+- **Asyncio Fix** - Removed blocking sleep, changed Concat nodes to "as available" mode
+- **Import Fix** - Created __init__.py for franka_dnne package with proper imports
+
+### 2025-01-18: Franka Cooperative Control Workflow Setup ✅
 - **Schema Alignment** - Updated FrankaDNNE.yaml to match actual implementation
 - **Loss Function** - Implemented distance-based L2 norm loss for EEF-target
 - **Workflow Analysis Tool** - Enhanced analyze_workflow.py with widget extraction
@@ -62,11 +69,8 @@ dnne.bat
 ```
 
 ## Files Changed Today
-- `export_system/utils/export_utils.py` - NEW
-- `export_system/node_exporters/linear_layer_exporter.py` - Virtualized
-- `export_system/node_exporters/network_exporter.py` - Refactored
-- `export_system/node_exporters/balancing_config_exporter.py` - NEW
-- `export_system/node_exporters/isaac_gym_envs_exporter.py` - YAML loading, config-based paths
-- `export_system/node_exporters/ppo_agent_exporter.py` - Updated, config-based paths
-- `/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FrankaDNNE.yaml` - dnne: section added
-- Multiple test files updated for virtual LinearLayer
+- `export_system/templates/nodes/isaac_gym_sim_queue.tpl` - Fixed fail-fast, custom run() for bootstrap
+- `custom_nodes/isaac_gym_envs_visnode.py` - Added widget updates, DRY null_action extraction
+- `export_system/exports/Franka_Coop_Nodes/framework/graph_runner.py` - Fixed asyncio blocking
+- `/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/tasks/franka_dnne/__init__.py` - NEW package init
+- `export_system/exports/Franka_Coop_Nodes/nodes/concatnode_*.py` - Changed to "as available" mode
