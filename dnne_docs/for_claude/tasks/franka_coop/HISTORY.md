@@ -1,5 +1,53 @@
 # Franka Cooperative Control - History
 
+## 2025-08-18 (Later): MAJOR MILESTONE - Tensor Standards & Gradient Flow Fixed 🎉
+
+### What We Accomplished
+- **Enforced Tensor Dimension Standards**: All nodes now follow strict conventions (dim 0=batch, dim 1=features)
+- **Fixed Gradient Flow**: Isaac Gym observations properly support gradient computation using detach().requires_grad_(True)
+- **Unified Device Handling**: All nodes use global device configuration consistently
+- **Implemented Fail-Fast Philosophy**: Removed unnecessary validation, let PyTorch fail naturally
+- **Fixed Concat/Split**: Now operate on dim=1 (features) instead of dim=0 (batch)
+- **Simplified Templates**: Removed redundant checks, kept code lean and fast
+
+### Key Technical Decisions
+1. **Isaac Gym as Data Source**: Treat simulator observations like DataStreamer - they're input data, not part of computation graph
+2. **Clean Gradient Boundaries**: Use detach().requires_grad_(True) to create leaf tensors for gradient computation
+3. **No Runtime Validation**: Export-time checks only, runtime should be fast with PyTorch's natural error messages
+4. **Consistent Batch Format**: Even single items become [1, features] for consistency
+
+### Result
+✅ **READY FOR REAL RESEARCH** - The Franka_Coop_Nodes workflow is now production-ready with proper tensor handling, gradient flow, and device management. All major hacks have been eliminated.
+
+---
+
+## 2025-08-18 (Earlier): Franka_Coop_Nodes Export "Working" with HACKS ⚠️
+
+### Completed (with caveats)
+- **Fixed Export Deadlock**:
+  - Changed Concat nodes from "wait for all" to "as available" mode
+  - Fixed Split nodes to use dimension 1 (features) instead of 0 (batch)
+  - Added set_connections() method to base QueueNode class
+  - GraphRunner now calls set_connections() on all nodes
+
+- **Patched Multiple Issues with HACKS**:
+  - **Dimension mismatch**: Hardcoded concat to dim=1 (UI sets wrong dimension)
+  - **Device issues**: Added device synchronization (nodes output on wrong device)
+  - **Shape inconsistency**: Special handling for node 42 to flatten tensors
+  - **Gradient tracking**: Wrapped TrainingStep in try-catch (Isaac Gym observations lack gradients)
+
+- **Current State**:
+  - Robot moves continuously without crashes
+  - Training is effectively disabled (no gradients)
+  - Multiple architectural issues masked by workarounds
+
+### Templates Updated
+- `templates/nodes/concat_node_queue.tpl` - Added all HACKS
+- `templates/nodes/split_node_queue.tpl` - Dimension hack
+- `templates/framework/graph_runner.py` - set_connections() call
+- `templates/framework/base_nodes.py` - set_connections() method
+- `templates/nodes/training_step_queue.tpl` - Gradient error handling
+
 ## 2025-08-18: FrankaDNNE Environment Fixed ✅
 
 ### Completed
