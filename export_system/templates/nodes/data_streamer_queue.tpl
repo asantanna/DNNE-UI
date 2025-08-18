@@ -118,7 +118,18 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         # Get current row and convert to tensor
         row_data = self.data[self.current_row]
-        tensor_data = torch.from_numpy(row_data).float()
+        
+        # Create tensor on correct device
+        from framework.globals import Global as g
+        device = torch.device(g.get_device())
+        
+        # Convert to tensor with proper shape [1, features] for batch consistency
+        # Single row becomes batch of size 1
+        tensor_data = torch.from_numpy(row_data).float().unsqueeze(0).to(device)
+        
+        # Set gradient requirements based on mode
+        if not g.inference_mode:
+            tensor_data.requires_grad_(True)
         
         # Send data
         await self.send_output("data", tensor_data)
