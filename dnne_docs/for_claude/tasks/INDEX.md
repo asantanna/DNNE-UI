@@ -17,6 +17,7 @@
 | **Node System** | 🟡 Working | Tensor node added, widget issues remain | High | 2025-08-17 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
 | **Franka Coop Control** | 🟢 Ready | FrankaDNNE env fixed, ready to test | High | 2025-08-18 |
+| **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
 
 ## Active Priority Items
 
@@ -33,8 +34,12 @@
    - Widget labels not updating to actual names
 
 ### Medium Priority
-1. **Log Viewer**: Fix streaming logs missing final DNNE stop line
-2. **Node System**: Add 'group' widget to Balancer nodes
+1. **UI Proxy**: Implement server-initiated JavaScript execution
+   - Enable asynchronous UI state updates from backend
+   - Primary use case: Split node updating output labels dynamically
+   - Architecture documented, ready for implementation
+2. **Log Viewer**: Fix streaming logs missing final DNNE stop line
+3. **Node System**: Add 'group' widget to Balancer nodes
 
 ### Low Priority
 1. **Log Viewer**: Fix dropdown clickable when Local selected
@@ -74,6 +79,11 @@
 - Generic callback-based widget system
 - WebSocket protocol for widget events
 - Replaces hardcoded IsaacGymEnvs hack
+
+### UI Proxy (`ui_proxy/TASKS.md`)
+- Server-initiated JavaScript execution system
+- Enables dynamic UI updates from backend logic
+- Architecture phase complete, implementation pending
 
 ### DNNE Agent (`dnne_agent/TASKS.md`)
 - Phase 12 complete - fully functional
