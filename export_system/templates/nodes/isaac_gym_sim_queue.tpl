@@ -19,11 +19,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=["action"])  # Config is embedded, reset handled in compute
+        self.setup_inputs(required=[])  # Override to no required inputs - we bootstrap with null_action
         self.setup_outputs(["observation", "done"])
         
-        # Create input queue for optional reset input
+        # Manually create input queues for action and reset
         from asyncio import Queue
+        self.input_queues["action"] = Queue(maxsize=2)  # Action input
         self.input_queues["reset"] = Queue(maxsize=1)  # Trigger signal - size 1
         
         self.reset_when_done = {RESET_WHEN_DONE}
@@ -39,9 +40,64 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.act_space = None
         self.num_envs = 1  # Force single environment for DNNE
         
+    async def run(self):
+        """Custom run method: bootstrap with null_action, then process actions normally"""
+        import time
+        self.running = True
+        self.node_logger.info(f"Starting IsaacGymSim node {{self.node_id}}")
+        
+        try:
+            # Bootstrap environment with null_action
+            self.node_logger.info("Bootstrapping environment with null_action...")
+            await self.initialize()
+            # Initial observation already sent by initialize()
+            
+            # Main loop - wait for action OR reset
+            while self.running:
+                # Create tasks for both inputs
+                action_task = asyncio.create_task(self.input_queues["action"].get(), name="action")
+                reset_task = asyncio.create_task(self.input_queues["reset"].get(), name="reset")
+                
+                # Wait for either action or reset
+                done, pending = await asyncio.wait(
+                    [action_task, reset_task], 
+                    return_when=asyncio.FIRST_COMPLETED
+                )
+                
+                # Cancel the other task
+                for task in pending:
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
+                
+                # Process the completed input
+                completed_task = list(done)[0]
+                input_name = completed_task.get_name()
+                
+                if input_name == "action":
+                    action = completed_task.result()
+                    outputs = await self.compute(action=action)
+                elif input_name == "reset":
+                    reset = completed_task.result()
+                    outputs = await self.compute(reset=reset)
+                
+                # Send outputs
+                for output_name, value in outputs.items():
+                    await self.send_output(output_name, value)
+                    
+        except asyncio.CancelledError:
+            self.node_logger.info(f"IsaacGymSim Node {{self.node_id}} cancelled")
+            raise
+        finally:
+            self.running = False
+        
     async def initialize(self):
         """Initialize Isaac Gym environment from config"""
         print(f"[DEBUG IsaacGymSim] Starting initialization...")
+        print(f"[DEBUG IsaacGymSim] null_action value: {{self.null_action}}")
+        print(f"[DEBUG IsaacGymSim] null_action type: {{type(self.null_action)}}")
         try:
             # Config from IsaacGymEnvs virtual node (embedded during export)
             config = {{
@@ -103,27 +159,46 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if isinstance(obs, dict):
                 obs = obs["obs"]
             
-            # If we have a null action, step once to get proper initial observation
-            if self.null_action:
-                # Validate null action is provided
-                if not self.null_action:
-                    raise ValueError(f"No null action provided for task {{config['task']}}. "
-                                   "Please specify null_action parameter or add nullAction to YAML config.")
-                
-                # Create null action tensor
-                null_action_tensor = torch.tensor(self.null_action, device=self.device, dtype=torch.float32)
-                if null_action_tensor.dim() == 1:
-                    null_action_tensor = null_action_tensor.unsqueeze(0)
-                
-                # Step with null action to get initial observation
-                obs, _, _, _ = self.env.step(null_action_tensor)
-                if isinstance(obs, dict):
-                    obs = obs["obs"]
-                
-                self.node_logger.info(f"Stepped with null action: {{self.null_action}}")
+            # ALL Isaac Gym tasks REQUIRE null_action to bootstrap the action-observation loop
+            task_name = config.get('task', 'unknown')
+            print(f"[DEBUG IsaacGymSim] Checking null_action for task '{{task_name}}'...")
+            print(f"[DEBUG IsaacGymSim] null_action={{self.null_action}}, type={{type(self.null_action)}}")
+            if not self.null_action or self.null_action == [] or self.null_action == "":
+                raise ValueError(
+                    f"FAIL-FAST: Task '{{task_name}}' requires null_action but none provided!\n"
+                    f"The null_action must be extracted from the task's YAML schema.\n"
+                    f"This is a critical failure in the export pipeline:\n"
+                    f"1. IsaacGymEnvs node should extract nullAction from the selected schema\n"
+                    f"2. Export system should validate null_action is present\n"
+                    f"3. This node should fail immediately without null_action\n"
+                    f"Check the task YAML for the nullAction field in the selected schema."
+                )
+            
+            print(f"[DEBUG IsaacGymSim] Creating null action tensor...")
+            # Create null action tensor for bootstrapping
+            null_action_tensor = torch.tensor(self.null_action, device=self.device, dtype=torch.float32)
+            if null_action_tensor.dim() == 1:
+                null_action_tensor = null_action_tensor.unsqueeze(0)
+            print(f"[DEBUG IsaacGymSim] null_action_tensor shape: {{null_action_tensor.shape}}, device: {{null_action_tensor.device}}")
+            
+            # Step with null action to get proper initial observation
+            print(f"[DEBUG IsaacGymSim] Stepping with null action to bootstrap...")
+            obs, _, _, _ = self.env.step(null_action_tensor)
+            if isinstance(obs, dict):
+                obs = obs["obs"]
+            print(f"[DEBUG IsaacGymSim] Got initial observation after bootstrap, shape: {{obs.shape if hasattr(obs, 'shape') else 'unknown'}}")
+            
+            # Enable gradients for training mode (Sim is a data source like DataStreamer)
+            from framework.globals import Global as g
+            if not g.inference_mode:
+                obs = obs.detach().requires_grad_(True)
+            
+            self.node_logger.info(f"Bootstrapped with null action: {{self.null_action}}")
             
             # Send initial observation
+            print(f"[DEBUG IsaacGymSim] Sending initial observation to output queue...")
             await self.send_output("observation", obs)
+            print(f"[DEBUG IsaacGymSim] Initial observation sent!")
             
             self.node_logger.info(f"Initialized {{config['task']}} environment on {{self.device}}")
             
@@ -136,26 +211,24 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         action = kwargs.get('action')
         reset = kwargs.get('reset')
         
-        # Initialize on first call
-        if self.env is None:
-            print(f"[DEBUG IsaacGymSim] env is None, calling initialize()...")
-            await self.initialize()
-            return {{}}  # Initialization sends initial observation
-        
         # Handle manual reset
         if reset is not None:
             obs = self.env.reset()
             if isinstance(obs, dict):
                 obs = obs["obs"]
             
-            # Step with null action after reset if available
-            if self.null_action:
-                null_action_tensor = torch.tensor(self.null_action, device=self.device, dtype=torch.float32)
-                if null_action_tensor.dim() == 1:
-                    null_action_tensor = null_action_tensor.unsqueeze(0)
-                obs, _, _, _ = self.env.step(null_action_tensor)
-                if isinstance(obs, dict):
-                    obs = obs["obs"]
+            # Step with null action after reset (required for all tasks)
+            null_action_tensor = torch.tensor(self.null_action, device=self.device, dtype=torch.float32)
+            if null_action_tensor.dim() == 1:
+                null_action_tensor = null_action_tensor.unsqueeze(0)
+            obs, _, _, _ = self.env.step(null_action_tensor)
+            if isinstance(obs, dict):
+                obs = obs["obs"]
+            
+            # Enable gradients for training mode
+            from framework.globals import Global as g
+            if not g.inference_mode:
+                obs = obs.detach().requires_grad_(True)
             
             return {{"observation": obs}}
         
@@ -178,6 +251,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if isinstance(obs, dict):
                 obs = obs["obs"]
             
+            # Enable gradients for training mode
+            from framework.globals import Global as g
+            if not g.inference_mode:
+                obs = obs.detach().requires_grad_(True)
+            
             # Prepare outputs
             outputs = {{"observation": obs}}
             
@@ -191,14 +269,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                     if isinstance(obs, dict):
                         obs = obs["obs"]
                     
-                    # Step with null action after reset if available
-                    if self.null_action:
-                        null_action_tensor = torch.tensor(self.null_action, device=self.device, dtype=torch.float32)
-                        if null_action_tensor.dim() == 1:
-                            null_action_tensor = null_action_tensor.unsqueeze(0)
-                        obs, _, _, _ = self.env.step(null_action_tensor)
-                        if isinstance(obs, dict):
-                            obs = obs["obs"]
+                    # Step with null action after reset (required for all tasks)
+                    null_action_tensor = torch.tensor(self.null_action, device=self.device, dtype=torch.float32)
+                    if null_action_tensor.dim() == 1:
+                        null_action_tensor = null_action_tensor.unsqueeze(0)
+                    obs, _, _, _ = self.env.step(null_action_tensor)
+                    if isinstance(obs, dict):
+                        obs = obs["obs"]
+                    
+                    # Enable gradients for training mode (after reset)
+                    if not g.inference_mode:
+                        obs = obs.detach().requires_grad_(True)
                     
                     # Send new observation after reset
                     await self.send_output("observation", obs)
