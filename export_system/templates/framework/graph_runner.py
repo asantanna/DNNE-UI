@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Any, List, Optional
 
 from .base_nodes import QueueNode
-from .exceptions import TrainingCompleteException
+from .exceptions import CauseExitException
 from .globals import Global as g, dnne_logging
 
 # Queue subsystem logger
@@ -23,6 +23,7 @@ class GraphRunner:
         
         # Exit tracking for smart checkpoint saves
         self.exit_reason = None
+        self.exit_code = 0  # Default exit code
         self.has_completion_conditions = False
     
     def add_node(self, node: QueueNode):
@@ -105,21 +106,23 @@ class GraphRunner:
                 except asyncio.TimeoutError:
                     self.exit_reason = "timeout"
                     self.logger.info(f"Stopping after {duration}s")
-                except TrainingCompleteException as e:
-                    # print(f"[DEBUG] GraphRunner caught TrainingCompleteException (with timeout)") #DBG_TAG#
+                except CauseExitException as e:
+                    # print(f"[DEBUG] GraphRunner caught CauseExitException (with timeout)") #DBG_TAG#
                     # print(f"[DEBUG] Exception: {e}") #DBG_TAG#
-                    self.exit_reason = "training_complete"
-                    self.logger.info(f"Training completed: {e.message}")
+                    self.exit_reason = "exit_requested"
+                    self.exit_code = e.exit_code
+                    self.logger.info(f"Exit requested: {e.message} (code={e.exit_code})")
             else:
                 # Run until cancelled or training completes
                 try:
                     await asyncio.gather(*self.tasks, return_exceptions=False)
                     self.exit_reason = "tasks_complete"
-                except TrainingCompleteException as e:
-                    # print(f"[DEBUG] GraphRunner caught TrainingCompleteException (no timeout)") #DBG_TAG#
+                except CauseExitException as e:
+                    # print(f"[DEBUG] GraphRunner caught CauseExitException (no timeout)") #DBG_TAG#
                     # print(f"[DEBUG] Exception: {e}") #DBG_TAG#
-                    self.exit_reason = "training_complete"
-                    self.logger.info(f"Training completed: {e.message}")
+                    self.exit_reason = "exit_requested"
+                    self.exit_code = e.exit_code
+                    self.logger.info(f"Exit requested: {e.message} (code={e.exit_code})")
         except KeyboardInterrupt:
             self.exit_reason = "keyboard_interrupt"
             self.logger.info("Interrupted by user")
@@ -162,9 +165,9 @@ class GraphRunner:
             should_save = True
             reason_message = "Training timeout reached - saving final checkpoint"
             
-        elif self.exit_reason == "training_complete":
+        elif self.exit_reason == "exit_requested":
             should_save = True  
-            reason_message = "Training completed naturally - saving final checkpoint"
+            reason_message = "Exit requested - saving final checkpoint"
             
         elif self.exit_reason == "keyboard_interrupt":
             if self.has_completion_conditions:

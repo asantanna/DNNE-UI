@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import dnne_config
 from ..graph_exporter import ExportableNode
+from custom_nodes.utils.script_loader import load_custom_script
 
 
 class CustomComputationExporter(ExportableNode):
@@ -75,6 +76,7 @@ class CustomComputationExporter(ExportableNode):
             "import torch",
             "import importlib.util",
             "import inspect",
+            "from framework.exceptions import CauseExitException",
         ]
     
     @classmethod
@@ -87,17 +89,75 @@ class CustomComputationExporter(ExportableNode):
     
     @classmethod
     def get_initial_output_schema(cls, node_data):
-        # Output schema depends on the custom function, so we can't determine it statically
-        # The output will match the input schema (passthrough assumption)
-        return {
-            "outputs": {
-                "output": {
-                    "type": "tensor",
-                    "dynamic": True,  # Indicates schema depends on runtime
-                    "dtype": "float32"
-                }
-            }
-        }
+        """Get initial output schema from the custom script."""
+        # Get src_path parameter
+        params = cls.get_node_parameters_batch(node_data, [{'name': 'src_path', 'widget_index': 0}])
+        src_path = params['src_path'].strip()
+        
+        if not src_path:
+            raise ValueError(f"CustomComputation node missing required src_path")
+        
+        # Load script and get initial schema
+        module = load_custom_script(src_path)
+        return module.get_script_output_schema(initial=True)
+    
+    @classmethod
+    def get_output_schema(cls, node_data, connections=None, node_registry=None, 
+                         all_nodes=None, all_links=None):
+        """Get output schema, potentially resolving from input connections."""
+        # Get initial schema
+        schema = cls.get_initial_output_schema(node_data)
+        
+        # Try to resolve with input schema
+        if connections and "inputs" in connections and "input" in connections["inputs"]:
+            input_info = connections["inputs"]["input"]
+            
+            # Get input schema from connected node
+            if node_registry and all_nodes and all_links:
+                source_node_id = input_info["from_node"]
+                source_output_slot = input_info["from_slot"]
+                
+                # Find source node and get its schema
+                for node in all_nodes:
+                    if str(node["id"]) == source_node_id:
+                        source_type = node.get("class_type") or node.get("type")
+                        if source_type in node_registry:
+                            source_exporter = node_registry[source_type]
+                            
+                            # Get source node's connections
+                            source_connections = {}
+                            for link in all_links:
+                                if str(link[3]) == source_node_id:  # Target node
+                                    target_slot = link[4]
+                                    source_connections.setdefault("inputs", {})[target_slot] = {
+                                        "from_node": str(link[1]),
+                                        "from_slot": link[2]
+                                    }
+                            
+                            # Get source node's output schema
+                            source_schema = source_exporter.get_output_schema(
+                                node, source_connections, node_registry, all_nodes, all_links
+                            )
+                            
+                            # Get the specific output
+                            output_names = source_exporter.get_output_names()
+                            if source_output_slot < len(output_names):
+                                output_name = output_names[source_output_slot]
+                                if "outputs" in source_schema and output_name in source_schema["outputs"]:
+                                    input_schema = source_schema["outputs"][output_name]
+                                    
+                                    # Load script and get resolved schema
+                                    params = cls.get_node_parameters_batch(node_data, [{'name': 'src_path', 'widget_index': 0}])
+                                    module = load_custom_script(params['src_path'].strip())
+                                    
+                                    # Get resolved schema from script
+                                    schema = module.get_script_output_schema(
+                                        initial=False,
+                                        input_schema={"input": input_schema}
+                                    )
+                            break
+        
+        return schema
     
     @classmethod
     def get_export_files(cls, node_id, node_data):

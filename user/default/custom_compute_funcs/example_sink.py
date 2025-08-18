@@ -8,6 +8,34 @@ Useful for terminating data flows or for side-effect operations like logging.
 import torch
 from typing import Optional
 
+#
+# These functions are for node configuration
+#
+
+def get_output_type():
+    """Return the DNNE type for this node's output.
+    Sink nodes technically output nothing, but we use VOID type."""
+    return "VOID"
+
+def get_script_output_schema(initial=True, input_schema=None):
+    """Return the output schema.
+    Sink nodes don't produce output, so schema is minimal."""
+    
+    # Sink always has the same schema - no output
+    return {
+        "outputs": {
+            "output": {
+                "type": "void",
+                "shape": None,
+                "flattened_size": 0,
+                "dtype": None
+            }
+        }
+    }
+
+#
+# This function gets called at runtime
+#
 
 def compute(input: torch.Tensor) -> Optional[torch.Tensor]:
     """

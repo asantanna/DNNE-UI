@@ -5,7 +5,7 @@ template_vars = {
 }
 
 from framework.globals import Global as g, dnne_logging
-from framework.exceptions import TrainingCompleteException
+from framework.exceptions import CauseExitException
 
 # Training subsystem logger
 training_logger = dnne_logging.getLogger("training")
@@ -83,7 +83,7 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
                 summary["training_complete"] = True
                 
                 # Raise exception to stop the graph runner
-                raise TrainingCompleteException(f"Training completed after {self.total_epochs} epochs")
+                raise CauseExitException(f"Training completed after {self.total_epochs} epochs")
             
             return {"training_summary": summary}
         else:

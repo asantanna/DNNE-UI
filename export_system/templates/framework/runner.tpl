@@ -135,6 +135,7 @@ def configure_logging(verbose=None, debug=None):
 
 async def main():
     """Main execution function"""
+    exit_code = 0  # Default exit code
     # Parse command line arguments using the extracted parser
     parser = create_parser()
     args = parser.parse_args()
@@ -368,6 +369,9 @@ async def main():
             await runner.run()
     except KeyboardInterrupt:
         print('\n🛑 Stopped by user')
+    
+    # Get exit code from runner if available
+    exit_code = getattr(runner, 'exit_code', 0)
 
     # Show final statistics
     print('\n📊 Final Statistics:')
@@ -398,6 +402,16 @@ async def main():
         # Call cleanup if available (for profiling and other cleanup tasks)
         if hasattr(node, 'cleanup'):
             node.cleanup()
+    
+    # Return the exit code
+    return exit_code
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    import sys
+    try:
+        # Run main and get exit code
+        exit_code = asyncio.run(main())
+        sys.exit(exit_code if exit_code is not None else 0)
+    except KeyboardInterrupt:
+        print("\n🛑 Stopped by user")
+        sys.exit(1)

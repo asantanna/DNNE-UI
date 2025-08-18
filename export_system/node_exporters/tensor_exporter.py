@@ -14,15 +14,31 @@ class TensorExporter(ExportableNode):
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
-        # Extract widget values from node data
-        widgets = node_data.get("widgets_values", {})
+        # Use universal parameter reader - FAIL-FAST: no defaults
+        param_specs = [
+            {'name': 'tensor_dims', 'widget_index': 0},
+            {'name': 'fill_mode', 'widget_index': 1},
+            {'name': 'custom_fill', 'widget_index': 2},
+            {'name': 'dtype', 'widget_index': 3},
+            {'name': 'seed', 'widget_index': 4}
+        ]
         
-        # Get values with defaults
-        tensor_dims = widgets.get("tensor_dims", "10")
-        fill_mode = widgets.get("fill_mode", "zeros")
-        custom_fill = widgets.get("custom_fill", 0.0)
-        dtype = widgets.get("dtype", "float32")
-        seed = widgets.get("seed", -1)
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        
+        # Validate required parameters are present
+        required_params = ['tensor_dims', 'fill_mode', 'custom_fill', 'dtype', 'seed']
+        missing_params = [p for p in required_params if p not in params or params[p] is None]
+        if missing_params:
+            raise ValueError(
+                f"TensorNode {node_id} missing required parameters: {missing_params}. "
+                f"The UI must provide all tensor configuration parameters."
+            )
+        
+        tensor_dims = params['tensor_dims']
+        fill_mode = params['fill_mode']
+        custom_fill = params['custom_fill']
+        dtype = params['dtype']
+        seed = params['seed']
         
         # Normalize dimension string for template
         # Ensure it's in a format that can be parsed

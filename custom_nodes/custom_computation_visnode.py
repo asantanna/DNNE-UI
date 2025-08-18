@@ -7,6 +7,7 @@ from inspect import cleandoc
 from custom_nodes.utils.visnode_base import RoboticsNodeBase
 from custom_nodes.utils.node_colors import get_node_colors
 from custom_nodes.utils.dnne_decorator import dnne_node
+from custom_nodes.utils.script_loader import load_custom_script
 
 
 @dnne_node(is_virtual=False)
@@ -21,7 +22,7 @@ class CustomComputationNode(RoboticsNodeBase):
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {
+        inputs = {
             "required": {
                 "input": ("*TENSOR", {
                     "tooltip": "Input tensor to process with custom function"
@@ -33,21 +34,54 @@ class CustomComputationNode(RoboticsNodeBase):
                 }),
             }
         }
+        
+        # Update return type based on script
+        cls._update_return_type(inputs)
+        
+        return inputs
+    
+    @classmethod
+    def _update_return_type(cls, inputs):
+        """Update RETURN_TYPES based on loaded script."""
+        src_path = inputs["required"]["src_path"]["default"].strip()
+        
+        if not src_path:
+            # No script specified yet - use wildcard
+            cls.RETURN_TYPES = ("*",)
+            return
+        
+        try:
+            # Load script and get output type
+            module = load_custom_script(src_path)
+            cls.RETURN_TYPES = (module.get_output_type(),)
+        except Exception:
+            # Script not available yet - use wildcard
+            cls.RETURN_TYPES = ("*",)
 
-    RETURN_TYPES = ("CUSTOMCOMP_OUTPUT_TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     
     @classmethod
     def VALIDATE_INPUTS(cls, **kwargs):
-        """Validate that src_path is provided."""
+        """Validate that src_path is provided and script has required functions."""
         # src_path is required - fail if not provided
         if "src_path" not in kwargs:
             return "src_path parameter is required"
         src_path = kwargs["src_path"].strip()
         if not src_path:
-            return "src_path is required - must point to a Python file with compute() function"
-        return True
+            return "src_path is required - must point to a Python file with required functions"
+        
+        # Try to load and validate the script
+        try:
+            module = load_custom_script(src_path)
+            # Script loaded successfully with all required functions
+            return True
+        except FileNotFoundError as e:
+            return f"Script file not found: {src_path}"
+        except AttributeError as e:
+            return str(e)  # Will contain info about missing function
+        except Exception as e:
+            return f"Failed to load script: {str(e)}"
 
 
 # Node registration

@@ -63,6 +63,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             return {"output": output}
             
+        except CauseExitException:
+            # Let CauseExitException propagate for graceful exits
+            raise
         except Exception as e:
-            self.logger.error(f"Error in custom computation: {e}")
+            self.node_logger.error(f"Error in custom computation: {e}")
             raise RuntimeError(f"Custom computation failed: {e}") from e

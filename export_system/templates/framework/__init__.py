@@ -2,7 +2,7 @@
 
 from .base_nodes import QueueNode, SensorNode
 from .graph_runner import GraphRunner
-from .exceptions import TrainingCompleteException
+from .exceptions import CauseExitException
 from .checkpoint import CheckpointManager, validate_checkpoint_config
 from .globals import Global
 from .dnne_exceptions import (
@@ -18,7 +18,7 @@ __all__ = [
     'QueueNode',
     'SensorNode', 
     'GraphRunner',
-    'TrainingCompleteException',
+    'CauseExitException',
     'CheckpointManager',
     'validate_checkpoint_config',
     'Global',

@@ -14,7 +14,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        # No inputs for constant generator
+        # No inputs for constant generator (TensorNode is a source node)
         self.setup_inputs(required=[])
         self.setup_outputs(["tensor"])
         
@@ -35,9 +35,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.cached_tensor = None
         if self.fill_mode in ["zeros", "ones", "custom"]:
             self.cached_tensor = self._generate_tensor()
-            
-        # Set queue size to 2 for immediate availability
-        self.output_queues["tensor"] = asyncio.Queue(maxsize=2)
     
     def _parse_dims(self, dims_str: str) -> tuple:
         """Parse dimension string into tuple of integers"""

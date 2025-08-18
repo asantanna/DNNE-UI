@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, List
 from asyncio import Queue
 
-from .exceptions import TrainingCompleteException
+from .exceptions import CauseExitException
 from .globals import dnne_logging
 
 
@@ -71,10 +71,10 @@ class QueueNode(ABC):
                 for output_name, value in outputs.items():
                     await self.send_output(output_name, value)
                     
-        except TrainingCompleteException as e:
-            # print(f"[DEBUG] QueueNode.run() caught TrainingCompleteException from node {self.node_id}") #DBG_TAG#
+        except CauseExitException as e:
+            # print(f"[DEBUG] QueueNode.run() caught CauseExitException from node {self.node_id}") #DBG_TAG#
             # print(f"[DEBUG] Exception message: {e}") #DBG_TAG#
-            self.node_logger.info(f"Node {self.node_id} signaled training complete")
+            self.node_logger.info(f"Node {self.node_id} requested exit: {e.message}")
             raise  # Re-raise to propagate to GraphRunner
         except asyncio.CancelledError:
             self.node_logger.info(f"Node {self.node_id} cancelled")
