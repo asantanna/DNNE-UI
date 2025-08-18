@@ -40,6 +40,38 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
         self.available_tasks = loader.get_available_tasks()
     
     @classmethod
+    def extract_null_action_from_schema(cls, schema_info: Dict, selections: Dict) -> tuple:
+        """Extract nullAction from nested schema based on selections.
+        
+        Args:
+            schema_info: The schema info dict from get_task_schema_info
+            selections: Dict mapping level names to selected values
+            
+        Returns:
+            tuple: (null_action_list, null_action_str) where:
+                - null_action_list is the array of values or None
+                - null_action_str is comma-separated string or empty string
+        """
+        # Navigate to the selected schema
+        current_schema = schema_info.get('nested_schemas', {})
+        for level in schema_info.get('schema_levels', []):
+            if level in selections:
+                value = selections[level]
+                if isinstance(current_schema, dict) and value in current_schema:
+                    current_schema = current_schema[value]
+                else:
+                    break
+        
+        # Extract nullAction
+        if isinstance(current_schema, dict) and 'nullAction' in current_schema:
+            null_action = current_schema['nullAction']
+            # Format as comma-separated string for the widget
+            null_action_str = ', '.join(str(x) for x in null_action)
+            return null_action, null_action_str
+        
+        return None, ""
+    
+    @classmethod
     def get_task_schema_info(cls, task: str) -> Dict:
         """Load schema information for a specific task"""
         isaacgym_envs_path = get_isaac_gym_envs_path()
@@ -446,9 +478,17 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                 schema_info = cls.get_task_schema_info(new_task)
                 
                 # Format the schema display for the new task with defaults
-                schema_display_text = cls.format_schema_display(new_task, schema_info.get('defaults', {}))
+                defaults = schema_info.get('defaults', {})
+                schema_display_text = cls.format_schema_display(new_task, defaults)
                 
-                # Generate JavaScript to update dynamic widgets
+                # Extract nullAction using the utility method
+                null_action, null_action_str = cls.extract_null_action_from_schema(schema_info, defaults)
+                if null_action:
+                    logging.debug(f"[IsaacGymEnvsNode] Task change - extracted nullAction: {null_action_str}")
+                else:
+                    logging.warning(f"[IsaacGymEnvsNode] No nullAction found for task '{new_task}' with defaults {defaults}")
+                
+                # Generate JavaScript to update dynamic widgets AND connected nodes
                 js_code = f"""
                 // Update dynamic widgets for task: {new_task}
                 const targetNode = app.graph.getNodeById({node_id});
@@ -484,6 +524,28 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                     const schemaWidget = targetNode.widgets.find(w => w.name === 'schema_display');
                     if (schemaWidget) {{
                         schemaWidget.value = {json.dumps(schema_display_text)};
+                    }}
+                    
+                    // Update null_action in all connected IsaacGymSim nodes
+                    const nullActionStr = {json.dumps(null_action_str)};
+                    if (nullActionStr) {{
+                        // Find nodes connected to this node's env output (output index 0)
+                        const outputLinks = targetNode.outputs[0]?.links || [];
+                        outputLinks.forEach(linkId => {{
+                            const link = app.graph.links[linkId];
+                            if (link) {{
+                                const connectedNode = app.graph.getNodeById(link.target_id);
+                                if (connectedNode && connectedNode.type === 'IsaacGymSim') {{
+                                    // Update the null_action widget
+                                    const nullActionWidget = connectedNode.widgets?.find(w => w.name === 'null_action');
+                                    if (nullActionWidget) {{
+                                        nullActionWidget.value = nullActionStr;
+                                        console.log(`[IsaacGymEnvs] Task change - Updated null_action in IsaacGymSim node ${{connectedNode.id}} to: "${{nullActionStr}}"`);
+                                    }}
+                                }}
+                                // TODO: Also handle PPOAgent nodes that might be connected
+                            }}
+                        }});
                     }}
                     
                     // Update node size
@@ -617,7 +679,14 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                 # Format the updated schema display
                 schema_display_text = cls.format_schema_display(task, selections)
                 
-                # Generate JavaScript to update schema_display widget
+                # Extract nullAction using the utility method
+                null_action, null_action_str = cls.extract_null_action_from_schema(schema_info, selections)
+                if null_action:
+                    logging.debug(f"[IsaacGymEnvsNode] Dynamic widget change - extracted nullAction: {null_action_str}")
+                else:
+                    logging.warning(f"[IsaacGymEnvsNode] No nullAction found for task '{task}' with selections {selections}")
+                
+                # Generate JavaScript to update schema_display widget AND connected nodes
                 js_code = f"""
                 // Update schema display when dynamic widget changes
                 const targetNode = app.graph.getNodeById({node_id});
@@ -626,6 +695,28 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                     const schemaWidget = targetNode.widgets.find(w => w.name === 'schema_display');
                     if (schemaWidget) {{
                         schemaWidget.value = {json.dumps(schema_display_text)};
+                    }}
+                    
+                    // Update null_action in all connected IsaacGymSim nodes
+                    const nullActionStr = {json.dumps(null_action_str)};
+                    if (nullActionStr) {{
+                        // Find nodes connected to this node's env output (output index 0)
+                        const outputLinks = targetNode.outputs[0]?.links || [];
+                        outputLinks.forEach(linkId => {{
+                            const link = app.graph.links[linkId];
+                            if (link) {{
+                                const connectedNode = app.graph.getNodeById(link.target_id);
+                                if (connectedNode && connectedNode.type === 'IsaacGymSim') {{
+                                    // Update the null_action widget
+                                    const nullActionWidget = connectedNode.widgets?.find(w => w.name === 'null_action');
+                                    if (nullActionWidget) {{
+                                        nullActionWidget.value = nullActionStr;
+                                        console.log(`[IsaacGymEnvs] Updated null_action in IsaacGymSim node ${{connectedNode.id}} to: "${{nullActionStr}}"`);
+                                    }}
+                                }}
+                                // TODO: Also handle PPOAgent nodes that might be connected
+                            }}
+                        }});
                     }}
                     
                     // Force immediate redraw with both dirty flags
