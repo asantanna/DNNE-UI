@@ -1,9 +1,9 @@
 # Franka Cooperative Control Workflow Tasks
 
 ## Current Status
-✅ **Schema aligned with implementation** - YAML now matches actual franka_dnne.py observations  
-✅ **Loss function implemented** - Distance-based loss computing L2 norm between EEF and target  
-✅ **Workflow configured** - Split nodes extract correct fields, 3 networks control joints 0,1,2  
+✅ **FrankaDNNE environment fully operational** - All initialization issues fixed, visual rendering working
+✅ **Franka_Minimal_Test workflow working** - Robot arm responding correctly to data streamer
+✅ **All fixes permanent** - Changes in IsaacGymEnvs codebase persist across exports
 
 ## 📚 Documentation
 See: [`dnne_docs/experiments/franka_coop_nodes/franka_coop_overview.md`](../../experiments/franka_coop_nodes/franka_coop_overview.md)
@@ -12,10 +12,10 @@ See: [`dnne_docs/experiments/franka_coop_nodes/franka_coop_overview.md`](../../e
 
 ## Active Tasks
 
-### 1. Export and Testing
-**Status**: 🔴 Not Started  
+### 1. Export and Testing Franka_Coop_Nodes
+**Status**: 🟡 Ready to test  
 **Priority**: HIGH  
-**Next Step**: Run `python claude_scripts/programmatic_export.py Franka_Coop_Nodes`
+**Next Step**: Run `python claude_scripts/programmatic_export.py Franka_Coop_Nodes` with working FrankaDNNE
 
 ### 2. Joint Locking Implementation  
 **Status**: 🔴 Not Started  

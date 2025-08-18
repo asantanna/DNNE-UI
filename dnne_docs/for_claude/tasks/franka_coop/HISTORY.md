@@ -1,5 +1,21 @@
 # Franka Cooperative Control - History
 
+## 2025-08-18: FrankaDNNE Environment Fixed ✅
+
+### Completed
+- **Fixed FrankaDNNE Task Initialization**:
+  - Renamed `franka_dnne.py` to `franka_dnne_task.py` to avoid circular imports
+  - Added `target_radius = 0.05` for sphere creation
+  - Removed all cube-related code from base class (DNNE-only)
+  - Added initialization checks for all tensor operations
+  - Fixed action dimensions (8 → 7) for OSC control in YAML
+
+- **Franka_Minimal_Test Workflow Working**:
+  - Robot arm appears and responds to data streamer
+  - Visual rendering confirmed working
+  - 60Hz control loop stable
+  - All fixes permanent in IsaacGymEnvs codebase
+
 ## 2025-01-18: Schema Alignment & Loss Implementation ✅
 
 ### Completed
