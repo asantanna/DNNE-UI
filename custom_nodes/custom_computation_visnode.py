@@ -43,7 +43,7 @@ class CustomComputationNode(RoboticsNodeBase):
     @classmethod
     def _update_return_type(cls, inputs):
         """Update RETURN_TYPES based on loaded script."""
-        src_path = inputs["required"]["src_path"]["default"].strip()
+        src_path = inputs["required"]["src_path"][1]["default"].strip()
         
         if not src_path:
             # No script specified yet - use wildcard
