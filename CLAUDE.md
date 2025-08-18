@@ -150,6 +150,14 @@ The system has three main components:
 
 ## Important Development Notes
 
+### **Tensor Dimension Standards (STRICT)**
+- **Dimension 0**: ALWAYS batch/environment dimension (N samples or num_envs)
+- **Dimension 1**: ALWAYS feature dimension (F features)  
+- **Dimension 2+**: Additional data dimensions (H/W for images, L for sequences)
+- **NEVER** use 1D tensors except for scalar losses/rewards
+- **FAIL-FAST**: Nodes must raise `ValueError` if dimensions don't match convention - no automatic reshaping
+- **Concat/Split**: ONLY operate on dim=1 (features), never dim=0 (batch)
+
 ### **Base Class Design Principles**
 - **No Default Guessing**: Base classes should never implement "guessed" default values when subclasses forget to implement required methods. This creates hard-to-debug issues where the wrong behavior is silently used instead of failing fast.
 - **Fail Fast with NotImplementedError**: When a base class method requires subclass implementation, throw `NotImplementedError` with a clear message about what needs to be implemented.

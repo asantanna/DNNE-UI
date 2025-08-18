@@ -26,12 +26,18 @@ class ConcatExporter(ExportableNode):
             mode = widgets[0]
         if len(widgets) >= 2:
             pad_mode = widgets[1]
+        
+        # CRITICAL: Per tensor dimension standards in CLAUDE.md:
+        # Concat MUST operate on dim=1 (features), never dim=0 (batch)
+        # This overrides any UI configuration until UI is updated
+        concat_dim = 1  # ALWAYS feature dimension
             
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "ConcatNode",
             "MODE": mode,
-            "PAD_MODE": pad_mode
+            "PAD_MODE": pad_mode,
+            "CONCAT_DIM": concat_dim  # Add dimension parameter
         }
     
     @classmethod

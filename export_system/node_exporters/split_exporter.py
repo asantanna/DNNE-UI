@@ -133,6 +133,11 @@ class SplitExporter(ExportableNode):
         split_mode = params['split_mode']
         split_pos = params['split_pos']
         
+        # CRITICAL: Per tensor dimension standards in CLAUDE.md:
+        # Split MUST operate on dim=1 (features), never dim=0 (batch)
+        # This overrides any UI configuration until UI is updated
+        dimension = 1  # ALWAYS feature dimension, regardless of split_mode
+        
         # Handle different split modes
         if split_mode == "by name":
             # Get input schema to resolve names

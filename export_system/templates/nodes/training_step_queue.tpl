@@ -59,6 +59,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
         # Perform backpropagation (skip in inference mode)
         if not g.inference_mode:
+            # Standard training step - let PyTorch fail-fast if gradients missing
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()

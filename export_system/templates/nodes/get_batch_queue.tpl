@@ -1,5 +1,6 @@
 # Template variables - replaced during export
 
+import torch
 from framework.globals import Global as g
 
 class GetBatchNode_{NODE_ID}(QueueNode):
@@ -89,6 +90,20 @@ class GetBatchNode_{NODE_ID}(QueueNode):
                 "progress": self.batch_in_epoch / self.total_batches_per_epoch,
                 "completed": False
             }
+        
+        # TENSOR DIMENSION STANDARDS:
+        # Images should be [batch_size, channels, height, width] or [batch_size, features]
+        # Labels should be [batch_size]
+        # DataLoader already handles this correctly
+        
+        # Move to configured device and set gradient requirements
+        device = torch.device(g.get_device())
+        images = images.to(device)
+        labels = labels.to(device)
+        
+        # Enable gradients for training mode
+        if not g.inference_mode:
+            images.requires_grad_(True)
         
         return {
             "images": images,

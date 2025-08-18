@@ -121,12 +121,16 @@ class NetworkExporter(ExportableNode):
         if not isinstance(checkpoint_load_on_start, bool):
             raise ValueError(f"Network node {node_id}: checkpoint_load_on_start must be boolean, got {type(checkpoint_load_on_start)}: {checkpoint_load_on_start}")
         
-        # Validate that we have layers
+        # FAIL-FAST: Validate that we have layers
         if not layer_definitions:
             raise ValueError(f"Network node {node_id}: No layers detected in network")
         
+        # FAIL-FAST: Validate we have layer info
+        if not layers_info:
+            raise ValueError(f"Network node {node_id}: No layer information collected")
+            
         # Get final output size
-        output_size = layers_info[-1]["output_size"] if layers_info else None
+        output_size = layers_info[-1]["output_size"]
         
         return {
             "NODE_ID": node_id,

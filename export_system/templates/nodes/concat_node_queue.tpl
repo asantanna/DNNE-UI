@@ -3,11 +3,12 @@ template_vars = {
     "NODE_ID": "concat_1",
     "CLASS_NAME": "ConcatNode",
     "MODE": "wait for all",
-    "PAD_MODE": "pad with zeros"
+    "PAD_MODE": "pad with zeros",
+    "CONCAT_DIM": 1  # Feature dimension per tensor standards
 }
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
-    """Concat node - concatenates multiple tensor inputs with configurable synchronization"""
+    """Concat node - concatenates multiple tensor inputs along feature dimension"""
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
@@ -24,12 +25,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Configuration from template
         self.mode = "{MODE}"
         self.pad_mode = "{PAD_MODE}"
+        self.concat_dim = {CONCAT_DIM}  # Per tensor standards: dim=1 for features
         
         # State tracking for "hold previous" mode
         self.previous_values = {}
         
         # Track which inputs are actually connected
         self.connected_inputs = []
+        
+        # Get device from global configuration
+        from framework.globals import Global as g
+        self.device = torch.device(g.get_device())
         
     def set_connections(self, connections: Dict[str, List]):
         """Override to track which inputs are connected"""
@@ -46,7 +52,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import asyncio
         import time
         self.running = True
-        self.node_logger.info(f"Starting Concat node {self.node_id} in '{self.mode}' mode")
+        self.node_logger.info(f"Starting Concat node {self.node_id} in '{self.mode}' mode, dim={self.concat_dim}")
         
         try:
             while self.running:
@@ -78,12 +84,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         tensors_to_concat = [input_data[name] for name in sorted(self.connected_inputs)]
         
         if tensors_to_concat:
-            concatenated = torch.cat(tensors_to_concat, dim=0)
+            # Ensure all on same device (minimal overhead)
+            device = tensors_to_concat[0].device
+            tensors_to_concat = [t.to(device) for t in tensors_to_concat]
+            
+            # Concatenate along feature dimension (dim=1)
+            concatenated = torch.cat(tensors_to_concat, dim=self.concat_dim)
+            
             self.last_compute_time = time.time() - start_time
             self.compute_count += 1
-            
-            shape_info = f"{concatenated.shape}"
-            self.node_logger.info(f"Concat (wait for all): Combined {len(tensors_to_concat)} tensors -> shape {shape_info}")
             
             # Send output
             await self.send_output("output", concatenated)
@@ -109,6 +118,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Cancel remaining tasks
         for task in pending:
             task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
         
         # Process the completed input
         completed_task = list(done)[0]
@@ -121,6 +134,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # Build concatenation list with padding for missing inputs
         start_time = time.time()
         tensors_to_concat = []
+        
         for name in sorted(self.connected_inputs):
             if name in self.previous_values:
                 # Use the stored value (either just received or previous)
@@ -129,22 +143,31 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 # Need to pad this input
                 if self.pad_mode == "pad with zeros":
                     # Create zero tensor matching the shape of the new data
-                    # Assume all inputs have same shape except batch dimension
-                    zero_tensor = torch.zeros_like(new_data)
+                    # Assume same feature size as new_data for simplicity
+                    batch_size = new_data.shape[0]
+                    feature_size = new_data.shape[1] if new_data.dim() > 1 else 1
+                    pad_shape = (batch_size, feature_size) + new_data.shape[2:]
+                    zero_tensor = torch.zeros(pad_shape, device=new_data.device, dtype=new_data.dtype)
+                    
+                    # Preserve gradient if input has it
+                    if new_data.requires_grad:
+                        zero_tensor.requires_grad_(True)
+                        
                     tensors_to_concat.append(zero_tensor)
-                    self.node_logger.debug(f"Padding {name} with zeros (shape: {zero_tensor.shape})")
                 else:  # "hold previous"
                     # Skip if we don't have previous data yet
-                    self.node_logger.debug(f"No previous data for {name}, skipping")
                     continue
         
         if tensors_to_concat:
-            concatenated = torch.cat(tensors_to_concat, dim=0)
+            # Ensure all on same device
+            device = tensors_to_concat[0].device
+            tensors_to_concat = [t.to(device) for t in tensors_to_concat]
+            
+            # Concatenate along feature dimension (dim=1)
+            concatenated = torch.cat(tensors_to_concat, dim=self.concat_dim)
+            
             self.last_compute_time = time.time() - start_time
             self.compute_count += 1
-            
-            shape_info = f"{concatenated.shape}"
-            self.node_logger.info(f"Concat (as available): Updated from {input_name} -> shape {shape_info}")
             
             # Send output
             await self.send_output("output", concatenated)

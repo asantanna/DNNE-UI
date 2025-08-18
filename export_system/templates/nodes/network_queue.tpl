@@ -261,12 +261,25 @@ class NetworkNode_{NODE_ID}(QueueNode):
         # Ensure input is on correct device
         x = input.to(self.device)
         
-        # Flatten if needed (for MNIST)
+        # TENSOR DIMENSION STANDARDS:
+        # Expected input: [batch_size, features, ...] where dim 0 = batch, dim 1 = features
+        # Networks expect 2D input: [batch_size, features]
+        
+        # Flatten spatial dimensions if present (e.g., images)
         if x.dim() > 2:
-            x = x.reshape(x.size(0), -1)
+            # Preserve batch dimension, flatten everything else into features
+            batch_size = x.shape[0]
+            x = x.reshape(batch_size, -1)
+        elif x.dim() == 1:
+            # FAIL-FAST: 1D tensors not allowed except for scalar losses
+            raise ValueError(
+                f"Network received 1D tensor with shape {x.shape}. "
+                f"Expected 2D+ tensor with [batch_size, features, ...]"
+            )
         
         # Forward pass through the entire network
-        # Note: In inference mode, torch.no_grad() is already applied by GraphRunner
+        # Gradients are preserved if input requires_grad (handled by PyTorch autograd)
+        # In inference mode, torch.no_grad() is already applied by GraphRunner
         output = self.network(x)
         
         return {
