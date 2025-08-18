@@ -41,8 +41,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if len(params) != 1:
             raise ValueError(f"compute() function must accept exactly 1 parameter (input tensor), got {len(params)}")
         
-        # Move to GPU if available
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Get device from global configuration
+        from framework.globals import Global as g
+        self.device = torch.device(g.get_device())
         
     async def compute(self, input) -> Dict[str, Any]:
         """Execute the custom computation function"""
@@ -51,16 +52,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             input_tensor = input.to(self.device)
             
             # Call the custom compute function
+            # Gradients are preserved automatically if input has them
             output = self.compute_fn(input_tensor)
             
             # Handle None return (filter mode - no output emitted)
             if output is None:
                 return {}  # Empty dict means no output
             
-            # Ensure output is a tensor if not None
-            if not isinstance(output, torch.Tensor):
-                raise TypeError(f"compute() must return a torch.Tensor or None, got {type(output)}")
-            
+            # Let PyTorch fail-fast if output is not a tensor
             return {"output": output}
             
         except CauseExitException:

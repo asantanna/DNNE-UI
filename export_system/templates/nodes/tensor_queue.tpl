@@ -68,6 +68,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         """Generate tensor based on configuration"""
         import torch
         import torch.nn.init as init
+        from framework.globals import Global as g
         
         # Set seed for this generation if specified
         if self.seed >= 0:
@@ -75,24 +76,27 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if torch.cuda.is_available():
                 torch.cuda.manual_seed(self.seed)
         
-        # Create base tensor
+        # Get device configuration
+        device = torch.device(g.get_device())
+        
+        # Create base tensor on correct device
         if self.fill_mode == "zeros":
-            tensor = torch.zeros(self.dims, dtype=self.dtype)
+            tensor = torch.zeros(self.dims, dtype=self.dtype, device=device)
         elif self.fill_mode == "ones":
-            tensor = torch.ones(self.dims, dtype=self.dtype)
+            tensor = torch.ones(self.dims, dtype=self.dtype, device=device)
         elif self.fill_mode == "custom":
-            tensor = torch.full(self.dims, self.custom_fill, dtype=self.dtype)
+            tensor = torch.full(self.dims, self.custom_fill, dtype=self.dtype, device=device)
         elif self.fill_mode == "uniform":
             # Uniform distribution [-1, 1]
-            tensor = torch.empty(self.dims, dtype=self.dtype)
+            tensor = torch.empty(self.dims, dtype=self.dtype, device=device)
             init.uniform_(tensor, a=-1.0, b=1.0)
         elif self.fill_mode == "normal":
             # Standard normal distribution
-            tensor = torch.empty(self.dims, dtype=self.dtype)
+            tensor = torch.empty(self.dims, dtype=self.dtype, device=device)
             init.normal_(tensor, mean=0.0, std=1.0)
         elif self.fill_mode == "kaiming_normal":
             # Kaiming/He normal initialization
-            tensor = torch.empty(self.dims, dtype=self.dtype)
+            tensor = torch.empty(self.dims, dtype=self.dtype, device=device)
             # For tensors without explicit fan_in/fan_out, use first dimension
             if len(self.dims) >= 2:
                 init.kaiming_normal_(tensor, mode='fan_out', nonlinearity='relu')
@@ -101,7 +105,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 init.normal_(tensor, mean=0.0, std=2.0 / (self.dims[0] ** 0.5))
         elif self.fill_mode == "kaiming_uniform":
             # Kaiming/He uniform initialization
-            tensor = torch.empty(self.dims, dtype=self.dtype)
+            tensor = torch.empty(self.dims, dtype=self.dtype, device=device)
             if len(self.dims) >= 2:
                 init.kaiming_uniform_(tensor, mode='fan_out', nonlinearity='relu')
             else:
@@ -110,7 +114,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 init.uniform_(tensor, a=-bound, b=bound)
         elif self.fill_mode == "xavier_normal":
             # Xavier/Glorot normal initialization
-            tensor = torch.empty(self.dims, dtype=self.dtype)
+            tensor = torch.empty(self.dims, dtype=self.dtype, device=device)
             if len(self.dims) >= 2:
                 init.xavier_normal_(tensor)
             else:
@@ -118,7 +122,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 init.normal_(tensor, mean=0.0, std=(2.0 / self.dims[0]) ** 0.5)
         elif self.fill_mode == "xavier_uniform":
             # Xavier/Glorot uniform initialization
-            tensor = torch.empty(self.dims, dtype=self.dtype)
+            tensor = torch.empty(self.dims, dtype=self.dtype, device=device)
             if len(self.dims) >= 2:
                 init.xavier_uniform_(tensor)
             else:
@@ -128,7 +132,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         else:
             # Default to zeros if unknown mode
             self.node_logger.warning(f"Unknown fill_mode '{self.fill_mode}', defaulting to zeros")
-            tensor = torch.zeros(self.dims, dtype=self.dtype)
+            tensor = torch.zeros(self.dims, dtype=self.dtype, device=device)
+        
+        # Set gradient requirements based on mode
+        if not g.inference_mode:
+            tensor.requires_grad_(True)
         
         return tensor
     
