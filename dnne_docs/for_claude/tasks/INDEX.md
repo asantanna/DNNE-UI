@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-17*  
+*Last Updated: 2025-01-18*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
@@ -16,11 +16,17 @@
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
 | **Node System** | 🟡 Working | Tensor node added, widget issues remain | High | 2025-08-17 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
+| **Franka Coop Control** | 🟡 Working | Schema aligned, loss implemented | High | 2025-01-18 |
 
 ## Active Priority Items
 
 ### High Priority
-1. **Node System**: Fix dynamic widget display issues
+1. **Franka Cooperative Control**: Export and test the workflow
+   - Export using programmatic_export.py
+   - Test training and monitor coordination emergence
+   - Implement PD control for joints 3-6
+   
+2. **Node System**: Fix dynamic widget display issues
    - Initial widget labels showing as "dynamic_1/2/3"
    - Widget hiding leaves gaps (Y positioning)
    - Widget labels not updating to actual names
