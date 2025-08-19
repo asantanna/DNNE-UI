@@ -426,57 +426,6 @@ class CircuitBreakerNode(QueueNode):
                     logger.error("Circuit breaker opened")
 ```
 
-## Integration Examples
-
-### With Isaac Gym
-
-Real-time simulation integration:
-
-```python
-class IsaacGymStepNode(QueueNode):
-    async def process(self):
-        while True:
-            # Wait for action
-            action = await self.get_input('action')
-            
-            # Step simulation (CPU-bound)
-            await asyncio.get_event_loop().run_in_executor(
-                None,  # Default executor
-                self.gym.step,
-                action
-            )
-            
-            # Get observations
-            obs = self.gym.get_observations()
-            rewards = self.gym.get_rewards()
-            
-            # Send results
-            await self.send_output(obs, 'observations')
-            await self.send_output(rewards, 'rewards')
-```
-
-### With Neural Networks
-
-Async inference:
-
-```python
-class NeuralNetNode(QueueNode):
-    def __init__(self, model):
-        super().__init__()
-        self.model = model
-        self.model.eval()
-        
-    async def process(self):
-        while True:
-            input_tensor = await self.get_input()
-            
-            # Run inference
-            with torch.no_grad():
-                output = self.model(input_tensor)
-            
-            await self.send_output(output)
-```
-
 ## Best Practices
 
 ### 1. Node Design
@@ -488,7 +437,6 @@ class NeuralNetNode(QueueNode):
 
 ### 2. Queue Usage
 
-- Set appropriate queue sizes
 - Handle full/empty queues gracefully
 - Monitor queue depths in production
 - Use timeouts for reliability
@@ -497,7 +445,6 @@ class NeuralNetNode(QueueNode):
 
 - Never let nodes crash silently
 - Provide meaningful error messages
-- Use safe defaults when possible
 - Implement retry logic appropriately
 
 ### 4. Performance
@@ -506,45 +453,6 @@ class NeuralNetNode(QueueNode):
 - Batch operations when beneficial
 - Minimize queue hops
 - Use appropriate concurrency
-
-## Debugging Tools
-
-### Queue Visualizer
-
-```python
-class QueueVisualizer:
-    def __init__(self, graph_runner):
-        self.runner = graph_runner
-        
-    def print_status(self):
-        for node in self.runner.nodes:
-            print(f"\nNode: {node.__class__.__name__}")
-            print(f"  Running: {node.running}")
-            for name, queue in node.input_queues.items():
-                print(f"  Input '{name}': {queue.qsize()} items")
-            for name, queues in node.output_queues.items():
-                print(f"  Output '{name}': {len(queues)} connections")
-```
-
-### Event Tracer
-
-```python
-class EventTracer:
-    def __init__(self):
-        self.events = []
-        
-    def log_event(self, node_id, event_type, data_shape=None):
-        self.events.append({
-            'timestamp': time.time(),
-            'node_id': node_id,
-            'event_type': event_type,
-            'data_shape': data_shape
-        })
-    
-    def analyze(self):
-        # Compute throughput, latency, etc.
-        pass
-```
 
 ## Future Directions
 

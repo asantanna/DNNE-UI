@@ -2,6 +2,23 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-08-19 - System-Wide Initialization Barrier
+
+### Async Initialization Barrier Implementation ✅
+- **Solved race condition where nodes started before connections established**
+  - Added system-wide initialization barrier using asyncio.Event
+  - Nodes register during __init__, report ready when tasks start
+  - All nodes wait at barrier until connections are wired
+  - GraphRunner releases barrier after all connections established
+- **Template updates for proper initialization**
+  - runner.tpl: Added `g.init_system_ready()` before node creation
+  - graph_runner.py: Checks initialization and validates node registration
+  - All templates now follow initialization sequence pattern
+- **Key lesson learned**: "No more hacking exported code. Fix templates and re-export."
+  - User emphasized template-based development approach
+  - Templates are source of truth, generated code is ephemeral
+  - Critical for maintainability and consistency
+
 ## Session: 2025-08-18 - Async Efficiency & Deadlock Resolution
 
 ### MultiWaiter Implementation ✅

@@ -11,19 +11,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """Concat node - concatenates multiple tensor inputs along feature dimension"""
     
     def __init__(self, node_id: str):
-        # Determine wait mode based on configuration
-        wait_mode = "all" if "{MODE}" == "wait for all" else "any"
-        super().__init__(node_id, wait_mode=wait_mode)
+        super().__init__(node_id)  # No wait_mode parameter
         
-        # Special setup: Concat node creates input queues but doesn't require all inputs
-        self.setup_inputs(required=[])  # No required inputs
+        # Setup inputs based on mode
+        if "{MODE}" == "wait for all":
+            # All inputs are required
+            self.setup_inputs(required=["input_a", "input_b", "input_c", "input_d"], queue_size=2)
+        else:
+            # All inputs are optional ("as available" mode)
+            self.setup_inputs(optional=["input_a", "input_b", "input_c", "input_d"], queue_size=2)
+        
         self.setup_outputs(["output"])
-        
-        # Manually create input queues for Concat node
-        self.input_queues["input_a"] = asyncio.Queue(maxsize=2)
-        self.input_queues["input_b"] = asyncio.Queue(maxsize=2)
-        self.input_queues["input_c"] = asyncio.Queue(maxsize=2)
-        self.input_queues["input_d"] = asyncio.Queue(maxsize=2)
         
         # Configuration from template
         self.mode = "{MODE}"
@@ -50,14 +48,27 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 self.connected_inputs.append(input_name)
         self.node_logger.info(f"Connected inputs: {self.connected_inputs}")
         
-        # Create MultiWaiter with connected inputs
-        if self.connected_inputs:
-            from framework import MultiWaiter
-            self.input_waiter = MultiWaiter(
-                self.connected_inputs, 
-                self.input_queues,
-                wait_mode=self.wait_mode
-            )
+        # Update MultiWaiter to only use connected inputs if needed
+        # Note: MultiWaiter was already created in __init__ by setup_inputs()
+        # We may want to recreate it with only connected inputs for efficiency
+        if self.connected_inputs and self.input_waiter:
+            # Recreate with only connected inputs
+            if "{MODE}" == "wait for all":
+                # All connected inputs are required
+                from framework import MultiWaiter
+                self.input_waiter = MultiWaiter(
+                    self.connected_inputs, [],
+                    self.input_queues,
+                    self.node_id
+                )
+            else:
+                # All connected inputs are optional
+                from framework import MultiWaiter
+                self.input_waiter = MultiWaiter(
+                    [], self.connected_inputs,
+                    self.input_queues,
+                    self.node_id
+                )
         
     async def run(self):
         """Custom run method based on configured mode"""
@@ -109,8 +120,12 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import torch
         import time
         
-        # Wait for any input using MultiWaiter
-        new_data, input_name = await self.input_waiter.get()  # Returns tuple for "any" mode
+        # Wait for any input using MultiWaiter (returns dict with single key)
+        input_dict = await self.input_waiter.get()
+        
+        # Extract the single input
+        input_name = list(input_dict.keys())[0]
+        new_data = input_dict[input_name]
         
         # Update previous values
         self.previous_values[input_name] = new_data

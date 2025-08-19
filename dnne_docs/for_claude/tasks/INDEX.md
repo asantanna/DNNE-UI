@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-18*  
+*Last Updated: 2025-08-19*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
@@ -12,19 +12,20 @@
 | **DNNE Agent** | 🟢 Complete | Fully functional | - | 2025-08-11 |
 | **Log Viewer** | 🟡 Working | ~95% - Stream end issue | Medium | 2025-08-15 |
 | **Core Infrastructure** | 🟢 Complete | 100% - All features done | - | 2025-08-15 |
-| **Export System** | 🟢 Complete | 100% - MultiWaiter async efficiency | - | 2025-08-18 |
+| **Export System** | 🟢 Complete | 100% - System init barrier implemented | - | 2025-08-19 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
 | **Node System** | 🟡 Working | Tensor node added, widget issues remain | High | 2025-08-17 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
-| **Franka Coop Control** | 🟢 Working | Deadlock resolved, runs without crashes! | High | 2025-08-18 |
+| **Franka Coop Control** | 🟢 Working | Async barrier fixes race conditions | High | 2025-08-19 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
 
 ## Active Priority Items
 
 ### High Priority
-1. **Franka Cooperative Control**: Running successfully!
-   - ✅ Deadlock resolved with MultiWaiter implementation
-   - ✅ Workflow runs continuously without crashes
+1. **Franka Cooperative Control**: Fixed with async initialization barrier!
+   - ✅ Race condition resolved with system-wide initialization barrier
+   - ✅ All nodes wait for connections before processing
+   - ✅ Templates updated with proper initialization sequence
    - TODO: Monitor coordination emergence between 3 controllers
    - TODO: Implement PD control for joints 3-6
    

@@ -340,6 +340,9 @@ async def main():
         for key, value in config.items():
             g.set_node_config(node_id, key, value)
 
+    # Initialize system ready barrier BEFORE creating any nodes
+    g.init_system_ready()
+
     # Create nodes (AFTER configuration is set)
 {NODE_INSTANCES_SECTION}
 

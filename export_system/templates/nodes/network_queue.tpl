@@ -232,13 +232,10 @@ class NetworkNode_{NODE_ID}(QueueNode):
             # Emit model reference once for optimizer
             await self.send_output("model", self)
             
-            # Now run the normal compute loop
+            # Now run the normal compute loop using MultiWaiter
             while self.running:
-                # Gather all required inputs
-                inputs = {}
-                for input_name in self.required_inputs:
-                    value = await self.input_queues[input_name].get()
-                    inputs[input_name] = value
+                # Use MultiWaiter to get inputs efficiently
+                inputs = await self.input_waiter.get()
                 
                 # Execute compute
                 start_time = time.time()

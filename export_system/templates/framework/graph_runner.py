@@ -109,10 +109,36 @@ class GraphRunner:
     
     async def _run_graph(self, duration: Optional[float] = None):
         """Internal method to run the graph"""
-        # Start all nodes
+        # System ready event should already be initialized in runner.py
+        if g._system_ready is None:
+            raise RuntimeError("System ready event not initialized! runner.py must call Global.init_system_ready() before creating nodes!")
+        
+        # Simple check that all nodes registered
+        expected_count = len(self.nodes)
+        registered_count = len(g._registered_nodes)
+        if registered_count < expected_count:
+            raise RuntimeError(f"Not all nodes registered! Expected {expected_count}, got {registered_count}")
+        elif registered_count > expected_count:
+            raise RuntimeError(f"Too many nodes registered! Expected {expected_count}, got {registered_count}")
+        
+        # Start all nodes (they will report ready and wait at the barrier)
         for node in self.nodes.values():
-            task = asyncio.create_task(node.run())
+            # Use the wrapper method instead of run() directly
+            task = asyncio.create_task(node._call_run_when_ready())
             self.tasks.append(task)
+        
+        # Give nodes a moment to report ready
+        await asyncio.sleep(0.01)
+        
+        # Signal that connections are ready - this releases all nodes
+        g.report_connections_ready()
+        self.logger.info("Starting graph execution")
+        
+        # Start heartbeat task in debug mode
+        heartbeat_task = None
+        if g.debug:
+            heartbeat_task = asyncio.create_task(self._heartbeat_monitor())
+            self.logger.debug("💓 Started heartbeat monitor (5s interval)")
         
         # Setup timeout watchdog if duration specified
         timeout_future = None
@@ -174,6 +200,11 @@ class GraphRunner:
             self.exit_reason = "keyboard_interrupt"
             self.logger.info("Interrupted by user")
         finally:
+            # Cancel heartbeat task if running
+            if heartbeat_task and not heartbeat_task.done():
+                heartbeat_task.cancel()
+                await asyncio.gather(heartbeat_task, return_exceptions=True)
+            
             # Cancel all tasks
             for task in self.tasks:
                 if not task.done():
@@ -183,6 +214,64 @@ class GraphRunner:
             await asyncio.gather(*self.tasks, return_exceptions=True)
             self.logger.debug("All nodes stopped")
     
+    
+    async def _heartbeat_monitor(self):
+        """Debug heartbeat that shows node activity every 5 seconds"""
+        import time
+        
+        while True:
+            try:
+                await asyncio.sleep(5.0)
+                
+                # Get activity stats from Global
+                stats = g.get_node_activity_stats()
+                
+                # Get queue pressure
+                total_queued = 0
+                queue_info = []
+                for node_id, node in self.nodes.items():
+                    for input_name, queue in node.input_queues.items():
+                        size = queue.qsize()
+                        total_queued += size
+                        if size > 0:
+                            queue_info.append(f"{node_id}.{input_name}:{size}")
+                
+                # Get compute rates for active nodes
+                active_rates = []
+                for node_id, _ in stats['active_nodes'][:3]:
+                    if node_id in self.nodes:
+                        node = self.nodes[node_id]
+                        if node.compute_count > 0:
+                            # Simple rate calculation (would need more sophisticated tracking for real rate)
+                            active_rates.append(f"{node_id}({node.compute_count})")
+                
+                # Format idle nodes
+                idle_info = []
+                for node_id, idle_time in stats['idle_nodes'][:2]:
+                    idle_info.append(f"{node_id}({idle_time:.1f}s)")
+                
+                # Build heartbeat message
+                msg_parts = [
+                    f"💓 Heartbeat: {stats['active_count']}/{stats['total_count']} nodes active"
+                ]
+                
+                if total_queued > 0:
+                    msg_parts.append(f"Queued: {total_queued} msgs")
+                    if queue_info:
+                        msg_parts.append(f"Queues: {', '.join(queue_info[:3])}")
+                
+                if active_rates:
+                    msg_parts.append(f"Active: {', '.join(active_rates)}")
+                
+                if idle_info:
+                    msg_parts.append(f"Idle: {', '.join(idle_info)}")
+                
+                self.logger.debug(" | ".join(msg_parts))
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                self.logger.error(f"Heartbeat error: {e}")
     
     def get_stats(self) -> Dict[str, Dict[str, Any]]:
         """Get execution statistics"""

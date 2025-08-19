@@ -11,8 +11,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        # Set up both inputs initially so queues are created for connections
-        self.setup_inputs(required=["loss", "optimizer"])
+        # Optimizer is a config input, loss is the data input
+        self.setup_inputs(required=["loss"], optional=["optimizer"])
         self.setup_outputs(["ready", "step_complete"])
         self.optimizer = None
         
@@ -21,10 +21,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.running = True
         self.node_logger.info(f"Starting node {{self.node_id}}")
         
-        
         try:
-            # First, wait for optimizer (configuration)
-            self.optimizer = await self.input_queues["optimizer"].get()
+            # First, get optimizer as a configuration input
+            config = await self.get_config_inputs(["optimizer"])
+            self.optimizer = config["optimizer"]
             self.node_logger.info(f"Received optimizer for training")
             
             # Send initial ready signal to start the training loop
@@ -38,10 +38,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             await self.send_output("ready", ready_signal)
             self.node_logger.info(f"Sent startup ready signal")
             
-            # Now change required inputs to only loss (data flow)
-            self.required_inputs = ["loss"]
-            
-            # Run normal compute loop for loss inputs only
+            # Now run normal compute loop for loss inputs
+            # MultiWaiter already knows loss is the only required input
             await super().run()
             
         except asyncio.CancelledError:

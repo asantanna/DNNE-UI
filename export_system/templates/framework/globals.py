@@ -192,10 +192,17 @@ class Global:
     _concurrency_stats: ConcurrencyStats = ConcurrencyStats()  # Keep for backward compatibility
     _subgraph_metrics: Dict[str, SubgraphMetrics] = {}  # subgraph_name -> metrics
     _node_to_subgraph: Dict[str, str] = {}  # node_id -> subgraph_name
+    _node_activity: Dict[str, float] = {}  # node_id -> last_activity_timestamp
     _total_queued: int = 0
     _initialized: bool = False
     _logger: Optional[logging.Logger] = None
     _start_time: float = 0.0  # Workflow start time
+    
+    # === System Initialization Barrier ===
+    _system_ready: Optional[asyncio.Event] = None  # Will be created when event loop exists
+    _registered_nodes: set = set()  # All nodes that exist in the system
+    _ready_nodes: set = set()  # Nodes that have completed initialization
+    _connections_established: bool = False  # All graph connections established
     
     # === Node-specific Configuration ===
     node_configs: Dict[str, Dict[str, Any]] = {}  # node_id -> {config_key: value}
@@ -529,6 +536,39 @@ class Global:
         cls._start_time = time.time()
     
     @classmethod
+    def update_node_activity(cls, node_id: str):
+        """Update the last activity timestamp for a node"""
+        cls._node_activity[node_id] = time.time()
+    
+    @classmethod
+    def get_node_activity_stats(cls) -> Dict[str, Any]:
+        """Get statistics about node activity for heartbeat monitoring"""
+        current_time = time.time()
+        active_threshold = 2.0  # Nodes active within last 2 seconds
+        
+        active_nodes = []
+        idle_nodes = []
+        
+        for node_id, last_time in cls._node_activity.items():
+            time_since = current_time - last_time
+            if time_since <= active_threshold:
+                active_nodes.append((node_id, time_since))
+            else:
+                idle_nodes.append((node_id, time_since))
+        
+        # Sort by recency/staleness
+        active_nodes.sort(key=lambda x: x[1])
+        idle_nodes.sort(key=lambda x: x[1], reverse=True)
+        
+        return {
+            'active_count': len(active_nodes),
+            'total_count': len(cls._node_activity),
+            'active_nodes': active_nodes[:3],  # Top 3 most recently active
+            'idle_nodes': idle_nodes[:3],  # Top 3 most idle
+            'current_time': current_time
+        }
+    
+    @classmethod
     def get_device(cls) -> str:
         """
         Get the device, resolving 'auto' if needed.
@@ -547,6 +587,102 @@ class Global:
                 if cls.verbose:
                     cls._logger.warning("PyTorch not available, defaulting to cpu")
         return cls.device
+    
+    @classmethod
+    def init_system_ready(cls):
+        """Initialize the system ready event. Must be called after event loop exists.
+        
+        Raises:
+            RuntimeError: If already initialized (called twice)
+        """
+        if cls._system_ready is None:
+            cls._system_ready = asyncio.Event()
+            cls._registered_nodes.clear()
+            cls._ready_nodes.clear()
+            cls._connections_established = False
+            if cls._logger:
+                cls._logger.debug("System initialization barrier created")
+        else:
+            raise RuntimeError("System ready event already initialized! init_system_ready() called twice!")
+    
+    @classmethod
+    def register_node(cls, node_id: str):
+        """Register a node as part of the system.
+        
+        Args:
+            node_id: Unique identifier of the node
+            
+        Raises:
+            RuntimeError: If system not initialized
+        """
+        if cls._system_ready is None:
+            raise RuntimeError(f"Node {node_id} trying to register before system initialized! "
+                             f"GraphRunner.run() must call Global.init_system_ready() first!")
+        cls._registered_nodes.add(node_id)
+        if cls.debug:
+            cls._logger.debug(f"Node {node_id} registered ({len(cls._registered_nodes)} total)")
+    
+    @classmethod
+    def report_node_ready(cls, node_id: str):
+        """Report that a node has completed initialization.
+        
+        Args:
+            node_id: Unique identifier of the node
+            
+        Raises:
+            RuntimeError: If system not initialized or node not registered
+        """
+        if cls._system_ready is None:
+            raise RuntimeError(f"Node {node_id} reporting ready before system initialized! This is an internal error!")
+        if node_id not in cls._registered_nodes:
+            raise RuntimeError(f"Node {node_id} reporting ready but was never registered! This is an internal error!")
+        
+        cls._ready_nodes.add(node_id)
+        if cls.debug:
+            cls._logger.debug(f"Node {node_id} ready ({len(cls._ready_nodes)}/{len(cls._registered_nodes)})")
+        cls._check_system_ready()
+    
+    @classmethod
+    def report_connections_ready(cls):
+        """Report that all connections have been established.
+        
+        Raises:
+            RuntimeError: If system not initialized
+        """
+        if cls._system_ready is None:
+            raise RuntimeError("Connections reported ready before system initialized! This is an internal error!")
+        
+        cls._connections_established = True
+        if cls._logger:
+            cls._logger.debug(f"All connections established")
+        cls._check_system_ready()
+    
+    @classmethod
+    async def wait_for_system_ready(cls):
+        """Wait until the entire system is ready.
+        
+        Raises:
+            RuntimeError: If system not initialized
+        """
+        if cls._system_ready is None:
+            raise RuntimeError("Trying to wait for system ready before it was initialized! This is an internal error!")
+        await cls._system_ready.wait()
+    
+    @classmethod
+    def _check_system_ready(cls):
+        """Check if system is ready and set event if so.
+        
+        Raises:
+            RuntimeError: If called before system initialized
+        """
+        if cls._system_ready is None:
+            raise RuntimeError("_check_system_ready called before system initialized! This is an internal error!")
+        
+        # Check if all conditions are met
+        if cls._connections_established and cls._ready_nodes == cls._registered_nodes:
+            cls._system_ready.set()
+            if cls._logger:
+                cls._logger.info(f"🚀 System ready: {len(cls._ready_nodes)} nodes initialized, connections established")
     
     @classmethod
     def system_healthy(cls) -> bool:

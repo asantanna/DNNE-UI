@@ -8,38 +8,56 @@ from typing import Dict, Any, List
 from asyncio import Queue
 
 from .exceptions import CauseExitException
-from .globals import dnne_logging
+from .globals import dnne_logging, Global as g
 from .multi_waiter import MultiWaiter
 
 
 class QueueNode(ABC):
     """Base class for all queue-based nodes"""
     
-    def __init__(self, node_id: str, wait_mode: str = "all"):
+    def __init__(self, node_id: str):
         self.node_id = node_id
-        self.wait_mode = wait_mode
         self.input_queues: Dict[str, Queue] = {}
         self.output_subscribers: Dict[str, List[Queue]] = {}
         self.required_inputs: List[str] = []
+        self.optional_inputs: List[str] = []
         self.output_names: List[str] = []
         self.running = False
         self.compute_count = 0
         self.last_compute_time = 0.0
         self.node_logger = dnne_logging.getLogger(f"node.{node_id}")
         self.input_waiter = None  # Will be set up in setup_inputs
+        
+        # Register this node with the system
+        g.register_node(node_id)
     
-    def setup_inputs(self, required: List[str], queue_size: int = 100):
-        """Setup input queues"""
+    def setup_inputs(self, required: List[str] = None, optional: List[str] = None, queue_size: int = 10):
+        """Setup input queues
+        
+        Args:
+            required: List of required input names (must wait for all)
+            optional: List of optional input names (can proceed with any)
+            queue_size: Maximum size for each queue
+        """
+        if required is None:
+            required = []
+        if optional is None:
+            optional = []
+        
         self.required_inputs = required
-        for input_name in required:
+        self.optional_inputs = optional
+        
+        # Create queues for all inputs
+        all_inputs = required + optional
+        for input_name in all_inputs:
             self.input_queues[input_name] = Queue(maxsize=queue_size)
         
-        # Create MultiWaiter for this node if we have inputs
-        if required:
+        # Create MultiWaiter if we have inputs
+        if all_inputs:
             self.input_waiter = MultiWaiter(
-                required, 
+                required, optional,
                 self.input_queues,
-                wait_mode=self.wait_mode
+                self.node_id
             )
     
     def setup_outputs(self, outputs: List[str]):
@@ -57,6 +75,7 @@ class QueueNode(ABC):
     
     async def send_output(self, output_name: str, value: Any):
         """Send output to all subscribers"""
+        g.update_node_activity(self.node_id)  # Track output activity
         if output_name in self.output_subscribers:
             for queue in self.output_subscribers[output_name]:
                 await queue.put(value)
@@ -65,6 +84,25 @@ class QueueNode(ABC):
     async def compute(self, **inputs) -> Dict[str, Any]:
         """Override this to implement node logic"""
         pass
+    
+    async def get_config_inputs(self, config_names: List[str]) -> Dict[str, Any]:
+        """Get one-time configuration inputs directly from queues
+        
+        Args:
+            config_names: List of configuration input names to retrieve
+            
+        Returns:
+            Dict mapping config names to their values
+        """
+        configs = {}
+        for name in config_names:
+            if name not in self.input_queues:
+                raise ValueError(f"No queue for config input '{name}'")
+            value = await self.input_queues[name].get()
+            configs[name] = value
+            # Track activity for config receipt
+            g.update_node_activity(self.node_id)
+        return configs
     
     async def run(self):
         """Main execution loop"""
@@ -111,13 +149,50 @@ class QueueNode(ABC):
             sys.exit(1)
         finally:
             self.running = False
+    
+    async def _call_run_when_ready(self):
+        """Internal method that ensures system is ready before calling run().
+        
+        DO NOT OVERRIDE THIS METHOD! Override run() instead.
+        
+        This method handles the system initialization barrier to ensure
+        all nodes are created and all connections are established before
+        any node starts processing data.
+        """
+        try:
+            # Report that this node is ready (initialized)
+            g.report_node_ready(self.node_id)
+            
+            # Wait for entire system to be ready
+            await g.wait_for_system_ready()
+            
+            # Double-check that connections were established
+            if not g._connections_established:
+                raise RuntimeError(f"Node {self.node_id} starting but connections not established! Internal error!")
+            
+            self.node_logger.debug(f"System ready, starting node {self.node_id}")
+            
+            # Now call the actual run method
+            await self.run()
+            
+        except CauseExitException:
+            # Let CauseExitException propagate normally
+            raise
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            self.node_logger.error(f"Fatal error in node {self.node_id}: {e}")
+            import traceback
+            self.node_logger.error(traceback.format_exc())
+            # Re-raise to ensure the error propagates
+            raise
 
 
 class SensorNode(QueueNode):
     """Base class for sensor nodes that generate data at fixed rates"""
     
     def __init__(self, node_id: str, update_rate: float):
-        super().__init__(node_id)
+        super().__init__(node_id)  # No wait_mode needed
         self.update_rate = update_rate
         self.update_interval = 1.0 / update_rate
     

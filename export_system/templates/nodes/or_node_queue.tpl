@@ -8,20 +8,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """OR/ANY Router node - outputs when ANY input becomes available"""
     
     def __init__(self, node_id: str):
-        super().__init__(node_id, wait_mode="any")  # Explicitly use "any" mode
-        # Special setup: OR node creates input queues but doesn't require all inputs
-        self.setup_inputs(required=[])  # No required inputs
+        super().__init__(node_id)  # No wait_mode parameter
+        # OR node has optional inputs only - any input triggers output
+        self.setup_inputs(required=[], optional=["input_a", "input_b", "input_c"], queue_size=2)
         self.setup_outputs(["output"])
-        
-        # Manually create input queues for OR node
-        self.input_queues["input_a"] = asyncio.Queue(maxsize=2)
-        self.input_queues["input_b"] = asyncio.Queue(maxsize=2)
-        self.input_queues["input_c"] = asyncio.Queue(maxsize=2)
-        
-        # Create MultiWaiter for OR node with "any" mode
-        input_names = ["input_a", "input_b", "input_c"]
-        from framework import MultiWaiter
-        self.input_waiter = MultiWaiter(input_names, self.input_queues, wait_mode="any")
         
         # State tracking
         self.last_input_source = None
@@ -35,12 +25,16 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         try:
             while self.running:
-                # Wait for ANY input using MultiWaiter
-                data, source = await self.input_waiter.get()
+                # Wait for ANY input using MultiWaiter (returns dict with single key)
+                input_dict = await self.input_waiter.get()
+                
+                # Extract the single input (there should be exactly one)
+                input_name = list(input_dict.keys())[0]
+                input_data = input_dict[input_name]
                 
                 # Execute compute with the available input
                 start_time = time.time()
-                outputs = await self.compute_single_input(source, data)
+                outputs = await self.compute_single_input(input_name, input_data)
                 self.last_compute_time = time.time() - start_time
                 self.compute_count += 1
                 

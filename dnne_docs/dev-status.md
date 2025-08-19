@@ -1,8 +1,19 @@
 # DNNE Development Status
 
-*Last Updated: 2025-08-18*
+*Last Updated: 2025-08-19*
 
 ## Latest Achievements (This Week)
+
+### 2025-08-19: System-Wide Initialization Barrier 🚀
+- **Solved Race Conditions** - Nodes no longer start before connections established
+  - Added system-wide initialization barrier using asyncio.Event
+  - Nodes register during __init__, report ready when tasks start
+  - All nodes wait at barrier until GraphRunner wires connections
+- **Template Updates** - Fixed source of truth for code generation
+  - runner.tpl: Added `g.init_system_ready()` before node creation
+  - graph_runner.py: Validates initialization and node registration
+  - Key lesson: "Fix templates and re-export" - no hacking generated code
+- **Franka_Coop_Nodes** - Now runs reliably with proper initialization sequence
 
 ### 2025-08-18: Async Efficiency & Deadlock Resolution 🎉
 - **MultiWaiter Implementation** - Eliminated task creation/destruction overhead
@@ -81,10 +92,10 @@ dnne.bat
 ```
 
 ## Files Changed Today
-- `/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/tasks/franka_dnne_task.py` - Renamed from franka_dnne.py, fixed initialization
-- `/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/tasks/franka_dnne/franka_dnne_base.py` - Removed cube code, added init checks
-- `/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/cfg/task/FrankaDNNE.yaml` - Fixed action dimensions (8→7)
-- `/home/asantanna/DNNE/DNNE-LINUX-SUPPORT/IsaacGymEnvs/isaacgymenvs/tasks/__init__.py` - Updated import for renamed file
+- `export_system/templates/framework/runner.tpl` - Added g.init_system_ready() before node creation
+- `export_system/templates/framework/graph_runner.py` - Checks initialization, simplified node validation
+- `export_system/templates/framework/globals.py` - Added system-wide initialization barrier methods
+- `export_system/templates/framework/base_nodes.py` - Nodes register and wait for system ready
 
 ## Previous Files Changed
 - `export_system/templates/nodes/isaac_gym_sim_queue.tpl` - Fixed fail-fast, custom run() for bootstrap
