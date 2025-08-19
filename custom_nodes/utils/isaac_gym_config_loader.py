@@ -139,7 +139,7 @@ class IsaacGymEnvConfigLoader:
             # Check if this config uses Hydra defaults (inheritance)
             # DNNE doesn't support Hydra inheritance, so skip these configs
             if 'defaults' in task_config:
-                logger.info(f"Skipping {task_name}: Uses Hydra defaults (inheritance not supported by DNNE)")
+                logger.debug(f"Skipping {task_name}: Uses Hydra defaults (inheritance not supported by DNNE)")
                 return None
                 
             # Load PPO config if it exists

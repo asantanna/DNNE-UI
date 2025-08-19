@@ -62,13 +62,13 @@ class TestTensorNode(unittest.TestCase):
         
         for dims_str, expected in test_cases:
             node_data = {
-                "widgets_values": {
-                    "tensor_dims": dims_str,
-                    "fill_mode": "zeros",
-                    "custom_fill": 0.0,
-                    "dtype": "float32",
-                    "seed": -1
-                }
+                "widgets_values": [
+                    dims_str,      # tensor_dims
+                    "zeros",       # fill_mode
+                    0.0,           # custom_fill
+                    "float32",     # dtype
+                    -1             # seed
+                ]
             }
             
             template_vars = TensorExporter.prepare_template_vars(
@@ -123,27 +123,9 @@ class TestTensorNode(unittest.TestCase):
     def test_template_variable_preparation(self):
         """Test template variable preparation with various configurations"""
         test_configs = [
-            {
-                "tensor_dims": "10",
-                "fill_mode": "zeros",
-                "custom_fill": 0.0,
-                "dtype": "float32",
-                "seed": -1
-            },
-            {
-                "tensor_dims": "2,3,4",
-                "fill_mode": "normal",
-                "custom_fill": 1.5,
-                "dtype": "float64",
-                "seed": 42
-            },
-            {
-                "tensor_dims": "[100, 200]",
-                "fill_mode": "custom",
-                "custom_fill": -0.5,
-                "dtype": "int32",
-                "seed": 12345
-            }
+            ["10", "zeros", 0.0, "float32", -1],
+            ["2,3,4", "normal", 1.5, "float64", 42],
+            ["[100, 200]", "custom", -0.5, "int32", 12345]
         ]
         
         for config in test_configs:
@@ -162,25 +144,26 @@ class TestTensorNode(unittest.TestCase):
             self.assertIn("SEED", template_vars)
             
             # Check values match configuration
+            # config is [tensor_dims, fill_mode, custom_fill, dtype, seed]
             self.assertEqual(template_vars["NODE_ID"], "test_node")
             self.assertEqual(template_vars["CLASS_NAME"], "TensorNode")
-            self.assertEqual(template_vars["FILL_MODE"], config["fill_mode"])
-            self.assertEqual(template_vars["DTYPE"], config["dtype"])
-            self.assertEqual(template_vars["SEED"], str(config["seed"]))
-            self.assertEqual(template_vars["CUSTOM_FILL"], str(config["custom_fill"]))
+            self.assertEqual(template_vars["FILL_MODE"], config[1])  # fill_mode
+            self.assertEqual(template_vars["DTYPE"], config[3])     # dtype
+            self.assertEqual(template_vars["SEED"], str(config[4])) # seed
+            self.assertEqual(template_vars["CUSTOM_FILL"], str(config[2]))  # custom_fill
     
     def test_seed_reproducibility(self):
         """Test that seed parameter ensures reproducibility"""
         # This test would require actual execution of the generated code
         # For now, we just verify the seed is properly passed through
         node_data = {
-            "widgets_values": {
-                "tensor_dims": "10,10",
-                "fill_mode": "normal",
-                "custom_fill": 0.0,
-                "dtype": "float32",
-                "seed": 42
-            }
+            "widgets_values": [
+                "10,10",       # tensor_dims
+                "normal",      # fill_mode
+                0.0,           # custom_fill
+                "float32",     # dtype
+                42             # seed
+            ]
         }
         
         template_vars = TensorExporter.prepare_template_vars(
@@ -195,13 +178,13 @@ class TestTensorNode(unittest.TestCase):
         
         for value in test_values:
             node_data = {
-                "widgets_values": {
-                    "tensor_dims": "5,5",
-                    "fill_mode": "custom",
-                    "custom_fill": value,
-                    "dtype": "float32",
-                    "seed": -1
-                }
+                "widgets_values": [
+                    "5,5",         # tensor_dims
+                    "custom",      # fill_mode
+                    value,         # custom_fill
+                    "float32",     # dtype
+                    -1             # seed
+                ]
             }
             
             template_vars = TensorExporter.prepare_template_vars(

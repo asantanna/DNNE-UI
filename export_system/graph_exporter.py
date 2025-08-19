@@ -901,7 +901,7 @@ class GraphExporter:
                 
                 # Skip connections to/from virtual nodes
                 if from_node in virtual_nodes or to_node in virtual_nodes:
-                    self.logger.info(f"Skipping connection from {from_node} to {to_node} - involves virtual node")
+                    self.logger.debug(f"Skipping connection from {from_node} to {to_node} - involves virtual node")
                     continue
                 
                 # Get actual output name
