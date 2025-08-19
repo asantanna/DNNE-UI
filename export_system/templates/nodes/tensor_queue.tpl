@@ -146,7 +146,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import time
         
         self.running = True
-        self.node_logger.info(f"Starting Tensor node {self.node_id} - dims: {self.dims}, mode: {self.fill_mode}")
+        self.node_logger.debug(f"Starting Tensor node {self.node_id} - dims: {self.dims}, mode: {self.fill_mode}")
         
         try:
             generation_count = 0
@@ -173,7 +173,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 await self.send_output("tensor", tensor)
                 
         except asyncio.CancelledError:
-            self.node_logger.info(f"Tensor Node {self.node_id} cancelled")
+            self.node_logger.debug(f"Tensor Node {self.node_id} cancelled")
             raise
         finally:
             self.running = False

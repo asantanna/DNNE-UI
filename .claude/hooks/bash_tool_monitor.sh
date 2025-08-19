@@ -43,4 +43,11 @@ if [[ "$tool_name" == "Bash" ]] && [[ "$command" =~ (^|[[:space:]])([./]*)?dnne\
     exit 2
 fi
 
+# Check for timeout command with python runner.py
+if [[ "$tool_name" == "Bash" ]] && [[ "$command" =~ (^|[[:space:]])timeout[[:space:]]+([0-9]+)[[:space:]]+python[[:space:]]+runner\.py ]]; then
+    echo "BLOCKED: Don't use the timeout command with runner.py!" >&2
+    echo "Use 'python runner.py --timeout ${BASH_REMATCH[2]}' instead." >&2
+    exit 2
+fi
+
 exit 0

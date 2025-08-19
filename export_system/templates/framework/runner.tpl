@@ -61,8 +61,9 @@ from framework.arg_parser import create_parser, process_args
 
 def configure_logging(verbose=None, debug=None):
     """Configure logging based on verbosity flags with optional subsystem control"""
-    # Create a shared console handler
-    console_handler = logging.StreamHandler()
+    # Create a shared console handler that outputs to stdout
+    import sys
+    console_handler = logging.StreamHandler(sys.stdout)
     
     # Determine format based on verbosity
     if debug and debug != 'all':

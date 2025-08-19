@@ -31,12 +31,6 @@ Vue.js-based frontend providing the visual graph editor interface (replaces orig
 
 ## Development Commands
 
-# ⚠️ CRITICAL: BASH TOOL USAGE ⚠️
-# DO NOT REDIRECT STDERR (2>&1) WHEN USING PIPES!
-# IT DOESN'T WORK WITH THE BASH TOOL!
-# WRONG: command 2>&1 | grep something
-# RIGHT: command | grep something
-
 ### Environment Setup
 The project requires a properly configured conda environment with PyTorch. To activate it:
 ```bash
