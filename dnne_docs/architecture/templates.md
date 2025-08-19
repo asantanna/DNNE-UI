@@ -2,6 +2,19 @@
 
 The template system is the **code generation engine** of DNNE's export system. It converts visual node graphs into executable Python code using a sophisticated template-based approach with variable substitution.
 
+## Why Templates Exist (Not Just How They Work)
+
+**The Fundamental Principle**: Templates are the source of truth. Generated code is ephemeral.
+
+**Why This Architecture?**:
+1. **One Fix, All Exports**: Fix a bug in a template, and every future export has the fix
+2. **Version Control**: Templates are in git. Generated code is disposable (often gitignored)
+3. **Separation of Concerns**: UI handles interaction, templates handle code generation, exports are just output
+4. **Testability**: Templates can be validated independently of any specific workflow
+5. **Maintainability**: 50 workflows using the same node type all benefit from one template update
+
+**The Critical Rule**: NEVER edit generated code. Always fix the template and re-export. This isn't a suggestion—it's fundamental to DNNE's design.
+
 ## Overview
 
 Templates transform **visual node configurations** into **production-ready Python code**:

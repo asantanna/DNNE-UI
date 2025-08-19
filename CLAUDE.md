@@ -52,6 +52,19 @@ IsaacGym and IsaacGymEnvs are installed and verified working:
 - **GPU Support**: Verified working with CUDA and GPU PhysX acceleration
 - **Environment Testing**: Cartpole and other environments tested successfully
 
+## Quick Gotchas (Read This First!)
+
+**Critical mistakes that will waste your time:**
+- **Never edit exported code** - It will be overwritten. Fix templates in `export_system/templates/`
+- **Isaac Gym before PyTorch** - Import order matters or you'll get segfaults
+- **Widget indices skip** - Labels and non-value widgets don't appear in widget_values array
+- **Outputs strict, inputs flexible** - Node outputs must be exact type, inputs can use wildcards
+- **Dim 0 = batch, Dim 1 = features** - Always. No exceptions. Concat on dim 1 only
+- **No context during export** - Nodes can't see each other when generating code
+- **Bootstrap with null_action** - Environments need initial action before first observation
+
+**See `dnne_docs/development/gotchas.md` for details and solutions**
+
 ### Starting the Server (Windows only!)
 ```bash
 dnne.bat [args]
