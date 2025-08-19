@@ -53,7 +53,13 @@
       "mcp__dnne-ui__zoom_out",
       "mcp__dnne-ui__zoom_to_fit",
       "Bash(cp:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(source:*)",
+      "Bash(timeout:*)",
+      "Bash(for:*)",
+      "Bash(do)",
+      "Bash(echo:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "additionalDirectories": [

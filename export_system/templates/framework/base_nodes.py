@@ -37,6 +37,13 @@ class QueueNode(ABC):
         for output_name in outputs:
             self.output_subscribers[output_name] = []
     
+    def set_connections(self, connections: Dict[str, List]):
+        """Called by GraphRunner to inform node about its connections.
+        Override this method if your node needs to track connections."""
+        # Base implementation just stores the connections
+        # Subclasses can override to do more sophisticated tracking
+        self.connections = connections
+    
     async def send_output(self, output_name: str, value: Any):
         """Send output to all subscribers"""
         if output_name in self.output_subscribers:

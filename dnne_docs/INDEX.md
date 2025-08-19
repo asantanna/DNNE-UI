@@ -8,25 +8,30 @@
 | LinearLayer/Network | ✅ Refactored | - | Virtual nodes architecture |
 | Isaac Gym Integration | ✅ Fixed | - | Circular dependency resolved |
 | Test Suite | ✅ Passing | - | 164 tests pass, 0 skipped |
-| Franka Coop Workflow | ✅ Running | - | Bootstrap with null_action working |
+| Franka Coop Workflow | ⚠️ Running with HACKS | CRITICAL | Multiple architectural issues patched |
 | Balancer Node | ✅ Fixed | - | Naming consistency resolved |
 
 ## Today's Achievements (Jan 18, 2025)
-- Fixed Franka_Coop_Nodes circular dependency blocking workflow execution
-- Implemented IsaacGymSim bootstrap with null_action via custom run() method  
-- Added JavaScript widget update callbacks for task/schema changes
-- Fixed asyncio blocking and FrankaDNNE import issues
+- Fixed Franka_Coop_Nodes export deadlock with multiple HACKS
+- Patched dimension mismatches, device issues, gradient problems
+- Robot moves continuously but training disabled (no gradients)
+- Added set_connections() to base class for proper node wiring
 
 ## Active Priorities
 
+### CRITICAL - Remove HACKS
+1. Fix UI dimension configuration (concat/split using wrong dims)
+2. Fix device management (tensors on wrong device)
+3. Enable gradient tracking for Isaac Gym observations
+4. Fix tensor shape consistency in Network nodes
+
 ### High Priority
 1. Fix --timeout to be more reliable (almost never works)
-2. Test complete Franka workflow with training loop
+2. Test complete Franka workflow with actual training
 
 ### Medium Priority  
 1. Add YAML caching for get_task_schema_info
 2. Update PPOAgent/PPOConfig on IsaacGymEnvs changes
-3. Fix Concat node set_connections() calls
 
 ### Low Priority
 1. Add more FrankaDNNE subtasks (reach_pose, trajectory_follow)

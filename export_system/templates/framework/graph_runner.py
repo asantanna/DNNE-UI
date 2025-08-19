@@ -33,6 +33,9 @@ class GraphRunner:
     
     def wire_nodes(self, connections: List[tuple]):
         """Wire nodes together: (from_id, output, to_id, input)"""
+        # Build a dictionary to track connections for each node
+        node_connections = {}
+        
         for from_id, output_name, to_id, input_name in connections:
             from_node = self.nodes[from_id]
             to_node = self.nodes[to_id]
@@ -42,6 +45,23 @@ class GraphRunner:
                 to_node.input_queues[input_name]
             )
             self.logger.info(f"Connected {from_id}.{output_name} -> {to_id}.{input_name}")
+            
+            # Track connections for the receiving node
+            if to_id not in node_connections:
+                node_connections[to_id] = {}
+            if input_name not in node_connections[to_id]:
+                node_connections[to_id][input_name] = []
+            node_connections[to_id][input_name].append({
+                "from_node": from_id,
+                "from_output": output_name
+            })
+        
+        # Inform nodes about their connections
+        for node_id, connections_dict in node_connections.items():
+            node = self.nodes[node_id]
+            if hasattr(node, 'set_connections'):
+                self.logger.debug(f"Setting connections for node {node_id}: {connections_dict}")
+                node.set_connections(connections_dict)
     
     def _detect_completion_conditions(self):
         """Detect if the workflow has any defined completion conditions"""
@@ -94,35 +114,59 @@ class GraphRunner:
             task = asyncio.create_task(node.run())
             self.tasks.append(task)
         
-        try:
-            if duration:
-                # Run with timeout
-                try:
-                    await asyncio.wait_for(
-                        asyncio.gather(*self.tasks, return_exceptions=False),
-                        timeout=duration
+        # Setup timeout watchdog if duration specified
+        timeout_future = None
+        if duration:
+            import threading
+            import time
+            
+            # Create future for timeout communication
+            timeout_future = asyncio.Future()
+            
+            def timeout_watchdog():
+                """Watchdog thread that sets exception on timeout"""
+                time.sleep(duration)
+                if not timeout_future.done():
+                    # Set exception on the future
+                    exc = CauseExitException(
+                        node_id="timeout_watchdog",
+                        message=f"Timeout after {duration}s",
+                        exit_code=0
                     )
-                    self.exit_reason = "tasks_complete"
-                except asyncio.TimeoutError:
-                    self.exit_reason = "timeout"
-                    self.logger.info(f"Stopping after {duration}s")
-                except CauseExitException as e:
-                    # print(f"[DEBUG] GraphRunner caught CauseExitException (with timeout)") #DBG_TAG#
-                    # print(f"[DEBUG] Exception: {e}") #DBG_TAG#
-                    self.exit_reason = "exit_requested"
-                    self.exit_code = e.exit_code
-                    self.logger.info(f"Exit requested: {e.message} (code={e.exit_code})")
+                    loop = asyncio.get_event_loop()
+                    loop.call_soon_threadsafe(timeout_future.set_exception, exc)
+            
+            # Start the watchdog thread
+            threading.Thread(
+                target=timeout_watchdog,
+                name="DNNE-Timeout-Watchdog",
+                daemon=True
+            ).start()
+            self.logger.info(f"⏱️  Started timeout watchdog: {duration}s")
+        
+        try:
+            # Include timeout_future in gather if we have one
+            if timeout_future:
+                # This will raise CauseExitException if timeout occurs
+                await asyncio.gather(
+                    asyncio.gather(*self.tasks, return_exceptions=False),
+                    timeout_future,
+                    return_exceptions=False
+                )
             else:
-                # Run until cancelled or training completes
-                try:
-                    await asyncio.gather(*self.tasks, return_exceptions=False)
-                    self.exit_reason = "tasks_complete"
-                except CauseExitException as e:
-                    # print(f"[DEBUG] GraphRunner caught CauseExitException (no timeout)") #DBG_TAG#
-                    # print(f"[DEBUG] Exception: {e}") #DBG_TAG#
-                    self.exit_reason = "exit_requested"
-                    self.exit_code = e.exit_code
-                    self.logger.info(f"Exit requested: {e.message} (code={e.exit_code})")
+                # No timeout, just wait for tasks
+                await asyncio.gather(*self.tasks, return_exceptions=False)
+            
+            self.exit_reason = "tasks_complete"
+            
+        except CauseExitException as e:
+            # Handle exit requests (including timeout)
+            if e.node_id == "timeout_watchdog":
+                self.exit_reason = "timeout"
+            else:
+                self.exit_reason = "exit_requested"
+            self.exit_code = e.exit_code
+            self.logger.info(f"Exit (reason={self.exit_reason}): {e.message} (code={e.exit_code})")
         except KeyboardInterrupt:
             self.exit_reason = "keyboard_interrupt"
             self.logger.info("Interrupted by user")

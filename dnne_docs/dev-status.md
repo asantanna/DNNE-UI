@@ -4,12 +4,13 @@
 
 ## Latest Achievements (This Week)
 
-### 2025-08-18: FrankaDNNE Environment Fully Operational ✅
-- **All Initialization Fixed** - Resolved tensor access before initialization issues
-- **Visual Rendering Working** - Robot arm appears and responds to data streamer
-- **Permanent Fixes** - All changes in IsaacGymEnvs persist across exports
-- **60Hz Control Loop** - Stable real-time control at target frequency
-- **Franka_Minimal_Test** - Workflow confirmed working with visual feedback
+### 2025-08-18: Franka_Coop_Nodes "Working" with Multiple HACKS ⚠️
+- **Export Deadlock Fixed** - Changed Concat to "as available", Split to dim=1
+- **HACK: Dimension Issues** - Hardcoded concat/split to feature dimension (UI sets wrong)
+- **HACK: Device Issues** - Added device synchronization (nodes output wrong device)
+- **HACK: Shape Issues** - Special handling for node 42 tensor flattening
+- **HACK: Gradient Issues** - Training disabled, Isaac Gym observations lack gradients
+- **Robot Moves** - Continuous operation without crashes, but no actual training
 
 ### 2025-01-18: Fixed Franka_Coop_Nodes Circular Dependency ✅
 - **Root Cause** - IsaacGymSim blocked waiting for actions before bootstrapping with null_action
