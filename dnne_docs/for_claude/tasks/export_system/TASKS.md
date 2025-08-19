@@ -3,9 +3,10 @@
 *For historical accomplishments, see HISTORY.md*
 
 ## Current Status
-✅ **Complete** - All tests passing, inclusive range system implemented
-- Split node with semantic name support ("by name" mode)
-- Inclusive ranges throughout (YAML schemas, UI, export)
+✅ **Complete** - All tests passing, async efficiency improved
+- MultiWaiter utility for efficient async input handling
+- Fixed dimension mismatches in Concat nodes
+- Reduced logging verbosity (INFO → DEBUG)
 
 ## 📋 Active TODOs
 None - Export system is fully operational

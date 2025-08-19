@@ -69,7 +69,7 @@ class QueueNode(ABC):
     async def run(self):
         """Main execution loop"""
         self.running = True
-        self.node_logger.info(f"Starting node {self.node_id}")
+        self.node_logger.debug(f"Starting node {self.node_id}")
         
         try:
             while self.running:
@@ -98,7 +98,7 @@ class QueueNode(ABC):
             self.node_logger.info(f"Node {self.node_id} requested exit: {e.message}")
             raise  # Re-raise to propagate to GraphRunner
         except asyncio.CancelledError:
-            self.node_logger.info(f"Node {self.node_id} cancelled")
+            self.node_logger.debug(f"Node {self.node_id} cancelled")
             raise
         except Exception as e:
             # Catch any other exceptions and exit immediately
@@ -124,7 +124,7 @@ class SensorNode(QueueNode):
     async def run(self):
         """Sensor run loop with fixed rate"""
         self.running = True
-        self.node_logger.info(f"Starting sensor {self.node_id} at {self.update_rate}Hz")
+        self.node_logger.debug(f"Starting sensor {self.node_id} at {self.update_rate}Hz")
         
         try:
             while self.running:
@@ -147,7 +147,7 @@ class SensorNode(QueueNode):
                 self.last_compute_time = time.time() - start_time
                 
         except asyncio.CancelledError:
-            self.node_logger.info(f"Sensor {self.node_id} cancelled")
+            self.node_logger.debug(f"Sensor {self.node_id} cancelled")
             raise
         except Exception as e:
             # Catch any other exceptions and exit immediately

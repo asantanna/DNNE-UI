@@ -1,11 +1,12 @@
 # Franka Cooperative Control Workflow Tasks
 
 ## Current Status
-✅ **Franka_Coop_Nodes exports and runs** - Robot moves continuously without crashes
+✅ **Franka_Coop_Nodes runs without deadlock!** - MultiWaiter solved the async deadlock issue
 ✅ **TENSOR STANDARDS ENFORCED** - All nodes now follow strict dimension conventions (2025-08-18)
 ✅ **GRADIENT FLOW FIXED** - Isaac Gym observations properly support gradient computation
 ✅ **DEVICE HANDLING UNIFIED** - All nodes use global device configuration consistently
-🎉 **READY FOR REAL RESEARCH** - Major cleanup complete, fail-fast philosophy implemented
+✅ **ASYNC EFFICIENCY IMPROVED** - MultiWaiter eliminates task creation/destruction overhead
+🎉 **READY FOR REAL RESEARCH** - Major cleanup complete, deadlock resolved!
 
 ## 📚 Documentation
 See: [`dnne_docs/experiments/franka_coop_nodes/franka_coop_overview.md`](../../experiments/franka_coop_nodes/franka_coop_overview.md)
@@ -64,12 +65,11 @@ Per CLAUDE.md update:
 
 ### AsyncIO & System Issues
 1. ⬜ Investigate why await asyncio.sleep(0) is needed in certain places
-2. ⬜ Improve async efficiency in nodes that override run() - OR and Concat
+2. ✅ Improve async efficiency in nodes that override run() - OR and Concat (DONE with MultiWaiter)
 
 ### Testing Infrastructure
-3. ⬜ Implement robust timeout mechanism in runner.py using thread with CauseExitException
-   - Current timeout mechanism is unreliable with async code
-   - Implement using separate thread that sleeps then raises CauseExitException
+3. ✅ Implement robust timeout mechanism in runner.py using thread with CauseExitException (DONE)
+   - Implemented using separate thread that sleeps then raises CauseExitException
    - Ensures clean shutdown even if main loop is stuck
 
 ### Documentation

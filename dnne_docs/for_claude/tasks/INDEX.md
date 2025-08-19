@@ -12,21 +12,21 @@
 | **DNNE Agent** | 🟢 Complete | Fully functional | - | 2025-08-11 |
 | **Log Viewer** | 🟡 Working | ~95% - Stream end issue | Medium | 2025-08-15 |
 | **Core Infrastructure** | 🟢 Complete | 100% - All features done | - | 2025-08-15 |
-| **Export System** | 🟢 Complete | 100% - Schema resolution fixed | - | 2025-08-17 |
+| **Export System** | 🟢 Complete | 100% - MultiWaiter async efficiency | - | 2025-08-18 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
 | **Node System** | 🟡 Working | Tensor node added, widget issues remain | High | 2025-08-17 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
-| **Franka Coop Control** | 🟢 Ready | FrankaDNNE env fixed, ready to test | High | 2025-08-18 |
+| **Franka Coop Control** | 🟢 Working | Deadlock resolved, runs without crashes! | High | 2025-08-18 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
 
 ## Active Priority Items
 
 ### High Priority
-1. **Franka Cooperative Control**: Ready for testing
-   - FrankaDNNE environment fully operational
-   - Export and test Franka_Coop_Nodes workflow
-   - Monitor coordination emergence between 3 controllers
-   - Implement PD control for joints 3-6
+1. **Franka Cooperative Control**: Running successfully!
+   - ✅ Deadlock resolved with MultiWaiter implementation
+   - ✅ Workflow runs continuously without crashes
+   - TODO: Monitor coordination emergence between 3 controllers
+   - TODO: Implement PD control for joints 3-6
    
 2. **Node System**: Fix dynamic widget display issues
    - Initial widget labels showing as "dynamic_1/2/3"

@@ -2,6 +2,32 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-08-18 - Async Efficiency & Deadlock Resolution
+
+### MultiWaiter Implementation ✅
+- **Eliminated task creation/destruction overhead**
+  - Persistent listener tasks for "any" mode inputs
+  - Simple sequential waits for "all" mode inputs  
+  - Used by OR and Concat nodes for efficient async
+- **Inadvertently solved longstanding deadlock** in Franka_Coop_Nodes
+  - Old pattern: constant task creation/cancellation caused race conditions
+  - New pattern: stable listeners eliminate timing windows
+- **Added to export system** - multi_waiter.py now included in framework exports
+
+### Dimension Handling Fixed ✅
+- **Fixed Concat node crash on 1D tensors**
+  - Added automatic unsqueeze for proper [batch, features] format
+  - Handles scalars, 1D, and 2D+ tensors correctly
+- **Follows DNNE dimension standards**
+  - Dim 0: batch/environment
+  - Dim 1: features (concatenation dimension)
+
+### Logging Cleanup ✅
+- **Changed verbose INFO to DEBUG level**
+  - graph_runner: add_node, wire_nodes, execution start → DEBUG
+  - base_nodes: node start/cancel messages → DEBUG
+  - Much cleaner console output for normal operations
+
 ## Session: 2025-08-17 - Inclusive Range System & Split Node
 
 ### Inclusive Range System Implementation ✅

@@ -4,13 +4,17 @@
 
 ## Latest Achievements (This Week)
 
-### 2025-08-18: Franka_Coop_Nodes "Working" with Multiple HACKS ⚠️
-- **Export Deadlock Fixed** - Changed Concat to "as available", Split to dim=1
-- **HACK: Dimension Issues** - Hardcoded concat/split to feature dimension (UI sets wrong)
-- **HACK: Device Issues** - Added device synchronization (nodes output wrong device)
-- **HACK: Shape Issues** - Special handling for node 42 tensor flattening
-- **HACK: Gradient Issues** - Training disabled, Isaac Gym observations lack gradients
-- **Robot Moves** - Continuous operation without crashes, but no actual training
+### 2025-08-18: Async Efficiency & Deadlock Resolution 🎉
+- **MultiWaiter Implementation** - Eliminated task creation/destruction overhead
+  - Persistent listener tasks for "any" mode, simple sequential for "all" mode
+  - OR and Concat nodes now use efficient async patterns
+- **DEADLOCK SOLVED** - MultiWaiter inadvertently fixed longstanding Franka_Coop_Nodes deadlock!
+  - Old pattern caused race conditions with constant task churn
+  - New pattern with stable listeners eliminates timing windows
+- **Dimension Handling** - Fixed Concat crash on 1D tensors with auto-unsqueeze
+- **Logging Cleanup** - Changed verbose INFO to DEBUG for cleaner output
+- **Timeout Mechanism** - Thread-based timeout with CauseExitException working
+- **Export System** - Added multi_waiter.py to framework exports
 
 ### 2025-01-18: Fixed Franka_Coop_Nodes Circular Dependency ✅
 - **Root Cause** - IsaacGymSim blocked waiting for actions before bootstrapping with null_action

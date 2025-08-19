@@ -29,7 +29,7 @@ class GraphRunner:
     def add_node(self, node: QueueNode):
         """Add a node to the graph"""
         self.nodes[node.node_id] = node
-        self.logger.info(f"Added node: {node.node_id}")
+        self.logger.debug(f"Added node: {node.node_id}")
     
     def wire_nodes(self, connections: List[tuple]):
         """Wire nodes together: (from_id, output, to_id, input)"""
@@ -44,7 +44,7 @@ class GraphRunner:
             from_node.output_subscribers[output_name].append(
                 to_node.input_queues[input_name]
             )
-            self.logger.info(f"Connected {from_id}.{output_name} -> {to_id}.{input_name}")
+            self.logger.debug(f"Connected {from_id}.{output_name} -> {to_id}.{input_name}")
             
             # Track connections for the receiving node
             if to_id not in node_connections:
@@ -82,7 +82,7 @@ class GraphRunner:
     
     async def run(self, duration: Optional[float] = None):
         """Run all nodes"""
-        self.logger.info("Starting graph execution")
+        self.logger.debug("Starting graph execution")
         
         # Detect completion conditions
         self._detect_completion_conditions()
@@ -94,7 +94,7 @@ class GraphRunner:
         
         try:
             if inference_mode:
-                self.logger.info("Running in INFERENCE mode - gradients disabled")
+                self.logger.debug("Running in INFERENCE mode - gradients disabled")
                 # Import torch only if in inference mode
                 import torch
                 
@@ -145,7 +145,7 @@ class GraphRunner:
                 name="DNNE-Timeout-Watchdog",
                 daemon=True
             ).start()
-            self.logger.info(f"⏱️  Started timeout watchdog: {duration}s")
+            self.logger.debug(f"⏱️  Started timeout watchdog: {duration}s")
         
         try:
             # Include timeout_future in gather if we have one
@@ -181,7 +181,7 @@ class GraphRunner:
             
             # Wait for cancellation
             await asyncio.gather(*self.tasks, return_exceptions=True)
-            self.logger.info("All nodes stopped")
+            self.logger.debug("All nodes stopped")
     
     
     def get_stats(self) -> Dict[str, Dict[str, Any]]:

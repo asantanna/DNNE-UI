@@ -1145,6 +1145,11 @@ class PlaceholderNode_{node_id}(QueueNode):
         (framework_dir / "metrics_logger.py").write_text(metrics_logger_content, encoding='utf-8')
         self.logger.info("Exported metrics_logger.py for balancing node support")
         
+        # Export multi_waiter.py (required for efficient async input handling)
+        multi_waiter_content = self._load_template("framework/multi_waiter.py")
+        (framework_dir / "multi_waiter.py").write_text(multi_waiter_content, encoding='utf-8')
+        self.logger.info("Exported multi_waiter.py for efficient async input handling")
+        
         # Export override_parser.py (required for --override functionality)
         override_parser_content = self._load_template("framework/override_parser.py")
         (framework_dir / "override_parser.py").write_text(override_parser_content, encoding='utf-8')
