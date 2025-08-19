@@ -1,6 +1,9 @@
 # DNNE Development Status
 
-## !!IMPORTANT!! READ THESE IMPORTANT GUIDELINES !!
+## !!IMPORTANT!! READ THESE IMPORTANT GUIDELINES AND DOCUMENTS !!
+- **Why Things Are The Way They Are**: `dnne_docs/architecture/design-rationale.md`
+- **Gotchas That Will Burn You**: `dnne_docs/development/gotchas.md`
+- **Non-Obvious Debugging Techniques** - `dnne_docs/development/debugging-techniques.md`
 - **Coding Guidelines**: `.claude/commands/rules-for-DNNE.md`
 - **Task Tracking**: `dnne_docs/for_claude/tasks/INDEX.md`
 
