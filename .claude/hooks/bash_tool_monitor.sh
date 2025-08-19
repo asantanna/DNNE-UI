@@ -15,8 +15,8 @@ if ! command=$(echo "$json_input" | jq -r '.tool_input.command // empty' 2>/dev/
     exit 1
 fi
 
-# Check if it's trying to run graph_exporter.py
-if [[ "$tool_name" == "Bash" ]] && [[ "$command" =~ (^|[[:space:]])python[0-9]*[[:space:]]+.*graph_exporter\.py($|[[:space:]]) ]]; then
+# Check if it's trying to run graph_exporter.py (handles multi-line)
+if [[ "$tool_name" == "Bash" ]] && [[ "$command" =~ python[0-9]* ]] && [[ "$command" =~ graph_exporter\.py ]]; then
     echo "BLOCKED: Don't use graph_exporter.py - it's deprecated!" >&2
     echo "Use claude_scripts/programmatic_export.py instead!" >&2
     exit 2
