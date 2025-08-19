@@ -21,31 +21,39 @@ vi export_system/templates/framework/runner.tpl
 
 **Recovery Tip**: If you just lost work, check if your editor has a backup (vim's .swp files, VSCode's local history).
 
-## Widget Index Confusion 🎲
+## Widget Index Confusion & Encoding Trap 🎲💀
 
-**The Trap**: You see a node has 3 widgets in the UI, so you access `widget_values[0]`, `[1]`, `[2]`. But `widget_values[1]` gives you the wrong value or crashes!
+**The Double Trap**: 
+1. Widget indices skip (labels don't save values)
+2. Widget encoding differs between UI export and programmatic export
 
-**Why It Happens**: Some widgets don't save values (like labels or buttons), so they don't appear in widget_values. The indices skip!
+**CRITICAL RULE**: NEVER access `widget_values` directly. The encoding is different between UI and programmatic export, causing silent failures that are nearly impossible to debug.
 
-**Example**:
+**Example of What Goes Wrong**:
 ```python
 # UI shows: [Label] [Learning Rate: 0.01] [Batch Size: 32]
 # But widget_values = [0.01, 32]  # No label!
 
-# WRONG
+# WRONG - Never do this!
 learning_rate = widget_values[1]  # This is actually batch_size!
 
-# RIGHT
-learning_rate = widget_values[0]  # Skipped the label
+# ALSO WRONG - Still direct access!
+learning_rate = widget_values[0]  # Might work in UI, fail in programmatic export!
 ```
 
-**The Fix**: Use `get_node_parameters_batch()` with named parameters:
+**The ONLY Correct Way**: Use helper functions that handle encoding:
 ```python
+# For single parameter
+learning_rate = cls.get_node_parameter(node_data, 'learning_rate', default=0.01)
+
+# For multiple parameters (preferred)
 params = cls.get_node_parameters_batch(node_data, [
     {'name': 'learning_rate', 'default': 0.01},
     {'name': 'batch_size', 'default': 32}
 ])
 ```
+
+**Why This Is Critical**: The same workflow will behave differently when exported from UI vs programmatically if you access `widget_values` directly. This creates "works on my machine" bugs that are nightmare fuel.
 
 ## ComfyUI Slot Corruption 🐛
 
@@ -205,12 +213,30 @@ import tempfile
 telemetry_dir = Path(tempfile.gettempdir()) / "dnne_telemetry"
 ```
 
+## The Widget Encoding Trap (THE #1 GOTCHA) ⚡
+
+**The Most Insidious Bug**: Direct `widget_values` access works differently in UI export vs programmatic export.
+
+**How It Manifests**:
+- Your workflow works perfectly when exported from the UI
+- The SAME workflow fails mysteriously when exported programmatically
+- Or vice versa - works programmatically, fails from UI
+- Values are wrong, misaligned, or missing
+
+**The Root Cause**: The UI and programmatic export encode widget values differently. Direct array access `widget_values[0]` gets different data depending on export method.
+
+**The Iron Rule**: NEVER, EVER access `widget_values` directly. Always use:
+- `cls.get_node_parameter(node_data, 'param_name', default=value)`
+- `cls.get_node_parameters_batch(node_data, param_specs)`
+
+**This Is Non-Negotiable**: If you access `widget_values` directly, your code WILL break in production. Not might. WILL.
+
 ## Quick Reference Card
 
 | If you see... | The gotcha is... | Do this... |
 |--------------|------------------|------------|
 | Lost code after export | Edited generated file | Fix template, re-export |
-| Wrong widget values | Index skipping | Use named parameters |
+| Wrong widget values | Direct access + encoding | Use helper functions ONLY |
 | Broken connections | Slot corruption | Check JSON workaround |
 | Segfault with Isaac Gym | Import order | Import Isaac before PyTorch |
 | Environment deadlock | Circular bootstrap | Use null_action pattern |

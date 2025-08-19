@@ -11,16 +11,17 @@ This document contains critical rules and best practices that must be followed w
 
 **Bad Example:**
 ```python
-# This hides bugs and wastes debugging time
-num_envs = widget_values[1] if len(widget_values) > 1 else 16
+# NEVER access widget_values directly - encoding differs between UI and programmatic export!
+num_envs = widget_values[1] if len(widget_values) > 1 else 16  # WRONG on multiple levels!
 ```
 
 **Good Example:**
 ```python
-# This reveals problems immediately
-if len(widget_values) < 2:
-    raise ValueError(f"Node {node_id} missing num_envs parameter. Got {len(widget_values)} values, expected at least 2")
-num_envs = widget_values[1]
+# ALWAYS use helper functions - handles encoding correctly
+params = cls.get_node_parameters_batch(node_data, [
+    {'name': 'num_envs', 'required': True}  # Fails fast with clear error
+])
+num_envs = params['num_envs']
 ```
 
 ### 2. **Universal Parameter Reading**
@@ -204,9 +205,9 @@ raise ValueError(f"Parameter 'num_envs' must be positive integer, got {num_envs}
 
 ### 3. **Bypassing Helper Functions**
 ```python
-# BAD - inconsistent data access
-widget_values = node_data.get("widgets_values", [])
-learning_rate = widget_values[0] if widget_values else 0.001
+# BAD - NEVER access widget_values directly! Encoding differs between UI and programmatic export
+widget_values = node_data.get("widgets_values", [])  # WRONG!
+learning_rate = widget_values[0] if widget_values else 0.001  # WRONG!
 
 # GOOD - use universal parameter reader
 param_specs = [{'name': 'learning_rate', 'default': 0.001}]

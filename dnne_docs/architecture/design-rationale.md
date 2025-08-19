@@ -126,21 +126,26 @@ User configures in UI → UI saves to JSON → Template reads JSON → Export ge
 
 **The Anti-Pattern We Avoid**:
 ```python
-# Hides bugs for hours of debugging
-value = widget_values[1] if len(widget_values) > 1 else 0.01
+# NEVER access widget_values directly - encoding differs between UI and programmatic export!
+# This also hides bugs for hours of debugging
+value = widget_values[1] if len(widget_values) > 1 else 0.01  # WRONG!
 ```
 
 **Our Pattern**:
 ```python
-# Reveals problems immediately
-if len(widget_values) < 2:
-    raise ValueError(f"Missing required parameter at index 1")
-value = widget_values[1]
+# ALWAYS use helper functions - handles encoding differences correctly
+params = cls.get_node_parameters_batch(node_data, [
+    {'name': 'learning_rate', 'required': True},  # Fails fast if missing
+    {'name': 'momentum', 'default': 0.9}  # Has safe default
+])
+learning_rate = params['learning_rate']  # Guaranteed to exist or already failed
 ```
 
 **Why This Saves Time**: A crash with a clear error takes 1 minute to fix. Silent wrong behavior takes hours to debug.
 
 **Real Story**: Silent defaults once caused a network to train with learning rate 0.0 for hours. Nobody noticed until checking why loss wasn't decreasing.
+
+**The Widget Access Rule**: NEVER access `widget_values` directly. The encoding differs between UI export and programmatic export. Always use `get_node_parameter()` or `get_node_parameters_batch()`.
 
 ## The Initialization Barrier: Why All Nodes Wait
 
