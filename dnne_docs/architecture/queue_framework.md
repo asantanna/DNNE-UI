@@ -43,6 +43,53 @@ async def process(self):
 
 ## Framework Components
 
+### System Initialization Barrier
+
+DNNE uses a system-wide initialization barrier to ensure all nodes are created and connected before any processing begins:
+
+```python
+class Global:
+    """Global state management with initialization barrier"""
+    
+    def init_system_ready(self):
+        """Initialize the system-wide ready event"""
+        self._system_ready = asyncio.Event()
+        self._registered_nodes = set()
+        self._ready_nodes = set()
+        self._connections_ready = False
+        
+    def register_node(self, node_id: str):
+        """Called by nodes during __init__"""
+        if self._system_ready is None:
+            raise RuntimeError(f"Node {node_id} trying to register before system initialized!")
+        self._registered_nodes.add(node_id)
+        
+    def report_node_ready(self, node_id: str):
+        """Called by nodes when their tasks start"""
+        self._ready_nodes.add(node_id)
+        
+    async def wait_for_system_ready(self):
+        """Nodes wait here until all connections are established"""
+        await self._system_ready.wait()
+        
+    def report_connections_ready(self):
+        """GraphRunner calls this after wiring all connections"""
+        self._connections_ready = True
+        self._system_ready.set()  # Release all waiting nodes
+```
+
+#### Initialization Sequence
+
+1. **Runner initialization**: `g.init_system_ready()` called before creating nodes
+2. **Node creation**: Each node calls `g.register_node()` in `__init__`
+3. **Task startup**: Nodes call `g.report_node_ready()` when tasks start
+4. **Barrier wait**: All nodes wait at `g.wait_for_system_ready()`
+5. **Connection wiring**: GraphRunner establishes all connections
+6. **Barrier release**: `g.report_connections_ready()` releases all nodes
+7. **Processing begins**: Nodes start their main processing loops
+
+This prevents race conditions where nodes might start processing before their input connections are established.
+
 ### QueueNode Base Class
 
 The foundation for all nodes:
@@ -196,6 +243,126 @@ class JoinNode(QueueNode):
             # Combine and send
             await self.send_output(combine(data1, data2))
 ```
+
+### MultiWaiter Pattern
+
+The MultiWaiter utility provides efficient handling of multiple input queues with different waiting strategies:
+
+```python
+class MultiWaiter:
+    """Efficiently wait for data from multiple input queues"""
+    
+    def __init__(self, input_queues: Dict[str, asyncio.Queue], 
+                 mode: str = "all", timeout: Optional[float] = None):
+        """
+        Args:
+            input_queues: Dictionary of input name -> queue
+            mode: "all" (wait for all inputs) or "any" (first available)
+            timeout: Optional timeout in seconds
+        """
+        self.input_queues = input_queues
+        self.mode = mode
+        self.timeout = timeout
+        self.listeners = {}  # Persistent listener tasks for "any" mode
+        
+    async def wait_for_data(self) -> Dict[str, Any]:
+        """Wait for data based on mode"""
+        if self.mode == "all":
+            # Simple sequential wait - efficient for "all" mode
+            results = {}
+            for name, queue in self.input_queues.items():
+                if self.timeout:
+                    data = await asyncio.wait_for(queue.get(), self.timeout)
+                else:
+                    data = await queue.get()
+                results[name] = data
+            return results
+            
+        elif self.mode == "any":
+            # Use persistent listeners to avoid task churn
+            if not self.listeners:
+                await self._start_listeners()
+            
+            # Wait for first result
+            result = await self.result_queue.get()
+            return result
+```
+
+#### Key Benefits
+
+1. **Eliminates Task Churn**: Instead of creating/canceling tasks on every wait cycle, MultiWaiter uses persistent listener tasks for "any" mode
+2. **Prevents Race Conditions**: Stable listeners eliminate timing windows that caused deadlocks
+3. **Efficient Memory Usage**: No constant allocation/deallocation of task objects
+4. **Simple Sequential for "all" Mode**: When waiting for all inputs, uses straightforward sequential waits
+
+#### Usage in Nodes
+
+```python
+class ConcatNode(QueueNode):
+    """Concatenates multiple inputs efficiently"""
+    
+    def __init__(self):
+        super().__init__()
+        self.multi_waiter = None
+        
+    def setup_inputs(self):
+        # Create MultiWaiter with appropriate mode
+        self.multi_waiter = MultiWaiter(
+            self.input_queues,
+            mode="any"  # Process as inputs arrive
+        )
+    
+    async def compute(self):
+        # Efficient wait for any available input
+        inputs = await self.multi_waiter.wait_for_data()
+        
+        # Process whichever inputs are ready
+        if "input_a" in inputs:
+            self.cached_a = inputs["input_a"]
+        if "input_b" in inputs:
+            self.cached_b = inputs["input_b"]
+            
+        # Concatenate available tensors
+        available = [t for t in [self.cached_a, self.cached_b] if t is not None]
+        if available:
+            return torch.cat(available, dim=1)
+        return None
+```
+
+#### Implementation Details
+
+The MultiWaiter solved a critical deadlock issue in complex workflows:
+
+**Problem**: Constant task creation/cancellation in tight loops caused race conditions
+```python
+# OLD PATTERN - Causes deadlocks
+while True:
+    tasks = [asyncio.create_task(q.get()) for q in queues]
+    done, pending = await asyncio.wait(tasks, return_when=FIRST_COMPLETED)
+    # Cancel pending tasks - THIS CAUSES RACE CONDITIONS!
+    for task in pending:
+        task.cancel()
+```
+
+**Solution**: Persistent listeners eliminate the race window
+```python
+# NEW PATTERN - No deadlocks
+async def _start_listeners(self):
+    """Start persistent listener tasks once"""
+    for name, queue in self.input_queues.items():
+        listener = asyncio.create_task(
+            self._listen_to_queue(name, queue)
+        )
+        self.listeners[name] = listener
+
+async def _listen_to_queue(self, name, queue):
+    """Persistent listener - never cancelled in normal operation"""
+    while True:
+        data = await queue.get()
+        await self.result_queue.put({name: data})
+```
+
+This pattern has proven so effective it inadvertently fixed longstanding deadlocks in complex workflows like Franka cooperative control.
 
 ### State Machine Pattern
 
