@@ -11,7 +11,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """Concat node - concatenates multiple tensor inputs along feature dimension"""
     
     def __init__(self, node_id: str):
-        super().__init__(node_id)
+        # Determine wait mode based on configuration
+        wait_mode = "all" if "{MODE}" == "wait for all" else "any"
+        super().__init__(node_id, wait_mode=wait_mode)
+        
         # Special setup: Concat node creates input queues but doesn't require all inputs
         self.setup_inputs(required=[])  # No required inputs
         self.setup_outputs(["output"])
@@ -47,6 +50,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 self.connected_inputs.append(input_name)
         self.node_logger.info(f"Connected inputs: {self.connected_inputs}")
         
+        # Create MultiWaiter with connected inputs
+        if self.connected_inputs:
+            from framework import MultiWaiter
+            self.input_waiter = MultiWaiter(
+                self.connected_inputs, 
+                self.input_queues,
+                wait_mode=self.wait_mode
+            )
+        
     async def run(self):
         """Custom run method based on configured mode"""
         import asyncio
@@ -72,22 +84,17 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import torch
         import time
         
-        # Wait for all connected inputs
-        input_data = {}
-        for input_name in self.connected_inputs:
-            data = await self.input_queues[input_name].get()
-            input_data[input_name] = data
-            self.previous_values[input_name] = data  # Store for potential later use
+        # Wait for all connected inputs using MultiWaiter
+        input_data = await self.input_waiter.get()  # Returns dict for "all" mode
+        
+        # Store for potential later use
+        self.previous_values.update(input_data)
         
         # Concatenate all inputs
         start_time = time.time()
         tensors_to_concat = [input_data[name] for name in sorted(self.connected_inputs)]
         
         if tensors_to_concat:
-            # Ensure all on same device (minimal overhead)
-            device = tensors_to_concat[0].device
-            tensors_to_concat = [t.to(device) for t in tensors_to_concat]
-            
             # Concatenate along feature dimension (dim=1)
             concatenated = torch.cat(tensors_to_concat, dim=self.concat_dim)
             
@@ -100,33 +107,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     async def run_as_available(self):
         """Output immediately when any input arrives, padding missing inputs"""
         import torch
-        import asyncio
         import time
         
-        # Create tasks for all connected inputs
-        input_tasks = []
-        for input_name in self.connected_inputs:
-            task = asyncio.create_task(
-                self.input_queues[input_name].get(), 
-                name=input_name
-            )
-            input_tasks.append(task)
-        
-        # Wait for first available input
-        done, pending = await asyncio.wait(input_tasks, return_when=asyncio.FIRST_COMPLETED)
-        
-        # Cancel remaining tasks
-        for task in pending:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
-        
-        # Process the completed input
-        completed_task = list(done)[0]
-        new_data = completed_task.result()
-        input_name = completed_task.get_name()
+        # Wait for any input using MultiWaiter
+        new_data, input_name = await self.input_waiter.get()  # Returns tuple for "any" mode
         
         # Update previous values
         self.previous_values[input_name] = new_data

@@ -150,19 +150,21 @@ async def main():
             # Format the display string
             if duration_seconds >= 60:
                 display_time = f"{{duration_seconds/60:.1f}}m"
+            elif duration_seconds >= 1:
+                display_time = f"{{duration_seconds:.1f}}s"
             else:
-                display_time = f"{{duration_seconds:.0f}}s"
-            print(f"⏱️  Running for {{display_time}} ({{duration_seconds:.0f}} seconds)")
+                display_time = f"{{duration_seconds:.2f}}s"
+            print(f"⏱️  Running for {{display_time}} ({{duration_seconds:.1f}} seconds)")
         except ValueError:
             # Not a plain number, try parsing as time format
             try:
                 from framework import CheckpointManager
                 manager = CheckpointManager("temp")
                 duration_seconds = manager.parse_time_format(args.timeout)
-                print(f"⏱️  Running for {{args.timeout}} ({{duration_seconds:.0f}} seconds)")
+                print(f"⏱️  Running for {{args.timeout}} ({{duration_seconds:.1f}} seconds)")
             except Exception as e:
                 print(f"⚠️  Invalid timeout format: {{e}}")
-                print("   Use formats like: 5, 30s, 5m, 1h30m")
+                print("   Use formats like: 0.5, 5, 30s, 5m, 1h30m")
                 import sys
                 sys.exit(1)
 

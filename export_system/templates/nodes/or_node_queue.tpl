@@ -8,7 +8,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     """OR/ANY Router node - outputs when ANY input becomes available"""
     
     def __init__(self, node_id: str):
-        super().__init__(node_id)
+        super().__init__(node_id, wait_mode="any")  # Explicitly use "any" mode
         # Special setup: OR node creates input queues but doesn't require all inputs
         self.setup_inputs(required=[])  # No required inputs
         self.setup_outputs(["output"])
@@ -18,41 +18,29 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.input_queues["input_b"] = asyncio.Queue(maxsize=2)
         self.input_queues["input_c"] = asyncio.Queue(maxsize=2)
         
+        # Create MultiWaiter for OR node with "any" mode
+        input_names = ["input_a", "input_b", "input_c"]
+        from framework import MultiWaiter
+        self.input_waiter = MultiWaiter(input_names, self.input_queues, wait_mode="any")
+        
         # State tracking
         self.last_input_source = None
         self.output_count = 0
         
     async def run(self):
         """Custom run method: execute when ANY input becomes available"""
-        import asyncio
         import time
         self.running = True
         self.node_logger.info(f"Starting OR node {self.node_id}")
         
         try:
             while self.running:
-                # Wait for ANY input to become available
-                input_tasks = [
-                    asyncio.create_task(self.input_queues["input_a"].get(), name="input_a"),
-                    asyncio.create_task(self.input_queues["input_b"].get(), name="input_b"),
-                    asyncio.create_task(self.input_queues["input_c"].get(), name="input_c")
-                ]
-                
-                # Wait for first available input
-                done, pending = await asyncio.wait(input_tasks, return_when=asyncio.FIRST_COMPLETED)
-                
-                # Cancel remaining tasks
-                for task in pending:
-                    task.cancel()
-                
-                # Process the first completed input
-                completed_task = list(done)[0]
-                input_data = completed_task.result()
-                input_name = completed_task.get_name()
+                # Wait for ANY input using MultiWaiter
+                data, source = await self.input_waiter.get()
                 
                 # Execute compute with the available input
                 start_time = time.time()
-                outputs = await self.compute_single_input(input_name, input_data)
+                outputs = await self.compute_single_input(source, data)
                 self.last_compute_time = time.time() - start_time
                 self.compute_count += 1
                 

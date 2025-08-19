@@ -123,6 +123,9 @@ class GraphRunner:
             # Create future for timeout communication
             timeout_future = asyncio.Future()
             
+            # Capture the current event loop before starting the thread
+            loop = asyncio.get_running_loop()
+            
             def timeout_watchdog():
                 """Watchdog thread that sets exception on timeout"""
                 time.sleep(duration)
@@ -133,7 +136,7 @@ class GraphRunner:
                         message=f"Timeout after {duration}s",
                         exit_code=0
                     )
-                    loop = asyncio.get_event_loop()
+                    # Use the captured loop reference
                     loop.call_soon_threadsafe(timeout_future.set_exception, exc)
             
             # Start the watchdog thread

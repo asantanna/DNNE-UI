@@ -9,13 +9,15 @@ from asyncio import Queue
 
 from .exceptions import CauseExitException
 from .globals import dnne_logging
+from .multi_waiter import MultiWaiter
 
 
 class QueueNode(ABC):
     """Base class for all queue-based nodes"""
     
-    def __init__(self, node_id: str):
+    def __init__(self, node_id: str, wait_mode: str = "all"):
         self.node_id = node_id
+        self.wait_mode = wait_mode
         self.input_queues: Dict[str, Queue] = {}
         self.output_subscribers: Dict[str, List[Queue]] = {}
         self.required_inputs: List[str] = []
@@ -24,12 +26,21 @@ class QueueNode(ABC):
         self.compute_count = 0
         self.last_compute_time = 0.0
         self.node_logger = dnne_logging.getLogger(f"node.{node_id}")
+        self.input_waiter = None  # Will be set up in setup_inputs
     
     def setup_inputs(self, required: List[str], queue_size: int = 100):
         """Setup input queues"""
         self.required_inputs = required
         for input_name in required:
             self.input_queues[input_name] = Queue(maxsize=queue_size)
+        
+        # Create MultiWaiter for this node if we have inputs
+        if required:
+            self.input_waiter = MultiWaiter(
+                required, 
+                self.input_queues,
+                wait_mode=self.wait_mode
+            )
     
     def setup_outputs(self, outputs: List[str]):
         """Setup output specifications"""
@@ -62,11 +73,14 @@ class QueueNode(ABC):
         
         try:
             while self.running:
-                # Gather all required inputs
-                inputs = {}
-                for input_name in self.required_inputs:
-                    value = await self.input_queues[input_name].get()
-                    inputs[input_name] = value
+                # Get inputs using MultiWaiter
+                if self.input_waiter:
+                    inputs = await self.input_waiter.get()
+                    # For "all" mode: inputs is a dict
+                    # For "any" mode: nodes that use "any" should override run()
+                else:
+                    # No inputs required (e.g., sensor nodes)
+                    inputs = {}
                 
                 # Execute compute
                 compute_start = time.time()
