@@ -574,9 +574,13 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                     raise ValueError("onLoad event missing required 'node_id' parameter")
                 if "initial_value" not in event_params:
                     raise ValueError("onLoad event missing required 'initial_value' parameter")
+                if "node_data" not in event_params:
+                    raise ValueError("onLoad event missing required 'node_data' parameter")
                     
                 node_id = event_params["node_id"]
                 initial_value = event_params["initial_value"]
+                node_data = event_params["node_data"]
+                
                 if not initial_value:
                     # If no initial value, don't initialize
                     return {
@@ -588,14 +592,25 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                 # Get initial schema info
                 schema_info = cls.get_task_schema_info(initial_value)
                 
-                # Format the schema display for initial task with defaults
-                schema_display_text = cls.format_schema_display(initial_value, schema_info.get('defaults', {}))
+                # Extract loaded widget values from node_data
+                loaded_widget_values = {}
+                for i, level in enumerate(schema_info['schema_levels']):
+                    widget_key = f"dynamic_{i+1}"
+                    if widget_key in node_data:
+                        widget_value = node_data[widget_key]
+                        if widget_value and widget_value != 'none':
+                            loaded_widget_values[level] = widget_value
+                            logging.debug(f"[IsaacGymEnvsNode] onLoad: Found loaded value for {level}: {widget_value}")
+                
+                # Format schema display with loaded values
+                schema_display_text = cls.format_schema_display(initial_value, loaded_widget_values)
                 
                 js_code = f"""
                 // Initialize dynamic widgets on load
                 const targetNode = app.graph.getNodeById({node_id});
                 if (targetNode) {{
                     const schemaInfo = {json.dumps(schema_info)};
+                    const loadedWidgetValues = {json.dumps(loaded_widget_values)};
                     
                     // Initialize dynamic widgets
                     for (let i = 1; i <= {cls.MAX_DYNAMIC_LEVELS}; i++) {{
@@ -607,11 +622,16 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                             if (levelIndex < schemaInfo.schema_levels.length) {{
                                 const level = schemaInfo.schema_levels[levelIndex];
                                 const options = schemaInfo.level_options[level];
-                                const defaultValue = schemaInfo.defaults[level];
                                 
+                                // Update label and options
                                 widget.label = level;
                                 widget.options.values = options;
-                                widget.value = defaultValue;
+                                
+                                // ALWAYS use loaded value - NO DEFAULTS!
+                                const loadedValue = loadedWidgetValues[level];
+                                widget.value = loadedValue;
+                                console.log(`[IsaacGymEnvs] onLoad: Set ${{level}} to loaded value: ${{loadedValue}}`);
+                                
                                 widget.hidden = false;
                             }} else {{
                                 widget.hidden = true;

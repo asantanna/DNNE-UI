@@ -2,6 +2,22 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-08-19 - IsaacGymEnvs Widget Save/Load Fix
+
+### Widget Value Persistence ✅
+- Fixed issue where dynamic widget values reset to defaults on workflow load
+- Modified onLoad callback to use `node_data` from `event_params` for actual loaded values
+- Removed default value fallbacks - always use loaded values from workflow
+- Schema display now correctly shows loaded configuration, not defaults
+- Tested successfully with Franka_Coop_Nodes and Cartpole_PPO workflows
+
+### Hierarchical Schema System Complete ✅
+- All phases of implementation completed
+- Dynamic widgets properly save/restore with correct labels and values
+- Schema display updates correctly based on selections
+- Split node works with all schema variants
+- Full backward compatibility maintained
+
 ## Session: 2025-08-17 - Schema Format Enhancement
 
 ### Schema Format Support ✅

@@ -4,6 +4,15 @@
 
 ## Latest Achievements (This Week)
 
+### 2025-08-19: IsaacGymEnvs Widget Save/Load Fix ✅
+- **Fixed Widget Value Persistence** - Dynamic widgets now properly restore saved values
+  - Modified onLoad callback to use `node_data` from `event_params`
+  - Removed default value fallbacks - always use loaded values
+  - Schema display correctly shows loaded configuration
+- **Tested Workflows** - Verified fix with multiple environments
+  - Franka_Coop_Nodes: subtask/controlType values properly restored
+  - Cartpole_PPO: simpler schema also works correctly
+
 ### 2025-08-19: System-Wide Initialization Barrier 🚀
 - **Solved Race Conditions** - Nodes no longer start before connections established
   - Added system-wide initialization barrier using asyncio.Event
