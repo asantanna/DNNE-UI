@@ -76,11 +76,12 @@ def configure_logging(verbose=None, debug=None):
     formatter = logging.Formatter(format_str)
     console_handler.setFormatter(formatter)
     
-    # Handle 'all' modes using basicConfig
+    # Handle 'all' modes using basicConfig with stdout
     if debug == 'all':
         logging.basicConfig(
             level=logging.DEBUG,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[console_handler],  # Use our stdout handler
             force=True
         )
         return
@@ -88,6 +89,7 @@ def configure_logging(verbose=None, debug=None):
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(message)s',
+            handlers=[console_handler],  # Use our stdout handler
             force=True
         )
         return

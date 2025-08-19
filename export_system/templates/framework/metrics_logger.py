@@ -81,8 +81,9 @@ class MetricsLogger:
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
         
-        # Console handler for important events
-        ch = logging.StreamHandler()
+        # Console handler for important events (use stdout)
+        import sys
+        ch = logging.StreamHandler(sys.stdout)
         ch.setLevel(logging.WARNING)
         ch.setFormatter(formatter)
         self.logger.addHandler(ch)
