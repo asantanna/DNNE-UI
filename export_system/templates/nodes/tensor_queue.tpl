@@ -49,6 +49,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         else:
             dims = [int(dims_str.strip())]
         
+        # Auto-convert 1D to 2D per tensor standards (batch=1, features=N)
+        # This is syntactic sugar - "5" means [1, 5] 
+        if len(dims) == 1:
+            dims = [1, dims[0]]
+        
         return tuple(dims)
     
     def _get_torch_dtype(self, dtype_str: str):
@@ -161,13 +166,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 
                 generation_count += 1
                 
-                # Log generation info periodically
-                if generation_count % 10 == 1:
-                    self.node_logger.debug(
-                        f"Generated tensor #{generation_count} - "
-                        f"shape: {tensor.shape}, dtype: {tensor.dtype}, "
-                        f"min: {tensor.min().item():.4f}, max: {tensor.max().item():.4f}"
-                    )
+                # Log generation info periodically - commented out as it's too verbose
+                # if generation_count % 10 == 1:
+                #     self.node_logger.debug(
+                #         f"Generated tensor #{generation_count} - "
+                #         f"shape: {tensor.shape}, dtype: {tensor.dtype}, "
+                #         f"min: {tensor.min().item():.4f}, max: {tensor.max().item():.4f}"
+                #     )
                 
                 # Send to output queue (will block if queue is full)
                 await self.send_output("tensor", tensor)
