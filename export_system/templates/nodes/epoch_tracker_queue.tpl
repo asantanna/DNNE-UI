@@ -8,6 +8,7 @@ from framework.globals import Global as g, dnne_logging
 from framework.exceptions import CauseExitException
 from framework import telemetry
 import statistics
+import time
 
 # Training subsystem logger
 training_logger = dnne_logging.getLogger("training")
@@ -45,11 +46,25 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
         self.telemetry_enabled = g.get_node_config(self.node_id, 'telemetry_enabled', False)
         if self.telemetry_enabled:
             # Only create buffers and config if telemetry is actually enabled
-            self.telemetry_batch_window = g.get_node_config(self.node_id, 'telemetry_batch_window', 100)
+            # Support both batch-based and time-based windows
+            self.telemetry_batch_window = g.get_node_config(self.node_id, 'telemetry_batch_window', None)
+            self.telemetry_time_window = g.get_node_config(self.node_id, 'telemetry_time_window', None)
+            
+            # Default to 100 batches if neither specified
+            if self.telemetry_batch_window is None and self.telemetry_time_window is None:
+                self.telemetry_batch_window = 100
+                
             self.telemetry_loss_buffer = []
             self.telemetry_accuracy_buffer = []
             self.telemetry_window_counter = 0
-            self.node_logger.info(f"Telemetry enabled with batch window: {self.telemetry_batch_window}")
+            self.telemetry_last_report_time = time.time()
+            
+            if self.telemetry_time_window:
+                self.node_logger.info(f"Telemetry enabled with time window: {self.telemetry_time_window} seconds")
+            elif self.telemetry_batch_window:
+                self.node_logger.info(f"Telemetry enabled with batch window: {self.telemetry_batch_window} batches")
+            else:
+                self.node_logger.info(f"Telemetry enabled")
         
     async def compute(self, epoch_stats, loss, accuracy) -> Dict[str, Any]:
         # Show training starting message once
@@ -70,9 +85,24 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             self.telemetry_accuracy_buffer.append(accuracy_value)
             self.telemetry_window_counter += 1
             
-            # Report statistics every N batches
-            if self.telemetry_window_counter >= self.telemetry_batch_window and len(self.telemetry_loss_buffer) > 0:
+            # Check if we should report based on window type
+            should_report = False
+            current_time = time.time()
+            
+            # Time-based window check
+            if self.telemetry_time_window:
+                time_elapsed = current_time - self.telemetry_last_report_time
+                if time_elapsed >= self.telemetry_time_window and len(self.telemetry_loss_buffer) > 0:
+                    should_report = True
+            
+            # Batch-based window check
+            elif self.telemetry_batch_window:
+                if self.telemetry_window_counter >= self.telemetry_batch_window and len(self.telemetry_loss_buffer) > 0:
+                    should_report = True
+            
+            if should_report:
                 self._report_window_telemetry()
+                self.telemetry_last_report_time = current_time
         
         # Check if epoch completed
         if epoch_stats.get("completed", False):

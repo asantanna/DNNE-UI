@@ -47,7 +47,8 @@ class GetBatchNode_{NODE_ID}(QueueNode):
             while self.running:
                 # Wait for trigger signal
                 trigger_signal = await self.input_queues["trigger"].get()
-                self.node_logger.info(f"Received trigger signal: {trigger_signal.get('signal_type', 'unknown')}")
+                # Too noisy - commenting out per-batch trigger logging
+                # self.node_logger.info(f"Received trigger signal: {trigger_signal.get('signal_type', 'unknown')}")
                 
                 # Generate batch when triggered
                 outputs = await self.compute()

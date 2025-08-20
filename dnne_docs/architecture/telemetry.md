@@ -302,6 +302,18 @@ python runner.py --enable-telemetry 10,11
 python runner.py --enable-telemetry all
 ```
 
+### Training Telemetry Windows
+For training nodes (EpochTracker), you can configure reporting windows:
+```bash
+# Time-based window (report every 5 minutes)
+python runner.py --enable-telemetry 67 --override 67:telemetry_time_window=300
+
+# Batch-based window (report every 100 batches)
+python runner.py --enable-telemetry 67 --override 67:telemetry_batch_window=100
+
+# Note: If both are specified, time-based takes precedence
+```
+
 ### Configuration Options
 In `dnne_config.json`:
 ```json

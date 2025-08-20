@@ -5,14 +5,13 @@
 **Reference**: See `dnne_agent-integration.md` for detailed architecture and message protocols.
 
 ## Current Status
-**Fully functional** - Phase 12 complete as of 2025-08-11
+**Fully functional** - Phase 13 complete as of 2025-08-20
 - Remote workflow deployment to Linux/WSL agents
 - Real-time client connection monitoring  
 - Selective telemetry with proper configuration
 - Clean error handling and debugging options
-- Centralized configuration management
-- Log viewer modal fully implemented
-- ✅ Verbose keepalive debug messages fixed
+- ✅ Training telemetry with statistical aggregation
+- ✅ Time-based and batch-based telemetry windows
 
 ## Future Enhancements
 1. Implement --server-ip[:port] command line switch for dnne_agent_client.py

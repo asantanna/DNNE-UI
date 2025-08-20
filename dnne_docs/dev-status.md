@@ -1,8 +1,22 @@
 # DNNE Development Status
 
-*Last Updated: 2025-08-19*
+*Last Updated: 2025-08-20*
 
 ## Latest Achievements (This Week)
+
+### 2025-08-20: Training Telemetry & Queue Framework Fix ✅
+- **Training Telemetry with Statistical Aggregation** - EpochTracker reports comprehensive statistics
+  - Implemented mean, min, max, std dev, and percentiles for loss/accuracy
+  - Added time-based windows: "report every N seconds" (e.g., telemetry_time_window=300)
+  - Added batch-based windows: "report every N batches" (e.g., telemetry_batch_window=100)
+  - Zero overhead when disabled - no buffer allocation or statistics computation
+- **Critical Queue Framework Fix** - Resolved double-getter deadlock
+  - Fixed TrainingStep, SGDOptimizer, GetBatch nodes attempting dual input methods
+  - Documented one-time configuration input pattern in queue_framework.md
+  - Rule: Never use setup_inputs() for configuration inputs, manually create queues
+- **Logging Cleanup** - Removed noisy per-batch trigger messages
+  - GetBatch no longer logs every single training batch trigger
+  - Logs now focus on important events: initialization, epochs, errors
 
 ### 2025-08-19: IsaacGymEnvs Widget Save/Load Fix ✅
 - **Fixed Widget Value Persistence** - Dynamic widgets now properly restore saved values

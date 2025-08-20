@@ -5,17 +5,17 @@
 | Component | Status | Priority | Notes |
 |-----------|--------|----------|-------|
 | Export System | ✅ Complete | - | Widget encapsulation implemented |
-| LinearLayer/Network | ✅ Refactored | - | Virtual nodes architecture |
-| Isaac Gym Integration | ✅ Fixed | - | Circular dependency resolved |
+| Training Telemetry | ✅ Complete | - | Statistical aggregation with time/batch windows |
+| Queue Framework | ✅ Fixed | - | Double-getter deadlock resolved |
 | Test Suite | ✅ Passing | - | 164 tests pass, 0 skipped |
 | Franka Coop Workflow | ⚠️ Running with HACKS | CRITICAL | Multiple architectural issues patched |
 | Balancer Node | ✅ Fixed | - | Naming consistency resolved |
 
-## Today's Achievements (Jan 18, 2025)
-- Fixed Franka_Coop_Nodes export deadlock with multiple HACKS
-- Patched dimension mismatches, device issues, gradient problems
-- Robot moves continuously but training disabled (no gradients)
-- Added set_connections() to base class for proper node wiring
+## Today's Achievements (Aug 20, 2025)
+- Added training telemetry with statistical aggregation
+- Implemented time-based and batch-based telemetry windows
+- Fixed critical double-getter deadlock in queue framework
+- Cleaned up noisy per-batch logging
 
 ## Active Priorities
 

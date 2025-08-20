@@ -333,6 +333,31 @@
 - Error messages helpful
 - No regression in existing features
 
+## Phase 13: Training Telemetry Enhancement ✅ 2025-08-20
+
+### 13.1 Training Progress Telemetry
+- Add telemetry support to EpochTracker node for training feedback
+- Implement statistical aggregation (mean, min, max, std dev, percentiles)
+- Add configurable reporting windows (batch-based and time-based)
+- Zero overhead when telemetry disabled - no buffer allocation
+
+### 13.2 Time-Based Windowing
+- Add telemetry_time_window parameter for intuitive configuration
+- Support "report every N seconds" pattern (e.g., every 5 minutes)
+- Time-based takes precedence over batch-based if both specified
+- Track last_report_time for efficient window checking
+
+### 13.3 Queue Framework Fixes
+- Fix critical double-getter deadlock in TrainingStep, SGDOptimizer, GetBatch
+- Document one-time configuration input pattern in queue_framework.md
+- Add fail-fast rule: never use setup_inputs() for config inputs
+- Clean up noisy per-batch trigger logging in GetBatch
+
+### 13.4 Documentation
+- Create training_with_telemetry.md in development docs
+- Document telemetry windows, performance notes, and examples
+- Update telemetry.md with training telemetry configuration
+
 ## Key Decisions
 - Export button renamed from "Queue Prompt" (already done)
 - Using UI port (8767) exclusively for dnne_agent communication
