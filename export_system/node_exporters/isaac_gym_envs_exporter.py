@@ -9,6 +9,7 @@ import os
 import sys
 from pathlib import Path
 from ..graph_exporter import ExportableNode
+from ..utils import yaml_schema_utils
 
 # Add parent directory to path to import dnne_config
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -134,11 +135,12 @@ class IsaacGymEnvsExporter(ExportableNode):
     
     @classmethod
     def _load_task_schema(cls, task_name):
-        """Load schema information from task YAML"""
+        """Load schema information from task YAML using utility functions"""
         schema_info = {
             'schema_levels': [],
             'nested_schemas': {},
-            'defaults': {}
+            'defaults': {},
+            'raw_config': None
         }
         
         try:
@@ -149,26 +151,24 @@ class IsaacGymEnvsExporter(ExportableNode):
                 with open(task_cfg_path, 'r') as f:
                     task_config = yaml.safe_load(f)
                 
-                # Look for dnne section - check both root level and env level
-                dnne_config = None
-                if 'env' in task_config and 'dnne' in task_config['env']:
-                    dnne_config = task_config['env']['dnne']
-                elif 'dnne' in task_config:
-                    dnne_config = task_config['dnne']
+                # Store raw config for later use
+                schema_info['raw_config'] = task_config
                 
-                if dnne_config:
-                    schema_info['schema_levels'] = dnne_config.get('schema_levels', [])
-                    schema_info['nested_schemas'] = dnne_config.get('nested_schemas', {})
-                    
-                    # Get default values for each level
-                    for level in schema_info['schema_levels']:
-                        default_key = f"default_{level}"
-                        if default_key in dnne_config:
-                            schema_info['defaults'][level] = dnne_config[default_key]
+                # Use utility functions to extract schema info
+                schema_info['schema_levels'] = yaml_schema_utils.get_dnne_schema_levels(task_config)
+                schema_info['defaults'] = yaml_schema_utils.get_schema_defaults(task_config)
+                
+                # Get nested schemas if present
+                dnne_config = yaml_schema_utils.navigate_schema(task_config, ['env', 'dnne'])
+                if not dnne_config:
+                    dnne_config = yaml_schema_utils.navigate_schema(task_config, ['dnne'])
+                
+                if dnne_config and 'nested_schemas' in dnne_config:
+                    schema_info['nested_schemas'] = dnne_config['nested_schemas']
                 else:
                     # No DNNE config - check for basic env info
-                    if 'env' in task_config:
-                        env_config = task_config['env']
+                    env_config = yaml_schema_utils.navigate_schema(task_config, ['env'])
+                    if env_config:
                         if 'numObservations' in env_config or 'numActions' in env_config:
                             schema_info['nested_schemas'] = {
                                 'numObservations': env_config.get('numObservations'),
@@ -266,6 +266,31 @@ class IsaacGymEnvsExporter(ExportableNode):
                 value = params.get(f'dynamic_{i+1}')
                 if value and value != 'none':
                     config[level] = value
+        
+        # Use utility functions to extract observation/action sizes from schema
+        if schema_info.get('raw_config'):
+            # Build level_values dict from config
+            level_values = {}
+            for level in schema_info.get('schema_levels', []):
+                if level in config:
+                    level_values[level] = config[level]
+            
+            # Extract sizes using utility function
+            num_obs, num_acts = yaml_schema_utils.extract_observation_action_sizes(
+                schema_info['raw_config'], level_values
+            )
+            
+            if num_obs is not None:
+                config['numObservations'] = num_obs
+            if num_acts is not None:
+                config['numActions'] = num_acts
+            
+            # Also get null action if available
+            null_action = yaml_schema_utils.get_null_action(
+                schema_info['raw_config'], level_values
+            )
+            if null_action is not None:
+                config['nullAction'] = null_action
         
         # Add isaac_gym_envs_path for PPOAgent exporter
         config['isaac_gym_envs_path'] = str(get_isaac_gym_envs_path())
