@@ -80,9 +80,13 @@ class TestParseSingleOverride:
         assert isinstance(result, str)
         assert "Invalid override format" in result
         
-        result = parse_single_override("notanumber:param=value")  # Non-numeric node ID
-        assert isinstance(result, str)
-        assert "Invalid override format" in result
+        # Non-numeric strings are now valid (could be subsystem names)
+        result = parse_single_override("training:param=value")
+        assert not isinstance(result, str)  # Should be valid
+        target, param, value = result
+        assert target == "training"
+        assert param == "param"
+        assert value == "value"
 
 
 class TestParseOverrideArgs:
