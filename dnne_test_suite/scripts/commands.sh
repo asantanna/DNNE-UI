@@ -148,25 +148,47 @@ dnne_test_pytest() {
     install_test_deps
     check_dependencies
     
+    # Ensure dnne_logs directory exists
+    mkdir -p "$PROJECT_ROOT/dnne_logs"
+    
+    # Set log file path (overwrites on each run)
+    local log_file="$PROJECT_ROOT/dnne_logs/dnne_test_suite.log"
+    
     echo ""
     log_info "Running pytest with: $pytest_args"
     log_info "Timeout: ${timeout}s per test"
+    log_info "Logging all output to: $log_file"
     echo ""
     
     cd "$PROJECT_ROOT"
-    pytest $pytest_args \
-        --timeout=$timeout \
-        --timeout-method=thread \
-        -v \
-        --tb=short \
-        --no-header
-    local exit_code=$?
+    # Use tee to capture ALL output (stdout and stderr) to log file while still displaying it
+    # The -s flag ensures pytest doesn't capture output, so everything goes through
+    {
+        echo "==================== DNNE Test Suite Run ===================="
+        echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "Command: pytest $pytest_args"
+        echo "=============================================================="
+        echo ""
+        # Run pytest and format the output
+        pytest $pytest_args \
+            --timeout=$timeout \
+            --timeout-method=thread \
+            -v \
+            --tb=short \
+            --no-header \
+            -s 2>&1
+    } | sed 's|dnne_test_suite/core/unit/[^/]*/||g; s|dnne_test_suite/core/integration/[^/]*/||g' | tee "$log_file"
+    
+    # Get exit code from pytest (not tee)
+    local exit_code=${PIPESTATUS[0]}
     
     echo ""
     if [ $exit_code -eq 0 ]; then
         log_success "Tests completed successfully!"
+        log_info "Test log saved to: $log_file"
     else
         log_error "Tests failed with exit code $exit_code"
+        log_info "Test log saved to: $log_file"
     fi
     
     return $exit_code
