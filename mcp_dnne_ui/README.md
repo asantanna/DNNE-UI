@@ -1,5 +1,7 @@
 # DNNE UI MCP Server
 
+> **For Claude Code instances:** See [MCP Quickstart Guide](../dnne_docs/development/mcp_quickstart.md) for immediate usage patterns and common gotchas.
+
 A Model Context Protocol (MCP) server that provides high-level automation for the DNNE UI using Python and Playwright.
 
 ## Overview

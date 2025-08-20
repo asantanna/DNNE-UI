@@ -17,7 +17,7 @@ source /home/asantanna/miniconda/bin/activate MCP_PY310
 # Start Claude Code in this environment
 claude-code
 
-# Run MCP server
+# Run MCP server manually (if outside of Claude Code)
 python src/dnne_ui_mcp_server.py
 
 # Run tests
