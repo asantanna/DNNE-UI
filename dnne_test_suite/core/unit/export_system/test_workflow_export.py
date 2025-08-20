@@ -39,7 +39,7 @@ class TestWorkflowLoading:
         node_types = [node.get("type") for node in nodes]
         
         # Should have key ML training nodes
-        expected_types = ["MNISTDataset", "Network", "TrainingStep"]
+        expected_types = ["MNISTDataset", "Network", "SGDOptimizer"]
         found_types = [t for t in expected_types if t in node_types]
         
         assert len(found_types) > 0, f"Expected ML nodes not found. Available: {node_types}"
@@ -62,7 +62,7 @@ class TestWorkflowLoading:
         # Check for training components
         training_components = [
             "MNISTDataset", "BatchSampler", "GetBatch", 
-            "Network", "CrossEntropyLoss", "SGDOptimizer", "TrainingStep"
+            "Network", "CrossEntropyLoss", "SGDOptimizer"
         ]
         
         found_components = [t for t in training_components if t in node_types]
@@ -151,7 +151,7 @@ class TestWorkflowExport:
             runner_content = runner_file.read_text()
             assert "async def main()" in runner_content
             assert "MNISTDataset" in runner_content
-            assert "TrainingStep" in runner_content
+            assert "SGDOptimizer" in runner_content
             
             # Check framework files
             framework_dir = export_path / "framework"

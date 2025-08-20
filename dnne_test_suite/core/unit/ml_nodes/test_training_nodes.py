@@ -1,7 +1,7 @@
 """
 Unit tests for ML training nodes.
 
-Tests CrossEntropyLoss, SGDOptimizer, TrainingStep, and EpochTracker
+Tests CrossEntropyLoss, SGDOptimizer, and EpochTracker
 nodes for proper training coordination and trigger-based execution.
 """
 
@@ -15,7 +15,7 @@ import time
 # Import nodes to test
 from custom_nodes import (
     CrossEntropyLossNode, SGDOptimizerNode, 
-    TrainingStepNode, EpochTrackerNode
+    EpochTrackerNode
 )
 from fixtures.node_data import (
     SGD_OPTIMIZER_DATA, CROSS_ENTROPY_LOSS_DATA, create_sample_batch,
@@ -208,107 +208,6 @@ class TestSGDOptimizerNode:
         assert template_vars["MOMENTUM"] == 0.9
 
 
-class TestTrainingStepNode:
-    """Test TrainingStep node for gradient updates and trigger coordination."""
-    
-    @pytest.mark.ml
-    def test_input_types(self):
-        """Test TrainingStep input type definition."""
-        node = TrainingStepNode()
-        input_types = node.INPUT_TYPES()
-        
-        assert "required" in input_types
-        all_params = {**input_types["required"], **input_types.get("optional", {})}
-        
-        # Should accept loss and optimizer
-        loss_found = any("loss" in k.lower() for k in all_params.keys())
-        opt_found = any("optim" in k.lower() for k in all_params.keys())
-        
-        assert loss_found or opt_found or len(all_params) >= 2
-    
-    @pytest.mark.ml
-    def test_return_types(self):
-        """Test TrainingStep return types."""
-        node = TrainingStepNode()
-        
-        assert hasattr(node, "RETURN_TYPES")
-        assert hasattr(node, "RETURN_NAMES")
-        
-        return_types = node.RETURN_TYPES
-        return_names = node.RETURN_NAMES
-        
-        # Should return ready signal or sync
-        assert len(return_types) == len(return_names)
-        assert len(return_types) >= 1
-    
-    @pytest.mark.ml
-    def test_training_step_export_functionality(self):
-        """Test TrainingStep export functionality."""
-        node = TrainingStepNode()
-        
-        # Test UI interface
-        input_types = node.INPUT_TYPES()
-        assert "required" in input_types
-        required = input_types["required"]
-        
-        # Should accept loss and optimizer
-        assert "loss" in required
-        assert "optimizer" in required
-        
-        # Test that exporter exists
-        from export_system.node_exporters import TrainingStepExporter
-        
-        # Test template name
-        template_name = TrainingStepExporter.get_template_name()
-        assert template_name == "nodes/training_step_queue.tpl"
-        
-        # Test imports
-        imports = TrainingStepExporter.get_imports()
-        assert "import torch" in imports
-        assert "import asyncio" in imports
-    
-    @pytest.mark.ml
-    def test_training_step_template_variables(self):
-        """Test TrainingStep template variable preparation."""
-        from export_system.node_exporters import TrainingStepExporter
-        
-        # Mock node data
-        mock_data = {"widgets_values": []}
-        mock_connections = {
-            "loss": [("node_1", "loss")],
-            "optimizer": [("node_2", "optimizer")]
-        }
-        
-        # Test template variable preparation
-        template_vars = TrainingStepExporter.prepare_template_vars(
-            "test_1", mock_data, mock_connections
-        )
-        
-        # Validate the variables
-        assert template_vars["NODE_ID"] == "test_1"
-        assert template_vars["CLASS_NAME"] == "TrainingStepNode"
-    
-    @pytest.mark.ml
-    def test_training_step_ui_interface(self):
-        """Test TrainingStep UI interface and return types."""
-        node = TrainingStepNode()
-        
-        # Test return types
-        return_types = node.RETURN_TYPES
-        return_names = node.RETURN_NAMES
-        
-        # TrainingStep should return ready signals
-        assert len(return_types) == len(return_names)
-        assert len(return_types) >= 1
-        
-        # Test function name for export
-        assert hasattr(node, 'FUNCTION')
-        
-        # Test category
-        assert hasattr(node, 'CATEGORY')
-        category = node.CATEGORY.lower()
-        assert "ml" in category or "training" in category
-
 
 class TestEpochTrackerNode:
     """Test EpochTracker node for training progress monitoring."""
@@ -399,7 +298,7 @@ class TestTrainingNodeIntegration:
     def test_training_loop_export_integration(self):
         """Test that all training nodes have consistent export interfaces."""
         # Test that all training node types have exporters
-        training_nodes = [CrossEntropyLossNode, SGDOptimizerNode, TrainingStepNode, EpochTrackerNode]
+        training_nodes = [CrossEntropyLossNode, SGDOptimizerNode, EpochTrackerNode]
         
         for node_class in training_nodes:
             node = node_class()
@@ -419,12 +318,12 @@ class TestTrainingNodeIntegration:
     def test_training_node_exporter_consistency(self):
         """Test that training nodes have consistent exporter interfaces."""
         from export_system.node_exporters import (
-            CrossEntropyLossExporter, SGDOptimizerExporter, TrainingStepExporter, EpochTrackerExporter
+            CrossEntropyLossExporter, SGDOptimizerExporter, EpochTrackerExporter
         )
         
         exporters = [
             CrossEntropyLossExporter, SGDOptimizerExporter, 
-            TrainingStepExporter, EpochTrackerExporter
+            EpochTrackerExporter
         ]
         
         for exporter_class in exporters:
@@ -468,7 +367,7 @@ class TestTrainingNodeIntegration:
         """Test that all training nodes have appropriate categories."""
         nodes = [
             CrossEntropyLossNode(), SGDOptimizerNode(),
-            TrainingStepNode(), EpochTrackerNode()
+            EpochTrackerNode()
         ]
         
         for node in nodes:
@@ -479,7 +378,7 @@ class TestTrainingNodeIntegration:
     @pytest.mark.ml
     def test_training_node_parameter_validation_interface(self):
         """Test that training nodes have proper parameter validation interfaces."""
-        training_nodes = [CrossEntropyLossNode, SGDOptimizerNode, TrainingStepNode, EpochTrackerNode]
+        training_nodes = [CrossEntropyLossNode, SGDOptimizerNode, EpochTrackerNode]
         
         for node_class in training_nodes:
             node = node_class()

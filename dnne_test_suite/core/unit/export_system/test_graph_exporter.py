@@ -76,7 +76,7 @@ class TestGraphExporter:
         # Check for key ML nodes
         expected_ml_nodes = [
             "MNISTDataset", "LinearLayer", "Network", 
-            "SGDOptimizer", "CrossEntropyLoss", "TrainingStep"
+            "SGDOptimizer", "CrossEntropyLoss"
         ]
         
         registered_nodes = list(exporter.node_registry.keys())
@@ -166,8 +166,8 @@ class TestWorkflowParsing:
         nodes = workflow.get("nodes", [])
         links = workflow.get("links", [])
         
-        assert len(nodes) == 11  # Full MNIST training workflow nodes
-        assert len(links) == 18  # Full MNIST training workflow connections
+        assert len(nodes) == 10  # Full MNIST training workflow nodes (TrainingStep removed)
+        assert len(links) == 17  # Full MNIST training workflow connections (updated for merged SGDOptimizer)
         
         # Verify connection structure
         for link in links:

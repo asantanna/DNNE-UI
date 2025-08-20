@@ -170,15 +170,11 @@ NODE_IO_TYPES = {
         "outputs": ["predictions", "model"]
     },
     "SGDOptimizer": {
-        "inputs": ["model"],
-        "outputs": ["optimizer"]
+        "inputs": ["model", "loss"],
+        "outputs": ["step_complete"]
     },
     "CrossEntropyLoss": {
         "inputs": ["predictions", "targets"],
         "outputs": ["loss"]
-    },
-    "TrainingStep": {
-        "inputs": ["loss", "optimizer"],
-        "outputs": ["ready_signal"]
     }
 }

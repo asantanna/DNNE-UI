@@ -3,29 +3,23 @@ SimulationTracker Node Exporter
 Exports the SimulationTracker node for RL/robotics workflows.
 """
 
-from typing import Dict, Any, List, Optional
-from ..base_exporter import BaseNodeExporter
+from ..graph_exporter import ExportableNode
 
 
-class SimulationTrackerExporter(BaseNodeExporter):
+class SimulationTrackerExporter(ExportableNode):
     """Exporter for SimulationTracker nodes"""
     
     @classmethod
-    def get_template_file(cls) -> str:
+    def get_template_name(cls):
         """Get the template file for this node type"""
-        return "simulation_tracker_queue.py"
+        return "nodes/simulation_tracker_queue.py"
     
     @classmethod
-    def get_node_class_name(cls, node: Dict[str, Any]) -> str:
-        """Get the class name for the exported node"""
-        return f"SimulationTracker_{node['id']}"
-    
-    @classmethod
-    def export(cls, node: Dict[str, Any], inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """Export SimulationTracker node configuration"""
+    def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
+        """Prepare template variables for SimulationTracker node"""
         
         # Extract widget values
-        widgets = node.get("widgets_values", [])
+        widgets = node_data.get("widgets_values", [])
         
         # Map widget values based on node definition
         # From SimulationTrackerNode.INPUT_TYPES:
@@ -37,25 +31,25 @@ class SimulationTrackerExporter(BaseNodeExporter):
         success_threshold = widgets[1] if len(widgets) > 1 else 0.95
         
         return {
-            "NODE_ID": str(node["id"]),
+            "NODE_ID": node_id,
             "MAX_EPISODES": max_episodes,
             "SUCCESS_THRESHOLD": success_threshold,
         }
     
     @classmethod  
-    def get_input_names(cls) -> List[str]:
+    def get_input_names(cls):
         """Get the ordered list of input names for this node type"""
         # From SimulationTrackerNode.INPUT_TYPES
         return ["observation", "done", "loss", "reward", "custom_metrics"]
     
     @classmethod
-    def get_output_names(cls) -> List[str]:
+    def get_output_names(cls):
         """Get the ordered list of output names for this node type"""
         # From SimulationTrackerNode.RETURN_NAMES
         return ["control_metrics"]
     
     @classmethod
-    def get_imports(cls) -> List[str]:
+    def get_imports(cls):
         """Get the list of imports needed for this node"""
         return [
             "import time",
@@ -66,7 +60,7 @@ class SimulationTrackerExporter(BaseNodeExporter):
         ]
     
     @classmethod
-    def get_initial_output_schema(cls) -> Optional[Dict[str, Any]]:
+    def get_initial_output_schema(cls, node_data):
         """Get the initial output schema for this node"""
         # Return initial control metrics structure
         return {

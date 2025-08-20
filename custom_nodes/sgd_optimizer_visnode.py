@@ -1,6 +1,7 @@
 """
 SGD Optimizer Node
-Stochastic Gradient Descent optimizer for training neural networks.
+Stochastic Gradient Descent optimizer that performs training steps.
+Combines optimizer creation with backpropagation and parameter updates.
 """
 
 from inspect import cleandoc
@@ -12,7 +13,8 @@ from custom_nodes.utils.dnne_decorator import dnne_node
 @dnne_node(is_virtual=False)
 class SGDOptimizerNode(RoboticsNodeBase):
     """SGD Optimizer Node
-    Stochastic Gradient Descent optimizer for training neural networks."""
+    Stochastic Gradient Descent optimizer that performs training steps.
+    Combines optimizer creation with backpropagation and parameter updates."""
     
     DESCRIPTION = cleandoc(__doc__)
     COLOR = get_node_colors("training")["color"]
@@ -24,6 +26,9 @@ class SGDOptimizerNode(RoboticsNodeBase):
             "required": {
                 "model": ("*MODEL_OBJ", {
                     "tooltip": "Neural network model to optimize. Must have parameters to train."
+                }),
+                "loss": ("*LOSS_SCALAR", {
+                    "tooltip": "Loss scalar to backpropagate. Triggers training step when received."
                 }),
                 "learning_rate": ("FLOAT", {
                     "default": 0.01,
@@ -49,8 +54,8 @@ class SGDOptimizerNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("SGD_OPTIMIZER_OBJ",)
-    RETURN_NAMES = ("optimizer",)
+    RETURN_TYPES = ("TRAIN_STEP_TRIGGER",)
+    RETURN_NAMES = ("step_complete",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"
 

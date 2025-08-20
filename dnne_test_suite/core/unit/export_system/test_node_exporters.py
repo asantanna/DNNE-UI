@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 # Import node exporters
 from export_system.node_exporters import (
     MNISTDatasetExporter, LinearLayerExporter, NetworkExporter,
-    SGDOptimizerExporter, CrossEntropyLossExporter, TrainingStepExporter
+    SGDOptimizerExporter, CrossEntropyLossExporter
 )
 from fixtures.node_data import (
     LINEAR_LAYER_DATA, MNIST_DATASET_DATA, NETWORK_DATA, 
@@ -28,7 +28,7 @@ class TestExportableNodeBase:
         """Test that exporters implement required interface."""
         exporters = [
             MNISTDatasetExporter, LinearLayerExporter, NetworkExporter,
-            SGDOptimizerExporter, CrossEntropyLossExporter, TrainingStepExporter
+            SGDOptimizerExporter, CrossEntropyLossExporter
         ]
         
         for exporter_class in exporters:
@@ -252,58 +252,6 @@ class TestCrossEntropyLossExporter:
             assert template_vars["LABEL_SMOOTHING"] == 0.1
 
 
-class TestTrainingStepExporter:
-    """Test TrainingStep node exporter."""
-    
-    @pytest.mark.export
-    def test_template_name(self):
-        """Test training step template name."""
-        template_name = TrainingStepExporter.get_template_name()
-        
-        assert isinstance(template_name, str)
-        assert template_name.endswith('.tpl')
-        assert 'training' in template_name.lower() or 'step' in template_name.lower()
-    
-    @pytest.mark.export
-    def test_training_parameter_extraction(self):
-        """Test extraction of training step parameters."""
-        node_data = {
-            "inputs": {},
-            "widgets": {
-                "gradient_clipping": 1.0,
-                "accumulate_gradients": 4
-            }
-        }
-        
-        template_vars = TrainingStepExporter.prepare_template_vars(
-            "training_node", node_data, {}
-        )
-        
-        # Should extract gradient clipping
-        if "GRADIENT_CLIPPING" in template_vars:
-            assert template_vars["GRADIENT_CLIPPING"] == 1.0
-        
-        # Should extract accumulation steps
-        if "ACCUMULATE_GRADIENTS" in template_vars:
-            assert template_vars["ACCUMULATE_GRADIENTS"] == 4
-    
-    @pytest.mark.export
-    def test_trigger_signal_generation(self):
-        """Test ready signal generation in template vars."""
-        node_data = {"inputs": {}, "widgets": {}}
-        
-        template_vars = TrainingStepExporter.prepare_template_vars(
-            "training_node", node_data, {}
-        )
-        
-        # Should have proper node structure
-        assert "NODE_ID" in template_vars
-        assert "CLASS_NAME" in template_vars
-        
-        # Implementation might include signal generation logic
-        class_name = template_vars.get("CLASS_NAME", "")
-        assert "training" in class_name.lower() or "step" in class_name.lower()
-
 
 class TestExporterIntegration:
     """Integration tests for node exporters."""
@@ -321,7 +269,7 @@ class TestExporterIntegration:
         # Check that key ML nodes are registered
         key_ml_nodes = [
             "MNISTDataset", "LinearLayer", "Network", 
-            "SGDOptimizer", "CrossEntropyLoss", "TrainingStep"
+            "SGDOptimizer", "CrossEntropyLoss"
         ]
         
         registered_nodes = list(exporter.node_registry.keys())
@@ -408,7 +356,7 @@ class TestExporterIntegration:
         """Test that generated import statements are valid Python."""
         exporters = [
             MNISTDatasetExporter, LinearLayerExporter, NetworkExporter,
-            SGDOptimizerExporter, CrossEntropyLossExporter, TrainingStepExporter
+            SGDOptimizerExporter, CrossEntropyLossExporter
         ]
         
         for exporter_class in exporters:

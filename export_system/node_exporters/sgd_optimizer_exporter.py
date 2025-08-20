@@ -45,19 +45,19 @@ class SGDOptimizerExporter(ExportableNode):
     
     @classmethod
     def get_output_names(cls):
-        return ["optimizer"]
+        return ["step_complete"]
     
     @classmethod
     def get_input_names(cls):
-        return ["model"]  # Connection from Network node
+        return ["model", "loss"]  # Model from Network, loss from loss function
     
     @classmethod
     def get_initial_output_schema(cls, node_data):
         return {
             "outputs": {
-                "optimizer": {
-                    "type": "optimizer",
-                    "optimizer_type": "SGD"
+                "step_complete": {
+                    "type": "signal",
+                    "signal_type": "training_step_complete"
                 }
             }
         }

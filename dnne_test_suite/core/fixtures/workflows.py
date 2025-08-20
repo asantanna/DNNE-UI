@@ -63,12 +63,6 @@ SIMPLE_DATASET_NETWORK = {
             "widgets_values": [64, True, 1993, "randomize"]
         },
         {
-            "id": "45",
-            "type": "TrainingStep",
-            "inputs": {},
-            "widgets_values": [0]
-        },
-        {
             "id": "37",
             "type": "MNISTDataset",
             "inputs": {},
@@ -112,15 +106,14 @@ SIMPLE_DATASET_NETWORK = {
         [81, 43, 0, 46, 0, "TENSOR"],
         [92, 38, 0, 50, 0, "DATALOADER"],
         [93, 38, 1, 50, 1, "SCHEMA"],
-        [110, 45, 0, 50, 2, "SYNC"],
+        [110, 62, 0, 50, 2, "SYNC"],
         [111, 56, 0, 42, 0, "TENSOR"],
         [112, 46, 0, 56, 1, "TENSOR"],
         [115, 50, 0, 56, 0, "TENSOR"],
         [125, 56, 1, 61, 0, "TENSOR"],
         [126, 50, 1, 61, 1, "TENSOR"],
-        [128, 61, 0, 45, 0, "TENSOR"],
+        [128, 61, 0, 62, 1, "TENSOR"],
         [129, 56, 2, 62, 0, "MODEL"],
-        [130, 62, 0, 45, 1, "OPTIMIZER"],
         [132, 50, 3, 64, 0, "DICT"],
         [133, 61, 0, 64, 1, "TENSOR"],
         [134, 61, 1, 64, 2, "*"]
@@ -207,12 +200,6 @@ MINIMAL_TRAINING_WORKFLOW = {
                 "momentum": 0.9
             }
         },
-        {
-            "id": "7",
-            "type": "TrainingStep",
-            "inputs": {},
-            "widgets": {}
-        }
     ],
     "links": [
         [1, "1", 0, "2", 0],      # Dataset.dataset -> BatchSampler.dataset
@@ -225,10 +212,9 @@ MINIMAL_TRAINING_WORKFLOW = {
         [8, "8", 0, "9", 1],      # LinearLayer.output -> Network.to_output
         [9, "9", 1, "5", 0],      # Network.output -> CrossEntropyLoss.predictions
         [10, "3", 1, "5", 1],     # GetBatch.labels -> CrossEntropyLoss.labels
-        [11, "5", 0, "7", 0],     # CrossEntropyLoss.loss -> TrainingStep.loss
+        [11, "5", 0, "6", 1],     # CrossEntropyLoss.loss -> SGDOptimizer.loss
         [12, "9", 2, "6", 0],     # Network.model -> SGDOptimizer.model
-        [13, "6", 0, "7", 1],     # SGDOptimizer.optimizer -> TrainingStep.optimizer
-        [14, "7", 0, "3", 2]      # TrainingStep.trigger -> GetBatch.trigger
+        [14, "6", 0, "3", 2]      # SGDOptimizer.step_complete -> GetBatch.trigger
     ]
 }
 
