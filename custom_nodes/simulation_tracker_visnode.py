@@ -1,0 +1,69 @@
+"""
+Simulation Tracker Node
+Tracks training progress for reinforcement learning and robotics simulations.
+"""
+
+from inspect import cleandoc
+from custom_nodes.utils.visnode_base import RoboticsNodeBase
+from custom_nodes.utils.node_colors import get_node_colors
+from custom_nodes.utils.dnne_decorator import dnne_node
+
+
+@dnne_node(is_virtual=False)
+class SimulationTrackerNode(RoboticsNodeBase):
+    """Simulation Tracker Node
+    Tracks training progress for reinforcement learning and robotics simulations."""
+    
+    DESCRIPTION = cleandoc(__doc__)
+    COLOR = get_node_colors("rl")["color"]
+    BGCOLOR = get_node_colors("rl")["bgcolor"]
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "observation": ("*SIM_OBSERVATION_TENSOR", {
+                    "tooltip": "Observation tensor from the simulator containing state information."
+                }),
+                "done": ("*SIM_DONE_TRIGGER", {
+                    "tooltip": "Episode completion signal from the simulator. Triggered when episode ends."
+                }),
+            },
+            "optional": {
+                "loss": ("*LOSS_SCALAR", {
+                    "tooltip": "Optional training loss from policy/value networks for tracking learning progress."
+                }),
+                "reward": ("*REWARD_SCALAR", {
+                    "tooltip": "Current step reward from the environment. Used to compute episode rewards."
+                }),
+                "custom_metrics": ("*METRICS_PYDICT", {
+                    "tooltip": "Optional task-specific metrics like distance to target, energy used, etc."
+                }),
+                "max_episodes": ("INT", {
+                    "default": 1000,
+                    "min": 1,
+                    "max": 100000,
+                    "tooltip": "Maximum number of episodes to run. Training stops when this limit is reached."
+                }),
+                "success_threshold": ("FLOAT", {
+                    "default": 0.95,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "tooltip": "Success rate threshold for early stopping. Training stops when achieved."
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("CONTROL_METRICS_PYDICT",)
+    RETURN_NAMES = ("control_metrics",)
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
+    CATEGORY = "rl"
+
+# Node registration
+NODE_CLASS_MAPPINGS = {
+    "SimulationTracker": SimulationTrackerNode
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "SimulationTracker": "Simulation Tracker"
+}

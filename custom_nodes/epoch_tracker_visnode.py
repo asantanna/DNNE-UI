@@ -42,8 +42,8 @@ class EpochTrackerNode(RoboticsNodeBase):
             }
         }
 
-    RETURN_TYPES = ("EPOCH_TRAINING_SUMMARY_PYDICT",)
-    RETURN_NAMES = ("training_summary",)
+    RETURN_TYPES = ("CONTROL_METRICS_PYDICT",)
+    RETURN_NAMES = ("control_metrics",)
     FUNCTION = None  # DNNE nodes don't execute in UI, only export
     CATEGORY = "ml"
 
