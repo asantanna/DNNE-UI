@@ -364,6 +364,111 @@ async def _listen_to_queue(self, name, queue):
 
 This pattern has proven so effective it inadvertently fixed longstanding deadlocks in complex workflows like Franka cooperative control.
 
+### One-Time Configuration Inputs Pattern
+
+**CRITICAL RULE**: If a node needs to manually control when/how it reads from a queue (like one-time configuration inputs), it should NOT include that input in `setup_inputs()`. Instead, manually create the queue.
+
+#### The Problem: Double-Getter Deadlock
+
+When a node lists an input in `setup_inputs()` AND also manually reads from that queue, it creates two competing getters:
+
+```python
+# WRONG - Creates double-getter deadlock!
+class TrainingStepNode(QueueNode):
+    def __init__(self, node_id: str):
+        super().__init__(node_id)
+        # DON'T DO THIS - creates first getter via MultiWaiter
+        self.setup_inputs(required=["loss"], optional=["optimizer"])
+        
+    async def run(self):
+        # Second getter - competes with MultiWaiter!
+        config = await self.get_config_inputs(["optimizer"])  # DEADLOCK!
+        self.optimizer = config["optimizer"]
+```
+
+The MultiWaiter (created by `setup_inputs`) tries to get from the optimizer queue, AND `get_config_inputs` also tries to get from it. With only one optimizer message sent, one getter will block forever.
+
+#### The Solution: Manual Queue Creation
+
+For one-time configuration inputs, bypass `setup_inputs` and create the queue manually:
+
+```python
+# CORRECT - No double-getter!
+class TrainingStepNode(QueueNode):
+    def __init__(self, node_id: str):
+        super().__init__(node_id)
+        # Only list repeating inputs in setup_inputs
+        self.setup_inputs(required=["loss"])
+        
+        # Manually create queue for one-time config
+        from asyncio import Queue
+        self.input_queues["optimizer"] = Queue(maxsize=1)
+        
+    async def run(self):
+        # Now only ONE getter for optimizer queue
+        config = await self.get_config_inputs(["optimizer"])
+        self.optimizer = config["optimizer"]
+        
+        # Continue with normal MultiWaiter for loss inputs
+        await super().run()
+```
+
+#### Common Patterns
+
+**Pattern 1: One-time Config + Repeating Data**
+```python
+class ProcessorNode(QueueNode):
+    def __init__(self, node_id):
+        super().__init__(node_id)
+        # Only repeating inputs in setup_inputs
+        self.setup_inputs(required=["data"])
+        
+        # Manual queues for one-time configs
+        self.input_queues["config"] = Queue(maxsize=1)
+        self.input_queues["model"] = Queue(maxsize=1)
+        
+    async def run(self):
+        # Get configs once
+        configs = await self.get_config_inputs(["config", "model"])
+        self.config = configs["config"]
+        self.model = configs["model"]
+        
+        # Process data stream with MultiWaiter
+        await super().run()
+```
+
+**Pattern 2: Mixed Trigger Types**
+```python
+class GetBatchNode(QueueNode):
+    def __init__(self, node_id):
+        super().__init__(node_id)
+        # No setup_inputs - we handle everything manually
+        self.setup_inputs(required=[])
+        
+        # Different queue sizes for different patterns
+        self.input_queues["dataloader"] = Queue(maxsize=1)  # One-time
+        self.input_queues["schema"] = Queue(maxsize=1)      # One-time
+        self.input_queues["trigger"] = Queue(maxsize=10)    # Repeated
+        
+    async def run(self):
+        # Get one-time configs
+        self.dataloader = await self.input_queues["dataloader"].get()
+        self.schema = await self.input_queues["schema"].get()
+        
+        # Process triggers
+        while self.running:
+            trigger = await self.input_queues["trigger"].get()
+            outputs = await self.compute()
+            # ...
+```
+
+#### Nodes That Use This Pattern
+
+- **TrainingStepNode**: Receives optimizer once, processes loss stream
+- **SGDOptimizerNode**: Receives model once, emits optimizer once
+- **GetBatchNode**: Receives dataloader/schema once, processes trigger stream
+- **IsaacGymSimNode**: Custom queue handling for action/reset signals
+
 ### State Machine Pattern
 
 For complex control flow:

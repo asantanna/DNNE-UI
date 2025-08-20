@@ -8,8 +8,15 @@ class GetBatchNode_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=["dataloader", "schema", "trigger"])
+        # Only trigger is a repeated input, dataloader and schema are one-time configs
+        self.setup_inputs(required=[])
         self.setup_outputs(["images", "labels", "epoch_complete", "epoch_stats"])
+        
+        # Manually create queues for all inputs
+        from asyncio import Queue
+        self.input_queues["dataloader"] = Queue(maxsize=1)  # One-time config
+        self.input_queues["schema"] = Queue(maxsize=1)  # One-time config
+        self.input_queues["trigger"] = Queue(maxsize=10)  # Repeated trigger signals
         self.dataloader = None
         self.schema = None
         self.data_iter = None

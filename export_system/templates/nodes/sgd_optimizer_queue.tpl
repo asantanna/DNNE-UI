@@ -11,8 +11,13 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=["model"])  # Connection from network node
+        # No setup_inputs since we manually handle the model queue
+        self.setup_inputs(required=[])
         self.setup_outputs(["optimizer"])
+        
+        # Manually create model queue for one-time config
+        from asyncio import Queue
+        self.input_queues["model"] = Queue(maxsize=1)
         
         # Optimizer parameters
         self.learning_rate = {LEARNING_RATE}

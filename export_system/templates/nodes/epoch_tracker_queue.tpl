@@ -6,6 +6,8 @@ template_vars = {
 
 from framework.globals import Global as g, dnne_logging
 from framework.exceptions import CauseExitException
+from framework import telemetry
+import statistics
 
 # Training subsystem logger
 training_logger = dnne_logging.getLogger("training")
@@ -39,6 +41,16 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
         # Flag to track if we've shown the training starting message
         self.training_started = False
         
+        # Telemetry configuration - only initialize if telemetry is enabled
+        self.telemetry_enabled = g.get_node_config(self.node_id, 'telemetry_enabled', False)
+        if self.telemetry_enabled:
+            # Only create buffers and config if telemetry is actually enabled
+            self.telemetry_batch_window = g.get_node_config(self.node_id, 'telemetry_batch_window', 100)
+            self.telemetry_loss_buffer = []
+            self.telemetry_accuracy_buffer = []
+            self.telemetry_window_counter = 0
+            self.node_logger.info(f"Telemetry enabled with batch window: {self.telemetry_batch_window}")
+        
     async def compute(self, epoch_stats, loss, accuracy) -> Dict[str, Any]:
         # Show training starting message once
         if not self.training_started:
@@ -46,9 +58,21 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             self.training_started = True
         
         # Track batch-level metrics
-        self.epoch_losses.append(loss.item() if hasattr(loss, 'item') else float(loss))
-        self.epoch_accuracies.append(float(accuracy))
+        loss_value = loss.item() if hasattr(loss, 'item') else float(loss)
+        accuracy_value = float(accuracy)
+        self.epoch_losses.append(loss_value)
+        self.epoch_accuracies.append(accuracy_value)
         self.batch_count += 1
+        
+        # Collect telemetry data if enabled (no overhead when disabled)
+        if self.telemetry_enabled:
+            self.telemetry_loss_buffer.append(loss_value)
+            self.telemetry_accuracy_buffer.append(accuracy_value)
+            self.telemetry_window_counter += 1
+            
+            # Report statistics every N batches
+            if self.telemetry_window_counter >= self.telemetry_batch_window and len(self.telemetry_loss_buffer) > 0:
+                self._report_window_telemetry()
         
         # Check if epoch completed
         if epoch_stats.get("completed", False):
@@ -64,6 +88,13 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             print(f"   Avg Accuracy: {avg_accuracy:.2%}")
             print("=" * 60)
             
+            # Report epoch telemetry if enabled
+            if self.telemetry_enabled:
+                telemetry.report_custom(self.node_id, "epoch_completed", float(epoch_num + 1))
+                telemetry.report_custom(self.node_id, "epoch_avg_loss", avg_loss)
+                telemetry.report_custom(self.node_id, "epoch_avg_accuracy", avg_accuracy)
+                telemetry.report_custom(self.node_id, "epoch_total_batches", float(len(self.epoch_losses)))
+                
             # Reset for next epoch
             summary = {
                 "epoch": epoch_num,
@@ -94,3 +125,74 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
                     training_logger.info(f"Epoch {epoch_stats['epoch'] + 1} - Batch {epoch_stats['batch']}/{epoch_stats['total_batches']} ({progress:.1%}) - Loss: {self.epoch_losses[-1]:.4f}, Acc: {self.epoch_accuracies[-1]:.2%}")
             
             return {"training_summary": None}
+    
+    def _report_window_telemetry(self):
+        """Report telemetry statistics for the current window of batches"""
+        if not self.telemetry_enabled or len(self.telemetry_loss_buffer) == 0:
+            return
+            
+        # Calculate statistics for loss
+        losses = self.telemetry_loss_buffer
+        loss_mean = statistics.mean(losses)
+        loss_min = min(losses)
+        loss_max = max(losses)
+        loss_std = statistics.stdev(losses) if len(losses) > 1 else 0.0
+        
+        # Calculate percentiles for loss
+        if len(losses) >= 4:
+            loss_quartiles = statistics.quantiles(losses, n=4)
+            loss_p25 = loss_quartiles[0]
+            loss_p50 = loss_quartiles[1]  # median
+            loss_p75 = loss_quartiles[2]
+        else:
+            # Not enough data for quartiles, use simple approximations
+            loss_p25 = loss_min
+            loss_p50 = statistics.median(losses)
+            loss_p75 = loss_max
+        
+        # Calculate statistics for accuracy
+        accs = self.telemetry_accuracy_buffer
+        acc_mean = statistics.mean(accs)
+        acc_min = min(accs)
+        acc_max = max(accs)
+        acc_std = statistics.stdev(accs) if len(accs) > 1 else 0.0
+        
+        # Calculate percentiles for accuracy
+        if len(accs) >= 4:
+            acc_quartiles = statistics.quantiles(accs, n=4)
+            acc_p25 = acc_quartiles[0]
+            acc_p50 = acc_quartiles[1]  # median
+            acc_p75 = acc_quartiles[2]
+        else:
+            # Not enough data for quartiles, use simple approximations
+            acc_p25 = acc_min
+            acc_p50 = statistics.median(accs)
+            acc_p75 = acc_max
+        
+        # Report all loss statistics
+        telemetry.report_custom(self.node_id, "train_loss_mean", loss_mean)
+        telemetry.report_custom(self.node_id, "train_loss_min", loss_min)
+        telemetry.report_custom(self.node_id, "train_loss_max", loss_max)
+        telemetry.report_custom(self.node_id, "train_loss_std", loss_std)
+        telemetry.report_custom(self.node_id, "train_loss_p25", loss_p25)
+        telemetry.report_custom(self.node_id, "train_loss_p50", loss_p50)
+        telemetry.report_custom(self.node_id, "train_loss_p75", loss_p75)
+        
+        # Report all accuracy statistics
+        telemetry.report_custom(self.node_id, "train_acc_mean", acc_mean)
+        telemetry.report_custom(self.node_id, "train_acc_min", acc_min)
+        telemetry.report_custom(self.node_id, "train_acc_max", acc_max)
+        telemetry.report_custom(self.node_id, "train_acc_std", acc_std)
+        telemetry.report_custom(self.node_id, "train_acc_p25", acc_p25)
+        telemetry.report_custom(self.node_id, "train_acc_p50", acc_p50)
+        telemetry.report_custom(self.node_id, "train_acc_p75", acc_p75)
+        
+        # Report meta information
+        telemetry.report_custom(self.node_id, "train_window_size", float(len(losses)))
+        telemetry.report_custom(self.node_id, "train_total_batches", float(self.batch_count))
+        telemetry.report_custom(self.node_id, "train_current_epoch", float(self.current_epoch + 1))
+        
+        # Clear buffers for next window
+        self.telemetry_loss_buffer = []
+        self.telemetry_accuracy_buffer = []
+        self.telemetry_window_counter = 0

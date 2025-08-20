@@ -11,9 +11,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        # Optimizer is a config input, loss is the data input
-        self.setup_inputs(required=["loss"], optional=["optimizer"])
+        # Loss is the main data input
+        self.setup_inputs(required=["loss"])
         self.setup_outputs(["ready", "step_complete"])
+        
+        # Manually create optimizer queue for config input (handled via get_config_inputs)
+        from asyncio import Queue
+        self.input_queues["optimizer"] = Queue(maxsize=1)  # Config input - only one optimizer
+        
         self.optimizer = None
         
     async def run(self):
