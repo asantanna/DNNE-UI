@@ -4,6 +4,7 @@ Exporter for MNIST Dataset node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_DATA
 
 class MNISTDatasetExporter(ExportableNode):
     @classmethod
@@ -106,3 +107,7 @@ class MNISTDatasetExporter(ExportableNode):
             },
             "num_samples": 60000
         }
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_DATA

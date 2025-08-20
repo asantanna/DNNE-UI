@@ -4,6 +4,7 @@ Exporter for GeometricLoss node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_TRAINING
 
 class GeometricLossExporter(ExportableNode):
     """Exporter for the Geometric Loss node"""
@@ -64,3 +65,7 @@ class GeometricLossExporter(ExportableNode):
                 }
             }
         }
+    
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_TRAINING

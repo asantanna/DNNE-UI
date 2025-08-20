@@ -4,6 +4,7 @@ Exporter for Linear Layer node - Virtual node used within Networks
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_NETWORK
 
 class LinearLayerExporter(ExportableNode):
     # LinearLayers are virtual - they only exist within Networks
@@ -113,3 +114,7 @@ class LinearLayerExporter(ExportableNode):
                 }
             }
         }
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_NETWORK

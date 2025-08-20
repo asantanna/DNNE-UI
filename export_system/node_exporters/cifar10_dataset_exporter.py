@@ -4,6 +4,7 @@ Exporter for CIFAR-10 Dataset node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_DATA
 
 class CIFAR10DatasetExporter(ExportableNode):
     @classmethod
@@ -106,3 +107,7 @@ class CIFAR10DatasetExporter(ExportableNode):
             },
             "num_samples": 50000  # CIFAR-10 training set size
         }
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_DATA

@@ -5,6 +5,7 @@ Exporter for Network node using queue-based template
 
 from ..graph_exporter import ExportableNode
 from ..utils import export_utils
+from ..subsystems import SUBSYSTEM_NETWORK
 
 class NetworkExporter(ExportableNode):
     @classmethod
@@ -201,3 +202,7 @@ class NetworkExporter(ExportableNode):
                 return source_schema.get("type")
                 
         return None
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_NETWORK

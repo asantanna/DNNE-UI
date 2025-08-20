@@ -5,6 +5,7 @@ Exporter for Isaac Gym Simulator node using queue-based template
 
 from ..graph_exporter import ExportableNode
 from ..utils import export_utils
+from ..subsystems import SUBSYSTEM_ROBOTICS
 
 class IsaacGymSimExporter(ExportableNode):
     @classmethod
@@ -326,3 +327,7 @@ class IsaacGymSimExporter(ExportableNode):
                     if conn.get('to_socket', 0) == input_index:
                         return conn
         return None
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_ROBOTICS

@@ -5,17 +5,19 @@ Handles parsing of --override command line arguments to allow runtime
 configuration of node parameters without re-exporting from the UI.
 
 Syntax: --override node_id:param=value,node_id:param=value
+        --override subsystem:param=value (applies to all nodes in subsystem)
 """
 
 import re
 from typing import Dict, List, Tuple, Any, Union
 
 
-def parse_override_args(override_string: str) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
+def parse_override_args(override_string: str, subsystem_to_nodes: Dict[str, List[str]] = None) -> Tuple[Dict[str, Dict[str, Any]], List[str]]:
     """Parse --override string into node configurations
     
     Args:
         override_string: Command line override string
+        subsystem_to_nodes: Optional mapping of subsystem names to node IDs
         
     Returns:
         Tuple of (configs dict, errors list)
@@ -26,6 +28,7 @@ def parse_override_args(override_string: str) -> Tuple[Dict[str, Dict[str, Any]]
         56:checkpoint_enabled=True
         56:checkpoint_trigger_type="At End"
         42:learning_rate=0.001,56:checkpoint_enabled=True
+        training:learning_rate=0.001 (applies to all training nodes)
     """
     configs = {}
     errors = []
@@ -43,40 +46,64 @@ def parse_override_args(override_string: str) -> Tuple[Dict[str, Dict[str, Any]]
             continue
             
         # Parse single override
-        result = parse_single_override(part)
+        result = parse_single_override(part, subsystem_to_nodes)
         if isinstance(result, str):  # Error message
             errors.append(result)
         else:
-            node_id, param, value = result
-            if node_id not in configs:
-                configs[node_id] = {}
-            configs[node_id][param] = value
+            targets, param, value = result
+            # targets can be a list of node IDs (from subsystem expansion) or single node ID
+            if isinstance(targets, list):
+                for node_id in targets:
+                    if node_id not in configs:
+                        configs[node_id] = {}
+                    configs[node_id][param] = value
+            else:
+                node_id = targets
+                if node_id not in configs:
+                    configs[node_id] = {}
+                configs[node_id][param] = value
             
     return configs, errors
 
 
-def parse_single_override(override_str: str) -> Union[Tuple[str, str, Any], str]:
+def parse_single_override(override_str: str, subsystem_to_nodes: Dict[str, List[str]] = None) -> Union[Tuple[Union[str, List[str]], str, Any], str]:
     """Parse a single override expression
     
     Args:
-        override_str: Single override like "56:checkpoint_enabled=True"
+        override_str: Single override like "56:checkpoint_enabled=True" or "training:learning_rate=0.001"
+        subsystem_to_nodes: Optional mapping of subsystem names to node IDs
         
     Returns:
-        Either (node_id, param, value) tuple or error message string
+        Either (target, param, value) tuple or error message string
+        target can be a single node_id string or list of node_ids (from subsystem expansion)
     """
-    # Match pattern: node_id:param=value (allowing spaces around colon)
-    match = re.match(r'^(\d+)\s*:\s*([^=]+)=(.*)$', override_str.strip())
+    # Match pattern: target:param=value (allowing spaces around colon)
+    # target can be a node_id (digits) or subsystem name (word characters)
+    match = re.match(r'^([\w]+)\s*:\s*([^=]+)=(.*)$', override_str.strip())
     if not match:
-        return f"Invalid override format: '{override_str}' (expected: node_id:param=value)"
+        return f"Invalid override format: '{override_str}' (expected: node_id:param=value or subsystem:param=value)"
         
-    node_id = match.group(1)
+    target = match.group(1)
     param = match.group(2).strip()
     value_str = match.group(3).strip()
     
     # Parse the value
     value = parse_value(value_str)
     
-    return node_id, param, value
+    # Check if target is a subsystem name
+    if subsystem_to_nodes and target in subsystem_to_nodes:
+        # Expand subsystem to all its node IDs
+        node_ids = subsystem_to_nodes[target]
+        if not node_ids:
+            return f"Subsystem '{target}' has no nodes in this workflow"
+        return node_ids, param, value
+    elif target.isdigit():
+        # It's a node ID
+        return target, param, value
+    else:
+        # Unknown target - could be a node ID that's not purely numeric or an unknown subsystem
+        # Treat it as a node ID for backward compatibility
+        return target, param, value
 
 
 def parse_value(value_str: str) -> Any:
@@ -126,11 +153,20 @@ def format_override_example() -> str:
   Set multiple parameters:
     --override 56:checkpoint_enabled=True,56:checkpoint_trigger_type=end
     
-  Mix different node types:
-    --override 42:learning_rate=0.001,56:checkpoint_enabled=True,64:max_epochs=50
+  Apply to all training nodes:
+    --override training:learning_rate=0.001
+    
+  Apply to all RL nodes:
+    --override rl:gamma=0.99,rl:clip_epsilon=0.2
+    
+  Mix node IDs and subsystems:
+    --override training:learning_rate=0.001,56:checkpoint_enabled=True,64:max_epochs=50
     
   String values with spaces must be quoted:
     --override 56:checkpoint_trigger_type="At End"
+    
+  Available subsystems:
+    training, data, network, rl, robotics, control, util, telemetry, monitoring
 """
 
 

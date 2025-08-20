@@ -301,17 +301,22 @@ async def main():
 {WORKFLOW_NODES_INFO}
     }}
     
+    # Define subsystem to node mapping
+    subsystem_to_nodes = {{
+{SUBSYSTEM_MAPPING}
+    }}
+    
     # Process node-specific configuration
     node_configs = process_node_args(args, workflow_nodes)
     
     # Process generic overrides
     if args.override:
-        override_configs, override_errors = parse_override_args(args.override)
+        override_configs, override_errors = parse_override_args(args.override, subsystem_to_nodes)
         if override_errors:
             print('\n❌ Override argument errors:')
             for error in override_errors:
                 print(f'   - {{error}}')
-            print('\nUse --override node_id:param=value syntax')
+            print('\nUse --override node_id:param=value or --override subsystem:param=value syntax')
             sys.exit(1)
         
         # Merge override configs into node_configs
@@ -327,13 +332,19 @@ async def main():
             for node_id in workflow_nodes.keys():
                 node_configs.setdefault(node_id, {{}})['telemetry_enabled'] = True
         else:
-            # Enable for specific nodes
-            for node_id in args.enable_telemetry.split(','):
-                node_id = node_id.strip()
-                if node_id in workflow_nodes:
-                    node_configs.setdefault(node_id, {{}})['telemetry_enabled'] = True
+            # Enable for specific nodes or subsystems
+            for target in args.enable_telemetry.split(','):
+                target = target.strip()
+                # Check if it's a subsystem
+                if target in subsystem_to_nodes:
+                    # Expand subsystem to all its nodes
+                    for node_id in subsystem_to_nodes[target]:
+                        node_configs.setdefault(node_id, {{}})['telemetry_enabled'] = True
+                elif target in workflow_nodes:
+                    # It's a specific node ID
+                    node_configs.setdefault(target, {{}})['telemetry_enabled'] = True
                 else:
-                    print(f"⚠️  Warning: Unknown node ID '{{node_id}}' in --enable-telemetry")
+                    print(f"⚠️  Warning: Unknown node ID or subsystem '{{target}}' in --enable-telemetry")
     
     # Apply node-specific configuration BEFORE creating nodes
     for node_id, config in node_configs.items():

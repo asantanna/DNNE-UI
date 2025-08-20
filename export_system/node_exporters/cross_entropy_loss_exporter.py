@@ -4,6 +4,7 @@ Exporter for CrossEntropyLoss node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_TRAINING
 
 class CrossEntropyLossExporter(ExportableNode):
     @classmethod
@@ -46,3 +47,7 @@ class CrossEntropyLossExporter(ExportableNode):
                 }
             }
         }
+    
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_TRAINING

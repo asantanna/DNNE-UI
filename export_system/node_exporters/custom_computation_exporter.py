@@ -8,6 +8,7 @@ from pathlib import Path
 import dnne_config
 from ..graph_exporter import ExportableNode
 from custom_nodes.utils.script_loader import load_custom_script
+from ..subsystems import SUBSYSTEM_UTIL
 
 
 class CustomComputationExporter(ExportableNode):
@@ -185,3 +186,7 @@ class CustomComputationExporter(ExportableNode):
         
         # Copy to custom_compute_funcs subdirectory in the export
         return [(src_path, "custom_compute_funcs")]
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_UTIL

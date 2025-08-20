@@ -4,6 +4,7 @@ Exporter for DataStreamer node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_DATA
 
 class DataStreamerExporter(ExportableNode):
     """Exporter for the DataStreamer node that streams CSV data"""
@@ -149,3 +150,7 @@ class DataStreamerExporter(ExportableNode):
         # Return the file/directory to copy
         # The graph exporter will handle whether it's a file or directory
         return [(src_path, dest_dir)]
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_DATA

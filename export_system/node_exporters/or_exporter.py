@@ -4,6 +4,7 @@ Exporter for ORNode node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_CONTROL
 
 class ORExporter(ExportableNode):
     """Exporter for the OR/ANY routing node"""
@@ -34,3 +35,7 @@ class ORExporter(ExportableNode):
     @classmethod
     def get_output_names(cls):
         return ["output"]
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_CONTROL

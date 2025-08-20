@@ -6,9 +6,10 @@ Converts node graphs to reactive Python scripts using async queues
 
 from pathlib import Path
 import json
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Union
 import logging
 from .utils import export_utils
+from .subsystems import ALL_SUBSYSTEMS
 
 class ExportableNode:
     """Base class for nodes that can be exported to code"""
@@ -40,6 +41,42 @@ class ExportableNode:
     def get_input_names(cls) -> List[str]:
         """Return list of input names for this node type"""
         raise NotImplementedError(f"Subclass {cls.__name__} must implement get_input_names() method")
+    
+    @classmethod
+    def get_subsystem(cls) -> Union[str, List[str]]:
+        """Return the subsystem(s) this node belongs to.
+        
+        Every exporter MUST override this method to declare its subsystem(s).
+        Use constants from export_system.subsystems module.
+        
+        Returns:
+            Single subsystem name or list of subsystem names
+            
+        Raises:
+            NotImplementedError: If not overridden by subclass
+        """
+        raise NotImplementedError(
+            f"Exporter {cls.__name__} must implement get_subsystem() method. "
+            f"Use constants from export_system.subsystems (e.g., SUBSYSTEM_TRAINING). "
+            f"Every node must belong to at least one subsystem."
+        )
+    
+    @classmethod
+    def validate_subsystem(cls, subsystem: Union[str, List[str]]) -> None:
+        """Validate that subsystem(s) are valid constants.
+        
+        Raises:
+            ValueError: If invalid subsystem name is used
+        """
+        subsystems = [subsystem] if isinstance(subsystem, str) else subsystem
+        
+        for sub in subsystems:
+            if sub not in ALL_SUBSYSTEMS:
+                raise ValueError(
+                    f"Invalid subsystem '{sub}' in {cls.__name__}. "
+                    f"Must use constants from export_system.subsystems. "
+                    f"Valid subsystems: {sorted(ALL_SUBSYSTEMS)}"
+                )
     
     @classmethod
     def get_input_name_for_slot(cls, slot: int) -> str:
@@ -1570,7 +1607,7 @@ def get_rl_games_path() -> Path:
         return "\n".join(lines)
     
     def _generate_workflow_nodes_info(self, nodes: List[Dict]) -> str:
-        """Generate the workflow nodes info section for the template"""
+        """Generate the workflow nodes info section for the template including subsystem info"""
         lines = []
         for node in nodes:
             node_id = str(node["id"])
@@ -1585,8 +1622,61 @@ def get_rl_games_path() -> Path:
                 base_type = node_type
             else:
                 base_type = node_type + "Node"
+            
+            # Get subsystem for this node if available
+            subsystem = "unknown"
+            if node_type in self.node_registry:
+                exporter_class = self.node_registry[node_type]
+                try:
+                    node_subsystems = exporter_class.get_subsystem()
+                    # Handle both single subsystem and list of subsystems
+                    if isinstance(node_subsystems, list):
+                        subsystem = node_subsystems[0] if node_subsystems else "unknown"
+                    else:
+                        subsystem = node_subsystems
+                except (AttributeError, NotImplementedError):
+                    subsystem = "unknown"
                 
-            lines.append(f'        "{node_id}": {{"type": "{base_type}"}},')
+            lines.append(f'        "{node_id}": {{"type": "{base_type}", "subsystem": "{subsystem}"}},')
+        
+        # Remove trailing comma from last line
+        if lines:
+            lines[-1] = lines[-1].rstrip(',')
+            
+        return "\n".join(lines)
+    
+    def _generate_subsystem_mapping(self, nodes: List[Dict]) -> str:
+        """Generate a mapping of subsystems to node IDs for the runner"""
+        from collections import defaultdict
+        subsystem_to_nodes = defaultdict(list)
+        
+        for node in nodes:
+            node_id = str(node["id"])
+            node_type = node.get("class_type") or node.get("type")
+            
+            # Skip virtual nodes
+            if self._is_virtual_node(node_type):
+                continue
+                
+            # Get subsystem for this node if available
+            if node_type in self.node_registry:
+                exporter_class = self.node_registry[node_type]
+                try:
+                    node_subsystems = exporter_class.get_subsystem()
+                    # Handle both single subsystem and list of subsystems
+                    if isinstance(node_subsystems, list):
+                        for subsystem in node_subsystems:
+                            subsystem_to_nodes[subsystem].append(node_id)
+                    else:
+                        subsystem_to_nodes[node_subsystems].append(node_id)
+                except (AttributeError, NotImplementedError):
+                    pass  # Skip nodes without subsystem
+        
+        # Generate the Python dict literal
+        lines = []
+        for subsystem, node_ids in sorted(subsystem_to_nodes.items()):
+            node_ids_str = ', '.join(f'"{nid}"' for nid in sorted(node_ids))
+            lines.append(f'        "{subsystem}": [{node_ids_str}],')
         
         # Remove trailing comma from last line
         if lines:
@@ -1621,6 +1711,7 @@ def get_rl_games_path() -> Path:
         add_nodes_to_runner_section = self._generate_add_nodes_to_runner_section(node_instances)
         connections_section = self._generate_connections_section(connections)
         workflow_nodes_info = self._generate_workflow_nodes_info(nodes)
+        subsystem_mapping = self._generate_subsystem_mapping(nodes)
         
         # Prepare template variables for substitution
         template_vars = {
@@ -1630,7 +1721,8 @@ def get_rl_games_path() -> Path:
             "NODE_DICTIONARY_SECTION": node_dictionary_section,
             "ADD_NODES_TO_RUNNER_SECTION": add_nodes_to_runner_section,
             "CONNECTIONS_SECTION": connections_section,
-            "WORKFLOW_NODES_INFO": workflow_nodes_info
+            "WORKFLOW_NODES_INFO": workflow_nodes_info,
+            "SUBSYSTEM_MAPPING": subsystem_mapping
         }
         
         # Substitute placeholders in template

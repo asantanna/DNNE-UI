@@ -12,6 +12,7 @@ from dnne_config import get_isaac_gym_envs_path
 
 from ..graph_exporter import ExportableNode
 from ..utils import export_utils
+from ..subsystems import SUBSYSTEM_RL
 
 class PPOAgentExporter(ExportableNode):
     """Exporter for PPO Agent node - the main RL training node"""
@@ -455,3 +456,7 @@ class PPOAgentExporter(ExportableNode):
             'IsaacGymEnvs': IsaacGymEnvsExporter,
             'BalancerConfig': BalancerConfigExporter,
         }
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_RL

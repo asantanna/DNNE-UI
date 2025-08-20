@@ -4,6 +4,7 @@ Exporter for SplitNode using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_UTIL
 
 class SplitExporter(ExportableNode):
     """Exporter for the Split tensor splitting node"""
@@ -271,3 +272,7 @@ class SplitExporter(ExportableNode):
                     schema["outputs"][output_names[i]]["flattened_size"] = size
         
         return schema
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_UTIL

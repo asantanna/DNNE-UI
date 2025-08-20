@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from ..graph_exporter import ExportableNode
 from ..utils import yaml_schema_utils
+from ..subsystems import SUBSYSTEM_ROBOTICS
 
 # Add parent directory to path to import dnne_config
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -294,3 +295,7 @@ class IsaacGymEnvsExporter(ExportableNode):
         config['isaac_gym_envs_path'] = str(get_isaac_gym_envs_path())
         
         return config
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_ROBOTICS

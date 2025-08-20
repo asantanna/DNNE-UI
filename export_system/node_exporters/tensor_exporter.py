@@ -4,6 +4,7 @@ Exporter for TensorNode using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_DATA
 
 class TensorExporter(ExportableNode):
     """Exporter for the Tensor constant generation node"""
@@ -78,3 +79,7 @@ class TensorExporter(ExportableNode):
     @classmethod
     def get_output_names(cls):
         return ["tensor"]
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_DATA

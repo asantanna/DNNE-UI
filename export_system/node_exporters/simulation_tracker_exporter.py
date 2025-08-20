@@ -4,6 +4,7 @@ Exports the SimulationTracker node for RL/robotics workflows.
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_ROBOTICS
 
 
 class SimulationTrackerExporter(ExportableNode):
@@ -78,3 +79,7 @@ class SimulationTrackerExporter(ExportableNode):
                 "episodes_since_improvement": 0,
             }
         }
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_ROBOTICS

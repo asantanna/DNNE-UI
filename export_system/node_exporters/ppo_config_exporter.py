@@ -4,6 +4,7 @@ Exporter for PPOConfig node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_RL
 
 class PPOConfigExporter(ExportableNode):
     """Exporter for PPO configuration virtual node"""
@@ -110,3 +111,7 @@ class PPOConfigExporter(ExportableNode):
             'normalize_value': raw_params['normalize_value'],
             'bounds_loss_coef': raw_params['bounds_loss_coef'],
         }
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_RL

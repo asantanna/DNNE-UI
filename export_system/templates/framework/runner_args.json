@@ -117,9 +117,9 @@
       "switch": "--enable-telemetry",
       "type": "select_or_text",
       "label": "Enable Telemetry",
-      "description": "Enable telemetry reporting for debugging",
+      "description": "Enable telemetry reporting for nodes or subsystems",
       "options": ["all", "custom"],
-      "placeholder": "e.g., 10,11",
+      "placeholder": "e.g., training,10,11 or rl",
       "column": 2,
       "order": 6
     },
@@ -127,8 +127,8 @@
       "switch": "--override",
       "type": "text",
       "label": "Advanced Overrides",
-      "description": "Override specific node configuration values",
-      "placeholder": "e.g., 56:checkpoint_enabled=True",
+      "description": "Override node configuration values (supports subsystems)",
+      "placeholder": "e.g., 56:checkpoint_enabled=True or training:lr=0.001",
       "label_on_same_line": false,
       "column": 2,
       "order": 7

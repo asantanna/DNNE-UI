@@ -4,6 +4,7 @@ Exporter for BatchSampler node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_DATA
 
 class BatchSamplerExporter(ExportableNode):
     @classmethod
@@ -105,6 +106,10 @@ class BatchSamplerExporter(ExportableNode):
                 return input_schema["schema"]
                 
         return None
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_DATA
     
 
 # Registration function

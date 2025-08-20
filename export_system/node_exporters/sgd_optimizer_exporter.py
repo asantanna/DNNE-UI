@@ -4,6 +4,7 @@ Exporter for SGDOptimizer node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_TRAINING
 
 class SGDOptimizerExporter(ExportableNode):
     @classmethod
@@ -61,3 +62,7 @@ class SGDOptimizerExporter(ExportableNode):
                 }
             }
         }
+    
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_TRAINING

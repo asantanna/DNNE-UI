@@ -4,6 +4,7 @@ Exporter for BalancerConfig node - Virtual configuration node for PPOAgent
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_CONTROL
 
 class BalancerConfigExporter(ExportableNode):
     """Exporter for BalancerConfig virtual node - provides balancing configuration to PPOAgent"""
@@ -167,3 +168,7 @@ class BalancerConfigExporter(ExportableNode):
             config['latency']['max_latency_ms'] = params['max_latency_ms']
         
         return config
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_CONTROL

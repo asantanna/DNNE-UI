@@ -28,9 +28,9 @@ def create_parser():
     
     # Logging arguments
     parser.add_argument('--verbose', '-v', nargs='?', const='all', default=None,
-                       help='Enable verbose logging (INFO level). Optional: comma-separated subsystems or node IDs (e.g., "mnist,42,queue" or "55")')
+                       help='Enable verbose logging (INFO level). Optional: comma-separated subsystems or node IDs (e.g., "training,data,42" or "55")')
     parser.add_argument('--debug', '-d', nargs='?', const='all', default=None,
-                       help='Enable debug logging (DEBUG level). Optional: comma-separated subsystems or node IDs (e.g., "yield,66,ppo" or "42")')
+                       help='Enable debug logging (DEBUG level). Optional: comma-separated subsystems or node IDs (e.g., "rl,robotics,42" or "66")')
     
     # Checkpoint arguments
     parser.add_argument('--save-checkpoint', action='store_true',
@@ -68,11 +68,11 @@ def create_parser():
     
     # Advanced overrides
     parser.add_argument('--override', type=str, default=None,
-                       help='Override specific node configuration values (e.g., --override 56:checkpoint_enabled=True,56:checkpoint_trigger_type=end)')
+                       help='Override node configuration values. Use node IDs or subsystems (e.g., --override 56:checkpoint_enabled=True,training:learning_rate=0.001,rl:gamma=0.99)')
     
     # Telemetry
     parser.add_argument('--enable-telemetry', type=str, nargs='?', const='all', default=None,
-                       help='Enable telemetry reporting. Optional: comma-separated node IDs or "all" (e.g., --enable-telemetry 10,11 or --enable-telemetry)')
+                       help='Enable telemetry reporting. Optional: comma-separated node IDs, subsystems, or "all" (e.g., --enable-telemetry training,10,11 or --enable-telemetry rl)')
     
     return parser
 

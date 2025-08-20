@@ -4,6 +4,7 @@ Exporter for BalancerNode node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_CONTROL
 
 class BalancerExporter(ExportableNode):
     """Exporter for Balancer Node (active passthrough)"""
@@ -105,3 +106,7 @@ class BalancerExporter(ExportableNode):
                 return input_schema["input"].get("type")
                 
         return None
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_CONTROL

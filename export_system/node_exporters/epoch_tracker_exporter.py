@@ -4,6 +4,7 @@ Exporter for EpochTracker node using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_TRAINING
 
 class EpochTrackerExporter(ExportableNode):
     @classmethod
@@ -60,3 +61,7 @@ class EpochTrackerExporter(ExportableNode):
                 }
             }
         }
+    
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_TRAINING

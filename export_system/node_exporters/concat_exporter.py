@@ -4,6 +4,7 @@ Exporter for ConcatNode using queue-based template
 """
 
 from ..graph_exporter import ExportableNode
+from ..subsystems import SUBSYSTEM_UTIL
 
 class ConcatExporter(ExportableNode):
     """Exporter for the Concat tensor concatenation node"""
@@ -165,3 +166,7 @@ class ConcatExporter(ExportableNode):
                 schema["outputs"]["output"]["flattened_size"] = total_size
         
         return schema
+
+    @classmethod
+    def get_subsystem(cls):
+        return SUBSYSTEM_UTIL
