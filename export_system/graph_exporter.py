@@ -79,6 +79,79 @@ class ExportableNode:
         return True
     
     @classmethod
+    def get_required_input_names(cls) -> List[str]:
+        """Return list of required input names for this node type.
+        
+        By default, all inputs are considered required.
+        Override this method in subclasses to specify only truly required inputs
+        if some inputs are optional.
+        
+        Returns:
+            List of required input names
+        """
+        return cls.get_input_names()
+    
+    @classmethod
+    def validate_required_connections(cls, node_id: str, connections: Dict) -> None:
+        """Validate that all required input connections are present.
+        
+        This method ensures fail-fast behavior by checking that all required
+        inputs have connections at export time, preventing runtime failures.
+        
+        Args:
+            node_id: ID of the node being validated
+            connections: Dictionary containing input/output connection info
+            
+        Raises:
+            ValueError: If any required input connections are missing
+        """
+        required_inputs = cls.get_required_input_names()
+        missing_connections = []
+        
+        # Check each required input
+        for input_name in required_inputs:
+            if "inputs" not in connections or input_name not in connections.get("inputs", {}):
+                missing_connections.append(input_name)
+        
+        # Raise error with clear message if any connections are missing
+        if missing_connections:
+            node_type = cls.__name__.replace("Exporter", "")
+            raise ValueError(
+                f"{node_type} node {node_id} missing required input connections: {missing_connections}. "
+                f"Please connect all required inputs before exporting."
+            )
+    
+    @classmethod
+    def prepare_template_vars_with_validation(cls, node_id: str, node_data: Dict,
+                                             connections: Dict, node_registry: Dict = None,
+                                             all_nodes: List = None, all_links: List = None) -> Dict[str, Any]:
+        """Wrapper that validates connections before preparing template variables.
+        
+        This method ensures all required connections are present before attempting
+        to generate code, providing fail-fast behavior at export time.
+        
+        Args:
+            node_id: ID of the node
+            node_data: Node data from workflow
+            connections: Input/output connections for this node
+            node_registry: Registry of all node exporters
+            all_nodes: List of all nodes in workflow
+            all_links: List of all links in workflow
+            
+        Returns:
+            Dictionary of template variables for code generation
+            
+        Raises:
+            ValueError: If required connections are missing
+        """
+        # Validate connections first
+        cls.validate_required_connections(node_id, connections)
+        
+        # Then prepare template variables
+        return cls.prepare_template_vars(node_id, node_data, connections,
+                                        node_registry, all_nodes, all_links)
+    
+    @classmethod
     def get_export_files(cls, node_id: str, node_data: Dict) -> List[Tuple[str, str]]:
         """Return list of files/directories to copy during export.
         
@@ -514,7 +587,7 @@ class GraphExporter:
                 
                 # Get template and prepare variables
                 template_name = node_class.get_template_name()
-                template_vars = node_class.prepare_template_vars(
+                template_vars = node_class.prepare_template_vars_with_validation(
                     node_id, node, self._get_node_connections(node_id, links, nodes), 
                     self.node_registry, nodes, links
                 )
