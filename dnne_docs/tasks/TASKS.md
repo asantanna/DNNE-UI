@@ -1,7 +1,8 @@
 # DNNE Tasks
 
 ## Current Status
-Franka_Coop_Nodes workflow exports and runs but requires multiple HACKS to patch dimension mismatches, device issues, and gradient tracking problems. Core architectural issues need addressing.
+Export system now validates all required input connections at export time, preventing runtime failures.
+Franka_Coop_Nodes workflow exports and runs but requires patches for dimension/device/gradient issues.
 
 ## Active TODOs
 

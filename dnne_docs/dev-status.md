@@ -1,8 +1,22 @@
 # DNNE Development Status
 
-*Last Updated: 2025-08-20*
+*Last Updated: 2025-01-20*
 
 ## Latest Achievements (This Week)
+
+### 2025-01-20: Export System Connection Validation ✅
+- **Automatic Input Validation** - Export system now validates all required connections
+  - Added validate_required_connections() to ExportableNode base class
+  - Created prepare_template_vars_with_validation() wrapper for automatic checks
+  - Fail-fast at export time with clear error messages (e.g., "SGDOptimizer node 62 missing required input connections: ['loss']")
+  - Works automatically for all existing and future exporters
+- **Test Suite Enhancement** - Fixed cleanup and added validation tests
+  - Added 8 comprehensive unit tests for connection validation
+  - Fixed test cleanup to remove temporary export directories
+  - All 173 tests passing with proper cleanup
+- **Repository Maintenance** - Tracked missing files
+  - Fixed CIFAR10_Test.json workflow (added missing SGD loss connection)
+  - Added example_reshape.py and franka_coop_nodes_loss.py to tracking
 
 ### 2025-08-20: Training Telemetry & Queue Framework Fix ✅
 - **Training Telemetry with Statistical Aggregation** - EpochTracker reports comprehensive statistics
@@ -103,9 +117,9 @@ dnne.bat
 
 ## Test Results
 ```
-✅ 164 tests passed (0 skipped)
+✅ 173 tests passed (0 skipped) - includes 8 new connection validation tests
 ✅ All 7 workflows export with zero warnings
-- CIFAR10_Test ✅
+- CIFAR10_Test ✅ (fixed missing SGD loss connection)
 - Cartpole_PPO ✅
 - Franka_Coop_Nodes ✅
 - Franka_Minimal_Test ✅
@@ -114,11 +128,22 @@ dnne.bat
 - Yield_Test_Async ✅
 ```
 
+## Recent Commits
+```
+db198c04 Add missing custom compute functions to tracking
+8ae3f1ba Add automatic input connection validation to export system
+13ed1fae fixed because no more training_step node
+20a4c5a0 Refactor tracker nodes and merge TrainingStep into SGDOptimizer
+f1ce93b0 Refactor tracker nodes for ML vs RL workflows
+3ec6af4d Add training telemetry with statistical aggregation
+d15f90e0 Fix double-getter deadlock in nodes with one-time config inputs
+```
+
 ## Files Changed Today
-- `export_system/templates/framework/runner.tpl` - Added g.init_system_ready() before node creation
-- `export_system/templates/framework/graph_runner.py` - Checks initialization, simplified node validation
-- `export_system/templates/framework/globals.py` - Added system-wide initialization barrier methods
-- `export_system/templates/framework/base_nodes.py` - Nodes register and wait for system ready
+- `export_system/graph_exporter.py` - Added connection validation methods to ExportableNode
+- `dnne_test_suite/core/unit/export_system/test_connection_validation.py` - NEW comprehensive tests
+- `user/default/custom_compute_funcs/example_reshape.py` - Added to git tracking
+- `user/default/custom_compute_funcs/franka_coop_nodes_loss.py` - Added to git tracking
 
 ## Previous Files Changed
 - `export_system/templates/nodes/isaac_gym_sim_queue.tpl` - Fixed fail-fast, custom run() for bootstrap
