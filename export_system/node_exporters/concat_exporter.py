@@ -31,13 +31,20 @@ class ConcatExporter(ExportableNode):
         # Concat MUST operate on dim=1 (features), never dim=0 (batch)
         # This overrides any UI configuration until UI is updated
         concat_dim = 1  # ALWAYS feature dimension
+        
+        # Determine which inputs are actually connected
+        connected_inputs = []
+        for input_name in ["input_a", "input_b", "input_c", "input_d"]:
+            if "inputs" in connections and input_name in connections["inputs"]:
+                connected_inputs.append(input_name)
             
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "ConcatNode",
             "MODE": mode,
             "PAD_MODE": pad_mode,
-            "CONCAT_DIM": concat_dim  # Add dimension parameter
+            "CONCAT_DIM": concat_dim,  # Add dimension parameter
+            "CONNECTED_INPUTS": connected_inputs  # Pass list of connected inputs
         }
     
     @classmethod
@@ -51,6 +58,38 @@ class ConcatExporter(ExportableNode):
     @classmethod
     def get_input_names(cls):
         return ["input_a", "input_b", "input_c", "input_d"]
+    
+    @classmethod
+    def get_required_input_names(cls):
+        """Override to make all inputs optional.
+        
+        Concat node can work with any subset of connected inputs.
+        Custom validation ensures at least 2 inputs are connected.
+        """
+        return []  # All inputs are optional
+    
+    @classmethod
+    def validate_required_connections(cls, node_id: str, connections: dict):
+        """Custom validation for Concat node.
+        
+        Ensures at least 2 inputs are connected for meaningful concatenation.
+        """
+        # Count connected inputs
+        connected_count = 0
+        connected_names = []
+        
+        if "inputs" in connections:
+            for input_name in cls.get_input_names():
+                if input_name in connections["inputs"]:
+                    connected_count += 1
+                    connected_names.append(input_name)
+        
+        # Require at least 2 inputs for meaningful concatenation
+        if connected_count < 2:
+            raise ValueError(
+                f"Concat node {node_id} requires at least 2 connected inputs for concatenation. "
+                f"Currently connected: {connected_names if connected_names else 'none'}"
+            )
     
     @classmethod
     def get_output_names(cls):

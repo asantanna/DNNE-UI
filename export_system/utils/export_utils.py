@@ -137,3 +137,39 @@ def get_connected_input(node_id: str, input_name: str) -> Optional[Dict]:
                 }
     
     return None
+
+
+def get_ui_node_class(exporter_class_name: str):
+    """
+    Get the UI node class corresponding to an exporter class.
+    
+    Args:
+        exporter_class_name: Name of the exporter class (e.g., 'IsaacGymSimExporter')
+    
+    Returns:
+        The UI node class
+        
+    Raises:
+        RuntimeError: If the UI node class cannot be found or naming is invalid
+    """
+    if not exporter_class_name.endswith('Exporter'):
+        raise RuntimeError(
+            f"Invalid exporter class name '{exporter_class_name}' - must end with 'Exporter'"
+        )
+    
+    # Convert IsaacGymSimExporter -> IsaacGymSimNode
+    node_class_name = exporter_class_name[:-8] + 'Node'
+    
+    # Import here to avoid circular imports
+    from custom_nodes.utils.dnne_decorator import get_all_node_classes
+    all_nodes = get_all_node_classes()
+    
+    for node_name, node_cls in all_nodes.items():
+        if node_cls.__name__ == node_class_name:
+            return node_cls
+    
+    # FAIL FAST - no silent failures
+    raise RuntimeError(
+        f"Cannot find UI node class '{node_class_name}' for exporter '{exporter_class_name}'. "
+        f"This is a bug - every exporter must have a corresponding UI node."
+    )

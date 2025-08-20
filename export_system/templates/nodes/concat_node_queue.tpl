@@ -4,7 +4,8 @@ template_vars = {
     "CLASS_NAME": "ConcatNode",
     "MODE": "wait for all",
     "PAD_MODE": "pad with zeros",
-    "CONCAT_DIM": 1  # Feature dimension per tensor standards
+    "CONCAT_DIM": 1,  # Feature dimension per tensor standards
+    "CONNECTED_INPUTS": ["input_a", "input_b", "input_c", "input_d"]  # Actually connected inputs
 }
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
@@ -13,13 +14,16 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     def __init__(self, node_id: str):
         super().__init__(node_id)  # No wait_mode parameter
         
-        # Setup inputs based on mode
+        # Track which inputs are actually connected (from export time)
+        self.connected_inputs = {CONNECTED_INPUTS}
+        
+        # Setup inputs based on mode and actual connections
         if "{MODE}" == "wait for all":
-            # All inputs are required
-            self.setup_inputs(required=["input_a", "input_b", "input_c", "input_d"], queue_size=2)
+            # Connected inputs are required
+            self.setup_inputs(required=self.connected_inputs, queue_size=2)
         else:
-            # All inputs are optional ("as available" mode)
-            self.setup_inputs(optional=["input_a", "input_b", "input_c", "input_d"], queue_size=2)
+            # Connected inputs are optional ("as available" mode)
+            self.setup_inputs(optional=self.connected_inputs, queue_size=2)
         
         self.setup_outputs(["output"])
         
@@ -31,44 +35,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         # State tracking for "hold previous" mode
         self.previous_values = {}
         
-        # Track which inputs are actually connected
-        self.connected_inputs = []
-        
         # Get device from global configuration
         from framework.globals import Global as g
         self.device = torch.device(g.get_device())
         
     def set_connections(self, connections: Dict[str, List]):
-        """Override to track which inputs are connected"""
+        """Override to log connected inputs"""
         super().set_connections(connections)
-        # Determine which inputs are actually connected
-        self.connected_inputs = []
-        for input_name in ["input_a", "input_b", "input_c", "input_d"]:
-            if input_name in self.connections and self.connections[input_name]:
-                self.connected_inputs.append(input_name)
         self.node_logger.info(f"Connected inputs: {self.connected_inputs}")
-        
-        # Update MultiWaiter to only use connected inputs if needed
-        # Note: MultiWaiter was already created in __init__ by setup_inputs()
-        # We may want to recreate it with only connected inputs for efficiency
-        if self.connected_inputs and self.input_waiter:
-            # Recreate with only connected inputs
-            if "{MODE}" == "wait for all":
-                # All connected inputs are required
-                from framework import MultiWaiter
-                self.input_waiter = MultiWaiter(
-                    self.connected_inputs, [],
-                    self.input_queues,
-                    self.node_id
-                )
-            else:
-                # All connected inputs are optional
-                from framework import MultiWaiter
-                self.input_waiter = MultiWaiter(
-                    [], self.connected_inputs,
-                    self.input_queues,
-                    self.node_id
-                )
         
     async def run(self):
         """Custom run method based on configured mode"""

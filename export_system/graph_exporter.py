@@ -82,14 +82,57 @@ class ExportableNode:
     def get_required_input_names(cls) -> List[str]:
         """Return list of required input names for this node type.
         
-        By default, all inputs are considered required.
-        Override this method in subclasses to specify only truly required inputs
-        if some inputs are optional.
+        Automatically determines required inputs from the UI node's INPUT_TYPES.
+        Only override this for special cases (like Concat with flexible inputs).
         
         Returns:
-            List of required input names
+            List of required input names (connections only, not widgets)
+            
+        Raises:
+            RuntimeError: If UI node class cannot be found or INPUT_TYPES is missing
+            ValueError: If INPUT_TYPES structure is invalid
         """
-        return cls.get_input_names()
+        # Import here to avoid circular imports
+        from .utils.export_utils import get_ui_node_class
+        
+        # Get the UI node class - will raise RuntimeError if not found
+        ui_node_class = get_ui_node_class(cls.__name__)
+        
+        # Verify INPUT_TYPES exists
+        if not hasattr(ui_node_class, 'INPUT_TYPES'):
+            raise RuntimeError(
+                f"UI node class {ui_node_class.__name__} missing INPUT_TYPES classmethod. "
+                f"This is a bug - all UI nodes must define INPUT_TYPES."
+            )
+        
+        # Get input types
+        input_types = ui_node_class.INPUT_TYPES()
+        
+        # Validate structure
+        if not isinstance(input_types, dict):
+            raise ValueError(
+                f"UI node {ui_node_class.__name__} INPUT_TYPES returned {type(input_types)} "
+                f"instead of dict. This is a bug in the node implementation."
+            )
+        
+        # Get required section (may be empty dict)
+        required_section = input_types.get('required', {})
+        
+        # Get our connection input names (not widgets)
+        our_input_names = cls.get_input_names()
+        
+        # Return only inputs that are both:
+        # 1. In the required section of INPUT_TYPES
+        # 2. In our list of connection inputs
+        required_inputs = []
+        for input_name in our_input_names:
+            if input_name in required_section:
+                required_inputs.append(input_name)
+        
+        # Note: We DON'T validate that all required UI inputs are in our input list
+        # because some UI inputs might be widgets (not connections)
+        
+        return required_inputs
     
     @classmethod
     def validate_required_connections(cls, node_id: str, connections: Dict) -> None:
