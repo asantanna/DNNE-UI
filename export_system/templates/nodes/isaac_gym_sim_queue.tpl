@@ -12,6 +12,7 @@ template_vars = {
     "SIM_DEVICE": "cuda:0",
     "PHYSICS_ENGINE": "physx",
     "GRAPHICS_DEVICE_ID": 0,
+    "DNNE_CFG_CODE": "",  # Conditional code for dnne_cfg
 }
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
@@ -115,7 +116,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             from isaacgymenvs import make
             
             print(f"[DEBUG IsaacGymSim] Creating env_config with task={{config['task']}}, render={{self.render}}")
-            
+            {DNNE_CFG_CODE}
             # Override num_envs to 1 for DNNE compatibility
             # Only include parameters that make() actually accepts
             env_config = {{
@@ -131,6 +132,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "virtual_screen_capture": False,
                 # Note: enable_cameras is not a parameter for make(), it's handled via cfg
             }}
+            
+            # Add dnne_cfg if it was created
+            if 'dnne_cfg' in locals() and dnne_cfg:
+                env_config['dnne_cfg'] = dnne_cfg
             
             # Create environment
             print(f"[DEBUG IsaacGymSim] Calling make() with config: {{env_config}}")

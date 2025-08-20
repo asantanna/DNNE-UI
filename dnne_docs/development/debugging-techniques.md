@@ -4,6 +4,12 @@
 
 ## Subsystem + Node Targeted Debugging
 
+**Analyzing Complex Workflows**: Use the analysis script (good for large workflows!)
+
+```bash
+python claude_scripts/analyze_workflow.py Franka_Coop_Nodes
+```
+
 **The Hidden Power**: You can debug specific subsystems AND specific nodes in one command.
 
 ```bash

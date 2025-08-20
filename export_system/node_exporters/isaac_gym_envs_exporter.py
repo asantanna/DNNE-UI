@@ -158,10 +158,8 @@ class IsaacGymEnvsExporter(ExportableNode):
                 schema_info['schema_levels'] = yaml_schema_utils.get_dnne_schema_levels(task_config)
                 schema_info['defaults'] = yaml_schema_utils.get_schema_defaults(task_config)
                 
-                # Get nested schemas if present
+                # Get nested schemas if present - only look under env
                 dnne_config = yaml_schema_utils.navigate_schema(task_config, ['env', 'dnne'])
-                if not dnne_config:
-                    dnne_config = yaml_schema_utils.navigate_schema(task_config, ['dnne'])
                 
                 if dnne_config and 'nested_schemas' in dnne_config:
                     schema_info['nested_schemas'] = dnne_config['nested_schemas']

@@ -95,8 +95,6 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
             dnne_section = None
             if 'env' in task_config and 'dnne' in task_config['env']:
                 dnne_section = task_config['env']['dnne']
-            elif 'dnne' in task_config:
-                dnne_section = task_config['dnne']
             
             if dnne_section:
                 # Required fields - fail if missing
@@ -313,88 +311,105 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
     @classmethod
     def format_schema_display(cls, task: str, selections: Dict[str, str]) -> str:
         """Format the schema for display based on current selections"""
-        schema_info = cls.get_task_schema_info(task)
+        # Import yaml_schema_utils for navigation
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from export_system.utils import yaml_schema_utils
         
-        if not schema_info['nested_schemas']:
+        # Load the raw YAML config
+        isaacgym_envs_path = get_isaac_gym_envs_path()
+        task_cfg_path = isaacgym_envs_path / 'isaacgymenvs' / 'cfg' / 'task' / f'{task}.yaml'
+        
+        if not task_cfg_path.exists():
             return "No schema available for this task"
         
-        # Navigate to the correct schema based on selections
-        current_schema = schema_info['nested_schemas']
-        path_parts = []
+        try:
+            with open(task_cfg_path, 'r') as f:
+                task_config = yaml.safe_load(f)
+        except Exception as e:
+            return f"Error loading task config: {e}"
         
-        # For hierarchical schemas, navigate the tree
-        for level in schema_info['schema_levels']:
-            if level in selections and selections[level]:
-                level_value = selections[level]
-                if isinstance(current_schema, dict) and level_value in current_schema:
-                    current_schema = current_schema[level_value]
-                    path_parts.append(level_value)
-                else:
-                    return f"Schema not found for: {' > '.join(path_parts + [level_value])}"
+        # Build level_values from selections
+        level_values = {}
+        schema_levels = yaml_schema_utils.get_dnne_schema_levels(task_config)
+        for level in schema_levels:
+            if level in selections and selections[level] and selections[level] != 'none':
+                level_values[level] = selections[level]
+        
+        # Use utility function to navigate to the correct schema
+        current_schema = yaml_schema_utils.get_nested_schema_value(task_config, level_values)
+        
+        if not current_schema:
+            # Try getting basic env info if no nested schema
+            env_config = yaml_schema_utils.navigate_schema(task_config, ['env'])
+            if env_config and ('numObservations' in env_config or 'numActions' in env_config):
+                current_schema = env_config
+            else:
+                return "No schema available for current selections"
         
         # Format the schema display
         lines = []
         
         # Add path if hierarchical
-        if path_parts:
-            lines.append(f"Schema: {' > '.join(path_parts)}")
-            lines.append("=" * 40)
+        if level_values:
+            path_parts = [level_values.get(level, '') for level in schema_levels if level in level_values]
+            if path_parts:
+                lines.append(f"Schema: {' > '.join(path_parts)}")
+                lines.append("=" * 40)
         
-        # Add observation schema
-        if isinstance(current_schema, dict):
-            # Observations are required in schema
-            if 'numObservations' not in current_schema:
-                raise ValueError(f"Schema missing required 'numObservations' field")
-            if 'observationSchema' not in current_schema:
-                raise ValueError(f"Schema missing required 'observationSchema' field")
-            
+        # Add observation schema if available
+        if 'numObservations' in current_schema:
             obs_count = current_schema['numObservations']
-            obs_schema = current_schema['observationSchema']
+            obs_schema = current_schema.get('observationSchema', {})
             
             if obs_count:
-                lines.append(f"\nObservations:")
-                for name, indices in obs_schema.items():
-                    if isinstance(indices, (int, float)):
-                        # Single element: display as [x]
-                        lines.append(f"  • {name:<20} [{int(indices):2}]")
-                    elif isinstance(indices, list) and len(indices) == 2:
-                        # Range: display as [start-end] if different, [x] if same
-                        if indices[0] == indices[1]:
-                            lines.append(f"  • {name:<20} [{indices[0]:2}]")
-                        else:
-                            lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
-            
-            # Add action schema
-            # Actions are required in schema
-            if 'numActions' not in current_schema:
-                raise ValueError(f"Schema missing required 'numActions' field")
-            if 'actionSchema' not in current_schema:
-                raise ValueError(f"Schema missing required 'actionSchema' field")
-            
+                lines.append(f"\nObservations: ({obs_count} total)")
+                if obs_schema:
+                    for name, indices in obs_schema.items():
+                        if isinstance(indices, (int, float)):
+                            # Single element: display as [x]
+                            lines.append(f"  • {name:<20} [{int(indices):2}]")
+                        elif isinstance(indices, list) and len(indices) == 2:
+                            # Range: display as [start-end] if different, [x] if same
+                            if indices[0] == indices[1]:
+                                lines.append(f"  • {name:<20} [{indices[0]:2}]")
+                            else:
+                                lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
+        
+        # Add action schema if available
+        if 'numActions' in current_schema:
             act_count = current_schema['numActions']
-            act_schema = current_schema['actionSchema']
+            act_schema = current_schema.get('actionSchema', {})
             
             if act_count:
-                lines.append(f"\nActions:")
-                for name, indices in act_schema.items():
-                    if isinstance(indices, (int, float)):
-                        # Single element: display as [x]
-                        lines.append(f"  • {name:<20} [{int(indices):2}]")
-                    elif isinstance(indices, list) and len(indices) == 2:
-                        # Range: display as [start-end] if different, [x] if same
-                        if indices[0] == indices[1]:
-                            lines.append(f"  • {name:<20} [{indices[0]:2}]")
-                        else:
-                            lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
-            
-            # Add description - required field
-            if 'description' not in current_schema:
-                raise ValueError(f"Schema missing required 'description' field")
+                lines.append(f"\nActions: ({act_count} total)")
+                if act_schema:
+                    for name, indices in act_schema.items():
+                        if isinstance(indices, (int, float)):
+                            # Single element: display as [x]
+                            lines.append(f"  • {name:<20} [{int(indices):2}]")
+                        elif isinstance(indices, list) and len(indices) == 2:
+                            # Range: display as [start-end] if different, [x] if same
+                            if indices[0] == indices[1]:
+                                lines.append(f"  • {name:<20} [{indices[0]:2}]")
+                            else:
+                                lines.append(f"  • {name:<20} [{indices[0]:2}-{indices[1]:2}]")
+        
+        # Add description if available
+        if 'description' in current_schema:
             description = current_schema['description']
             lines.append(f"\nDescription: {description}")
         
-        result = "\n".join(lines) if lines else "No schema details available"
-        return result
+        # If we have no meaningful info, say so
+        if not lines:
+            if current_schema:
+                # We have a schema but no display info
+                return f"Schema found but no display details available\n(Keys: {', '.join(current_schema.keys())})"
+            else:
+                return "No schema details available"
+        
+        return "\n".join(lines)
     
     # Standard node interface
     RETURN_TYPES = ("ISAAC_ENV_CONFIG_PYDICT",)

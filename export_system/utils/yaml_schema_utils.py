@@ -38,8 +38,6 @@ def get_dnne_schema_levels(yaml_config: Dict[str, Any]) -> List[str]:
         List of schema level names (e.g., ['subtask', 'controlType'])
     """
     dnne_config = navigate_schema(yaml_config, ['env', 'dnne'])
-    if not dnne_config:
-        dnne_config = navigate_schema(yaml_config, ['dnne'])
     
     if dnne_config and 'schema_levels' in dnne_config:
         return dnne_config['schema_levels']
@@ -61,10 +59,8 @@ def get_nested_schema_value(
     Returns:
         The schema dictionary at the specified path, or None if not found
     """
-    # Find DNNE config
+    # Find DNNE config - only look under env
     dnne_config = navigate_schema(yaml_config, ['env', 'dnne'])
-    if not dnne_config:
-        dnne_config = navigate_schema(yaml_config, ['dnne'])
     
     if not dnne_config or 'nested_schemas' not in dnne_config:
         return None
@@ -161,8 +157,6 @@ def get_schema_defaults(yaml_config: Dict[str, Any]) -> Dict[str, str]:
         Dictionary mapping level names to their default values
     """
     dnne_config = navigate_schema(yaml_config, ['env', 'dnne'])
-    if not dnne_config:
-        dnne_config = navigate_schema(yaml_config, ['dnne'])
     
     if not dnne_config:
         return {}
@@ -189,7 +183,5 @@ def has_dnne_schema(yaml_config: Dict[str, Any]) -> bool:
         True if DNNE schemas are present, False otherwise
     """
     dnne_config = navigate_schema(yaml_config, ['env', 'dnne'])
-    if not dnne_config:
-        dnne_config = navigate_schema(yaml_config, ['dnne'])
     
     return dnne_config is not None and 'nested_schemas' in dnne_config
