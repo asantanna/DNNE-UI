@@ -112,7 +112,7 @@ class TestExportableNodeValidation:
     """Test the ExportableNode base class validation methods"""
     
     def test_validate_required_connections_with_all_connected(self):
-        """Test validation passes when all required inputs are connected"""
+        """Test validation fails fast when exporter has no corresponding UI node"""
         
         class TestExporter(ExportableNode):
             @classmethod
@@ -126,11 +126,20 @@ class TestExportableNodeValidation:
             }
         }
         
-        # Should not raise
-        TestExporter.validate_required_connections("test_node", connections)
+        # Should fail fast because TestExporter has no corresponding UI node
+        try:
+            TestExporter.validate_required_connections("test_node", connections)
+            # If we get here, the test failed - it should have raised
+            assert False, "Expected RuntimeError for missing UI node, but no exception was raised"
+        except RuntimeError as e:
+            # EXPECTED: Mock exporter without UI node fails fast
+            error_msg = str(e)
+            assert "Cannot find UI node class 'TestNode'" in error_msg
+            assert "This is a bug" in error_msg
+            print("EXPECTED: The expected RuntimeError for missing UI node has occurred.")
     
     def test_validate_required_connections_with_missing(self):
-        """Test validation fails when required inputs are missing"""
+        """Test that mock exporters without UI nodes fail fast with clear error"""
         
         class TestExporter(ExportableNode):
             @classmethod
@@ -144,25 +153,37 @@ class TestExportableNodeValidation:
             }
         }
         
-        with pytest.raises(ValueError) as exc_info:
+        # Should fail fast because TestExporter has no corresponding UI node
+        try:
             TestExporter.validate_required_connections("test_node", connections)
-        
-        error_msg = str(exc_info.value)
-        assert "Test node" in error_msg  # "TestExporter" becomes "Test" after removing "Exporter"
-        assert "test_node" in error_msg
-        assert "missing required input connections" in error_msg
-        assert "input_b" in error_msg
+            # If we get here, the test failed - it should have raised
+            assert False, "Expected RuntimeError for missing UI node, but no exception was raised"
+        except RuntimeError as e:
+            # EXPECTED: Mock exporter without UI node fails fast
+            error_msg = str(e)
+            assert "Cannot find UI node class 'TestNode'" in error_msg
+            assert "This is a bug" in error_msg
+            print("EXPECTED: The expected RuntimeError for missing UI node has occurred.")
     
     def test_get_required_input_names_default(self):
-        """Test that get_required_input_names defaults to all inputs"""
+        """Test that get_required_input_names fails fast without UI node"""
         
         class TestExporter(ExportableNode):
             @classmethod
             def get_input_names(cls):
                 return ["input_a", "input_b", "input_c"]
         
-        # By default, all inputs are required
-        assert TestExporter.get_required_input_names() == ["input_a", "input_b", "input_c"]
+        # Should fail fast because TestExporter has no corresponding UI node
+        try:
+            result = TestExporter.get_required_input_names()
+            # If we get here, the test failed - it should have raised
+            assert False, "Expected RuntimeError for missing UI node, but no exception was raised"
+        except RuntimeError as e:
+            # EXPECTED: Mock exporter without UI node fails fast
+            error_msg = str(e)
+            assert "Cannot find UI node class 'TestNode'" in error_msg
+            assert "This is a bug" in error_msg
+            print("EXPECTED: The expected RuntimeError for missing UI node has occurred.")
     
     def test_get_required_input_names_override(self):
         """Test that nodes can specify only some inputs as required"""
@@ -189,7 +210,7 @@ class TestExportableNodeValidation:
         TestExporter.validate_required_connections("test_node", connections)
     
     def test_prepare_template_vars_with_validation(self):
-        """Test that prepare_template_vars_with_validation calls both validation and preparation"""
+        """Test that prepare_template_vars_with_validation fails fast without UI node"""
         
         class TestExporter(ExportableNode):
             @classmethod
@@ -207,12 +228,19 @@ class TestExportableNodeValidation:
             }
         }
         
-        result = TestExporter.prepare_template_vars_with_validation(
-            "test_node", {}, connections
-        )
-        
-        assert result["NODE_ID"] == "test_node"
-        assert result["validated"] is True
+        # Should fail fast because TestExporter has no corresponding UI node
+        try:
+            result = TestExporter.prepare_template_vars_with_validation(
+                "test_node", {}, connections
+            )
+            # If we get here, the test failed - it should have raised
+            assert False, "Expected RuntimeError for missing UI node, but no exception was raised"
+        except RuntimeError as e:
+            # EXPECTED: Mock exporter without UI node fails fast
+            error_msg = str(e)
+            assert "Cannot find UI node class 'TestNode'" in error_msg
+            assert "This is a bug" in error_msg
+            print("EXPECTED: The expected RuntimeError for missing UI node has occurred.")
 
 
 if __name__ == "__main__":

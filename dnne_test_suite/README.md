@@ -91,6 +91,28 @@ Environment variables:
 - `DNNE_TEST_DATA_PATH`: Custom data directory (default: ./data)
 - `DNNE_TEST_DOWNLOAD`: Enable/disable downloads (default: true)
 
+## Test Conventions
+
+### Expected Failures Convention
+Tests that validate fail-fast behavior or expect exceptions must follow these conventions:
+1. **Catch exceptions explicitly** - Use try/except blocks to prevent backtrace dumps in test logs
+2. **Print EXPECTED messages** - Use prefix "EXPECTED:" when logging expected failures
+3. **Assert on failure to fail** - If an expected exception doesn't occur, fail the test with a clear message
+
+Example:
+```python
+def test_fail_fast_behavior(self):
+    """Test that operation fails fast with clear error"""
+    try:
+        operation_that_should_fail()
+        # If we get here, the test failed
+        assert False, "Expected RuntimeError but no exception was raised"
+    except RuntimeError as e:
+        # EXPECTED: Operation failed fast as designed
+        assert "specific error message" in str(e)
+        print("EXPECTED: The expected RuntimeError has occurred.")
+```
+
 ## Migration Notes
 
 This directory consolidates tests from multiple locations:
