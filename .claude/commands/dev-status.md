@@ -11,28 +11,26 @@ $ARGUMENTS$
 
 *For historical development sessions, see HISTORY.md*
 
-## Latest Achievements (2025-08-17)
+## Latest Achievements (2025-08-20)
 
-### Tensor Constant Node ✅
-- Implemented TensorNode for generating constant tensors in ML workflows
-- Supports 9 initialization modes (zeros, ones, uniform, normal, Kaiming, Xavier, custom)
-- Flexible dimension parsing ("10", "2,3", "[2,3,4]")
-- Configurable dtype and seed for reproducibility
-- Complete with export template and unit tests
-- Successfully integrated in Franka_Coop_Nodes workflow
+### FrankaDNNE Environment Reset Control ✅
+- Disabled auto-reset in `post_physics_step` for manual control
+- Added proper `reset()` method for trigger-based resets
+- Implemented target-based episode completion (10cm threshold)
+- Episodes now end on timeout OR reaching target
+- Debug output added when target is reached
 
-### Export System Schema Resolution ✅
-- Fixed ConcatExporter missing get_initial_output_schema() method
-- Fixed SplitExporter missing schema methods with proper size calculation
-- Refactored to eliminate DRY violations in parse_split_positions()
-- Fixed FAIL-FAST rule violations (no silent fallbacks)
-- Franka_Coop_Nodes workflow export issues resolved
+### IsaacGymSim Node Trigger Support ✅
+- Verified "done" trigger properly emitted when episode ends
+- Verified "reset" input trigger properly handled
+- `reset_when_done=True` auto-resets while still sending done signal
+- `reset_when_done=False` waits for manual reset trigger
+- Full workflow control over reset timing achieved
 
-### Schema Format Enhancement ✅
-- Support for simplified single-element schema format in YAML
-- Split node exporter handles both `[x,x]` array and `x` number formats
-- UI displays single elements aesthetically as `[x]` instead of `[x-x]`
-- Full backward compatibility maintained
+### Previous Week (2025-08-17)
+- Tensor Constant Node with 9 initialization modes
+- Export System Schema Resolution fixes
+- Schema Format Enhancement for YAML
 
 ## Quick Reference
 
@@ -78,13 +76,13 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
+- Disable FrankaDNNE auto-reset for manual control
+- Add target-based done trigger to FrankaDNNE
+- Add manual reset method to FrankaDNNE
+- Verify IsaacGymSim done/reset trigger handling
 - Implement Tensor constant node with 9 initialization modes
-- Add comprehensive unit tests for Tensor node
 - Support simplified schema format (single number for single elements)
-- Update Split node exporter for both schema formats
-- Enhance IsaacGymEnvs display aesthetics for single elements
 - Implement @dnne_node decorator system
-- Auto-discovery for node registration and exporters
 
 ---
 *Focus on active tasks in INDEX.md*

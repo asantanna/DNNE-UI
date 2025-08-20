@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-19*  
+*Last Updated: 2025-08-20*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
@@ -16,18 +16,18 @@
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
 | **Node System** | 🟢 Complete | IsaacGymEnvs widget save/load fixed | - | 2025-08-19 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
-| **Franka Coop Control** | 🟢 Working | Async barrier fixes race conditions | High | 2025-08-19 |
+| **Franka Coop Control** | 🟢 Complete | Manual reset control & target-based done | - | 2025-08-20 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
 
 ## Active Priority Items
 
 ### High Priority
-1. **Franka Cooperative Control**: Fixed with async initialization barrier!
-   - ✅ Race condition resolved with system-wide initialization barrier
-   - ✅ All nodes wait for connections before processing
-   - ✅ Templates updated with proper initialization sequence
-   - TODO: Monitor coordination emergence between 3 controllers
-   - TODO: Implement PD control for joints 3-6
+1. **Franka Cooperative Control**: COMPLETED - Reset control and target detection working!
+   - ✅ Manual reset control via triggers implemented
+   - ✅ Target-based episode completion (10cm threshold)
+   - ✅ Done trigger properly emitted from IsaacGymSim node
+   - ✅ Reset input trigger properly handled
+   - ✅ Auto-reset configurable via reset_when_done parameter
 
 ### Medium Priority
 1. **UI Proxy**: Implement server-initiated JavaScript execution
