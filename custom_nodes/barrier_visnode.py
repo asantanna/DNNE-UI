@@ -1,0 +1,61 @@
+"""
+Barrier Node
+Synchronization primitive that holds incoming data until triggered to release it.
+"""
+
+from inspect import cleandoc
+from custom_nodes.utils.visnode_base import RoboticsNodeBase
+from custom_nodes.utils.node_colors import get_node_colors
+from custom_nodes.utils.dnne_decorator import dnne_node
+
+
+@dnne_node(is_virtual=False)
+class BarrierNode(RoboticsNodeBase):
+    """
+    Barrier Node
+    Holds incoming data in a queue until triggered to release it.
+    
+    Features:
+    - FIFO queue for maintaining data order
+    - Trigger counting for deferred releases
+    - Synchronization control for RL workflows
+    - Compatible with batch processing
+    """
+    
+    CATEGORY = "utility"
+    COLOR = get_node_colors("utility")["color"]
+    BGCOLOR = get_node_colors("utility")["bgcolor"]
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "hold_mode": (["FIFO"], {
+                    "default": "FIFO",
+                    "tooltip": "Queue management strategy (currently only FIFO supported)"
+                })
+            },
+            "optional": {
+                "input": ("*TENSOR", {
+                    "tooltip": "Any tensor data to hold in the queue"
+                }),
+                "release": ("*TRIGGER", {
+                    "tooltip": "Trigger signal to release held data"
+                })
+            }
+        }
+    
+    RETURN_TYPES = ("HELD_TENSOR",)
+    RETURN_NAMES = ("output",)
+    FUNCTION = None  # DNNE nodes don't execute in UI, only export
+    DESCRIPTION = cleandoc(__doc__)
+
+
+# Node registration
+NODE_CLASS_MAPPINGS = {
+    "Barrier": BarrierNode
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "Barrier": "Barrier"
+}

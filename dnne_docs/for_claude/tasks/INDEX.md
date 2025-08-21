@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-20*  
+*Last Updated: 2025-08-21*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
@@ -14,7 +14,7 @@
 | **Core Infrastructure** | 🟢 Complete | 100% - All features done | - | 2025-08-15 |
 | **Export System** | 🟢 Complete | 100% - System init barrier implemented | - | 2025-08-19 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
-| **Node System** | 🟢 Complete | IsaacGymEnvs widget save/load fixed | - | 2025-08-19 |
+| **Node System** | 🟢 Complete | Eat_N & Barrier synchronization nodes | - | 2025-08-21 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
 | **Franka Coop Control** | 🟢 Complete | Manual reset control & target-based done | - | 2025-08-20 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |

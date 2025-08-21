@@ -2,6 +2,27 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-08-21 - Eat_N and Barrier Synchronization Nodes
+
+### Eat_N Node Implementation ✅
+- Created complete Eat_N synchronization node for RL workflows
+- Configurable `num_to_eat` parameter (1-100) controls consumption count
+- Two trigger modes: "every_eat" sends trigger for each consumed input, "last_only" only on last
+- Stateful counter tracks consumed inputs, transitions to passthrough mode
+- Full async queue-based implementation for real-time performance
+
+### Barrier Node Implementation ✅
+- Implemented Barrier synchronization node to hold data until triggered
+- FIFO queue management for maintaining data order
+- Trigger counting for deferred releases
+- Works with Eat_N triggers for temporal alignment in RL pipelines
+
+### Testing and Integration ✅  
+- Added comprehensive unit tests (13 new tests for Eat_N)
+- All 212 tests passing in test suite
+- Fixed test workflows to use `skip-slot-correction` metadata pattern
+- Both nodes properly registered and exported with templates
+
 ## Session: 2025-08-19 - IsaacGymEnvs Widget Save/Load Fix
 
 ### Widget Value Persistence ✅

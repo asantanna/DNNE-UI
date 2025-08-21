@@ -3,9 +3,10 @@
 *For historical accomplishments, see HISTORY.md*
 
 ## Current Status
-**Operational** - All core nodes working, IsaacGymEnvs widget save/load fixed
-- Hierarchical schema system fully implemented
-- Dynamic widgets properly save/restore values from workflows
+**Operational** - Eat_N and Barrier synchronization nodes implemented (2025-08-21)
+- Eat_N node: Consumes first N inputs then becomes passthrough
+- Barrier node: Holds data until triggered to release
+- Both nodes fully tested with 212 passing tests
 
 ## 📋 TODO
 
