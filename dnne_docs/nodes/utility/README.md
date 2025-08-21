@@ -13,6 +13,12 @@ Configuration node for balancing task parameters.
 ### [BalancerNode](balancing_node.md)
 Control logic for balancing tasks and simulations.
 
+### [Eat_N](eat_n_node.md)
+Consume first N inputs then become passthrough - essential for temporal alignment.
+
+### [Barrier](barrier_node.md)
+Hold and release data based on triggers - enables synchronization between pipeline stages.
+
 ## Overview
 
 Utility nodes provide essential workflow control and configuration capabilities that support the ML and robotics nodes. These nodes handle:
@@ -36,6 +42,11 @@ Utility nodes provide essential workflow control and configuration capabilities 
 - **BalancerNode**: Implements balancing control algorithms
 - Task execution and monitoring
 
+### Synchronization Nodes
+- **Eat_N**: Consume and pass through data with trigger generation
+- **Barrier**: FIFO-based data holding with triggered release
+- Enable temporal alignment and pipeline synchronization
+
 ## Common Use Cases
 
 ### Conditional Execution
@@ -55,6 +66,13 @@ Control nodes like BalancerNode:
 - Implement domain-specific algorithms
 - Bridge between RL agents and environments
 - Provide reference implementations
+
+### Temporal Alignment for RL
+Synchronization nodes enable proper temporal relationships:
+- Align obs(t) with obs(t+1) for loss computation
+- Bootstrap initial observations with Eat_N
+- Synchronize gradient updates with Barrier nodes
+- See [Temporal Alignment Pattern](../../patterns/temporal_alignment_rl.md) for detailed example
 
 ## Integration Patterns
 
@@ -79,6 +97,22 @@ PPOConfig + BalancerConfig → combined_config
 condition_1 ↘
             OR → trigger
 condition_2 ↗
+```
+
+### Temporal Synchronization for RL
+```
+obs(t) → Split → [Barrier1, Barrier2, Barrier3] (hold)
+   ↓
+   └→ Split → Eat_N → Loss → [SGD1, SGD2, SGD3]
+                ↓                    ↓
+           trigger            step_complete
+                └──────┬──────────────┘
+                       ↓
+                  [Barrier.release]
+                       ↓
+            [Network1, Network2, Network3]
+                       ↓
+                Concat → action → Simulator → obs(t+1)
 ```
 
 ## Export Behavior
