@@ -83,3 +83,37 @@ class TensorExporter(ExportableNode):
     @classmethod
     def get_subsystem(cls):
         return SUBSYSTEM_DATA
+    
+    @classmethod
+    def get_initial_output_schema(cls, node_data):
+        """
+        Tensor node outputs a constant tensor with specified dimensions.
+        """
+        # Get tensor dimensions from node data
+        param_specs = [
+            {'name': 'tensor_dims', 'widget_index': 0},
+            {'name': 'dtype', 'widget_index': 3}
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        tensor_dims = params.get('tensor_dims', '[1, 1]')
+        dtype = params.get('dtype', 'float32')
+        
+        # Parse dimensions
+        if isinstance(tensor_dims, str):
+            tensor_dims = tensor_dims.strip()
+            if tensor_dims.startswith('[') and tensor_dims.endswith(']'):
+                tensor_dims = tensor_dims[1:-1]
+            dims = [int(d.strip()) for d in tensor_dims.split(',') if d.strip()]
+        else:
+            dims = tensor_dims if isinstance(tensor_dims, list) else [tensor_dims]
+        
+        return {
+            "outputs": {
+                "tensor": {
+                    "type": "tensor",
+                    "shape": dims,
+                    "dtype": dtype
+                }
+            }
+        }

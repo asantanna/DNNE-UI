@@ -51,3 +51,38 @@ class Eat_NExporter(ExportableNode):
     @classmethod
     def get_subsystem(cls):
         return SUBSYSTEM_CONTROL
+    
+    @classmethod
+    def get_initial_output_schema(cls, node_data):
+        """
+        Eat_N is a passthrough node after consuming N inputs.
+        The output schema matches the input, and trigger is a control signal.
+        """
+        return {
+            "outputs": {
+                "output": {
+                    "type": None,  # Will be resolved from input
+                    "passthrough": True
+                },
+                "trigger": {
+                    "type": "trigger",
+                    "shape": []  # Scalar trigger signal
+                }
+            }
+        }
+    
+    @classmethod
+    def _resolve_schema_value(cls, key, parent_schema, node_data, connections, 
+                            node_registry, all_nodes, all_links):
+        """Resolve schema from input since output is a passthrough"""
+        if key == "type" and parent_schema.get("passthrough"):
+            # Get the schema from our input
+            input_schema = cls.get_input_schema(node_data, connections, 
+                                              node_registry, all_nodes, all_links)
+            
+            if "input" in input_schema and input_schema["input"]:
+                # Copy the entire input schema to output
+                parent_schema.update(input_schema["input"])
+                return parent_schema.get("type")
+        
+        return None
