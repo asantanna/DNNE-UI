@@ -108,11 +108,17 @@ class TensorExporter(ExportableNode):
         else:
             dims = tensor_dims if isinstance(tensor_dims, list) else [tensor_dims]
         
+        # Calculate flattened size
+        flattened_size = 1
+        for dim in dims:
+            flattened_size *= dim
+        
         return {
             "outputs": {
                 "tensor": {
                     "type": "tensor",
                     "shape": dims,
+                    "flattened_size": flattened_size,
                     "dtype": dtype
                 }
             }
