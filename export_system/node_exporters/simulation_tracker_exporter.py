@@ -56,8 +56,6 @@ class SimulationTrackerExporter(ExportableNode):
             "import time",
             "import numpy as np",
             "from typing import Dict, Any, Optional",
-            "from ..framework.queue_framework import QueueNode",
-            "from ..framework import globals as DNNE_globals",
         ]
     
     @classmethod

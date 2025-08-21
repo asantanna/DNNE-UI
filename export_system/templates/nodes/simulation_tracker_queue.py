@@ -1,12 +1,27 @@
+# Get logger from globals
+from framework.globals import Global as g, dnne_logging
+
+# Robotics subsystem logger
+robotics_logger = dnne_logging.getLogger("robotics")
+
 class SimulationTracker_{NODE_ID}(QueueNode):
     """
     Simulation Tracker - Tracks RL/robotics training progress.
     Monitors episodes, rewards, and performance metrics.
     """
     
-    def __init__(self):
-        super().__init__()
-        self.node_id = "{NODE_ID}"
+    def __init__(self, node_id: str):
+        super().__init__(node_id)
+        self.node_id = node_id
+        self.node_logger = robotics_logger  # Use robotics subsystem logger
+        
+        # Set up input and output queues
+        # Required: observation, done, loss (core tracking inputs)
+        # Optional: reward, custom_metrics (additional metrics)
+        self.setup_inputs(required=["observation", "done", "loss"], 
+                         optional=["reward", "custom_metrics"])
+        self.setup_outputs(["control_metrics"])
+        
         self.max_episodes = {MAX_EPISODES}
         self.success_threshold = {SUCCESS_THRESHOLD}
         
@@ -27,60 +42,45 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         self.best_reward = float('-inf')
         self.last_improvement_episode = 0
         
-        # Telemetry
-        self.telemetry_enabled = DNNE_globals.telemetry_enabled
-        self.telemetry_client = None
+        # Telemetry configuration
+        self.telemetry_enabled = g.get_node_config(self.node_id, 'telemetry_enabled', False)
         if self.telemetry_enabled:
-            self.telemetry_client = DNNE_globals.telemetry_client
+            self.node_logger.info(f"SimulationTracker_{NODE_ID}: Telemetry enabled")
         
         # Track first observation time
         self.start_time = None
         self.last_episode_time = None
     
-    def setup_inputs(self):
-        """Set up input queues."""
-        self.add_input_queue("observation", max_size=1)
-        self.add_input_queue("done", max_size=1)
-        self.add_input_queue("loss", max_size=1)
-        self.add_input_queue("reward", max_size=1)
-        self.add_input_queue("custom_metrics", max_size=1)
     
-    def setup_outputs(self):
-        """Set up output queues."""
-        self.add_output_queue("control_metrics")
-    
-    async def compute(self, observation=None, done=None, loss=None, 
+    async def compute(self, observation, done, loss, 
                      reward=None, custom_metrics=None):
         """
         Track simulation progress and compute control metrics.
         """
         # Initialize timing on first observation
-        if self.start_time is None and observation is not None:
+        if self.start_time is None:
             self.start_time = time.time()
             self.last_episode_time = self.start_time
         
-        # Update timestep count
-        if observation is not None:
-            self.timestep_count += 1
-            self.current_episode_length += 1
+        # Update timestep count (observation is always present)
+        self.timestep_count += 1
+        self.current_episode_length += 1
         
         # Accumulate reward
         if reward is not None:
             self.current_episode_reward += float(reward)
         
-        # Track loss
-        if loss is not None:
-            self.losses.append(float(loss))
-            
-            # Send loss telemetry
-            if self.telemetry_enabled and self.telemetry_client:
-                self.telemetry_client.send_metric(
-                    "loss", self.node_id, float(loss)
-                )
+        # Track loss (always present)
+        self.losses.append(float(loss))
         
-        # Episode completed
+        # Send loss telemetry
+        if self.telemetry_enabled:
+            from framework import telemetry
+            telemetry.report_custom(self.node_id, "loss", float(loss))
+        
+        # Episode completed (done is always present)
         episode_done = False
-        if done is not None and done:
+        if done:
             episode_done = True
             self.episode_count += 1
             
@@ -102,32 +102,23 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             self.episode_successes.append(success)
             
             # Send episode telemetry
-            if self.telemetry_enabled and self.telemetry_client:
+            if self.telemetry_enabled:
+                from framework import telemetry
                 current_time = time.time()
                 episode_time = current_time - self.last_episode_time
                 self.last_episode_time = current_time
                 
                 # Episode metrics
-                self.telemetry_client.send_metric(
-                    "episode_reward", self.node_id, self.current_episode_reward
-                )
-                self.telemetry_client.send_metric(
-                    "episode_length", self.node_id, self.current_episode_length
-                )
-                self.telemetry_client.send_metric(
-                    "episode_time", self.node_id, episode_time
-                )
-                self.telemetry_client.send_metric(
-                    "episode_count", self.node_id, self.episode_count
-                )
+                telemetry.report_custom(self.node_id, "episode_reward", self.current_episode_reward)
+                telemetry.report_custom(self.node_id, "episode_length", float(self.current_episode_length))
+                telemetry.report_custom(self.node_id, "episode_time", episode_time)
+                telemetry.report_custom(self.node_id, "episode_count", float(self.episode_count))
                 
                 # Success tracking
                 if len(self.episode_successes) > 0:
                     recent_successes = self.episode_successes[-self.window_size:]
                     success_rate = sum(recent_successes) / len(recent_successes)
-                    self.telemetry_client.send_metric(
-                        "success_rate", self.node_id, success_rate
-                    )
+                    telemetry.report_custom(self.node_id, "success_rate", success_rate)
             
             # Reset for next episode
             self.current_episode_reward = 0.0
@@ -177,20 +168,20 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         if self.episode_count >= self.max_episodes:
             training_done = True
             if self.telemetry_enabled:
-                logger.info(f"SimulationTracker_{NODE_ID}: Reached max episodes ({self.max_episodes})")
+                robotics_logger.info(f"SimulationTracker_{NODE_ID}: Reached max episodes ({self.max_episodes})")
         
         # Check success threshold
         if success_rate >= self.success_threshold and self.episode_count >= self.window_size:
             training_done = True
             if self.telemetry_enabled:
-                logger.info(f"SimulationTracker_{NODE_ID}: Reached success threshold ({success_rate:.2%} >= {self.success_threshold:.2%})")
+                robotics_logger.info(f"SimulationTracker_{NODE_ID}: Reached success threshold ({success_rate:.2%} >= {self.success_threshold:.2%})")
         
         # Check for convergence (no improvement in last N episodes)
         convergence_window = min(500, self.max_episodes // 10)
         if self.episode_count - self.last_improvement_episode > convergence_window:
             training_done = True
             if self.telemetry_enabled:
-                logger.info(f"SimulationTracker_{NODE_ID}: Converged (no improvement in {convergence_window} episodes)")
+                robotics_logger.info(f"SimulationTracker_{NODE_ID}: Converged (no improvement in {convergence_window} episodes)")
         
         # Build control metrics dictionary
         control_metrics = {
