@@ -4,9 +4,6 @@ General utility nodes for workflow control and configuration in DNNE.
 
 ## Available Nodes
 
-### [ORNode](or_node.md)
-Logical OR operation for conditional workflow control.
-
 ### [BalancerConfig](balancing_config.md)
 Configuration node for balancing task parameters.
 
@@ -31,8 +28,7 @@ Utility nodes provide essential workflow control and configuration capabilities 
 ## Node Categories
 
 ### Logic Nodes
-- **ORNode**: Logical OR for combining conditions
-- Future: AND, NOT, XOR nodes
+- Future: AND, NOT, XOR nodes (Note: OR functionality now built into all inputs via multiple connections)
 
 ### Configuration Nodes
 - **BalancerConfig**: Parameters for balance control tasks
@@ -50,10 +46,10 @@ Utility nodes provide essential workflow control and configuration capabilities 
 ## Common Use Cases
 
 ### Conditional Execution
-Use OR nodes to:
-- Trigger actions based on multiple conditions
-- Combine different trigger sources
-- Implement fallback logic
+With multiple input connections:
+- Trigger actions from multiple sources directly
+- No need for separate OR nodes
+- Cleaner, more intuitive workflows
 
 ### Task Configuration
 Configuration nodes:
@@ -92,10 +88,10 @@ PPOConfig + BalancerConfig → combined_config
           PPOAgent
 ```
 
-### Logic Flow
+### Multiple Input Connections
 ```
 condition_1 ↘
-            OR → trigger
+            → trigger (multiple connections supported)
 condition_2 ↗
 ```
 

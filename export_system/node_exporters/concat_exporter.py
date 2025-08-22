@@ -37,7 +37,15 @@ class ConcatExporter(ExportableNode):
         connected_inputs = []
         for input_name in ["input_a", "input_b", "input_c", "input_d"]:
             if "inputs" in connections and input_name in connections["inputs"]:
-                connected_inputs.append(input_name)
+                # Handle both single connection (dict) and multiple connections (list)
+                input_connections = connections["inputs"][input_name]
+                if isinstance(input_connections, list):
+                    # Multiple connections - check if not empty
+                    if len(input_connections) > 0:
+                        connected_inputs.append(input_name)
+                else:
+                    # Legacy single connection format
+                    connected_inputs.append(input_name)
             
         return {
             "NODE_ID": node_id,
@@ -82,8 +90,17 @@ class ConcatExporter(ExportableNode):
         if "inputs" in connections:
             for input_name in cls.get_input_names():
                 if input_name in connections["inputs"]:
-                    connected_count += 1
-                    connected_names.append(input_name)
+                    # Handle both single connection (dict) and multiple connections (list)
+                    input_connections = connections["inputs"][input_name]
+                    if isinstance(input_connections, list):
+                        # Multiple connections - check if not empty
+                        if len(input_connections) > 0:
+                            connected_count += 1
+                            connected_names.append(input_name)
+                    else:
+                        # Legacy single connection format
+                        connected_count += 1
+                        connected_names.append(input_name)
         
         # Require at least 2 inputs for meaningful concatenation
         if connected_count < 2:
