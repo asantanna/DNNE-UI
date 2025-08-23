@@ -150,7 +150,7 @@ class IsaacGymEnvConfigLoader:
                     
                 # Skip PPO configs that use Hydra defaults too
                 if ppo_config and 'defaults' in ppo_config:
-                    logger.info(f"Skipping {task_name}: PPO config uses Hydra defaults (inheritance not supported)")
+                    logger.debug(f"Skipping {task_name}: PPO config uses Hydra defaults (inheritance not supported)")
                     return None
                 
             # Extract configurations for each node
