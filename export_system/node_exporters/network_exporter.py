@@ -35,7 +35,16 @@ class NetworkExporter(ExportableNode):
             else:
                 raise ValueError(f"Network node {node_id}: Could not determine input tensor size from connected node")
         else:
-            raise ValueError(f"Network node {node_id}: No input connection found")
+            # More helpful error message
+            if "input" in connections["inputs"]:
+                connected_nodes = [conn.get("from_node", "unknown") for conn in connections["inputs"].get("input", [])]
+                raise ValueError(
+                    f"Network node {node_id}: Input connection has invalid or missing schema. "
+                    f"Connected nodes: {connected_nodes}. "
+                    f"Check for Label nodes or unrecognized node types in the connection chain."
+                )
+            else:
+                raise ValueError(f"Network node {node_id}: No input connection found")
         
         # Follow the chain of layers
         visited = set()

@@ -92,6 +92,15 @@ Note: Ensure the conda environment is activated before running scripts in `claud
 - **Export workflows to Python**: Use the export system via the UI or programmatically through `claude_scripts/programmatic_export.py`
 - **Add new node types**: Implement in `custom_nodes/` directory with `*_visnode.py` naming pattern
 
+## Development Principles
+
+### Root Cause Analysis
+**When something breaks that used to work, find the root cause before fixing:**
+- Use `git diff` to identify what changed
+- Understand why it broke before proposing solutions
+- Avoid "hacking" fixes that mask the real problem
+- The simplest fix is often reverting the breaking change, not adding more complexity
+
 ## Architecture Overview
 
 ### ⚠️ CRITICAL: WebSocket Communication Architecture ⚠️

@@ -11,9 +11,6 @@ import logging
 from .utils import export_utils
 from .subsystems import ALL_SUBSYSTEMS
 
-# Global storage for label connections during export
-workflow_labels = {}
-
 class ExportableNode:
     """Base class for nodes that can be exported to code"""
     _schema_cache = {}  # Initialize cache at class level
@@ -521,6 +518,10 @@ class GraphExporter:
     
     def _is_virtual_node(self, node_type: str) -> bool:
         """Check if a node type is virtual (configuration-only)"""
+        # External nodes (created by UI/frontend) are always virtual
+        if export_utils.is_external_node(node_type):
+            return True
+            
         # Import decorator utilities
         from custom_nodes.utils.dnne_decorator import is_virtual_node, get_all_node_classes
         
@@ -570,13 +571,19 @@ class GraphExporter:
                 f"Run tests to verify: python -m unittest dnne_test_suite.test_runner_args_sync"
             )
     
-    def generate_label_connections(self, workflow: Dict) -> List[Tuple]:
+    def generate_label_connections(self, workflow: Dict) -> Tuple[List[Tuple], Dict]:
         """Preprocess labels to generate implied connections.
         
-        Returns list of new connections as tuples: (from_node, from_slot, to_node, to_slot)
+        Returns:
+            - List of new connections as tuples: (from_node, from_slot, to_node, to_slot)
+            - Dict with bidirectional lookups:
+              - 'by_input': Maps "{to_node}_{to_slot}" to source info
+              - 'by_output': Maps "{from_node}_{from_slot}" to destination info
         """
-        global workflow_labels
-        workflow_labels.clear()  # Clear any previous state
+        label_connections_dict = {
+            "by_input": {},   # For looking up what connects TO a node's input
+            "by_output": {}   # For looking up what connects FROM a node's output
+        }
         
         # Extract label dictionary from workflow extra data
         extra = workflow.get("extra", {})
@@ -584,7 +591,7 @@ class GraphExporter:
         
         if not label_dict:
             self.logger.info("No labels found in workflow")
-            return []
+            return [], label_connections_dict  # Return empty dict with structure
         
         self.logger.info(f"Found {len(label_dict)} labels in workflow")
         
@@ -678,16 +685,24 @@ class GraphExporter:
             connection = (from_node_id, from_slot, to_node_id, to_slot)
             new_connections.append(connection)
             
-            # Store in global for use by other functions
-            workflow_labels[f"{to_node_id}_{to_slot}"] = {
+            # Store in both directions for bidirectional lookups
+            # Input lookup: find what connects TO this node's input
+            label_connections_dict["by_input"][f"{to_node_id}_{to_slot}"] = {
                 "from_node": from_node_id,
                 "from_slot": from_slot,
                 "type": output_label["slot_type"]
             }
             
+            # Output lookup: find what connects FROM this node's output
+            label_connections_dict["by_output"][f"{from_node_id}_{from_slot}"] = {
+                "to_node": to_node_id,
+                "to_slot": to_slot,
+                "type": output_label["slot_type"]
+            }
+            
             self.logger.info(f"Label connection resolved: {from_node_id}[{from_slot}] -> {to_node_id}[{to_slot}]")
         
-        return new_connections
+        return new_connections, label_connections_dict
     
     def export_workflow(self, workflow: Dict, output_path: Optional[Path] = None) -> str:
         """Convert workflow JSON to modular Python package"""
@@ -699,7 +714,7 @@ class GraphExporter:
         metadata = workflow.get("metadata", {})
         
         # Generate label connections and add them to links
-        label_connections = self.generate_label_connections(workflow)
+        label_connections, _ = self.generate_label_connections(workflow)
         if label_connections:
             self.logger.info(f"Adding {len(label_connections)} label-based connections to workflow")
             # Convert to link format and add to links
@@ -1120,8 +1135,7 @@ class GraphExporter:
         return '\n'.join(processed_lines)
     
     def _get_node_connections(self, node_id: str, links: List, nodes: List) -> Dict:
-        """Get incoming and outgoing connections for a node, including label-based connections"""
-        global workflow_labels
+        """Get incoming and outgoing connections for a node"""
         connections = {
             "inputs": {},
             "outputs": {}
@@ -1143,6 +1157,19 @@ class GraphExporter:
             if len(link) >= 5:
                 from_node = str(link[1])
                 to_node = str(link[3])
+                
+                # Skip connections from/to external nodes (UI-created) but keep other virtual nodes
+                # Network nodes need to see LinearLayer connections to build the network
+                from_node_data = next((n for n in nodes if str(n["id"]) == from_node), None)
+                to_node_data = next((n for n in nodes if str(n["id"]) == to_node), None)
+                
+                from_node_type = (from_node_data.get("type") or from_node_data.get("class_type")) if from_node_data else None
+                to_node_type = (to_node_data.get("type") or to_node_data.get("class_type")) if to_node_data else None
+                
+                if from_node_type and export_utils.is_external_node(from_node_type):
+                    continue
+                if to_node_type and export_utils.is_external_node(to_node_type):
+                    continue
                 
                 if to_node == node_id:
                     # Incoming connection - map slot number to input name
@@ -1178,31 +1205,10 @@ class GraphExporter:
                         "to_slot": link[4]
                     })
         
-        # Check for label-based connections
-        # Labels are stored with key "{to_node_id}_{to_slot}"
-        if node_class and hasattr(node_class, 'get_input_names'):
-            input_names = node_class.get_input_names()
-            for slot_index, input_name in enumerate(input_names):
-                label_key = f"{node_id}_{slot_index}"
-                if label_key in workflow_labels:
-                    label_info = workflow_labels[label_key]
-                    
-                    # Add this label connection to the inputs
-                    if input_name not in connections["inputs"]:
-                        connections["inputs"][input_name] = []
-                    
-                    connections["inputs"][input_name].append({
-                        "from_node": label_info["from_node"],
-                        "from_slot": label_info["from_slot"]
-                    })
-                    
-                    self.logger.debug(f"Added label connection for node {node_id} input {input_name}: from {label_info['from_node']}[{label_info['from_slot']}]")
-        
         return connections
     
     def _generate_connections(self, links: List, nodes: List) -> List[str]:
         """Generate connection tuples for wire_nodes, including label-based connections"""
-        global workflow_labels
         connections = []
         
         # Identify virtual nodes that will be skipped

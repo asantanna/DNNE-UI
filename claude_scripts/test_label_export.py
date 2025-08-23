@@ -116,17 +116,14 @@ def test_label_export():
     # Debug: Check if exporters are registered
     print(f"Registered node types: {list(exporter.node_registry.keys())[:10]}...")
     
-    label_connections = exporter.generate_label_connections(workflow)
+    label_connections, _ = exporter.generate_label_connections(workflow)
     
     print(f"\nFound {len(label_connections)} label connections:")
     for conn in label_connections:
         from_node, from_slot, to_node, to_slot = conn
         print(f"  Node {from_node}[{from_slot}] -> Node {to_node}[{to_slot}]")
     
-    print("\nChecking workflow_labels global:")
-    from export_system.graph_exporter import workflow_labels
-    for key, value in workflow_labels.items():
-        print(f"  {key}: {value}")
+    # Skip checking workflow_labels global as it's no longer needed
     
     # Try exporting the workflow
     print("\nAttempting export...")

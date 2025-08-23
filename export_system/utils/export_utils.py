@@ -10,6 +10,25 @@ from typing import Optional, Dict, Any, List
 # Global reference to current export context
 _current_context = None
 
+# External node types - nodes created by UI/frontend, not by DNNE
+# These nodes don't have corresponding DNNE node implementations
+EXTERNAL_NODE_TYPES = ["Label"]  # Label nodes are UI-only for connection management
+
+def is_external_node(node_type: str) -> bool:
+    """
+    Check if a node type is external (created by UI/frontend, not DNNE).
+    
+    External nodes are created by the frontend for UI purposes and don't have
+    corresponding DNNE node implementations. They should be filtered out during export.
+    
+    Args:
+        node_type: The node type to check
+        
+    Returns:
+        True if the node is external, False otherwise
+    """
+    return node_type in EXTERNAL_NODE_TYPES
+
 def set_export_context(context: Dict[str, Any]):
     """Set the current export context (called by GraphExporter)"""
     global _current_context
