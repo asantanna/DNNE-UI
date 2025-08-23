@@ -5,7 +5,9 @@ This cleans up any saved label metadata and label nodes from workflows.
 
 Usage:
     python delete_labels_in_workflow.py workflow.json
-    python delete_labels_in_workflow.py *.json  # Clean multiple files
+    python delete_labels_in_workflow.py workflow         # .json extension optional
+    python delete_labels_in_workflow.py *.json          # Clean multiple files
+    python delete_labels_in_workflow.py workflow1 workflow2  # Multiple files
 """
 
 import json
@@ -120,11 +122,23 @@ def main():
         else:
             all_files.append(pattern)
     
-    # Remove duplicates and convert to Path objects
-    workflow_files = list(set(Path(f) for f in all_files))
-    
-    # Filter to only JSON files that exist
-    workflow_files = [f for f in workflow_files if f.exists() and f.suffix == '.json']
+    # Remove duplicates and convert to Path objects, handling missing .json extension
+    workflow_files = []
+    for f in set(all_files):
+        filepath = Path(f)
+        
+        # If file doesn't exist and doesn't have .json extension, try adding it
+        if not filepath.exists() and filepath.suffix != '.json':
+            json_path = filepath.with_suffix('.json')
+            if json_path.exists():
+                filepath = json_path
+        
+        # Add to list if it exists and is a JSON file
+        if filepath.exists():
+            if filepath.suffix != '.json':
+                print(f"Warning: {filepath} is not a .json file, skipping")
+                continue
+            workflow_files.append(filepath)
     
     if not workflow_files:
         print("No valid JSON workflow files found")
