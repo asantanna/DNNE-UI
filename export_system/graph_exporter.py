@@ -727,7 +727,7 @@ class GraphExporter:
         # WORKAROUND: Fix corrupted to_slot values by reading original JSON
         # ComfyUI pipeline corrupts all to_slot values to 0, so we restore them
         # Skip if metadata indicates this is a programmatically created workflow
-        if not metadata.get("skip_slot_correction", False):
+        if not metadata.get("skip-slot-correction", False):
             links = self._fix_corrupted_slots(links, metadata)
         
         if output_path:
@@ -1177,6 +1177,26 @@ class GraphExporter:
                         "to_node": to_node,
                         "to_slot": link[4]
                     })
+        
+        # Check for label-based connections
+        # Labels are stored with key "{to_node_id}_{to_slot}"
+        if node_class and hasattr(node_class, 'get_input_names'):
+            input_names = node_class.get_input_names()
+            for slot_index, input_name in enumerate(input_names):
+                label_key = f"{node_id}_{slot_index}"
+                if label_key in workflow_labels:
+                    label_info = workflow_labels[label_key]
+                    
+                    # Add this label connection to the inputs
+                    if input_name not in connections["inputs"]:
+                        connections["inputs"][input_name] = []
+                    
+                    connections["inputs"][input_name].append({
+                        "from_node": label_info["from_node"],
+                        "from_slot": label_info["from_slot"]
+                    })
+                    
+                    self.logger.debug(f"Added label connection for node {node_id} input {input_name}: from {label_info['from_node']}[{label_info['from_slot']}]")
         
         return connections
     

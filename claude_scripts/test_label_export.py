@@ -94,7 +94,7 @@ def create_test_workflow_with_labels():
         },
         "metadata": {
             "workflow_name": "test_labels",
-            "skip_slot_correction": True
+            "skip-slot-correction": True
         }
     }
     
