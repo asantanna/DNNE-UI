@@ -469,15 +469,48 @@ class WorkflowAnalyzer:
                 # Check if this Label node has appropriate connections
                 # INPUT-direction labels receive from the label system and OUTPUT to other nodes
                 # OUTPUT-direction labels receive from other nodes and provide to the label system
-                if label_direction == "input" and node_id not in nodes_with_outgoing:
-                    # Input direction labels without OUTGOING connections are errors
-                    # They receive data from label but don't pass it anywhere
-                    error_msg = f"Label node {node_id} (receives '{label_name}') has no outgoing connection"
-                    self.add_error(error_msg)
-                    orphaned_labels.append(error_msg)
+                if label_direction == "input":
+                    # Check if it has outgoing connections
+                    if node_id not in nodes_with_outgoing:
+                        # Input direction labels without OUTGOING connections are errors
+                        error_msg = f"Label node {node_id} (receives '{label_name}') has no outgoing connection"
+                        self.add_error(error_msg)
+                        orphaned_labels.append(error_msg)
+                    else:
+                        # Check if this input label is actually set up to receive from the label system
+                        # Look for dynamic labels that feed this node
+                        receives_from_label = False
+                        for dyn_label_name, dyn_info in label_dict.items():
+                            if "_input_" in dyn_label_name and dyn_info.get("nodeId") == int(node_id):
+                                # This node receives from a dynamic label
+                                receives_from_label = True
+                                break
+                        
+                        if not receives_from_label:
+                            # This is a Label node that outputs somewhere but doesn't receive from label system
+                            # This is exactly the node 108 problem!
+                            error_msg = f"Label node {node_id} ('{label_name}') outputs data but is not connected to label system - no dynamic label feeds it"
+                            self.add_error(error_msg)
+                            orphaned_labels.append(error_msg)
+                            
+                            # Check for conflicts - is there a dynamic label that should be handling this?
+                            # Get what this label node outputs to
+                            for link in links:
+                                if len(link) >= 6 and str(link[1]) == node_id:
+                                    target_node = str(link[3])
+                                    target_slot = link[4] if len(link) > 4 else 0
+                                    # Check if there's a dynamic label for this same connection
+                                    for dyn_label_name, dyn_info in label_dict.items():
+                                        if ("_input_" in dyn_label_name and 
+                                            str(dyn_info.get("nodeId")) == target_node and
+                                            dyn_info.get("connectedToLabel") == label_name):
+                                            conflict_msg = f"CONFLICT: Label node {node_id} physically connects to node {target_node}, but dynamic label '{dyn_label_name}' also connects the same"
+                                            self.add_error(conflict_msg)
+                                            orphaned_labels.append(conflict_msg)
+                                            break
+                            
                 elif label_direction == "output" and node_id not in nodes_with_incoming:
                     # Output direction labels without INCOMING connections are just unused
-                    # They would provide data to label system but have no source
                     orphaned_labels.append(f"Label node {node_id} (provides '{label_name}') has no incoming connection [unused]")
         
         # Check all dynamic input labels to see what they connect to
