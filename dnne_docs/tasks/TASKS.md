@@ -6,6 +6,14 @@ Franka_Coop_Nodes workflow exports and runs but requires patches for dimension/d
 
 ## Active TODOs
 
+### Critical - Frontend Integration
+1. **Patch Verification System**
+   - [ ] Integrate dnne_patches verification into DNNE backend startup
+   - [ ] Add --ignore-patch-errors flag to bypass patch checks
+   - [ ] Call verify_all_patches() from main.py or server.py startup
+   - [ ] Display clear error messages when patches don't match
+   - [ ] Document patch reapplication process in error messages
+
 ### Critical - Fix Underlying Issues (Remove HACKS)
 1. **Dimension Configuration**
    - [ ] Fix UI to correctly set concat/split dimensions (currently hardcoded to dim=1)
@@ -51,3 +59,5 @@ python runner.py
 - `export_system/graph_exporter.py` - Core export logic with dependency system
 - `custom_nodes/*_visnode.py` - Node implementations
 - `export_system/templates/framework/math_utils.py` - Shared math utilities
+- `../DNNE-UI-Frontend/dnne_patches/` - Frontend patch system for npm packages
+- `../DNNE-UI-Frontend/dnne_patches/dnne_patches.py` - Patch verification script
