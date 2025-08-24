@@ -444,6 +444,16 @@ if __name__ == "__main__":
     logging.info("Python version: {}".format(sys.version))
     logging.info("ComfyUI version: {}".format(comfyui_version.__version__))
     
+    # Verify frontend patches before starting
+    from utils.patch_verification import verify_frontend_patches
+    if not verify_frontend_patches():
+        if not args.ignore_patch_errors:
+            logging.error("Frontend patch verification failed. Exiting.")
+            logging.error("Use --ignore-patch-errors to bypass this check.")
+            sys.exit(1)
+        else:
+            logging.warning("Frontend patch verification failed but continuing due to --ignore-patch-errors flag")
+    
     # Start the agent server before starting ComfyUI
     check_and_start_agent_server()
 

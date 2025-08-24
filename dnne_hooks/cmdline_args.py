@@ -46,3 +46,10 @@ def add_dnne_arguments(parser: argparse.ArgumentParser):
         type=str, 
         help="Additional arguments to pass to the DNNE Agent Server (e.g., '--verbose')"
     )
+    
+    # Frontend patch verification
+    parser.add_argument(
+        "--ignore-patch-errors", 
+        action="store_true", 
+        help="Ignore frontend patch verification errors and continue startup."
+    )
