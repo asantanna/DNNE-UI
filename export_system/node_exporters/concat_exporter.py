@@ -142,6 +142,16 @@ class ConcatExporter(ExportableNode):
             for input_name in ["input_a", "input_b", "input_c", "input_d"]:
                 if input_name in connections["inputs"]:
                     input_info = connections["inputs"][input_name]
+                    
+                    # Handle multi-connection inputs (input_info is a list)
+                    if isinstance(input_info, list):
+                        # For concat, we typically only care about the first connection
+                        # since all connections should have the same schema
+                        if len(input_info) > 0:
+                            input_info = input_info[0]
+                        else:
+                            continue
+                    
                     # Try to get schema from connected node
                     if node_registry and all_nodes and all_links:
                         source_node_id = input_info["from_node"]

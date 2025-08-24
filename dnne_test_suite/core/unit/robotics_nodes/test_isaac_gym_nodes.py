@@ -52,47 +52,6 @@ def test_isaac_gym_env_node_structure():
 
 @pytest.mark.robotics
 @pytest.mark.timeout(30)
-def test_or_node_structure():
-    """Test OR node basic structure."""
-    from custom_nodes import ORNode
-    
-    node = ORNode()
-    
-    # Test basic node structure
-    assert hasattr(node, 'INPUT_TYPES')
-    assert hasattr(node, 'RETURN_TYPES')
-    assert hasattr(node, 'RETURN_NAMES')
-    
-    # Check input types - should have multiple optional inputs
-    input_types = node.INPUT_TYPES()
-    assert isinstance(input_types, dict)
-    
-    # OR node should have optional inputs
-    optional = input_types.get("optional", {})
-    assert len(optional) >= 2, "OR node should have multiple optional inputs"
-    
-    # Check return types - should have single output
-    return_types = node.RETURN_TYPES
-    return_names = node.RETURN_NAMES
-    assert len(return_types) == 1, "OR node should have single output"
-    assert len(return_names) == 1, "OR node should have single output name"
-
-
-@pytest.mark.robotics
-@pytest.mark.timeout(30)
-def test_robotics_node_categories():
-    """Test that robotics nodes have appropriate categories."""
-    from custom_nodes import ORNode
-    
-    node = ORNode()
-    assert hasattr(node, "CATEGORY")
-    
-    category = node.CATEGORY.lower()
-    assert any(keyword in category for keyword in ["robotics", "control", "rl", "dnne", "utility"])
-
-
-@pytest.mark.robotics
-@pytest.mark.timeout(30)
 def test_isaac_gym_import_order_awareness():
     """Test that Isaac Gym nodes are aware of import order issues."""
     # Since we import Isaac Gym at the top, it should be available

@@ -477,37 +477,34 @@ class WorkflowAnalyzer:
                         self.add_error(error_msg)
                         orphaned_labels.append(error_msg)
                     else:
-                        # Check if this input label is actually set up to receive from the label system
-                        # Look for dynamic labels that feed this node
-                        receives_from_label = False
-                        for dyn_label_name, dyn_info in label_dict.items():
-                            if "_input_" in dyn_label_name and dyn_info.get("nodeId") == int(node_id):
-                                # This node receives from a dynamic label
-                                receives_from_label = True
+                        # For input-direction labels with outgoing connections:
+                        # Physical Label nodes and their connections are UI visualization elements
+                        # The labelDictionary contains the logical connections used during export
+                        # Having BOTH is the CORRECT structure, not an error
+                        
+                        # Check if there's a corresponding output label that this input label connects to
+                        matching_output_label = None
+                        for dict_label_name, dict_info in label_dict.items():
+                            if "_input_" not in dict_label_name and dict_info.get("labelName") == label_name:
+                                matching_output_label = dict_label_name
                                 break
                         
-                        if not receives_from_label:
-                            # This is a Label node that outputs somewhere but doesn't receive from label system
-                            # This is exactly the node 108 problem!
-                            error_msg = f"Label node {node_id} ('{label_name}') outputs data but is not connected to label system - no dynamic label feeds it"
-                            self.add_error(error_msg)
-                            orphaned_labels.append(error_msg)
+                        if not matching_output_label:
+                            # Check if the label name matches any anchor in the dictionary
+                            found_anchor = False
+                            for dict_label_name, dict_info in label_dict.items():
+                                if "_input_" not in dict_label_name:
+                                    # This is an output label definition
+                                    anchor_name = dict_label_name
+                                    if anchor_name == label_name:
+                                        found_anchor = True
+                                        break
                             
-                            # Check for conflicts - is there a dynamic label that should be handling this?
-                            # Get what this label node outputs to
-                            for link in links:
-                                if len(link) >= 6 and str(link[1]) == node_id:
-                                    target_node = str(link[3])
-                                    target_slot = link[4] if len(link) > 4 else 0
-                                    # Check if there's a dynamic label for this same connection
-                                    for dyn_label_name, dyn_info in label_dict.items():
-                                        if ("_input_" in dyn_label_name and 
-                                            str(dyn_info.get("nodeId")) == target_node and
-                                            dyn_info.get("connectedToLabel") == label_name):
-                                            conflict_msg = f"CONFLICT: Label node {node_id} physically connects to node {target_node}, but dynamic label '{dyn_label_name}' also connects the same"
-                                            self.add_error(conflict_msg)
-                                            orphaned_labels.append(conflict_msg)
-                                            break
+                            if not found_anchor:
+                                # This input label doesn't have a corresponding output label
+                                error_msg = f"Label node {node_id} ('{label_name}') has no matching output label in labelDictionary"
+                                self.add_error(error_msg)
+                                orphaned_labels.append(error_msg)
                             
                 elif label_direction == "output" and node_id not in nodes_with_incoming:
                     # Output direction labels without INCOMING connections are just unused

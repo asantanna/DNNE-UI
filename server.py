@@ -798,6 +798,20 @@ class PromptServer():
             logging.info("got prompt - exporting workflow")
             json_data =  await request.json()
             json_data = self.trigger_on_prompt(json_data)
+            
+            # Debug: log what fields are available
+            logging.debug(f"json_data keys: {list(json_data.keys())}")
+            if "extra_data" in json_data:
+                extra_data = json_data.get("extra_data", {})
+                logging.debug(f"extra_data keys: {list(extra_data.keys())}")
+                if "extra_pnginfo" in extra_data:
+                    pnginfo = extra_data["extra_pnginfo"]
+                    if "workflow" in pnginfo:
+                        workflow_nodes = pnginfo["workflow"].get("nodes", [])
+                        logging.debug(f"Found full workflow in extra_data with {len(workflow_nodes)} nodes")
+                        # Check for Label nodes
+                        label_count = sum(1 for n in workflow_nodes if n.get("type") == "Label")
+                        logging.debug(f"Full workflow contains {label_count} Label nodes")
 
             if "number" in json_data:
                 number = float(json_data['number'])
@@ -865,44 +879,67 @@ class PromptServer():
                     if not safe_name:
                         safe_name = "workflow"
                     
-                    # Create workflow structure from prompt
-                    workflow = {
-                        "nodes": [],
-                        "links": [],
-                        "metadata": {
+                    # Try to get full workflow from extra_data (includes Label nodes)
+                    full_workflow = None
+                    if "extra_data" in json_data:
+                        extra_data = json_data.get("extra_data", {})
+                        if "extra_pnginfo" in extra_data:
+                            pnginfo = extra_data["extra_pnginfo"]
+                            if "workflow" in pnginfo:
+                                full_workflow = pnginfo["workflow"]
+                                logging.info(f"Using full workflow from extra_data with {len(full_workflow.get('nodes', []))} nodes")
+                    
+                    if full_workflow:
+                        # Use the full workflow which includes Label nodes
+                        workflow = full_workflow
+                        # Add/update metadata
+                        if "metadata" not in workflow:
+                            workflow["metadata"] = {}
+                        workflow["metadata"].update({
                             "export_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             "workflow_id": str(number),
                             "workflow_name": workflow_name
-                        }
-                    }
-                    
-                    # Convert prompt format to workflow format
-                    # The prompt is a dict of node_id -> node_data
-                    for node_id, node_data in prompt.items():
-                        workflow["nodes"].append({
-                            "id": node_id,
-                            "class_type": node_data.get("class_type", "Unknown"),
-                            "inputs": node_data.get("inputs", {})
                         })
-                    
-                    # Extract links from node inputs
-                    link_id = 1
-                    for node_id, node_data in prompt.items():
-                        inputs = node_data.get("inputs", {})
-                        for input_name, input_value in inputs.items():
-                            # Check if input is a link (usually a list like [node_id, slot])
-                            if isinstance(input_value, list) and len(input_value) == 2:
-                                source_node_id, source_slot = input_value
-                                # Find target slot index (you may need to adjust this)
-                                target_slot = 0  # Default, might need mapping
-                                workflow["links"].append([
-                                    link_id,
-                                    str(source_node_id),
-                                    source_slot,
-                                    str(node_id),
-                                    target_slot
-                                ])
-                                link_id += 1
+                    else:
+                        # Fallback: Create workflow structure from prompt (Label nodes won't be available)
+                        logging.info("Building workflow from prompt data (Label nodes will not be available)")
+                        workflow = {
+                            "nodes": [],
+                            "links": [],
+                            "metadata": {
+                                "export_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "workflow_id": str(number),
+                                "workflow_name": workflow_name
+                            }
+                        }
+                        
+                        # Convert prompt format to workflow format
+                        # The prompt is a dict of node_id -> node_data
+                        for node_id, node_data in prompt.items():
+                            workflow["nodes"].append({
+                                "id": node_id,
+                                "class_type": node_data.get("class_type", "Unknown"),
+                                "inputs": node_data.get("inputs", {})
+                            })
+                        
+                        # Extract links from node inputs
+                        link_id = 1
+                        for node_id, node_data in prompt.items():
+                            inputs = node_data.get("inputs", {})
+                            for input_name, input_value in inputs.items():
+                                # Check if input is a link (usually a list like [node_id, slot])
+                                if isinstance(input_value, list) and len(input_value) == 2:
+                                    source_node_id, source_slot = input_value
+                                    # Find target slot index (you may need to adjust this)
+                                    target_slot = 0  # Default, might need mapping
+                                    workflow["links"].append([
+                                        link_id,
+                                        str(source_node_id),
+                                        source_slot,
+                                        str(node_id),
+                                        target_slot
+                                    ])
+                                    link_id += 1
                     
                     # Create export directory structure
                     export_base_dir = os.path.join("export_system", "exports")

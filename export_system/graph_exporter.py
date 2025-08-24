@@ -267,6 +267,7 @@ class ExportableNode:
             return inputs[param_name]
         
         # Fall back to widgets_values array (raw format)
+        # Note: Fallbacks are allowed in this function
         if widget_index is not None:
             widget_values = node_data.get("widgets_values", [])
             if widget_index < len(widget_values):
@@ -571,8 +572,123 @@ class GraphExporter:
                 f"Run tests to verify: python -m unittest dnne_test_suite.test_runner_args_sync"
             )
     
+    def _resolve_labels_from_nodes(self, workflow: Dict) -> List[Tuple]:
+        """Resolve label connections from Label node properties (dictionary-free approach).
+        
+        Returns:
+            List of connections as tuples: (from_node_id, from_slot, to_node_id, to_slot)
+            
+        Raises:
+            ValueError: If there are orphaned or invalid label configurations
+        """
+        nodes = workflow.get("nodes", [])
+        
+        # Collect Label nodes and their properties
+        output_labels = {}  # labelName -> source connection info
+        input_labels = []   # List of input labels with target info
+        orphaned_labels = []  # Labels with missing connection info
+        
+        # Debug: log all Label nodes found
+        label_count = 0
+        for node in nodes:
+            if node.get("type") == "Label":
+                label_count += 1
+                self.logger.debug(f"Found Label node {node.get('id')} with properties: {node.get('properties', {})}")
+        
+        if label_count == 0:
+            self.logger.debug("No Label nodes found in workflow")
+        else:
+            self.logger.debug(f"Found {label_count} Label nodes")
+        
+        for node in nodes:
+            if node.get("type") == "Label":
+                props = node.get("properties", {})
+                label_name = props.get("labelName")
+                direction = props.get("labelDirection")
+                node_id = node.get("id")
+                
+                if not label_name or not direction:
+                    orphaned_labels.append(f"Label node {node_id} missing name or direction")
+                    continue
+                
+                if direction == "output":
+                    # Store source connection info
+                    source_node_id = props.get("sourceNodeId")
+                    source_slot_index = props.get("sourceSlotIndex")
+                    
+                    if source_node_id is not None and source_slot_index is not None:
+                        if label_name in output_labels:
+                            raise ValueError(
+                                f"Duplicate output label '{label_name}' found.\n"
+                                f"Please remove one of the duplicate output labels."
+                            )
+                        output_labels[label_name] = {
+                            "node_id": str(source_node_id),
+                            "slot_index": source_slot_index,
+                            "label_node_id": node_id
+                        }
+                        self.logger.debug(f"Found output label '{label_name}': node {source_node_id}, slot {source_slot_index}")
+                    else:
+                        orphaned_labels.append(
+                            f"Output label '{label_name}' (node {node_id}) missing source connection info. "
+                            f"This can happen if the source node was deleted. Please delete this orphaned label."
+                        )
+                
+                elif direction == "input":
+                    # Store target connection info
+                    target_node_id = props.get("targetNodeId")
+                    target_slot_index = props.get("targetSlotIndex")
+                    connected_to = props.get("connectedToLabel")
+                    
+                    if target_node_id is not None and target_slot_index is not None and connected_to:
+                        input_labels.append({
+                            "node_id": str(target_node_id),
+                            "slot_index": target_slot_index,
+                            "connected_to": connected_to,
+                            "label_node_id": node_id
+                        })
+                        self.logger.debug(f"Found input label connecting to '{connected_to}': node {target_node_id}, slot {target_slot_index}")
+                    else:
+                        orphaned_labels.append(
+                            f"Input label '{label_name}' (node {node_id}) missing target connection info. "
+                            f"This can happen if the target node was deleted. Please delete this orphaned label."
+                        )
+        
+        # Check for orphaned labels before continuing
+        if orphaned_labels:
+            error_msg = "Found orphaned or invalid labels:\n" + "\n".join(f"  - {msg}" for msg in orphaned_labels)
+            raise ValueError(error_msg)
+        
+        # Resolve connections and check for missing output labels
+        connections = []
+        missing_outputs = []
+        
+        for input_label in input_labels:
+            output_info = output_labels.get(input_label["connected_to"])
+            if output_info:
+                connection = (
+                    output_info["node_id"],
+                    output_info["slot_index"],
+                    input_label["node_id"],
+                    input_label["slot_index"]
+                )
+                connections.append(connection)
+                self.logger.info(f"Resolved label connection: {output_info['node_id']}[{output_info['slot_index']}] -> {input_label['node_id']}[{input_label['slot_index']}]")
+            else:
+                missing_outputs.append(
+                    f"Input label (node {input_label['label_node_id']}) references missing output label '{input_label['connected_to']}'. "
+                    f"Please create the output label or delete this input label."
+                )
+        
+        # Check for missing output labels
+        if missing_outputs:
+            error_msg = "Found input labels referencing missing output labels:\n" + "\n".join(f"  - {msg}" for msg in missing_outputs)
+            raise ValueError(error_msg)
+        
+        return connections
+    
     def generate_label_connections(self, workflow: Dict) -> Tuple[List[Tuple], Dict]:
-        """Preprocess labels to generate implied connections.
+        """Preprocess labels to generate implied connections using property-based resolution.
         
         Returns:
             - List of new connections as tuples: (from_node, from_slot, to_node, to_slot)
@@ -585,124 +701,28 @@ class GraphExporter:
             "by_output": {}   # For looking up what connects FROM a node's output
         }
         
-        # Extract label dictionary from workflow extra data
-        extra = workflow.get("extra", {})
-        label_dict = extra.get("labelDictionary", {})
+        # Use dictionary-free approach (properties stored in Label nodes)
+        connections = self._resolve_labels_from_nodes(workflow)
         
-        if not label_dict:
-            self.logger.info("No labels found in workflow")
-            return [], label_connections_dict  # Return empty dict with structure
-        
-        self.logger.info(f"Found {len(label_dict)} labels in workflow")
-        
-        # First pass: build output label mapping
-        output_labels = {}
-        input_connections = []
-        
-        for label_name, label_data in label_dict.items():
-            direction = label_data.get("direction")
-            
-            if direction == "output":
-                # Store output label info
-                output_labels[label_name] = {
-                    "node_id": label_data["nodeId"],
-                    "slot_name": label_data["slotName"],
-                    "slot_type": label_data.get("slotType", "*")
+        if connections:
+            self.logger.info(f"Resolved {len(connections)} label connections from node properties")
+            # Build the label_connections_dict from resolved connections
+            for from_node_id, from_slot, to_node_id, to_slot in connections:
+                # Store in both directions for bidirectional lookups
+                label_connections_dict["by_input"][f"{to_node_id}_{to_slot}"] = {
+                    "from_node": from_node_id,
+                    "from_slot": from_slot,
+                    "type": "*"  # Type is stored in node properties if needed
                 }
-                self.logger.debug(f"Output label '{label_name}': node {label_data['nodeId']}, slot {label_data['slotName']}")
-                
-            elif direction == "input":
-                # Check if this input label references an output label
-                connected_label = label_data.get("connectedToLabel")
-                if connected_label:
-                    input_connections.append({
-                        "input_node": label_data["nodeId"],
-                        "input_slot_name": label_data["slotName"],
-                        "output_label": connected_label
-                    })
-                    self.logger.debug(f"Input label connection: node {label_data['nodeId']} -> label '{connected_label}'")
+                label_connections_dict["by_output"][f"{from_node_id}_{from_slot}"] = {
+                    "to_node": to_node_id,
+                    "to_slot": to_slot,
+                    "type": "*"
+                }
+        else:
+            self.logger.info("No label connections found in workflow")
         
-        # Second pass: resolve connections
-        new_connections = []
-        nodes = workflow.get("nodes", [])
-        
-        self.logger.debug(f"Processing {len(input_connections)} input connections")
-        for conn in input_connections:
-            self.logger.debug(f"Processing connection: {conn}")
-            output_label = output_labels.get(conn["output_label"])
-            if not output_label:
-                self.logger.warning(f"Output label '{conn['output_label']}' not found for input connection")
-                continue
-            
-            # Find slot indices
-            from_node_id = str(output_label["node_id"])
-            to_node_id = str(conn["input_node"])
-            
-            # Find the actual nodes to get slot indices
-            from_node = None
-            to_node = None
-            
-            for node in nodes:
-                if str(node["id"]) == from_node_id:
-                    from_node = node
-                if str(node["id"]) == to_node_id:
-                    to_node = node
-            
-            if not from_node or not to_node:
-                self.logger.warning(f"Could not find nodes for label connection: {from_node_id} -> {to_node_id}")
-                continue
-            
-            # Find output slot index
-            from_slot = -1
-            from_node_type = from_node.get("class_type") or from_node.get("type")
-            if from_node_type in self.node_registry:
-                output_names = self.node_registry[from_node_type].get_output_names()
-                self.logger.debug(f"Output names for {from_node_type}: {output_names}")
-                self.logger.debug(f"Looking for slot: {output_label['slot_name']}")
-                for i, name in enumerate(output_names):
-                    if name == output_label["slot_name"]:
-                        from_slot = i
-                        break
-            
-            # Find input slot index  
-            to_slot = -1
-            to_node_type = to_node.get("class_type") or to_node.get("type")
-            if to_node_type in self.node_registry:
-                input_names = self.node_registry[to_node_type].get_input_names()
-                self.logger.debug(f"Input names for {to_node_type}: {input_names}")
-                self.logger.debug(f"Looking for slot: {conn['input_slot_name']}")
-                for i, name in enumerate(input_names):
-                    if name == conn["input_slot_name"]:
-                        to_slot = i
-                        break
-            
-            if from_slot == -1 or to_slot == -1:
-                self.logger.warning(f"Could not resolve slot indices for label connection")
-                continue
-            
-            # Create the connection tuple (matching link format)
-            # Links format: [link_id, from_node, from_slot, to_node, to_slot, type]
-            connection = (from_node_id, from_slot, to_node_id, to_slot)
-            new_connections.append(connection)
-            
-            # Store in both directions for bidirectional lookups
-            # Input lookup: find what connects TO this node's input
-            label_connections_dict["by_input"][f"{to_node_id}_{to_slot}"] = {
-                "from_node": from_node_id,
-                "from_slot": from_slot,
-                "type": output_label["slot_type"]
-            }
-            
-            # Output lookup: find what connects FROM this node's output
-            label_connections_dict["by_output"][f"{from_node_id}_{from_slot}"] = {
-                "to_node": to_node_id,
-                "to_slot": to_slot,
-                "type": output_label["slot_type"]
-            }
-            
-            self.logger.info(f"Label connection resolved: {from_node_id}[{from_slot}] -> {to_node_id}[{to_slot}]")
-        
-        return new_connections, label_connections_dict
+        return connections, label_connections_dict
     
     def export_workflow(self, workflow: Dict, output_path: Optional[Path] = None) -> str:
         """Convert workflow JSON to modular Python package"""
@@ -713,8 +733,17 @@ class GraphExporter:
         links = workflow.get("links", [])
         metadata = workflow.get("metadata", {})
         
-        # Generate label connections and add them to links
+        # Generate label connections but DON'T add them to links yet
+        # We need to fix corrupted slots first, then add label connections
         label_connections, _ = self.generate_label_connections(workflow)
+        
+        # WORKAROUND: Fix corrupted to_slot values by reading original JSON
+        # ComfyUI pipeline corrupts all to_slot values to 0, so we restore them
+        # Skip if metadata indicates this is a programmatically created workflow
+        if not metadata.get("skip-slot-correction", False):
+            links = self._fix_corrupted_slots(links, metadata)
+        
+        # NOW add the label connections after slot correction
         if label_connections:
             self.logger.info(f"Adding {len(label_connections)} label-based connections to workflow")
             # Convert to link format and add to links
@@ -730,7 +759,7 @@ class GraphExporter:
                     "*"                   # type (will be resolved later)
                 ]
                 links.append(new_link)
-                self.logger.debug(f"Added label link: {new_link}")
+                self.logger.info(f"Added resolved label link: from node {from_node} slot {from_slot} to node {to_node} slot {to_slot}")
         
         # Set export context for utility functions
         export_utils.set_export_context({
@@ -738,12 +767,6 @@ class GraphExporter:
             'links': links,
             'node_registry': self.node_registry
         })
-        
-        # WORKAROUND: Fix corrupted to_slot values by reading original JSON
-        # ComfyUI pipeline corrupts all to_slot values to 0, so we restore them
-        # Skip if metadata indicates this is a programmatically created workflow
-        if not metadata.get("skip-slot-correction", False):
-            links = self._fix_corrupted_slots(links, metadata)
         
         if output_path:
             output_path = Path(output_path)
@@ -1152,6 +1175,11 @@ class GraphExporter:
         
         node_class = self.node_registry.get(node_type) if node_type else None
         
+        # Debug logging for Network node
+        if node_type == "NetworkNode":
+            self.logger.debug(f"Getting connections for Network node {node_id}")
+            self.logger.debug(f"Total links to process: {len(links)}")
+        
         for link in links:
             # Link format: [link_id, from_node, from_slot, to_node, to_slot]
             if len(link) >= 5:
@@ -1166,9 +1194,17 @@ class GraphExporter:
                 from_node_type = (from_node_data.get("type") or from_node_data.get("class_type")) if from_node_data else None
                 to_node_type = (to_node_data.get("type") or to_node_data.get("class_type")) if to_node_data else None
                 
+                # Debug logging for Network node
+                if node_type == "NetworkNode" and (to_node == node_id or from_node == node_id):
+                    self.logger.debug(f"  Link: from {from_node}({from_node_type}) to {to_node}({to_node_type})")
+                
                 if from_node_type and export_utils.is_external_node(from_node_type):
+                    if node_type == "NetworkNode" and to_node == node_id:
+                        self.logger.debug(f"    Skipping link from external node {from_node_type}")
                     continue
                 if to_node_type and export_utils.is_external_node(to_node_type):
+                    if node_type == "NetworkNode" and from_node == node_id:
+                        self.logger.debug(f"    Skipping link to external node {to_node_type}")
                     continue
                 
                 if to_node == node_id:
@@ -1196,6 +1232,10 @@ class GraphExporter:
                         "from_node": from_node,
                         "from_slot": link[2]
                     })
+                    
+                    # Debug logging for Network node
+                    if node_type == "NetworkNode":
+                        self.logger.debug(f"    Added input connection: {input_name} from node {from_node}")
                 elif from_node == node_id:
                     # Outgoing connection
                     if link[2] not in connections["outputs"]:
@@ -1204,6 +1244,12 @@ class GraphExporter:
                         "to_node": to_node,
                         "to_slot": link[4]
                     })
+        
+        # Debug logging for Network node
+        if node_type == "NetworkNode":
+            self.logger.debug(f"Final connections for Network node {node_id}:")
+            self.logger.debug(f"  Inputs: {list(connections['inputs'].keys())}")
+            self.logger.debug(f"  Outputs: {list(connections['outputs'].keys())}")
         
         return connections
     
