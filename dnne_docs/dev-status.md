@@ -4,17 +4,20 @@
 
 ## Latest Achievements (Current Week)
 
-### 2025-08-25: Label Rats Nest Visualization
-- ✅ Implemented rats nest feature for label connections
-- Shows cyan lines connecting all labels in same network when selected
-- Includes pulsing animation on selected labels
-- Properly handles pan/zoom using LiteGraph's `toCanvasContext()`
-- Performance optimized with label network caching
+### 2025-08-24: Workflow Analysis & Repair Tools
+- ✅ **analyze_workflow Major Update** - Property-based validation
+  - Validates Label nodes using properties, not dictionaries
+  - Detects invalid connections to deleted nodes
+  - `--repair-workflow` switch for automatic repair
+  - Found and fixed 7 broken connections in Franka_Coop_Nodes
+- ✅ **Label Rats Nest (Frontend)** - Visual connection feedback
+  - Cyan lines connect label centers when selected
+  - Uses LiteGraph coordinate transformations
+  - Documented in `dnne_docs/features/label_rats_nest.md`
 
-### 2025-08-22: Label System Enhancements
-- ✅ Dictionary-free label system implementation
-- ✅ Label node connection analyzer and repair tool
-- ✅ Frontend patch verification integrated into startup
+### 2025-08-22: Label System Core
+- ✅ Dictionary-free label implementation
+- ✅ Frontend patch verification at startup
 
 ## Essential Commands
 

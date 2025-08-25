@@ -279,8 +279,8 @@ def register_all_exporters_auto(graph_exporter):
             raise RuntimeError(error_msg)
         
         # Log summary
-        logger.info(f"Auto-registered {registered_count} exporters for non-virtual nodes")
-        logger.info(f"Registered {skipped_virtual} virtual nodes (no code generation)")
+        logger.debug(f"Auto-registered {registered_count} exporters for non-virtual nodes")
+        logger.debug(f"Registered {skipped_virtual} virtual nodes (no code generation)")
         
         return registered_count
         

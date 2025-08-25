@@ -25,7 +25,7 @@ class SimulationTrackerNode(RoboticsNodeBase):
                 "observation": ("*SIM_OBSERVATION_TENSOR", {
                     "tooltip": "Observation tensor from the simulator containing state information."
                 }),
-                "done": ("*SIM_DONE_TRIGGER", {
+                "done": ("*TRIGGER", {
                     "tooltip": "Episode completion signal from the simulator. Triggered when episode ends."
                 }),
             },

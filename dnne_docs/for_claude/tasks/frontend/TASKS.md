@@ -1,8 +1,7 @@
 # Frontend Tasks
 
 ## Current Status
-UI functional with basic copy/paste support and label rats nest visualization.
-Label rats nest feature complete - shows connections between labels when selected.
+UI functional with copy/paste support. Label rats nest visualization complete (2025-08-24).
 
 ## Active TODOs
 

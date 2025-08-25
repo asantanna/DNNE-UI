@@ -485,7 +485,7 @@ class GraphExporter:
     def register_node(self, node_type: str, node_class: type):
         """Register an exportable node type"""
         self.node_registry[node_type] = node_class
-        self.logger.info(f"Registered node type: {node_type}")
+        self.logger.debug(f"Registered node type: {node_type}")
     
     @staticmethod
     def classname_to_exported_filename(class_name: str) -> str:
@@ -673,7 +673,7 @@ class GraphExporter:
                     input_label["slot_index"]
                 )
                 connections.append(connection)
-                self.logger.info(f"Resolved label connection: {output_info['node_id']}[{output_info['slot_index']}] -> {input_label['node_id']}[{input_label['slot_index']}]")
+                self.logger.debug(f"Resolved label connection: {output_info['node_id']}[{output_info['slot_index']}] -> {input_label['node_id']}[{input_label['slot_index']}]")
             else:
                 missing_outputs.append(
                     f"Input label (node {input_label['label_node_id']}) references missing output label '{input_label['connected_to']}'. "
@@ -705,7 +705,7 @@ class GraphExporter:
         connections = self._resolve_labels_from_nodes(workflow)
         
         if connections:
-            self.logger.info(f"Resolved {len(connections)} label connections from node properties")
+            self.logger.debug(f"Resolved {len(connections)} label connections from node properties")
             # Build the label_connections_dict from resolved connections
             for from_node_id, from_slot, to_node_id, to_slot in connections:
                 # Store in both directions for bidirectional lookups
@@ -720,7 +720,7 @@ class GraphExporter:
                     "type": "*"
                 }
         else:
-            self.logger.info("No label connections found in workflow")
+            self.logger.debug("No label connections found in workflow")
         
         return connections, label_connections_dict
     
@@ -745,7 +745,7 @@ class GraphExporter:
         
         # NOW add the label connections after slot correction
         if label_connections:
-            self.logger.info(f"Adding {len(label_connections)} label-based connections to workflow")
+            self.logger.debug(f"Adding {len(label_connections)} label-based connections to workflow")
             # Convert to link format and add to links
             max_link_id = max([link[0] for link in links] + [0])
             for i, (from_node, from_slot, to_node, to_slot) in enumerate(label_connections):
@@ -759,7 +759,7 @@ class GraphExporter:
                     "*"                   # type (will be resolved later)
                 ]
                 links.append(new_link)
-                self.logger.info(f"Added resolved label link: from node {from_node} slot {from_slot} to node {to_node} slot {to_slot}")
+                self.logger.debug(f"Added resolved label link: from node {from_node} slot {from_slot} to node {to_node} slot {to_slot}")
         
         # Set export context for utility functions
         export_utils.set_export_context({
@@ -827,7 +827,7 @@ class GraphExporter:
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata_content, f, indent=2)
         
-        self.logger.info(f"Created metadata.json with workflow_id: {workflow_id}, name: {workflow_name}")
+        self.logger.debug(f"Created metadata.json with workflow_id: {workflow_id}, name: {workflow_name}")
         
         # Export framework
         self._export_framework(framework_dir)
@@ -851,7 +851,7 @@ class GraphExporter:
             
             # Skip virtual nodes (configuration-only nodes)
             if self._is_virtual_node(node_type):
-                self.logger.info(f"Skipping virtual node {node_id} ({node_type}) - configuration only")
+                self.logger.debug(f"Skipping virtual node {node_id} ({node_type}) - configuration only")
                 continue
             
             if node_type in self.node_registry:
@@ -944,7 +944,7 @@ class GraphExporter:
             if not workflow_path.exists():
                 raise FileNotFoundError(f"Workflow file not found: {workflow_path}")
             
-            self.logger.info(f"Reading original workflow from: {workflow_path}")
+            self.logger.debug(f"Reading original workflow from: {workflow_path}")
             with open(workflow_path, 'r') as f:
                 original_workflow = json.load(f)
             original_links = original_workflow.get("links", [])
@@ -975,7 +975,7 @@ class GraphExporter:
                             fixed_link[4] = correct_to_slot
                             fixed_links.append(fixed_link)
                             fixes_applied += 1
-                            self.logger.info(f"Fixed connection {from_node}.{from_slot}→{to_node}: to_slot {corrupted_to_slot} → {correct_to_slot}")
+                            self.logger.debug(f"Fixed connection {from_node}.{from_slot}→{to_node}: to_slot {corrupted_to_slot} → {correct_to_slot}")
                         else:
                             fixed_links.append(link)
                     else:
@@ -987,7 +987,7 @@ class GraphExporter:
                 else:
                     fixed_links.append(link)
             
-            self.logger.info(f"Applied {fixes_applied} slot corrections from {workflow_path}")
+            self.logger.debug(f"Applied {fixes_applied} slot corrections from {workflow_path}")
             return fixed_links
                 
         except Exception as e:
@@ -1110,7 +1110,7 @@ class GraphExporter:
                 # Copy single file
                 dest_file = dest_base / src_path.name
                 shutil.copy2(src_path, dest_file)
-                self.logger.info(f"Copied file: {src_path} -> {dest_file.relative_to(output_path)}")
+                self.logger.debug(f"Copied file: {src_path} -> {dest_file.relative_to(output_path)}")
             
             elif src_path.is_dir():
                 # Copy directory tree
@@ -1118,7 +1118,7 @@ class GraphExporter:
                 if dest_subdir.exists():
                     shutil.rmtree(dest_subdir)  # Remove existing to ensure clean copy
                 shutil.copytree(src_path, dest_subdir)
-                self.logger.info(f"Copied directory: {src_path} -> {dest_subdir.relative_to(output_path)}")
+                self.logger.debug(f"Copied directory: {src_path} -> {dest_subdir.relative_to(output_path)}")
     
     def _process_template(self, template: str, variables: Dict[str, Any]) -> str:
         """Process template by replacing variables"""
@@ -1333,7 +1333,7 @@ class PlaceholderNode_{node_id}(QueueNode):
         self.logger.warning(f"Using placeholder for unknown node type: {node_type}")
     
     async def compute(self, **inputs) -> Dict[str, Any]:
-        self.logger.info(f"Placeholder compute for {node_type}")
+        self.logger.debug(f"Placeholder compute for {node_type}")
         return {{"output_0": inputs.get("input_0", None)}}
 '''
     
@@ -1463,7 +1463,7 @@ class PlaceholderNode_{node_id}(QueueNode):
             )
             
             if is_export_dir:
-                self.logger.info(f"Cleaning existing export directory: {output_path}")
+                self.logger.debug(f"Cleaning existing export directory: {output_path}")
                 shutil.rmtree(output_path)
             else:
                 # Directory exists but doesn't look like an export - be cautious
@@ -1517,7 +1517,7 @@ class PlaceholderNode_{node_id}(QueueNode):
         try:
             globals_threadsafe_content = self._load_template("framework/globals_threadsafe.py")
             (framework_dir / "globals_threadsafe.py").write_text(globals_threadsafe_content, encoding='utf-8')
-            self.logger.info("Exported globals_threadsafe.py for thread-safe yielding support")
+            self.logger.debug("Exported globals_threadsafe.py for thread-safe yielding support")
         except FileNotFoundError:
             self.logger.error("globals_threadsafe.py not found in templates")
             raise FileNotFoundError("globals_threadsafe.py not found in templates")
@@ -1529,27 +1529,27 @@ class PlaceholderNode_{node_id}(QueueNode):
         # Export metrics_logger.py (required by BalancerNode)
         metrics_logger_content = self._load_template("framework/metrics_logger.py")
         (framework_dir / "metrics_logger.py").write_text(metrics_logger_content, encoding='utf-8')
-        self.logger.info("Exported metrics_logger.py for balancing node support")
+        self.logger.debug("Exported metrics_logger.py for balancing node support")
         
         # Export multi_waiter.py (required for efficient async input handling)
         multi_waiter_content = self._load_template("framework/multi_waiter.py")
         (framework_dir / "multi_waiter.py").write_text(multi_waiter_content, encoding='utf-8')
-        self.logger.info("Exported multi_waiter.py for efficient async input handling")
+        self.logger.debug("Exported multi_waiter.py for efficient async input handling")
         
         # Export override_parser.py (required for --override functionality)
         override_parser_content = self._load_template("framework/override_parser.py")
         (framework_dir / "override_parser.py").write_text(override_parser_content, encoding='utf-8')
-        self.logger.info("Exported override_parser.py for runtime parameter overrides")
+        self.logger.debug("Exported override_parser.py for runtime parameter overrides")
         
         # Export arg_parser.py (required for command-line argument parsing)
         arg_parser_content = self._load_template("framework/arg_parser.tpl")
         (framework_dir / "arg_parser.py").write_text(arg_parser_content, encoding='utf-8')
-        self.logger.info("Exported arg_parser.py for command-line argument parsing")
+        self.logger.debug("Exported arg_parser.py for command-line argument parsing")
         
         # Export telemetry.py (required by balancing node and others)
         telemetry_content = self._load_template("framework/telemetry.py")
         (framework_dir / "telemetry.py").write_text(telemetry_content, encoding='utf-8')
-        self.logger.info("Exported telemetry.py for telemetry support")
+        self.logger.debug("Exported telemetry.py for telemetry support")
         
         # Copy dnne_config.py and dnne_config.json from root
         import shutil
@@ -1684,7 +1684,7 @@ def get_rl_games_path() -> Path:
         with open(framework_dir / "dnne_config.py", 'w') as f:
             f.write(dnne_config_content)
         
-        self.logger.info("Created custom dnne_config.py for exported workflows")
+        self.logger.debug("Created custom dnne_config.py for exported workflows")
         
         # Create exported_config.json with only exported and shared sections
         dnne_config_json_src = dnne_root / "dnne_config.json"
@@ -1714,7 +1714,7 @@ def get_rl_games_path() -> Path:
         with open(exported_config_path, 'w') as f:
             json.dump(exported_config, f, indent=2)
         
-        self.logger.info("Created exported_config.json with client-safe configuration")
+        self.logger.debug("Created exported_config.json with client-safe configuration")
     
     def _export_node_to_file(self, nodes_dir: Path, node_id: str, node_type: str, 
                             node_code: str, node_imports: List[str]) -> str:

@@ -795,7 +795,7 @@ class PromptServer():
         
         @routes.post("/prompt")
         async def post_prompt(request):
-            logging.info("got prompt - exporting workflow")
+            logging.debug("got prompt - exporting workflow")
             json_data =  await request.json()
             json_data = self.trigger_on_prompt(json_data)
             
@@ -838,7 +838,7 @@ class PromptServer():
                     workflow_name = os.path.splitext(os.path.basename(workflow_path))[0]
                     if workflow_name:
                         self.current_workflow_name = workflow_name
-                        logging.info(f"Updated workflow name from path: {workflow_name}")
+                        logging.debug(f"Updated workflow name from path: {workflow_name}")
                     else:
                         error_msg = f"Invalid workflow path: {workflow_path}"
                         logging.error(error_msg)
@@ -887,7 +887,7 @@ class PromptServer():
                             pnginfo = extra_data["extra_pnginfo"]
                             if "workflow" in pnginfo:
                                 full_workflow = pnginfo["workflow"]
-                                logging.info(f"Using full workflow from extra_data with {len(full_workflow.get('nodes', []))} nodes")
+                                logging.debug(f"Using full workflow from extra_data with {len(full_workflow.get('nodes', []))} nodes")
                     
                     if full_workflow:
                         # Use the full workflow which includes Label nodes
@@ -954,7 +954,7 @@ class PromptServer():
                     if not os.path.exists(exported_runner_path):
                         raise Exception(f"Export failed: runner.py not found at {exported_runner_path}")
                     
-                    logging.info(f"Export saved to: {workflow_export_dir}")
+                    logging.debug(f"Export saved to: {workflow_export_dir}")
                     
                     # Handle remote export if target is not local
                     if export_target != "local":

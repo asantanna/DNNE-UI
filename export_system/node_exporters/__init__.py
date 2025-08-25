@@ -91,4 +91,4 @@ if import_errors:
         '\n'.join(f"  - {err}" for err in import_errors)
     )
 
-logger.info(f"Auto-imported {len(__all__) - 1} exporter classes")
+logger.debug(f"Auto-imported {len(__all__) - 1} exporter classes")
