@@ -412,5 +412,5 @@ async def test_split_node_label_update():
 ## Related Documentation
 
 - `/dnne_docs/architecture/ui_callbacks.md` - UI-initiated callback system
-- `/dnne_docs/architecture/websocket-not-rest.md` - WebSocket architecture
+- `/dnne_docs/architecture/websocket_not_rest.md` - WebSocket architecture
 - `/dnne_docs/for_claude/tasks/ui_proxy/` - Implementation tracking

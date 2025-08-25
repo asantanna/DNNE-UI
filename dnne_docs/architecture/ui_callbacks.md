@@ -253,4 +253,4 @@ class IsaacGymEnvsNode:
 ## Related Documentation
 
 - `/dnne_docs/for_claude/tasks/dnne_combo_widget/` - Implementation tracking
-- `/dnne_docs/architecture/websocket-not-rest.md` - WebSocket architecture principles
+- `/dnne_docs/architecture/websocket_not_rest.md` - WebSocket architecture principles

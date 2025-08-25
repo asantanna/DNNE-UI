@@ -65,13 +65,13 @@ This document tracks the progress of consolidating and improving DNNE documentat
 ### 4. Consolidate Duplicate/Scattered Content
 
 #### Adaptive Yielding Documentation
-- [ ] Keep main: `dnne_docs/architecture/adaptive-yielding.md`
+- [ ] Keep main: `dnne_docs/architecture/adaptive_yielding.md`
 - [ ] Archive: Move `dnne_docs/experiments/yield_tests/` to `experiments/archive/`
 - [ ] Merge any unique content from experiments into main doc
 
 #### Architecture Documentation
-- [ ] Check overlap between `system-balancing.md` and `adaptive-yielding.md`
-- [ ] Check overlap between `async-environment-design.md` and `queue_framework.md`
+- [ ] Check overlap between `system_balancing.md` and `adaptive_yielding.md`
+- [ ] Check overlap between `async_environment_design.md` and `queue_framework.md`
 - [ ] Merge duplicated content
 
 #### Code Review Documentation

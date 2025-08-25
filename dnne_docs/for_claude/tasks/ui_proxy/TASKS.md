@@ -7,7 +7,7 @@ UI Proxy is in initial design phase.
 - main docs: `dnne_docs/for_claude/tasks/ui_proxy/README.md`
 - Architecture specification: `dnne_docs/architecture/ui_proxy.md`
 - Related: UI Callbacks: `dnne_docs/architecture/ui_callbacks.md`
-- WebSocket architecture: `dnne_docs/architecture/websocket-not-rest.md`
+- WebSocket architecture: `dnne_docs/architecture/websocket_not_rest.md`
 - Server WebSocket handler: `server.py` (WebSocket message handling)
 - Frontend WebSocket client: `DNNE-UI-Frontend/src/scripts/api.js`
 

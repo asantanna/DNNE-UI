@@ -172,7 +172,7 @@ db198c04 Add missing custom compute functions to tracking
 - `server.py` - Modified to use full workflow from extra_data for label resolution
 - `export_system/graph_exporter.py` - Reordered to run label resolution AFTER slot correction
 - `claude_scripts/migrate_labels_to_properties.py` - NEW migration script for label system
-- `dnne_docs/architecture/implementation_of_labels.md` - NEW documentation for label system
+- `dnne_docs/architecture/connection_labels.md` - NEW documentation for label system
 - `dnne_test_suite/unit_tests/test_dictionary_free_labels.py` - NEW tests for property-based labels
 - `dnne_test_suite/unit_tests/test_label_validation.py` - NEW validation tests
 

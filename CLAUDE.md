@@ -108,7 +108,7 @@ Note: Ensure the conda environment is activated before running scripts in `claud
 - All UI updates go through WebSocket
 - All data requests use WebSocket messages (e.g., `request_logs`, not `/api/logs`)
 - REST is ONLY for static resources and initial page load
-- See `dnne_docs/architecture/websocket-not-rest.md` for details
+- See `dnne_docs/architecture/websocket_not_rest.md` for details
 
 ### Core System Structure
 - **Entry Point**: `main.py` - Initializes DNNE server with ML/robotics extensions
