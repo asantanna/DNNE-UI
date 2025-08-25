@@ -1,9 +1,16 @@
 # Frontend Tasks
 
 ## Current Status
-UI functional with basic copy/paste support via keyboard shortcuts.
+UI functional with basic copy/paste support and label rats nest visualization.
+Label rats nest feature complete - shows connections between labels when selected.
 
 ## Active TODOs
+
+### Known Issues
+1. **DNNE Combo Widget WebSocket Error**
+   - [ ] Fix WebSocket CONNECTING state error on reload
+   - Error occurs in `useDnneComboWidget.ts` line 76
+   - Non-critical - doesn't affect functionality
 
 ### Low Priority
 1. **Menu Enhancements**

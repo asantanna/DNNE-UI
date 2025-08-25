@@ -1,13 +1,13 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-22*  
+*Last Updated: 2025-08-25*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
 
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
-| **Label Connections** | 🟡 Working | Core complete, workflow naming issue | High | 2025-08-22 |
+| **Label Connections** | 🟢 Complete | Rats nest visualization added | - | 2025-08-25 |
 | **Type System** | 🟢 Complete | 100% - Color system fixed | - | 2025-08-15 |
 | **MCP Integration** | 🟢 Complete | 42 tools implemented | Low | 2025-08-12 |
 | **DNNE Agent** | 🟢 Complete | Fully functional | - | 2025-08-11 |
@@ -21,12 +21,6 @@
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
 
 ## Active Priority Items
-
-### High Priority
-1. **Label Connection System**: Fix workflow naming and tab issues
-   - ⚠️ Saved workflows loading as 'Unsaved Workflow (N)' instead of proper name
-   - ⚠️ Tab creation logic issues - closing tabs sometimes creates new ones
-   - ✅ Core label system fully functional for cleaner workflows
 
 ### Medium Priority
 1. **UI Proxy**: Implement server-initiated JavaScript execution
