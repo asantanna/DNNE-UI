@@ -122,25 +122,25 @@ class IsaacGymSimExporter(ExportableNode):
                 dnne_cfg_code += f"            \n"
                 dnne_cfg_code += f"            # Add subtask for environments that use it (like FrankaDNNE)\n"
                 dnne_cfg_code += f"            dnne_cfg.setdefault('env', {{}})[\'subtask\'] = \"{subtask}\"\n"
-                dnne_cfg_code += f"            print(f\"[DEBUG IsaacGymSim] Setting subtask: {subtask}\")\n"
+                # dnne_cfg_code += f"            print(f\"[DEBUG IsaacGymSim] Setting subtask: {subtask}\")\n"
             
             if control_type:
                 dnne_cfg_code += f"            \n"
                 dnne_cfg_code += f"            # Add controlType for environments that use it (like FrankaDNNE)\n"
                 dnne_cfg_code += f"            dnne_cfg.setdefault('env', {{}})[\'controlType\'] = \"{control_type}\"\n"
-                dnne_cfg_code += f"            print(f\"[DEBUG IsaacGymSim] Setting controlType: {control_type}\")\n"
+                # dnne_cfg_code += f"            print(f\"[DEBUG IsaacGymSim] Setting controlType: {control_type}\")\n"
             
             if num_observations:
                 dnne_cfg_code += f"            \n"
                 dnne_cfg_code += f"            # Override numObservations from schema\n"
                 dnne_cfg_code += f"            dnne_cfg.setdefault('env', {{}})[\'numObservations\'] = {num_observations}\n"
-                dnne_cfg_code += f"            print(f\"[DEBUG IsaacGymSim] Setting numObservations: {num_observations}\")\n"
+                # dnne_cfg_code += f"            print(f\"[DEBUG IsaacGymSim] Setting numObservations: {num_observations}\")\n"
             
             if num_actions:
                 dnne_cfg_code += f"            \n"
                 dnne_cfg_code += f"            # Override numActions from schema\n"
                 dnne_cfg_code += f"            dnne_cfg.setdefault('env', {{}})[\'numActions\'] = {num_actions}\n"
-                dnne_cfg_code += f"            print(f\"[DEBUG IsaacGymSim] Setting numActions: {num_actions}\")\n"
+                # dnne_cfg_code += f"            print(f\"[DEBUG IsaacGymSim] Setting numActions: {num_actions}\")\n"
         
         return {
             "NODE_ID": node_id,

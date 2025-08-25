@@ -31,6 +31,11 @@
    - Current output name may be generic
    - Should be called "loss" for clarity
 
+3. **Improve Label Node Connection Prevention**
+   - Current implementation uses hacky workaround (restores connections after disconnect)
+   - Should prevent disconnection in the first place
+   - See detailed design at: `dnne_docs/future/label-connection-prevention.md`
+
 ## 💡 Quick Reference
 
 ### Node Categories

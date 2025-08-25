@@ -555,7 +555,7 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                                     const nullActionWidget = connectedNode.widgets?.find(w => w.name === 'null_action');
                                     if (nullActionWidget) {{
                                         nullActionWidget.value = nullActionStr;
-                                        console.log(`[IsaacGymEnvs] Task change - Updated null_action in IsaacGymSim node ${{connectedNode.id}} to: "${{nullActionStr}}"`);
+                                        // console.log(`[IsaacGymEnvs] Task change - Updated null_action in IsaacGymSim node ${{connectedNode.id}} to: "${{nullActionStr}}"`);
                                     }}
                                 }}
                                 // TODO: Also handle PPOAgent nodes that might be connected
@@ -645,7 +645,7 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                                 // ALWAYS use loaded value - NO DEFAULTS!
                                 const loadedValue = loadedWidgetValues[level];
                                 widget.value = loadedValue;
-                                console.log(`[IsaacGymEnvs] onLoad: Set ${{level}} to loaded value: ${{loadedValue}}`);
+                                // console.log(`[IsaacGymEnvs] onLoad: Set ${{level}} to loaded value: ${{loadedValue}}`);
                                 
                                 widget.hidden = false;
                             }} else {{
@@ -746,7 +746,7 @@ class IsaacGymEnvsNode(RoboticsNodeBase):
                                     const nullActionWidget = connectedNode.widgets?.find(w => w.name === 'null_action');
                                     if (nullActionWidget) {{
                                         nullActionWidget.value = nullActionStr;
-                                        console.log(`[IsaacGymEnvs] Updated null_action in IsaacGymSim node ${{connectedNode.id}} to: "${{nullActionStr}}"`);
+                                        // console.log(`[IsaacGymEnvs] Updated null_action in IsaacGymSim node ${{connectedNode.id}} to: "${{nullActionStr}}"`);
                                     }}
                                 }}
                                 // TODO: Also handle PPOAgent nodes that might be connected
