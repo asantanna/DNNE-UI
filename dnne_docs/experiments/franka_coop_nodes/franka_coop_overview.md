@@ -56,7 +56,7 @@ Train1 Train2 Train3  (Shared global loss)
 
 #### 1. Observation Distribution
 - **Split Node 56**: Extracts `target_pos, eef_pos` (shared global state)
-- **Split Node 45**: Extracts individual joint angles `joint_theta[0], [1], [2]`
+- **Split Node 45**: Extracts individual joint angles from 9 total joints
 - **Concat Nodes (47, 55, 57)**: Combine shared state with individual joint angle
 
 **What each network sees**:
@@ -91,13 +91,13 @@ Note: Currently controlling joints 0, 1, 2 while joints 3-6 receive zero torque 
 ### 1. ✅ RESOLVED: Schema-Implementation Alignment
 **Solution**: Updated schema to match actual implementation (implementation is ground truth)
 
-**Actual Observations** (joint_tor mode, 18 dims):
+**Actual Observations** (joint_tor mode, 20 dims):
 ```python
 target_pos: [0, 2]       # Target position (x,y,z)
 eef_pos: [3, 5]          # End-effector position (x,y,z)
 eef_quat: [6, 9]         # End-effector quaternion (x,y,z,w)
-joint_theta: [10, 16]    # 7 joint angles in radians
-episode_time: [17, 17]   # Episode elapsed time in seconds
+joint_theta: [10, 18]    # 9 joint angles in radians (7 arm + 2 gripper)
+episode_time: [19, 19]   # Episode elapsed time in seconds
 ```
 
 ### 2. ✅ RESOLVED: Loss Function
@@ -172,8 +172,8 @@ Actual observations from implementation:
 - `[0-2]`: target_pos (x,y,z)
 - `[3-5]`: eef_pos (x,y,z)
 - `[6-9]`: eef_quat (quaternion)
-- `[10-16]`: joint_theta (7 joint angles in radians)
-- `[17]`: episode_time (seconds)
+- `[10-18]`: joint_theta (9 joint angles in radians - 7 arm + 2 gripper)
+- `[19]`: episode_time (seconds)
 
 ### Queue-Based Execution
 All nodes use async queue-based patterns for real-time performance, similar to ROS (Robot Operating System).

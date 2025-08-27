@@ -23,12 +23,15 @@ class NetworkExporter(ExportableNode):
         
         # Determine input size from the Network's input connection
         input_size = None
+        print(f"[DEBUG Network {node_id}] Getting input schema...")
         input_schema = cls.get_input_schema(node_data, connections, 
                                           node_registry, all_nodes, all_links)
         if "input" in input_schema and input_schema["input"]:
             input_tensor_schema = input_schema["input"]
+            print(f"[DEBUG Network {node_id}] Input tensor schema: {input_tensor_schema}")
             if "flattened_size" in input_tensor_schema:
                 input_size = input_tensor_schema["flattened_size"]
+                print(f"[DEBUG Network {node_id}] Input size from schema: {input_size}")
                 if input_size is None:
                     # The connected node couldn't determine size
                     raise ValueError(f"Network node {node_id}: Connected node returned None for flattened_size")
@@ -175,6 +178,7 @@ class NetworkExporter(ExportableNode):
     @classmethod
     def get_initial_output_schema(cls, node_data):
         # Network node initial schema
+        # NOTE: The "output" should NOT be passthrough - it should be the size of the last layer!
         return {
             "outputs": {
                 "layers": {
@@ -182,8 +186,9 @@ class NetworkExporter(ExportableNode):
                     "passthrough_from": "input"
                 },
                 "output": {
-                    "type": None,  # Will be resolved from input (passthrough)
-                    "passthrough_from": "input"
+                    "type": "tensor",  # Network output is always a tensor
+                    "dtype": "float32",
+                    "flattened_size": None  # Will be determined by the last layer
                 },
                 "model": {
                     "type": "model",
@@ -191,6 +196,54 @@ class NetworkExporter(ExportableNode):
                 }
             }
         }
+    
+    @classmethod
+    def get_output_schema(cls, node_data, connections=None, node_registry=None, 
+                         all_nodes=None, all_links=None):
+        """Get output schema with actual network output size"""
+        schema = cls.get_initial_output_schema(node_data)
+        
+        # Determine the actual output size by following the layer chain
+        node_id = str(node_data.get('id'))
+        current_node_id = export_utils.follow_node_connection(node_id, "layers")
+        
+        # Track the last layer's output size
+        final_output_size = None
+        
+        # Follow the chain of layers
+        visited = set()
+        while current_node_id and current_node_id != node_id and current_node_id not in visited:
+            visited.add(current_node_id)
+            
+            # Get the current node
+            node = export_utils.get_node_by_id(current_node_id)
+            if not node:
+                break
+            
+            # Get node type
+            node_type = node.get('class_type') or node.get('type')
+            
+            # Get the exporter for this node type
+            exporter = export_utils.get_node_exporter(node_type)
+            if exporter and hasattr(exporter, 'get_layer_pytorch_code'):
+                try:
+                    # Ask the layer for its configuration (we don't need actual code here)
+                    # Pass a dummy input size since we only care about output size
+                    layer_info = exporter.get_layer_pytorch_code(current_node_id, node, 1)
+                    if layer_info and 'output_size' in layer_info:
+                        final_output_size = layer_info['output_size']
+                except:
+                    pass
+            
+            # Follow to the next node
+            current_node_id = export_utils.follow_node_connection(current_node_id, "output")
+        
+        # Update the output schema with the actual output size
+        if final_output_size is not None:
+            schema["outputs"]["output"]["flattened_size"] = final_output_size
+            print(f"[DEBUG Network {node_id}] Final output size: {final_output_size}")
+        
+        return schema
     
     @classmethod
     def _resolve_schema_value(cls, key, parent_schema, node_data, connections, 
