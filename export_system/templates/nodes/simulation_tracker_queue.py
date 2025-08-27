@@ -128,7 +128,7 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         control_metrics = self._compute_control_metrics(episode_done)
         
         # Output control metrics
-        await self.output_queues["control_metrics"].put(control_metrics)
+        await self.send_output("control_metrics", control_metrics)
         
         return control_metrics
     
