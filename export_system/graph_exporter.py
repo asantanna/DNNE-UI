@@ -1551,6 +1551,11 @@ class PlaceholderNode_{node_id}(QueueNode):
         (framework_dir / "telemetry.py").write_text(telemetry_content, encoding='utf-8')
         self.logger.debug("Exported telemetry.py for telemetry support")
         
+        # Export deadlock_utils.py (for deadlock debugging)
+        deadlock_utils_content = self._load_template("framework/deadlock_utils.py")
+        (framework_dir / "deadlock_utils.py").write_text(deadlock_utils_content, encoding='utf-8')
+        self.logger.debug("Exported deadlock_utils.py for deadlock debugging")
+        
         # Copy dnne_config.py and dnne_config.json from root
         import shutil
         dnne_root = Path(__file__).parent.parent

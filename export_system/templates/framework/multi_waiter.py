@@ -94,7 +94,20 @@ class MultiWaiter:
             collected = {}
             for input_name in self.input_names:
                 if input_name in self.input_queues:
+                    # Log wait start if deadlock debugging
+                    if g.deadlock_debug:
+                        from .deadlock_utils import log_queue_get_wait, log_queue_get_success
+                        log_queue_get_wait(self.node_id, input_name)
+                        import time
+                        wait_start = time.time()
+                    
                     data = await self.input_queues[input_name].get()
+                    
+                    # Log successful get
+                    if g.deadlock_debug:
+                        wait_time = time.time() - wait_start
+                        log_queue_get_success(self.node_id, input_name, wait_time)
+                    
                     collected[input_name] = data
             # Track activity after collecting all inputs
             g.update_node_activity(self.node_id)

@@ -189,7 +189,9 @@ async def main():
         headless_mode=args.headless,
         inference_mode=args.inference,
         profiling=args.dnne_profiling,
-        fixed_seed=args.fixed_seed
+        fixed_seed=args.fixed_seed,
+        heartbeat=args.heartbeat,
+        deadlock_debug=args.debug_deadlock
     )
 
     # Set fixed seed if provided for deterministic execution

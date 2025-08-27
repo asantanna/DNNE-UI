@@ -191,7 +191,6 @@ class ConcatExporter(ExportableNode):
             # Update schema if we have all sizes
             if has_all_sizes and total_size > 0:
                 schema["outputs"]["output"]["flattened_size"] = total_size
-            else:
         
         return schema
 

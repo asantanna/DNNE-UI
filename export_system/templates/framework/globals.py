@@ -164,6 +164,9 @@ class Global:
     profiling: bool = False
     debug: bool = False
     fixed_seed: Optional[int] = None
+    heartbeat: bool = False  # Enable heartbeat monitoring
+    deadlock_debug: bool = False  # Enable deadlock data collection
+    deadlock_logger: Optional[Any] = None  # DeadlockLogger instance when enabled
     
     # === Training Settings ===
     epochs_override: Optional[int] = None
@@ -235,6 +238,8 @@ class Global:
         cls.profiling = kwargs.get('profiling', False)
         cls.debug = bool(debug_arg)
         cls.fixed_seed = kwargs.get('fixed_seed', None)
+        cls.heartbeat = kwargs.get('heartbeat', False)
+        cls.deadlock_debug = kwargs.get('deadlock_debug', False)
         
         # Training settings
         cls.epochs_override = kwargs.get('epochs_override', None)

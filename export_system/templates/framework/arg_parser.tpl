@@ -31,6 +31,10 @@ def create_parser():
                        help='Enable verbose logging (INFO level). Optional: comma-separated subsystems or node IDs (e.g., "training,data,42" or "55")')
     parser.add_argument('--debug', '-d', nargs='?', const='all', default=None,
                        help='Enable debug logging (DEBUG level). Optional: comma-separated subsystems or node IDs (e.g., "rl,robotics,42" or "66")')
+    parser.add_argument('--heartbeat', action='store_true',
+                       help='Enable heartbeat monitoring with deadlock detection (shows node activity every 5 seconds)')
+    parser.add_argument('--debug-deadlock', action='store_true',
+                       help='Enable deadlock data collection to /tmp/dnne_deadlock_data/ for offline analysis')
     
     # Checkpoint arguments
     parser.add_argument('--save-checkpoint', action='store_true',

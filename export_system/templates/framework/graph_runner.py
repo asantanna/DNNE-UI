@@ -109,6 +109,25 @@ class GraphRunner:
     
     async def _run_graph(self, duration: Optional[float] = None):
         """Internal method to run the graph"""
+        # Initialize deadlock debugging if requested
+        if g.deadlock_debug:
+            from .deadlock_utils import DeadlockLogger
+            g.deadlock_logger = DeadlockLogger()
+            
+            # Export graph structure for analysis
+            connections = []
+            for from_id, from_node in self.nodes.items():
+                for output_name, subscribers in from_node.output_subscribers.items():
+                    for queue in subscribers:
+                        # Find which node owns this input queue
+                        for to_id, to_node in self.nodes.items():
+                            for input_name, input_queue in to_node.input_queues.items():
+                                if input_queue is queue:
+                                    connections.append([from_id, output_name, to_id, input_name])
+                                    
+            g.deadlock_logger.export_graph_structure(self.nodes, connections)
+            self.logger.info("🔍 Deadlock debugging enabled - data collecting to /tmp/dnne_deadlock_data/")
+        
         # System ready event should already be initialized in runner.py
         if g._system_ready is None:
             raise RuntimeError("System ready event not initialized! runner.py must call Global.init_system_ready() before creating nodes!")
@@ -134,9 +153,9 @@ class GraphRunner:
         g.report_connections_ready()
         self.logger.info("Starting graph execution")
         
-        # Start heartbeat task in debug mode
+        # Start heartbeat task if debug mode or heartbeat flag
         heartbeat_task = None
-        if g.debug:
+        if g.debug or g.heartbeat:
             heartbeat_task = asyncio.create_task(self._heartbeat_monitor())
             self.logger.debug("💓 Started heartbeat monitor (5s interval)")
         
@@ -250,6 +269,14 @@ class GraphRunner:
                 for node_id, idle_time in stats['idle_nodes'][:2]:
                     idle_info.append(f"{node_id}({idle_time:.1f}s)")
                 
+                # Check for potential deadlock (all nodes idle for > 10 seconds)
+                deadlock_warning = ""
+                if stats['active_count'] == 0 and stats['total_count'] > 0:
+                    # Check if all nodes have been idle for significant time
+                    min_idle_time = min((idle_time for _, idle_time in stats['idle_nodes']), default=0)
+                    if min_idle_time > 10.0:
+                        deadlock_warning = f" | ⚠️ POTENTIAL DEADLOCK - all nodes idle for {min_idle_time:.1f}s"
+                
                 # Build heartbeat message
                 msg_parts = [
                     f"💓 Heartbeat: {stats['active_count']}/{stats['total_count']} nodes active"
@@ -266,7 +293,7 @@ class GraphRunner:
                 if idle_info:
                     msg_parts.append(f"Idle: {', '.join(idle_info)}")
                 
-                self.logger.debug(" | ".join(msg_parts))
+                self.logger.debug(" | ".join(msg_parts) + deadlock_warning)
                 
             except asyncio.CancelledError:
                 break

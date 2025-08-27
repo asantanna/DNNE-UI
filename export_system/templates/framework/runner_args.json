@@ -68,6 +68,22 @@
       "column": 1,
       "order": 7
     },
+    "heartbeat": {
+      "switch": "--heartbeat",
+      "type": "checkbox",
+      "label": "Heartbeat Monitor",
+      "description": "Enable heartbeat monitoring with deadlock detection",
+      "column": 1,
+      "order": 8
+    },
+    "debug_deadlock": {
+      "switch": "--debug-deadlock",
+      "type": "checkbox",
+      "label": "Debug Deadlock",
+      "description": "Collect deadlock data for offline analysis",
+      "column": 1,
+      "order": 9
+    },
     "epochs": {
       "switch": "--epochs",
       "type": "text",
@@ -142,6 +158,8 @@
     "timeout",
     "inference",
     "visual",
+    "heartbeat",
+    "debug_deadlock",
     "epochs",
     "max_iterations",
     "learning_rate",

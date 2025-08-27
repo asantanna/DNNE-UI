@@ -77,6 +77,11 @@ class QueueNode(ABC):
         """Send output to all subscribers"""
         g.update_node_activity(self.node_id)  # Track output activity
         if output_name in self.output_subscribers:
+            # Log output event if deadlock debugging enabled
+            if g.deadlock_debug:
+                from .deadlock_utils import log_queue_put
+                log_queue_put(self.node_id, output_name, len(self.output_subscribers[output_name]))
+            
             for queue in self.output_subscribers[output_name]:
                 await queue.put(value)
     
@@ -109,6 +114,11 @@ class QueueNode(ABC):
         self.running = True
         self.node_logger.debug(f"Starting node {self.node_id}")
         
+        # Log node start if deadlock debugging
+        if g.deadlock_debug:
+            from .deadlock_utils import log_node_start
+            log_node_start(self.node_id, self.__class__.__name__)
+        
         try:
             while self.running:
                 # Get inputs using MultiWaiter
@@ -121,10 +131,17 @@ class QueueNode(ABC):
                     inputs = {}
                 
                 # Execute compute
+                if g.deadlock_debug:
+                    from .deadlock_utils import log_node_compute_start, log_node_compute_end
+                    log_node_compute_start(self.node_id)
+                
                 compute_start = time.time()
                 outputs = await self.compute(**inputs)
                 self.last_compute_time = time.time() - compute_start
                 self.compute_count += 1
+                
+                if g.deadlock_debug:
+                    log_node_compute_end(self.node_id, self.last_compute_time)
                 
                 # Send outputs
                 for output_name, value in outputs.items():
