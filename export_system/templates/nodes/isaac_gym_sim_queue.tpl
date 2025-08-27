@@ -96,9 +96,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
     async def initialize(self):
         """Initialize Isaac Gym environment from config"""
-        print(f"[DEBUG IsaacGymSim] Starting initialization...")
-        print(f"[DEBUG IsaacGymSim] null_action value: {{self.null_action}}")
-        print(f"[DEBUG IsaacGymSim] null_action type: {{type(self.null_action)}}")
         try:
             # Config from IsaacGymEnvs virtual node (embedded during export)
             config = {{
@@ -112,10 +109,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             }}
             
             # Import isaacgymenvs (already imported at top of runner.py)
-            print(f"[DEBUG IsaacGymSim] Importing isaacgymenvs...")
             from isaacgymenvs import make
             
-            print(f"[DEBUG IsaacGymSim] Creating env_config with task={{config['task']}}, render={{self.render}}")
             {DNNE_CFG_CODE}
             # Override num_envs to 1 for DNNE compatibility
             # Only include parameters that make() actually accepts
@@ -138,9 +133,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 env_config['dnne_cfg'] = dnne_cfg
             
             # Create environment
-            print(f"[DEBUG IsaacGymSim] Calling make() with config: {{env_config}}")
             self.env = make(**env_config)
-            print(f"[DEBUG IsaacGymSim] Environment created successfully!")
             
             # Set camera position from widget configuration
             if hasattr(self.env, 'viewer') and self.env.viewer is not None and self.camera_position and self.camera_target:
@@ -150,7 +143,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 cam_target = gymapi.Vec3(self.camera_target[0], self.camera_target[1], self.camera_target[2])
                 self.env.gym.viewer_camera_look_at(
                     self.env.viewer, None, cam_pos, cam_target)
-                print(f"[DEBUG IsaacGymSim] Camera positioned at {{self.camera_position}} looking at {{self.camera_target}}")
             
             # Get device
             self.device = torch.device(config.get("sim_device", "{SIM_DEVICE}"))
@@ -166,8 +158,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             # ALL Isaac Gym tasks REQUIRE null_action to bootstrap the action-observation loop
             task_name = config.get('task', 'unknown')
-            print(f"[DEBUG IsaacGymSim] Checking null_action for task '{{task_name}}'...")
-            print(f"[DEBUG IsaacGymSim] null_action={{self.null_action}}, type={{type(self.null_action)}}")
             if not self.null_action or self.null_action == [] or self.null_action == "":
                 raise ValueError(
                     f"FAIL-FAST: Task '{{task_name}}' requires null_action but none provided!\n"
@@ -179,19 +169,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                     f"Check the task YAML for the nullAction field in the selected schema."
                 )
             
-            print(f"[DEBUG IsaacGymSim] Creating null action tensor...")
             # Create null action tensor for bootstrapping
             null_action_tensor = torch.tensor(self.null_action, device=self.device, dtype=torch.float32)
             if null_action_tensor.dim() == 1:
                 null_action_tensor = null_action_tensor.unsqueeze(0)
-            print(f"[DEBUG IsaacGymSim] null_action_tensor shape: {{null_action_tensor.shape}}, device: {{null_action_tensor.device}}")
             
             # Step with null action to get proper initial observation
-            print(f"[DEBUG IsaacGymSim] Stepping with null action to bootstrap...")
             obs, _, _, _ = self.env.step(null_action_tensor)
             if isinstance(obs, dict):
                 obs = obs["obs"]
-            print(f"[DEBUG IsaacGymSim] Got initial observation after bootstrap, shape: {{obs.shape if hasattr(obs, 'shape') else 'unknown'}}")
             
             # Enable gradients for training mode (Sim is a data source like DataStreamer)
             from framework.globals import Global as g
@@ -201,9 +187,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.node_logger.info(f"Bootstrapped with null action: {{self.null_action}}")
             
             # Send initial observation
-            print(f"[DEBUG IsaacGymSim] Sending initial observation to output queue...")
             await self.send_output("observation", obs)
-            print(f"[DEBUG IsaacGymSim] Initial observation sent!")
             
             self.node_logger.info(f"Initialized {{config['task']}} environment on {{self.device}}")
             

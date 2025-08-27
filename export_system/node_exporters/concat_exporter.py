@@ -179,24 +179,19 @@ class ConcatExporter(ExportableNode):
                                     
                                     if source_schema and "flattened_size" in source_schema:
                                         if source_schema["flattened_size"] is not None:
-                                            print(f"[DEBUG Concat {node_data.get('id')}] Input {input_name} from node {source_node_id}: flattened_size={source_schema['flattened_size']}")
                                             total_size += source_schema["flattened_size"]
                                         else:
-                                            print(f"[DEBUG Concat {node_data.get('id')}] Input {input_name} from node {source_node_id}: flattened_size is None")
                                             has_all_sizes = False
                                             break
                                     else:
-                                        print(f"[DEBUG Concat {node_data.get('id')}] Input {input_name} from node {source_node_id}: no flattened_size in schema")
                                         has_all_sizes = False
                                         break
                                 break
             
             # Update schema if we have all sizes
             if has_all_sizes and total_size > 0:
-                print(f"[DEBUG Concat {node_data.get('id')}] Total concatenated size: {total_size}")
                 schema["outputs"]["output"]["flattened_size"] = total_size
             else:
-                print(f"[DEBUG Concat {node_data.get('id')}] Could not determine total size (has_all_sizes={has_all_sizes}, total_size={total_size})")
         
         return schema
 

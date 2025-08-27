@@ -46,7 +46,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
     async def initialize(self):
         """Load CSV data and metadata on startup"""
-        print(f"[DEBUG DataStreamer] Starting initialization, file_path={{self.file_path}}")
         try:
             import pandas as pd
             import numpy as np
@@ -101,11 +100,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             # Log streaming mode (actual streaming happens in run())
             if self.sync_mode == "none":
-                print("[DEBUG DataStreamer] Will stream continuously")
             elif self.sync_mode == "timed":
-                print(f"[DEBUG DataStreamer] Will stream at {{self.frequency_hz}}Hz")
             elif self.sync_mode == "external":
-                print("[DEBUG DataStreamer] Waiting for external sync signals")
                 
         except Exception as e:
             self.node_logger.error(f"Failed to initialize data streamer: {{e}}")

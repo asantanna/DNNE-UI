@@ -23,15 +23,12 @@ class NetworkExporter(ExportableNode):
         
         # Determine input size from the Network's input connection
         input_size = None
-        print(f"[DEBUG Network {node_id}] Getting input schema...")
         input_schema = cls.get_input_schema(node_data, connections, 
                                           node_registry, all_nodes, all_links)
         if "input" in input_schema and input_schema["input"]:
             input_tensor_schema = input_schema["input"]
-            print(f"[DEBUG Network {node_id}] Input tensor schema: {input_tensor_schema}")
             if "flattened_size" in input_tensor_schema:
                 input_size = input_tensor_schema["flattened_size"]
-                print(f"[DEBUG Network {node_id}] Input size from schema: {input_size}")
                 if input_size is None:
                     # The connected node couldn't determine size
                     raise ValueError(f"Network node {node_id}: Connected node returned None for flattened_size")
@@ -241,7 +238,6 @@ class NetworkExporter(ExportableNode):
         # Update the output schema with the actual output size
         if final_output_size is not None:
             schema["outputs"]["output"]["flattened_size"] = final_output_size
-            print(f"[DEBUG Network {node_id}] Final output size: {final_output_size}")
         
         return schema
     
