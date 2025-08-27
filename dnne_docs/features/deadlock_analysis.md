@@ -5,7 +5,59 @@
 The deadlock analysis system provides tools for detecting and analyzing deadlocks in complex DNNE workflows, particularly those using synchronization nodes like Barrier and Eat_N. It consists of two main components:
 
 1. **Simple Detection**: Heartbeat monitoring with basic deadlock warnings
-2. **Full Analysis**: Detailed data collection and offline analysis tools
+2. **Full Analysis**: Detailed data collection and offline analysis tools in `deadlock_tool/`
+
+## Tool Architecture
+
+The analysis tool (`deadlock_tool/`) is a modular Python system that processes event logs to identify deadlock root causes:
+
+### Core Components
+- **`analyze_deadlock.py`**: Entry point, orchestrates analysis
+- **`data_parser.py`**: Parses JSON event logs and graph structure  
+- **`pattern_analyzer.py`**: Identifies patterns (stuck nodes, missing inputs, cycles)
+- **`root_cause_analyzer.py`**: Traces dependency chains to find root blockers
+- **`report_generator.py`**: Creates human-readable analysis reports
+- **`node_behaviors.json`**: Knowledge base defining node types and behaviors
+
+### Node Behaviors Knowledge Base
+
+The `node_behaviors.json` file categorizes nodes to enable intelligent root cause analysis:
+
+```json
+{
+  "node_types": {
+    "IsaacGymSimNode": {
+      "category": "processor",
+      "stream_inputs": ["action", "reset"],
+      "stream_outputs": ["observation", "done"],
+      "notes": "Self-bootstraps first observation with null_action"
+    },
+    "SGDOptimizerNode": {
+      "category": "bootstrap_provider",
+      "stream_inputs": ["loss"],
+      "virtual_inputs": ["model"],  // Not a real queue connection
+      "bootstrap_outputs": ["step_complete"]
+    }
+  }
+}
+```
+
+Key categories:
+- **free_running**: Generates output without input (TensorNode)
+- **processor**: Standard input→output transformation
+- **bootstrap_dependent**: Needs initial config to start
+- **bootstrap_provider**: Sends initial triggers after config
+- **synchronization**: Complex timing (Barrier, Eat_N)
+
+### Known Issues & Limitations
+
+1. **Custom Queue Handling**: Some nodes (e.g., IsaacGymSimNode) bypass the standard MultiWaiter and directly call `queue.get()` without logging, making their inputs invisible to analysis
+
+2. **Virtual Connections**: SGDOptimizer receives model as Python object reference, not through queues. These "virtual" connections appear in the graph but have no queue activity
+
+3. **Queue State Analysis**: For wait_all nodes (like Concat), the tool now logs queue depths via QUEUE_STATE events to identify which specific inputs are blocking
+
+4. **NODE_START Logging**: Fixed by moving logging to non-overridable `_call_run_when_ready()` method
 
 ## Background Reading
 
@@ -17,6 +69,35 @@ To understand the implementation and deadlock patterns in DNNE, read these docum
 4. **`dnne_docs/nodes/utility/barrier_node.md`** - Barrier node for holding/releasing data
 5. **`dnne_docs/development/gotchas.md`** - Common pitfalls including double-getter deadlocks
 6. **`dnne_docs/patterns/temporal_alignment_rl.md`** - Complex synchronization patterns
+
+## Data Collection & Analysis
+
+### Event Types Logged
+
+When `--debug-deadlock` is enabled, the following events are written to `/tmp/dnne_deadlock_data/data_flow.log`:
+
+- **NODE_START**: Node initialization (includes class name)
+- **QUEUE_GET_WAIT**: Node starts waiting for input
+- **QUEUE_GET_SUCCESS**: Node receives input (includes wait time)
+- **QUEUE_PUT**: Node sends output (includes subscriber count)
+- **QUEUE_STATE**: Snapshot of all input queue depths (for wait_all analysis)
+- **NODE_COMPUTE_START/END**: Computation timing
+
+### Analysis Output Sections
+
+The analyzer generates reports with these sections:
+
+1. **ROOT CAUSE ANALYSIS**: Primary blockers identified through dependency tracing
+2. **NODES THAT NEVER RECEIVED INPUT**: Complete starvation (no inputs received)
+3. **NODES THAT NEVER PRODUCED OUTPUT**: May indicate sink nodes or failures
+4. **STUCK NODES**: Waiting > 1 second (potential deadlock)
+5. **WAITING FOR DATA**: Normal async operation
+
+### Critical Discoveries
+
+- **IsaacGymSimNode Issue**: Uses custom queue handling that bypasses logging, making it appear to never receive actions even when it does
+- **Virtual Connections**: Model→SGD connections are object references, not queue-based
+- **Double Triggers**: Both Eat_N and SGDOptimizer can send triggers to Barriers (design issue)
 
 ## Quick Start
 
@@ -46,10 +127,14 @@ python runner.py --debug-deadlock --timeout 15
 python runner.py --debug-deadlock --timeout 15 --override all:retain_graph=True
 
 # Step 2: Analyze the captured data
-python /path/to/DNNE-UI/claude_scripts/analyze_deadlock.py
+cd /path/to/DNNE-UI/deadlock_tool
+python analyze_deadlock.py
 
 # Or specify custom data location
 python analyze_deadlock.py --data-dir /path/to/deadlock_data
+
+# For detailed analysis with verbose output
+python analyze_deadlock.py --verbose
 ```
 
 ## Feature Details
@@ -113,39 +198,71 @@ When enabled, the system:
 }
 ```
 
+### Node-Aware Analysis
+
+The analysis tool uses a knowledge base of node behaviors (`deadlock_tool/node_behaviors.json`) to understand:
+
+- **Free-running nodes**: Generate output without needing input (e.g., TensorNode, dataset nodes)
+- **Bootstrap-dependent nodes**: Need initial configuration to start (e.g., IsaacGymSim needs initial action)
+- **Bootstrap providers**: Nodes that provide initial triggers after receiving config (e.g., SGDOptimizer)
+- **Synchronization nodes**: Complex timing behaviors (e.g., Eat_N, Barrier)
+
+This allows the analyzer to distinguish between:
+- Root causes (e.g., missing bootstrap inputs)
+- Symptoms (e.g., downstream nodes waiting because upstream is blocked)
+
 ### Analysis Tool Output
 
 The `analyze_deadlock.py` script provides:
 
 ```
 DNNE Deadlock Analysis Report
-============================
-Data from: /tmp/dnne_deadlock_data/
+============================================================
+Data from: /tmp/dnne_deadlock_data
 Time range: 0.00s - 14.52s
 Total events: 8,432
+Total nodes: 26
+⚠️  16 nodes never started
+⚠️  1 nodes never produced output
 
-Node Activity Summary:
-  Node 42 (NetworkNode): Last activity 14.52s ago - STUCK WAITING on 'model'
-  Node 73 (Eat_NNode): Last activity 14.51s ago - Consumed 1/1, now passthrough
-  Node 74 (BarrierNode): Last activity 14.50s ago - Holding 0 items, 0 pending releases
+🔍 ROOT CAUSE ANALYSIS:
+----------------------------------------
 
-Detected Issues:
-  ❌ DEADLOCK: Circular dependency detected
-     - Node 42 waiting for 'model' from node 33
-     - Node 33 waiting for 'optimizer' from node 40
-     - Node 40 waiting for 'loss' from node 42
-  
-  ⚠️ BOOTSTRAP: Node 25 (IsaacGymSimNode) never received initial 'action'
-     Suggestion: Add null_action bootstrap or Eat_N trigger pattern
+1. PRIMARY ISSUE: Node 25 (IsaacGymSimNode_25)
+   Type: missing_bootstrap
+   Problem: Node needs bootstrap inputs: action to start
+   Blocks 24 downstream nodes:
+     → 125 (ConcatNode_125)
+     → 132 (SimulationTracker_132)
+     → 33 (NetworkNode_33)
+     → 40 (SGDOptimizerNode_40)
+     → 42 (ConcatNode_42)
+     ... and 19 more
+   💡 Suggested fix: Provide required bootstrap inputs at workflow start
 
-Queue Analysis:
-  Empty queues: 45/48 (93.8%)
-  Largest queue: node_55.input_c (12 items)
-  
-Recommendations:
-  1. Add bootstrap action for IsaacGymSimNode (node 25)
-  2. Check SGDOptimizer (node 40) one-time input handling
-  3. Review Barrier release connections for nodes 74, 75, 76
+2. PRIMARY ISSUE: Node 40 (SGDOptimizerNode_40)
+   Type: missing_bootstrap
+   Problem: Node needs bootstrap inputs: model to start
+   Blocks 14 downstream nodes:
+     → 74 (BarrierNode_74)
+     → 75 (BarrierNode_75)
+     → 76 (BarrierNode_76)
+     ... and 11 more
+   💡 Suggested fix: Provide required bootstrap inputs at workflow start
+
+📋 OTHER ISSUES:
+----------------------------------------
+• Node 75 (BarrierNode_75) missing inputs: input, release
+• Node 74 (BarrierNode_74) missing inputs: input, release
+• Node 76 (BarrierNode_76) missing inputs: input, release
+
+💡 RECOMMENDATIONS:
+----------------------------------------
+  1. Provide bootstrap inputs for IsaacGymSimNode_25: action input to start
+  2. Verify synchronization nodes (Barrier/Eat_N) have proper trigger patterns
+  3. Review the visual workflow for missing connections
+  4. Check that all required node parameters are configured
+  5. Consider adding debug logging to track data flow
 ```
 
 ## Common Deadlock Patterns

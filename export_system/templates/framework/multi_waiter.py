@@ -92,11 +92,19 @@ class MultiWaiter:
         if self.wait_mode == "all":
             # Simple sequential wait on all inputs
             collected = {}
+            
+            # Log queue states before starting to wait (for deadlock analysis)
+            if g.deadlock_debug:
+                from .deadlock_utils import log_queue_state, log_queue_get_wait, log_queue_get_success
+                queue_states = {}
+                for name, queue in self.input_queues.items():
+                    queue_states[name] = queue.qsize()
+                log_queue_state(self.node_id, queue_states)
+            
             for input_name in self.input_names:
                 if input_name in self.input_queues:
                     # Log wait start if deadlock debugging
                     if g.deadlock_debug:
-                        from .deadlock_utils import log_queue_get_wait, log_queue_get_success
                         log_queue_get_wait(self.node_id, input_name)
                         import time
                         wait_start = time.time()

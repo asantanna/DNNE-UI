@@ -1,0 +1,186 @@
+{
+  "description": "Node behavior definitions for DNNE deadlock analysis",
+  "version": "1.0",
+  "categories": {
+    "free_running": "Nodes that produce output without needing input",
+    "bootstrap_dependent": "Nodes that need initial config before starting",
+    "bootstrap_provider": "Nodes that send initial triggers/data",
+    "bootstrap_dependent_provider": "Nodes that need config then provide triggers",
+    "processor": "Simple input-to-output transformation nodes",
+    "synchronization": "Nodes with complex timing behaviors",
+    "aggregator": "Nodes that combine multiple inputs",
+    "sink": "Nodes that only consume data, no output expected"
+  },
+  "node_types": {
+    "TensorNode": {
+      "category": "free_running",
+      "needs_input": false,
+      "produces_output": true,
+      "outputs": ["tensor"],
+      "description": "Outputs tensor continuously without input"
+    },
+    "IsaacGymSimNode": {
+      "category": "processor",
+      "needs_input": true,
+      "produces_output": true,
+      "stream_inputs": ["action", "reset"],
+      "stream_outputs": ["observation", "done"],
+      "description": "Processes actions to produce observations. Has internal bootstrap for first observation",
+      "notes": "Self-bootstraps first observation with null_action, then needs action stream"
+    },
+    "SGDOptimizerNode": {
+      "category": "bootstrap_provider",
+      "stream_inputs": ["loss"],
+      "virtual_inputs": ["model"],
+      "bootstrap_outputs": ["step_complete"],
+      "stream_outputs": ["step_complete"],
+      "description": "Receives model reference virtually, processes loss stream and triggers updates",
+      "notes": "Model connection is virtual (object reference), not a queue-based input"
+    },
+    "NetworkNode": {
+      "category": "processor",
+      "needs_input": true,
+      "produces_output": true,
+      "stream_inputs": ["input"],
+      "stream_outputs": ["output", "model"],
+      "description": "Neural network that processes input and outputs model"
+    },
+    "LinearLayerNode": {
+      "category": "processor",
+      "needs_input": true,
+      "produces_output": true,
+      "description": "Linear transformation layer"
+    },
+    "Eat_NNode": {
+      "category": "synchronization",
+      "special_behavior": "eat_n_passthrough",
+      "needs_input": true,
+      "produces_output": true,
+      "config_params": ["num_to_eat", "trigger_mode"],
+      "outputs": ["output", "trigger"],
+      "description": "Consumes N inputs with triggers, then becomes passthrough"
+    },
+    "BarrierNode": {
+      "category": "synchronization",
+      "needs_input": true,
+      "produces_output": true,
+      "required_inputs": {
+        "input": "data",
+        "release": "trigger"
+      },
+      "description": "Holds data queue until release trigger arrives"
+    },
+    "ConcatNode": {
+      "category": "aggregator",
+      "needs_input": true,
+      "produces_output": true,
+      "wait_modes": ["all", "any"],
+      "config_param": "wait_mode",
+      "description": "Combines multiple inputs based on wait mode"
+    },
+    "SplitNode": {
+      "category": "processor",
+      "needs_input": true,
+      "produces_output": true,
+      "description": "Splits input into multiple outputs"
+    },
+    "SimulationTracker": {
+      "category": "sink",
+      "needs_input": true,
+      "produces_output": false,
+      "inputs": ["observation", "done", "loss"],
+      "description": "Tracks simulation metrics, no output expected"
+    },
+    "SimulationTrackerNode": {
+      "category": "sink",
+      "needs_input": true,
+      "produces_output": false,
+      "inputs": ["observation", "done", "loss"],
+      "description": "Tracks simulation metrics, no output expected"
+    },
+    "GetBatchNode": {
+      "category": "bootstrap_dependent",
+      "bootstrap_inputs": ["dataloader", "schema"],
+      "stream_inputs": ["trigger"],
+      "stream_outputs": ["batch"],
+      "description": "Needs dataloader config, then outputs batches on trigger"
+    },
+    "BatchSamplerNode": {
+      "category": "processor",
+      "needs_input": true,
+      "produces_output": true,
+      "description": "Samples batches from dataset"
+    },
+    "MNISTDatasetNode": {
+      "category": "free_running",
+      "needs_input": false,
+      "produces_output": true,
+      "outputs": ["dataset"],
+      "description": "Provides MNIST dataset"
+    },
+    "CIFAR10DatasetNode": {
+      "category": "free_running",
+      "needs_input": false,
+      "produces_output": true,
+      "outputs": ["dataset"],
+      "description": "Provides CIFAR-10 dataset"
+    },
+    "LossNode": {
+      "category": "processor",
+      "needs_input": true,
+      "produces_output": true,
+      "description": "Calculates loss from predictions and labels"
+    },
+    "CrossEntropyLossNode": {
+      "category": "processor",
+      "needs_input": true,
+      "produces_output": true,
+      "description": "Calculates cross-entropy loss"
+    },
+    "EpochTrackerNode": {
+      "category": "processor",
+      "needs_input": true,
+      "produces_output": true,
+      "special_behavior": "tracks_epochs",
+      "description": "Tracks training epochs and can trigger completion"
+    },
+    "CustomComputationNode": {
+      "category": "processor",
+      "needs_input": true,
+      "produces_output": true,
+      "description": "Custom user computation"
+    },
+    "PPOAgentNode": {
+      "category": "processor",
+      "needs_input": true,
+      "produces_output": true,
+      "description": "PPO reinforcement learning agent"
+    },
+    "PPOConfigNode": {
+      "category": "free_running",
+      "needs_input": false,
+      "produces_output": true,
+      "outputs": ["config"],
+      "description": "Provides PPO configuration"
+    },
+    "BalancerConfigNode": {
+      "category": "free_running",
+      "needs_input": false,
+      "produces_output": true,
+      "outputs": ["config"],
+      "description": "Provides balancer configuration"
+    },
+    "BalancerNode": {
+      "category": "processor",
+      "needs_input": true,
+      "produces_output": true,
+      "description": "Balancing control logic"
+    }
+  },
+  "default_behavior": {
+    "category": "processor",
+    "needs_input": true,
+    "produces_output": true,
+    "description": "Default assumption for unknown node types"
+  }
+}

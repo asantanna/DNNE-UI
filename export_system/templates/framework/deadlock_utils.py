@@ -102,6 +102,17 @@ class DeadlockLogger:
 
 # Convenience functions for logging from nodes
 
+def log_queue_state(node_id: str, queue_states: Dict[str, int]):
+    """Log the current state of all input queues for a node"""
+    from .globals import Global as g
+    if g.deadlock_logger:
+        g.deadlock_logger.log_event(
+            "QUEUE_STATE",
+            node=node_id,
+            queue_depths=queue_states
+        )
+
+
 def log_queue_get_wait(node_id: str, queue_name: str):
     """Log that a node started waiting for input"""
     from .globals import Global as g

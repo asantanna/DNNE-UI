@@ -114,11 +114,6 @@ class QueueNode(ABC):
         self.running = True
         self.node_logger.debug(f"Starting node {self.node_id}")
         
-        # Log node start if deadlock debugging
-        if g.deadlock_debug:
-            from .deadlock_utils import log_node_start
-            log_node_start(self.node_id, self.__class__.__name__)
-        
         try:
             while self.running:
                 # Get inputs using MultiWaiter
@@ -188,6 +183,12 @@ class QueueNode(ABC):
                 raise RuntimeError(f"Node {self.node_id} starting but connections not established! Internal error!")
             
             self.node_logger.debug(f"System ready, starting node {self.node_id}")
+            
+            # Log node start if deadlock debugging - do this here so ALL nodes log it
+            # even if they override run()
+            if g.deadlock_debug:
+                from .deadlock_utils import log_node_start
+                log_node_start(self.node_id, self.__class__.__name__)
             
             # Now call the actual run method
             await self.run()
