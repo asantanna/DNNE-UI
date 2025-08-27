@@ -2,6 +2,36 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-08-27 - Multi-Optimizer Support & Debug Cleanup
+
+### Retain Graph Override System ✅
+- **Added support for multiple optimizers sharing same loss**
+  - Implemented `--override all:retain_graph=True` mechanism
+  - Added special "all" subsystem to exported runners containing all node IDs
+  - Modified SGDOptimizer template to check `g.get_node_config()` for retain_graph
+  - Enables cooperative learning workflows (Franka_Coop_Nodes) without hardcoded hacks
+
+### Export System Debug Cleanup ✅
+- **Removed all debug print statements from export system**
+  - Network exporter: Removed schema resolution debugging
+  - Concat exporter: Removed size calculation debugging
+  - Isaac Gym Sim template: Removed initialization debugging
+  - Data Streamer template: Removed streaming mode debugging
+  - Clean programmatic export output without clutter
+
+### Critical Bug Fixes ✅
+- **Fixed SimulationTracker output method bug**
+  - Changed from direct queue access `output_queues["control_metrics"]` 
+  - To proper async method `send_output("control_metrics", control_metrics)`
+  - Template fix ensures all future exports have correct queue handling
+  - User emphasized: "make sure those end up in the TEMPLATES!"
+
+### Network Node Schema Resolution ✅
+- **Fixed Network nodes incorrectly reporting output size**
+  - Networks were using passthrough schema (input size as output size)
+  - Added proper layer chain following to determine actual output size
+  - Resolves dimension mismatches in complex workflows
+
 ## Session: 2025-08-19 - System-Wide Initialization Barrier
 
 ### Async Initialization Barrier Implementation ✅

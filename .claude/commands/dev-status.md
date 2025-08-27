@@ -11,29 +11,28 @@ $ARGUMENTS$
 
 *For historical development sessions, see HISTORY.md*
 
-## Latest Achievements (2025-08-24)
+## Latest Achievements (2025-08-27)
 
-### Workflow Analysis & Repair Tools ✅
-- **analyze_workflow Major Update** - Property-based validation
-  - Replaced dictionary-based validation with Label node properties
-  - Detects invalid connections to non-existent nodes
-  - Added `--repair-workflow` switch for automatic repair
-  - Successfully repaired Franka_Coop_Nodes (12 broken connections)
+### Multi-Optimizer Support & Export Improvements ✅
+- **Retain Graph Override System** - Support for cooperative learning
+  - Added `--override all:retain_graph=True` for multi-optimizer workflows
+  - Special "all" subsystem in runners applies settings to all nodes
+  - SGDOptimizer template checks runtime configuration
+  - Enables Franka_Coop_Nodes workflow without hardcoding
 
-### Label Rats Nest Visualization (Frontend) ✅
-- Visual feedback when selecting Label nodes
-- Cyan lines connect all labels in the same network
-- Uses LiteGraph's built-in coordinate transformations
-- Documented in `dnne_docs/features/label_rats_nest.md`
+### Export System Refinements ✅
+- **Critical Bug Fixes**
+  - Fixed SimulationTracker using wrong output method (template fix)
+  - Fixed Network nodes reporting incorrect output dimensions
+  - All template fixes ensure future exports are correct
+- **Debug Output Cleanup**
+  - Removed all debug prints from exporters and templates
+  - Clean programmatic export output
 
-### Previous Achievements (2025-08-22)
-- Dictionary-free label system implementation complete
-- Frontend patch verification integrated into startup
-- Migration script for converting old workflows
-
-### Previous Week (2025-08-21)
-- Eat_N and Barrier Synchronization Nodes
-- FrankaDNNE Environment Reset Control
+### Previous Achievements (2025-08-24)
+- Workflow analysis & repair tools with property-based validation
+- Label rats nest visualization in frontend
+- Dictionary-free label system implementation
 
 ## Quick Reference
 
@@ -79,13 +78,13 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
-- Disable FrankaDNNE auto-reset for manual control
-- Add target-based done trigger to FrankaDNNE
-- Add manual reset method to FrankaDNNE
-- Verify IsaacGymSim done/reset trigger handling
-- Implement Tensor constant node with 9 initialization modes
-- Support simplified schema format (single number for single elements)
-- Implement @dnne_node decorator system
+- Remove debug print statements from export system
+- Add retain_graph override support for multi-optimizer workflows
+- Fix SimulationTracker template output method bug
+- Fix Network node output schema reporting bug
+- Update analyze_workflow tool with property-based validation and repair
+- Add label rats nest visualization feature
+- Clean up debug output and document label improvements
 
 ---
 *Focus on active tasks in INDEX.md*
