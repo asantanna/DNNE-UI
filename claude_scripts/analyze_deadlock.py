@@ -212,25 +212,37 @@ class DeadlockAnalyzer:
                 print(f"  {node_id} ({class_name})")
     
     def check_bootstrap_issues(self) -> List[str]:
-        """Check for bootstrap problems"""
+        """Check for nodes that never received any input"""
         issues = []
         
-        # Look for simulation nodes that never received initial action
-        sim_nodes = [nid for nid, info in self.graph.items() 
-                     if "Isaac" in info.get("class", "") or "Sim" in info.get("class", "")]
+        # Find all nodes that are supposed to receive input
+        nodes_with_inputs = set()
+        for conn in self.connections:
+            if len(conn) >= 4:
+                to_node = conn[2]
+                nodes_with_inputs.add(to_node)
         
-        for sim_id in sim_nodes:
-            # Check if sim ever received action
-            received_action = False
-            for event in self.events:
-                if (event.get("node") == sim_id and 
-                    event["type"] == "QUEUE_GET_SUCCESS" and 
-                    "action" in event.get("queue", "")):
-                    received_action = True
-                    break
-            
-            if not received_action:
-                issues.append(f"⚠️ BOOTSTRAP: Node {sim_id} (IsaacGymSim) never received initial 'action'")
+        # Check which nodes never got any input
+        nodes_that_got_input = set()
+        for event in self.events:
+            if event["type"] == "QUEUE_GET_SUCCESS":
+                nodes_that_got_input.add(event["node"])
+        
+        # Find nodes that should have gotten input but didn't
+        for node_id in nodes_with_inputs:
+            if node_id not in nodes_that_got_input:
+                class_name = self.graph.get(node_id, {}).get("class", "Unknown")
+                # Check what inputs this node was waiting for
+                waiting_for = set()
+                for conn in self.connections:
+                    if len(conn) >= 4 and conn[2] == node_id:
+                        waiting_for.add(conn[3])
+                
+                if waiting_for:
+                    inputs_str = ", ".join(sorted(waiting_for))
+                    issues.append(f"⚠️ NO INPUT: Node {node_id} ({class_name}) never received any input on: {inputs_str}")
+                else:
+                    issues.append(f"⚠️ NO INPUT: Node {node_id} ({class_name}) never received any input")
         
         return issues
     
@@ -305,42 +317,54 @@ class DeadlockAnalyzer:
         return issues[:5]  # Limit to top 5 to avoid spam
     
     def generate_recommendations(self):
-        """Generate specific recommendations"""
+        """Generate generic recommendations based on detected patterns"""
         print("\nRecommendations:")
         
         recommendations = []
         
-        # Check for simulation bootstrap
-        sim_nodes = [nid for nid, info in self.graph.items() 
-                     if "Isaac" in info.get("class", "") or "Sim" in info.get("class", "")]
-        if sim_nodes:
-            recommendations.append("1. Add bootstrap action for IsaacGymSim nodes (null_action pattern)")
+        # Check if any nodes never received input
+        nodes_no_input = 0
+        for node_id in self.graph:
+            if node_id not in self.node_last_activity and node_id in self.node_classes:
+                nodes_no_input += 1
         
-        # Check for barrier nodes
-        barrier_nodes = [nid for nid, info in self.graph.items() 
-                        if "Barrier" in info.get("class", "")]
-        if barrier_nodes:
-            recommendations.append("2. Verify all Barrier nodes receive proper release triggers")
+        if nodes_no_input > 0:
+            recommendations.append(f"• {nodes_no_input} node(s) never started - check for missing bootstrap or initial triggers")
         
-        # Check for eat_n nodes  
-        eat_n_nodes = [nid for nid, info in self.graph.items()
-                      if "Eat_N" in info.get("class", "")]
-        if eat_n_nodes:
-            recommendations.append("3. Check Eat_N trigger connections and num_to_eat settings")
+        # Check for nodes waiting for input
+        waiting_nodes = [nid for nid, status in self.node_wait_status.items() if "waiting" in status]
+        if waiting_nodes:
+            recommendations.append(f"• {len(waiting_nodes)} node(s) stuck waiting - verify all required connections exist")
         
-        # Check for optimizer nodes
-        optimizer_nodes = [nid for nid, info in self.graph.items()
-                          if "Optimizer" in info.get("class", "")]
-        if optimizer_nodes:
-            recommendations.append("4. Ensure SGDOptimizer nodes handle one-time inputs correctly")
+        # Check for potential synchronization issues
+        if any("hold" in str(self.graph.get(nid, {}).get("type", "")).lower() or
+               "barrier" in str(self.graph.get(nid, {}).get("class", "")).lower() 
+               for nid in self.graph):
+            recommendations.append("• Synchronization nodes detected - ensure proper trigger/release patterns")
         
-        if not recommendations:
-            recommendations.append("• Review node connections in the visual workflow editor")
-            recommendations.append("• Check for missing connections or incorrect wiring")
-            recommendations.append("• Verify all synchronization nodes are properly configured")
+        # Check for one-way data flow (nodes that only consume)
+        nodes_that_never_output = []
+        for node_id in self.node_classes:
+            outputs_data = False
+            for event in self.events:
+                if event.get("node") == node_id and event["type"] == "QUEUE_PUT":
+                    outputs_data = True
+                    break
+            if not outputs_data and node_id in self.node_last_activity:
+                nodes_that_never_output.append(node_id)
         
-        for rec in recommendations:
-            print(f"  {rec}")
+        if nodes_that_never_output:
+            recommendations.append(f"• {len(nodes_that_never_output)} node(s) never produced output - may be sinks or incorrectly configured")
+        
+        # Generic recommendations
+        recommendations.extend([
+            "• Review the visual workflow for missing connections",
+            "• Check if workflow needs bootstrap data or initial triggers",
+            "• Verify all nodes are properly configured with required parameters"
+        ])
+        
+        for i, rec in enumerate(recommendations, 1):
+            print(f"  {i}. {rec}")
 
 
 def main():
