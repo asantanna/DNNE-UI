@@ -83,7 +83,14 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
         if not g.inference_mode:
             # Standard training step - let PyTorch fail-fast if gradients missing
             self.optimizer.zero_grad()
-            loss.backward()
+            
+            # Check for retain_graph override (for multiple optimizers sharing loss)
+            # Can be set via: --override all:retain_graph=True
+            retain_graph = g.get_node_config(self.node_id, 'retain_graph', False)
+            if retain_graph:
+                self.node_logger.debug(f"Using retain_graph=True for backward pass")
+            loss.backward(retain_graph=retain_graph)
+            
             self.optimizer.step()
         
         # Send step_complete signal for next batch

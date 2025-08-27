@@ -1903,10 +1903,20 @@ def get_rl_games_path() -> Path:
                     else:
                         subsystem_to_nodes[node_subsystems].append(node_id)
                 except (AttributeError, NotImplementedError):
-                    pass  # Skip nodes without subsystem
-        
+                    raise RuntimeError(f"Node {node_id} of type {node_type} is missing a subsystem definition.")
+
         # Generate the Python dict literal
         lines = []
+        
+        # Add special "all" subsystem that includes all nodes
+        all_node_ids = set()
+        for node_list in subsystem_to_nodes.values():
+            all_node_ids.update(node_list)
+        if all_node_ids:
+            all_node_ids_str = ', '.join(f'"{nid}"' for nid in sorted(all_node_ids))
+            lines.append(f'        "all": [{all_node_ids_str}],')
+        
+        # Add regular subsystems
         for subsystem, node_ids in sorted(subsystem_to_nodes.items()):
             node_ids_str = ', '.join(f'"{nid}"' for nid in sorted(node_ids))
             lines.append(f'        "{subsystem}": [{node_ids_str}],')
