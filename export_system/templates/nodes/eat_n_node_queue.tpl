@@ -36,8 +36,23 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         try:
             while self.running:
+                # Log waiting for input (with deadlock monitoring)
+                from framework.globals import Global as g
+                if g.deadlock_debug:
+                    from framework.deadlock_utils import log_queue_get_wait, log_queue_get_success
+                    import time
+                    log_queue_get_wait(self.node_id, "input")
+                    wait_start = time.time()
+                
                 # Wait for input
                 input_dict = await self.input_waiter.get()
+                
+                # Log successful receipt (with deadlock monitoring)
+                if g.deadlock_debug:
+                    # Log success for the actual input received
+                    input_names = list(input_dict.keys())
+                    for input_name in input_names:
+                        log_queue_get_success(self.node_id, input_name, time.time() - wait_start)
                 
                 # Extract the input (should be "input" key)
                 if "input" in input_dict:

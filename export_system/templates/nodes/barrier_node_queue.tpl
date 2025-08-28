@@ -29,12 +29,24 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         try:
             while self.running:
+                # Log waiting for inputs (with deadlock monitoring)
+                from framework.globals import Global as g
+                if g.deadlock_debug:
+                    from framework.deadlock_utils import log_queue_get_wait, log_queue_get_success
+                    import time
+                    log_queue_get_wait(self.node_id, "input_or_release")
+                    wait_start = time.time()
+                
                 # Wait for ANY input using MultiWaiter (returns dict with single key)
                 input_dict = await self.input_waiter.get()
                 
                 # Extract the single input (there should be exactly one)
                 input_name = list(input_dict.keys())[0]
                 input_value = input_dict[input_name]
+                
+                # Log successful receipt (with deadlock monitoring)
+                if g.deadlock_debug:
+                    log_queue_get_success(self.node_id, input_name, time.time() - wait_start)
                 
                 # Route based on input type
                 if input_name == "input":
