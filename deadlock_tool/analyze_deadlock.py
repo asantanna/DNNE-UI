@@ -17,6 +17,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Dict, List, Any, Tuple
+from collections import defaultdict
 
 from dataflow_simulator import DataflowSimulator
 
@@ -138,6 +139,146 @@ def load_deadlock_data() -> Tuple[Dict, List]:
         
     return graph, events
 
+def extract_execution_cycles(events: List[Dict], graph: Dict = None) -> List[Dict]:
+    """
+    Extract execution cycles from events.
+    A cycle is typically marked by IsaacGym simulation steps.
+    """
+    cycles = []
+    current_cycle = {
+        'start_time': None,
+        'end_time': None,
+        'isaac_steps': [],
+        'network_forwards': [],
+        'sgd_optimizations': [],
+        'barrier_releases': [],
+        'nodes_executed': set()
+    }
+    
+    start_time = events[0]['timestamp'] if events else 0
+    
+    # Find IsaacGym node ID from graph
+    isaac_node_id = None
+    if graph:
+        for node_id, config in graph.get('nodes', {}).items():
+            if 'IsaacGym' in config.get('class', ''):
+                isaac_node_id = node_id
+                break
+    
+    # Also identify other node types from graph
+    network_nodes = set()
+    sgd_nodes = set()
+    barrier_nodes = set()
+    if graph:
+        for node_id, config in graph.get('nodes', {}).items():
+            node_class = config.get('class', '')
+            if 'Network' in node_class:
+                network_nodes.add(node_id)
+            elif 'SGD' in node_class:
+                sgd_nodes.add(node_id)
+            elif 'Barrier' in node_class:
+                barrier_nodes.add(node_id)
+    
+    for event in events:
+        node_id = event.get('node_id', '')
+        event_type = event.get('event_type', '')
+        rel_time = event['timestamp'] - start_time
+        
+        # Track IsaacGym simulation steps (marks new cycle)
+        if isaac_node_id and node_id == isaac_node_id and event_type == 'QUEUE_PUT':
+            if current_cycle['isaac_steps']:
+                # Save previous cycle
+                cycles.append(current_cycle)
+                current_cycle = {
+                    'start_time': rel_time,
+                    'end_time': rel_time,
+                    'isaac_steps': [],
+                    'network_forwards': [],
+                    'sgd_optimizations': [],
+                    'barrier_releases': [],
+                    'nodes_executed': set()
+                }
+            else:
+                current_cycle['start_time'] = rel_time
+            
+            current_cycle['isaac_steps'].append((rel_time, node_id))
+            current_cycle['nodes_executed'].add(node_id)
+        
+        # Track other node executions
+        elif event_type == 'QUEUE_PUT':
+            current_cycle['nodes_executed'].add(node_id)
+            # Categorize by node type using graph info
+            if node_id in network_nodes:
+                current_cycle['network_forwards'].append((rel_time, node_id))
+            elif node_id in sgd_nodes:
+                current_cycle['sgd_optimizations'].append((rel_time, node_id))
+            elif node_id in barrier_nodes:
+                current_cycle['barrier_releases'].append((rel_time, node_id))
+            
+        current_cycle['end_time'] = rel_time
+    
+    # Add last cycle if it has content
+    if current_cycle['nodes_executed']:
+        cycles.append(current_cycle)
+    
+    return cycles
+
+def analyze_pattern_break(events: List[Dict], graph: Dict) -> Dict:
+    """
+    Analyze where the execution pattern breaks, causing deadlock.
+    Returns detailed information about the pattern break.
+    """
+    if not events:
+        return {}
+    
+    cycles = extract_execution_cycles(events, graph)
+    if len(cycles) < 2:
+        return {'message': 'Not enough cycles to detect pattern break'}
+    
+    # Find the critical nodes that stopped
+    start_time = events[0]['timestamp']
+    
+    # Get last events for each node
+    last_events = {}
+    for event in events:
+        node_id = event['node_id']
+        last_events[node_id] = event
+    
+    # Find nodes that didn't complete their pattern
+    missing_nodes = []
+    if len(cycles) >= 2:
+        last_cycle_nodes = cycles[-1]['nodes_executed']
+        prev_cycle_nodes = cycles[-2]['nodes_executed']
+        missing_nodes = list(prev_cycle_nodes - last_cycle_nodes)
+    
+    # Find the critical break point
+    critical_node = None
+    critical_time = None
+    
+    # Look for IsaacGym node that didn't continue
+    for node_id, config in graph['nodes'].items():
+        if 'IsaacGym' in config.get('class', ''):
+            if node_id in last_events:
+                last_event = last_events[node_id]
+                if last_event['event_type'] == 'QUEUE_PUT':
+                    # IsaacGym produced output but didn't wait for next input
+                    critical_node = node_id
+                    critical_time = last_event['timestamp'] - start_time
+                    break
+    
+    # Build pattern break analysis
+    analysis = {
+        'total_cycles': len(cycles),
+        'last_cycle_incomplete': len(cycles[-1]['nodes_executed']) < len(cycles[-2]['nodes_executed']) if len(cycles) >= 2 else False,
+        'missing_nodes': missing_nodes,
+        'critical_node': critical_node,
+        'critical_time': critical_time,
+        'avg_cycle_duration': sum(c['end_time'] - c['start_time'] for c in cycles[:-1]) / max(1, len(cycles) - 1) if len(cycles) > 1 else 0,
+        'last_cycle_duration': cycles[-1]['end_time'] - cycles[-1]['start_time'] if cycles else 0
+    }
+    
+    return analysis
+
 def analyze_deadlock(graph: Dict, events: List) -> Tuple:
     """Run deadlock analysis"""
     # Create simulator (suppress debug logs)
@@ -148,6 +289,10 @@ def analyze_deadlock(graph: Dict, events: List) -> Tuple:
     
     # Run simulation
     results = simulator.replay_events(events)
+    
+    # Add pattern break analysis if deadlock detected
+    if results['deadlock_detected']:
+        results['pattern_break'] = analyze_pattern_break(events, graph)
     
     return results, simulator, bootstrap_nodes
 
@@ -220,6 +365,30 @@ def print_results(graph: Dict, events: List, results: Dict, simulator, bootstrap
         print("\n" + "="*60)
         print("DEADLOCK ROOT CAUSE ANALYSIS")
         print("="*60)
+        
+        # Pattern break analysis
+        if 'pattern_break' in results:
+            pb = results['pattern_break']
+            if pb.get('total_cycles'):
+                print(f"\n🔄 Pattern Analysis:")
+                print(f"  Completed cycles: {pb['total_cycles'] - 1}")
+                print(f"  Average cycle duration: {pb['avg_cycle_duration']:.3f}s")
+                print(f"  Last cycle duration: {pb['last_cycle_duration']:.3f}s")
+                
+                if pb['last_cycle_incomplete']:
+                    print(f"  ❌ Last cycle was incomplete")
+                
+                if pb['missing_nodes']:
+                    print(f"\n  ⚠️ Nodes that didn't execute in final cycle:")
+                    for node_id in pb['missing_nodes']:
+                        node_class = graph['nodes'].get(node_id, {}).get('class', 'Unknown')
+                        print(f"    - Node {node_id} ({node_class})")
+                
+                if pb['critical_node']:
+                    critical_class = graph['nodes'].get(pb['critical_node'], {}).get('class', 'Unknown')
+                    print(f"\n  🎯 Critical failure point:")
+                    print(f"    Node {pb['critical_node']} ({critical_class}) at t={pb['critical_time']:.3f}s")
+                    print(f"    This node produced output but didn't continue its cycle")
         
         # Get detailed state
         detailed = simulator.get_detailed_state()

@@ -57,6 +57,13 @@ The system detects deadlock when:
 2. The event trace has ended (no more progress possible)
 3. Circular dependencies exist between waiting nodes
 
+### Pattern Break Analysis
+When deadlock is detected, the tool automatically analyzes execution patterns to find:
+- **Execution Cycles**: Repeating patterns marked by IsaacGym simulation steps
+- **Incomplete Cycles**: Identifies when the last cycle didn't complete normally
+- **Missing Nodes**: Shows which nodes failed to execute in the final cycle
+- **Critical Failure Point**: Pinpoints the exact node and time where the pattern broke
+
 ## Common Deadlock Patterns
 
 ### SGD-Barrier Circular Dependency
