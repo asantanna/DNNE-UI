@@ -124,7 +124,7 @@ For detailed analysis of deadlock causes:
 python runner.py --debug-deadlock --timeout 15
 
 # For workflows with gradient retention issues (like Franka_Coop_Nodes)
-python runner.py --debug-deadlock --timeout 15 --override all:retain_graph=True
+python runner.py --debug-deadlock --timeout 15 --override all:retain_graph=True --override all:no_bootstrap_trigger=True
 
 # Step 2: Analyze the captured data
 cd /path/to/DNNE-UI/deadlock_tool
