@@ -31,12 +31,32 @@ class SGDOptimizerExporter(ExportableNode):
                 f"The UI must provide all optimizer parameters."
             )
         
+        # Find the connected network node for the virtual model input
+        network_node_id = None
+        if all_links:
+            # Find links connected to our model input (slot 0)
+            for link in all_links:
+                if len(link) >= 5:
+                    to_node = str(link[3])
+                    to_slot = link[4]
+                    if to_node == node_id and to_slot == 0:  # model input is slot 0
+                        # Found the connection to our model input
+                        network_node_id = str(link[1])
+                        break
+        
+        if not network_node_id:
+            raise ValueError(
+                f"SGDOptimizer node {node_id} requires a model connection from a Network node. "
+                f"No model connection found."
+            )
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "SGDOptimizerNode",
             "LEARNING_RATE": params['learning_rate'],
             "MOMENTUM": params['momentum'],
-            "WEIGHT_DECAY": params['weight_decay']
+            "WEIGHT_DECAY": params['weight_decay'],
+            "NETWORK_NODE_ID": network_node_id  # Pass the network node ID for virtual connection
         }
     
     @classmethod

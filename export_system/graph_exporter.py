@@ -517,6 +517,86 @@ class GraphExporter:
         
         return filename_base
     
+    def _is_virtual_output(self, node_type: str, output_slot: int) -> bool:
+        """Check if a specific output slot is virtual"""
+        # Get the node class from registry
+        if node_type not in self.node_registry:
+            return False
+            
+        node_class = self.node_registry[node_type]
+        
+        # Check if the node class has the visnode module
+        try:
+            # Import the visnode module to get the actual node definition
+            module_name = f"custom_nodes.{node_type.lower()}_visnode"
+            if node_type.endswith("Node"):
+                # Remove "Node" suffix for module name
+                module_name = f"custom_nodes.{node_type[:-4].lower()}_visnode"
+            
+            import importlib
+            module = importlib.import_module(module_name)
+            
+            # Get the actual node class
+            visnode_class = getattr(module, f"{node_type if node_type.endswith('Node') else node_type + 'Node'}", None)
+            if not visnode_class:
+                return False
+            
+            # Check OUTPUT_DICT for virtual flag
+            if hasattr(visnode_class, 'OUTPUT_DICT'):
+                output_dict = visnode_class.OUTPUT_DICT
+                if output_slot in output_dict:
+                    return output_dict[output_slot].get('virtual', False)
+        except (ImportError, AttributeError) as e:
+            self.logger.debug(f"Could not check virtual output for {node_type}: {e}")
+        
+        return False
+    
+    def _is_virtual_input(self, node_type: str, input_name: str) -> bool:
+        """Check if a specific input is virtual"""
+        # Get the node class from registry
+        if node_type not in self.node_registry:
+            return False
+            
+        node_class = self.node_registry[node_type]
+        
+        # Check if the node class has the visnode module
+        try:
+            # Import the visnode module to get the actual node definition
+            module_name = f"custom_nodes.{node_type.lower()}_visnode"
+            if node_type.endswith("Node"):
+                # Remove "Node" suffix for module name
+                module_name = f"custom_nodes.{node_type[:-4].lower()}_visnode"
+            
+            import importlib
+            module = importlib.import_module(module_name)
+            
+            # Get the actual node class
+            visnode_class = getattr(module, f"{node_type if node_type.endswith('Node') else node_type + 'Node'}", None)
+            if not visnode_class:
+                return False
+            
+            # Check INPUT_TYPES for virtual flag
+            if hasattr(visnode_class, 'INPUT_TYPES'):
+                input_types = visnode_class.INPUT_TYPES()
+                for category in ['required', 'optional']:
+                    if category in input_types:
+                        for name, spec in input_types[category].items():
+                            if name == input_name:
+                                # Check if spec has virtual flag
+                                if isinstance(spec, tuple) and len(spec) > 1:
+                                    config = None
+                                    if isinstance(spec[-1], dict):
+                                        config = spec[-1]
+                                    elif len(spec) > 2 and isinstance(spec[2], dict):
+                                        config = spec[2]
+                                    
+                                    if config and config.get('virtual', False):
+                                        return True
+        except (ImportError, AttributeError) as e:
+            self.logger.debug(f"Could not check virtual input for {node_type}: {e}")
+        
+        return False
+    
     def _is_virtual_node(self, node_type: str) -> bool:
         """Check if a node type is virtual (configuration-only)"""
         # External nodes (created by UI/frontend) are always virtual
@@ -1312,6 +1392,20 @@ class GraphExporter:
                         raise ValueError(f"Input slot {to_slot} out of range for node {to_node} of type {node_info[to_node]['type']}. Available inputs: {input_names}")
                 else:
                     raise ValueError(f"Cannot determine input name for slot {to_slot} on node {to_node} of type {node_info[to_node]['type']}")
+                
+                # Check if this is a virtual connection
+                from_node_type = node_info[from_node]["type"]
+                to_node_type = node_info[to_node]["type"]
+                
+                # Check if output is virtual
+                if self._is_virtual_output(from_node_type, from_slot):
+                    self.logger.info(f"Skipping virtual output connection: {from_node_type}[{from_slot}] -> {to_node_type}")
+                    continue
+                
+                # Check if input is virtual
+                if self._is_virtual_input(to_node_type, input_name):
+                    self.logger.info(f"Skipping virtual input connection: {from_node_type} -> {to_node_type}[{input_name}]")
+                    continue
                 
                 connections.append(
                     f'("{from_node}", "{output_name}", "{to_node}", "{input_name}")'

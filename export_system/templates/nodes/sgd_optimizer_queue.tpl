@@ -3,7 +3,8 @@ template_vars = {
     "NODE_ID": "optimizer_1",
     "LEARNING_RATE": 0.01,
     "MOMENTUM": 0.9,
-    "WEIGHT_DECAY": 0.0
+    "WEIGHT_DECAY": 0.0,
+    "NETWORK_NODE_ID": "network_1"  # Virtual connection to network node
 }
 
 from framework.globals import Global as g
@@ -13,29 +14,28 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        # Loss is the main data input, model is config input
+        # Loss is the main data input (model connection is virtual)
         self.setup_inputs(required=["loss"])
         self.setup_outputs(["step_complete"])
-        
-        # Manually create model queue for one-time config
-        from asyncio import Queue
-        self.input_queues["model"] = Queue(maxsize=1)
         
         # Optimizer parameters
         self.learning_rate = {LEARNING_RATE}
         self.momentum = {MOMENTUM}
         self.weight_decay = {WEIGHT_DECAY}
         self.optimizer = None
+        
+        # Virtual connection to network node - will be resolved in run()
+        self.model_node_id = "{NETWORK_NODE_ID}"
         self.model_node = None
         
     async def run(self):
-        """Override run to wait for model connection first"""
+        """Override run to setup optimizer with network node"""
         self.running = True
         self.node_logger.info(f"Starting node {self.node_id}")
         
         try:
-            # Wait for model connection (network node will send itself)
-            self.model_node = await self.input_queues["model"].get()
+            # Resolve virtual connection now that all nodes are created
+            self.model_node = g.graph_runner.get_node(self.model_node_id)
             
             # Create optimizer using the connected model node's parameters
             if self.model_node and hasattr(self.model_node, 'get_parameters'):

@@ -31,6 +31,10 @@ class GraphRunner:
         self.nodes[node.node_id] = node
         self.logger.debug(f"Added node: {node.node_id}")
     
+    def get_node(self, node_id: str) -> QueueNode:
+        """Get a node by its ID"""
+        return self.nodes.get(node_id)
+    
     def wire_nodes(self, connections: List[tuple]):
         """Wire nodes together: (from_id, output, to_id, input)"""
         # Build a dictionary to track connections for each node

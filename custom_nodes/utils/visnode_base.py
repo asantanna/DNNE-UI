@@ -11,7 +11,27 @@ import numpy as np
 from .robotics_types import TensorData, Context
 
 
-class RoboticsNodeBase:
+class OutputDictMixin:
+    """Mixin to auto-generate RETURN_TYPES and RETURN_NAMES from OUTPUT_DICT"""
+    
+    OUTPUT_DICT: Dict[int, Dict[str, Any]] = {}
+    
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        
+        # Auto-generate RETURN_TYPES and RETURN_NAMES from OUTPUT_DICT if it exists
+        if hasattr(cls, 'OUTPUT_DICT') and cls.OUTPUT_DICT:
+            # Sort by index to ensure consistent ordering
+            sorted_outputs = sorted(cls.OUTPUT_DICT.items())
+            
+            # Generate RETURN_TYPES tuple
+            cls.RETURN_TYPES = tuple(out['type'] for idx, out in sorted_outputs)
+            
+            # Generate RETURN_NAMES tuple
+            cls.RETURN_NAMES = tuple(out['name'] for idx, out in sorted_outputs)
+
+
+class RoboticsNodeBase(OutputDictMixin):
     """Base class for all robotics nodes"""
     
     # Default category for organization in UI
@@ -186,6 +206,7 @@ def get_context():
 
 # Export all base classes
 __all__ = [
+    'OutputDictMixin',
     'RoboticsNodeBase',
     'SensorNodeBase',
     'ControllerNodeBase',

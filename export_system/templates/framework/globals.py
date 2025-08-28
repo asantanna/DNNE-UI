@@ -189,6 +189,9 @@ class Global:
     # Yield frequencies
     DEFAULT_YIELD_FREQUENCY: int = 100  # Yield every N iterations
     
+    # === Graph Runner (for node lookups) ===
+    graph_runner: Optional[Any] = None  # Set by GraphRunner at startup
+    
     # === Private State ===
     _yield_disabled: int = 0  # Counter for nested no_yield contexts
     _yield_stats: YieldStats = YieldStats()

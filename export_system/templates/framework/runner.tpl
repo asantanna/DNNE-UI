@@ -366,7 +366,8 @@ async def main():
     
     # Create runner
     runner = GraphRunner()
-
+    g.graph_runner = runner
+    
     # Add nodes to runner
 {ADD_NODES_TO_RUNNER_SECTION}
 

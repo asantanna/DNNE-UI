@@ -1,8 +1,8 @@
 # DNNE Tasks
 
 ## Current Status
-Export system now validates all required input connections at export time, preventing runtime failures.
-Franka_Coop_Nodes workflow exports and runs but requires patches for dimension/device/gradient issues.
+Virtual connections implemented - UI-only connections resolved at runtime via g.graph_runner.get_node().
+Export system validates all required input connections at export time, preventing runtime failures.
 
 ## Active TODOs
 

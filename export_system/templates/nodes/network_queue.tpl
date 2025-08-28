@@ -20,7 +20,7 @@ class NetworkNode_{NODE_ID}(QueueNode):
     def __init__(self, node_id: str):
         super().__init__(node_id)
         self.setup_inputs(required=["input"])
-        self.setup_outputs(["layers", "output", "model"])
+        self.setup_outputs(["layers", "output"])  # model is virtual, not a queue output
         
         # Build network from detected layers: {NETWORK_LAYERS}
         layers = []
@@ -224,15 +224,12 @@ class NetworkNode_{NODE_ID}(QueueNode):
             return False
         
     async def run(self):
-        """Override run to emit model reference once at startup"""
+        """Standard run method - no model emission needed (virtual connection)"""
         self.running = True
         self.node_logger.info(f"Starting node {self.node_id}")
         
         try:
-            # Emit model reference once for optimizer
-            await self.send_output("model", self)
-            
-            # Now run the normal compute loop using MultiWaiter
+            # Run the normal compute loop using MultiWaiter
             while self.running:
                 # Use MultiWaiter to get inputs efficiently
                 inputs = await self.input_waiter.get()

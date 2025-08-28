@@ -716,9 +716,44 @@ class PromptServer():
             info = {}
             info['input'] = obj_class.INPUT_TYPES()
             info['input_order'] = {key: list(value.keys()) for (key, value) in obj_class.INPUT_TYPES().items()}
+            
+            # Handle OUTPUT_DICT for DNNE nodes, fall back to RETURN_TYPES for legacy
+            if hasattr(obj_class, 'OUTPUT_DICT'):
+                # Extract output info from OUTPUT_DICT
+                output_dict = obj_class.OUTPUT_DICT
+                # Extract virtual flags for each output
+                info['output_virtual'] = [out.get('virtual', False) for idx, out in sorted(output_dict.items())]
+                # Also extract tooltip info if present in OUTPUT_DICT
+                output_tooltips = [out.get('tooltip', '') for idx, out in sorted(output_dict.items()) if 'tooltip' in out]
+                if output_tooltips:
+                    info['output_tooltips'] = output_tooltips
+            else:
+                # Legacy nodes don't have virtual outputs
+                info['output_virtual'] = [False] * len(obj_class.RETURN_TYPES) if hasattr(obj_class, 'RETURN_TYPES') else []
+            
+            # Still use RETURN_TYPES/RETURN_NAMES (either auto-generated from OUTPUT_DICT or legacy)
             info['output'] = obj_class.RETURN_TYPES
             info['output_is_list'] = obj_class.OUTPUT_IS_LIST if hasattr(obj_class, 'OUTPUT_IS_LIST') else [False] * len(obj_class.RETURN_TYPES)
             info['output_name'] = obj_class.RETURN_NAMES if hasattr(obj_class, 'RETURN_NAMES') else info['output']
+            
+            # Extract virtual flags from inputs
+            input_types = obj_class.INPUT_TYPES()
+            info['input_virtual'] = {}
+            for category in ['required', 'optional']:
+                if category in input_types:
+                    for name, spec in input_types[category].items():
+                        # Check if spec has virtual flag in its config dict
+                        if isinstance(spec, tuple) and len(spec) > 1:
+                            # Last element might be a config dict
+                            config = None
+                            if isinstance(spec[-1], dict):
+                                config = spec[-1]
+                            elif len(spec) > 2 and isinstance(spec[2], dict):
+                                config = spec[2]
+                            
+                            if config and config.get('virtual', False):
+                                info['input_virtual'][name] = True
+            
             info['name'] = node_class
             info['display_name'] = nodes.NODE_DISPLAY_NAME_MAPPINGS[node_class] if node_class in nodes.NODE_DISPLAY_NAME_MAPPINGS.keys() else node_class
             info['description'] = obj_class.DESCRIPTION if hasattr(obj_class,'DESCRIPTION') else ''

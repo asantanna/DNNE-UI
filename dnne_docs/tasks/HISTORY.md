@@ -2,6 +2,33 @@
 
 ## Completed Features (Jan 2025)
 
+### Session: Virtual Connection System Implementation
+**Date**: Jan 28, 2025
+
+#### Completed:
+1. **Virtual Connection System**
+   - Implemented "virtual" connections - UI-only connections resolved at runtime
+   - Created OUTPUT_DICT system for cleaner output declarations with virtual flag
+   - Added OutputDictMixin to auto-generate RETURN_TYPES/RETURN_NAMES from OUTPUT_DICT
+   - Modified server.py to extract virtual flags from OUTPUT_DICT and INPUT_TYPES
+   - Converted all 24 visnodes to use OUTPUT_DICT system
+
+2. **Graph Exporter Virtual Support**
+   - Added _is_virtual_output() and _is_virtual_input() methods
+   - Virtual connections properly skipped when generating runner.py
+   - No queues created for virtual connections
+
+3. **Runtime Resolution Pattern**
+   - SGD optimizer template uses g.graph_runner.get_node() to resolve connections
+   - Connection resolved in run() method after all nodes created
+   - Added get_node() method to GraphRunner template
+   - Store graph_runner globally for node access
+
+4. **Testing**
+   - MNIST_Test workflow successfully exports and runs with virtual connections
+   - SGD properly finds Network node for model parameters
+   - No unnecessary queues created for model connection
+
 ### Session: Connection Validation & Test Cleanup
 **Date**: Jan 20, 2025
 
