@@ -55,6 +55,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             # Main loop - wait for action OR reset
             while self.running:
+                # Log waiting for inputs (with deadlock monitoring)
+                if g.deadlock_debug:
+                    from framework.deadlock_utils import log_queue_get_wait, log_queue_get_success
+                    import time
+                    # Log that we're waiting for either action or reset
+                    log_queue_get_wait(self.node_id, "action_or_reset")
+                    wait_start = time.time()
+                
                 # Create tasks for both inputs
                 action_task = asyncio.create_task(self.input_queues["action"].get(), name="action")
                 reset_task = asyncio.create_task(self.input_queues["reset"].get(), name="reset")
@@ -76,6 +84,10 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 # Process the completed input
                 completed_task = list(done)[0]
                 input_name = completed_task.get_name()
+                
+                # Log successful receipt (with deadlock monitoring)
+                if g.deadlock_debug:
+                    log_queue_get_success(self.node_id, input_name, time.time() - wait_start)
                 
                 if input_name == "action":
                     action = completed_task.result()

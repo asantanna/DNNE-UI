@@ -30,9 +30,28 @@ class GetBatchNode_{NODE_ID}(QueueNode):
         self.node_logger.info(f"Starting node {self.node_id}")
         
         try:
-            # Wait for dataloader and schema
+            # Wait for dataloader and schema (with deadlock monitoring)
+            if g.deadlock_debug:
+                from framework.deadlock_utils import log_queue_get_wait, log_queue_get_success
+                import time
+                
+                # Monitor dataloader input
+                log_queue_get_wait(self.node_id, "dataloader")
+                start_time = time.time()
+            
             self.dataloader = await self.input_queues["dataloader"].get()
+            
+            if g.deadlock_debug:
+                log_queue_get_success(self.node_id, "dataloader", time.time() - start_time)
+                
+                # Monitor schema input
+                log_queue_get_wait(self.node_id, "schema")
+                start_time = time.time()
+            
             self.schema = await self.input_queues["schema"].get()
+            
+            if g.deadlock_debug:
+                log_queue_get_success(self.node_id, "schema", time.time() - start_time)
             self.data_iter = iter(self.dataloader)
             self.total_batches_per_epoch = len(self.dataloader)
             
@@ -45,8 +64,15 @@ class GetBatchNode_{NODE_ID}(QueueNode):
             
             # Always wait for trigger signals before generating batches
             while self.running:
-                # Wait for trigger signal
+                # Wait for trigger signal (with deadlock monitoring)
+                if g.deadlock_debug:
+                    log_queue_get_wait(self.node_id, "trigger")
+                    start_time = time.time()
+                
                 trigger_signal = await self.input_queues["trigger"].get()
+                
+                if g.deadlock_debug:
+                    log_queue_get_success(self.node_id, "trigger", time.time() - start_time)
                 # Too noisy - commenting out per-batch trigger logging
                 # self.node_logger.info(f"Received trigger signal: {trigger_signal.get('signal_type', 'unknown')}")
                 

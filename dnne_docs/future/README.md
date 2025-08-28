@@ -28,6 +28,7 @@ Robotics-specific features and improvements.
 ### 🔧 System
 Core system improvements and infrastructure.
 
+- **[Custom Queue Monitoring](system/custom-queue-monitoring.md)** - *Medium Priority* - Track custom queue operations for deadlock analysis
 - **[UI Feedback](system/ui-feedback.md)** - *Low Priority* - Progress bars and better UX
 
 ### 📊 Visualization
