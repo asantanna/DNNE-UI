@@ -56,6 +56,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Main loop - wait for action OR reset
             while self.running:
                 # Log waiting for inputs (with deadlock monitoring)
+                from framework.globals import Global as g
                 if g.deadlock_debug:
                     from framework.deadlock_utils import log_queue_get_wait, log_queue_get_success
                     import time
