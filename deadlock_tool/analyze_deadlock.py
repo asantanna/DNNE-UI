@@ -142,7 +142,8 @@ def load_deadlock_data() -> Tuple[Dict, List]:
 def extract_execution_cycles(events: List[Dict], graph: Dict = None) -> List[Dict]:
     """
     Extract execution cycles from events.
-    A cycle is typically marked by IsaacGym simulation steps.
+    For IsaacGym workflows: uses simulation steps as markers
+    For other workflows: uses generic pattern detection
     """
     cycles = []
     current_cycle = {
@@ -218,6 +219,90 @@ def extract_execution_cycles(events: List[Dict], graph: Dict = None) -> List[Dic
         current_cycle['end_time'] = rel_time
     
     # Add last cycle if it has content
+    if current_cycle['nodes_executed']:
+        cycles.append(current_cycle)
+    
+    # If no IsaacGym node found, try generic cycle detection
+    if not isaac_node_id and len(cycles) == 0:
+        cycles = extract_generic_cycles(events, graph)
+    
+    return cycles
+
+def extract_generic_cycles(events: List[Dict], graph: Dict) -> List[Dict]:
+    """
+    Generic cycle extraction for non-IsaacGym workflows.
+    Uses pattern detection to identify repeating execution cycles.
+    """
+    if not events:
+        return []
+    
+    # Find nodes with regular output patterns
+    node_output_times = defaultdict(list)
+    start_time = events[0]['timestamp']
+    
+    for event in events:
+        if event['event_type'] == 'QUEUE_PUT':
+            node_id = event['node_id']
+            rel_time = event['timestamp'] - start_time
+            node_output_times[node_id].append(rel_time)
+    
+    # Find the most regular node to use as cycle marker
+    best_marker = None
+    best_regularity = float('inf')
+    
+    for node_id, times in node_output_times.items():
+        if len(times) < 3:
+            continue
+        
+        # Calculate variance in intervals
+        intervals = [times[i] - times[i-1] for i in range(1, len(times))]
+        if intervals:
+            avg_interval = sum(intervals) / len(intervals)
+            if avg_interval > 0:
+                variance = sum((i - avg_interval) ** 2 for i in intervals) / len(intervals)
+                regularity = variance / avg_interval
+                if regularity < best_regularity:
+                    best_regularity = regularity
+                    best_marker = node_id
+    
+    # Build cycles using the marker
+    cycles = []
+    current_cycle = {
+        'start_time': 0,
+        'end_time': 0,
+        'nodes_executed': set(),
+        'isaac_steps': [],  # Empty for compatibility
+        'network_forwards': [],
+        'sgd_optimizations': [],
+        'barrier_releases': []
+    }
+    
+    for event in events:
+        node_id = event['node_id']
+        event_type = event['event_type']
+        rel_time = event['timestamp'] - start_time
+        
+        # Check for cycle boundary
+        if best_marker and node_id == best_marker and event_type == 'QUEUE_PUT':
+            if current_cycle['nodes_executed']:
+                current_cycle['end_time'] = rel_time
+                cycles.append(current_cycle)
+                current_cycle = {
+                    'start_time': rel_time,
+                    'end_time': rel_time,
+                    'nodes_executed': set(),
+                    'isaac_steps': [],
+                    'network_forwards': [],
+                    'sgd_optimizations': [],
+                    'barrier_releases': []
+                }
+        
+        if event_type == 'QUEUE_PUT':
+            current_cycle['nodes_executed'].add(node_id)
+        
+        current_cycle['end_time'] = rel_time
+    
+    # Add last cycle
     if current_cycle['nodes_executed']:
         cycles.append(current_cycle)
     
