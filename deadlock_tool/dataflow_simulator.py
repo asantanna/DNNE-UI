@@ -88,26 +88,24 @@ class DataflowSimulator:
         logger.info(f"Built graph with {len(self.nodes)} nodes and {len(self.connections)} connections")
         
     def check_bootstrap_nodes(self):
-        """Check for nodes that can bootstrap and start them"""
-        bootstrapped = []
+        """Check which nodes have bootstrap capability (but don't actually bootstrap)"""
+        bootstrap_capable = []
         
         for node_id, simulator in self.nodes.items():
-            # Check SGD optimizer bootstrap
-            if hasattr(simulator, 'should_bootstrap') and simulator.should_bootstrap():
-                logger.info(f"Node {node_id} can bootstrap")
-                if hasattr(simulator, 'send_bootstrap'):
-                    outputs = simulator.send_bootstrap()
-                    self._process_outputs(node_id, outputs, 0.0)
-                    bootstrapped.append(node_id)
+            # Check SGD optimizer bootstrap capability
+            if hasattr(simulator, 'should_bootstrap'):
+                # Check if this node CAN bootstrap (not if it WILL)
+                if hasattr(simulator, 'bootstrap_enabled') and simulator.bootstrap_enabled:
+                    if not simulator.no_bootstrap_trigger:
+                        logger.debug(f"Node {node_id} has bootstrap capability")
+                        bootstrap_capable.append(node_id)
                     
-            # Check IsaacGym bootstrap
+            # Check IsaacGym bootstrap capability
             elif hasattr(simulator, 'can_bootstrap') and simulator.can_bootstrap:
-                if not simulator.bootstrapped:
-                    logger.info(f"Node {node_id} can bootstrap with null action")
-                    bootstrapped.append(node_id)
-                    # IsaacGym bootstrap happens during execution
+                logger.debug(f"Node {node_id} can bootstrap with null action")
+                bootstrap_capable.append(node_id)
                     
-        return bootstrapped
+        return bootstrap_capable
         
     def replay_events(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -121,25 +119,58 @@ class DataflowSimulator:
         """
         logger.info(f"Starting event replay with {len(events)} events")
         
-        # Check for bootstrap nodes first
+        # Check for bootstrap nodes first (just for info, not to actually bootstrap)
         bootstrap_nodes = self.check_bootstrap_nodes()
         if bootstrap_nodes:
-            logger.info(f"Bootstrap nodes: {bootstrap_nodes}")
+            logger.info(f"Nodes with bootstrap capability: {bootstrap_nodes}")
             
         # Sort events by timestamp
         sorted_events = sorted(events, key=lambda e: e.get('timestamp', 0))
         
-        # Process each event
+        # Initialize time tracking with first event timestamp
+        self.start_time = 0
+        if sorted_events:
+            self.start_time = sorted_events[0].get('timestamp', 0)
+            self.current_time = self.start_time
+            self.last_progress_time = self.current_time
+        
+        # Process each event - ONLY replay what actually happened, don't add anything!
         for event in sorted_events:
             self.current_time = event.get('timestamp', self.current_time)
             self._process_event(event)
             
-            # Check for deadlock
+            # Check for deadlock during event processing
             if self._is_deadlocked():
                 self.deadlock_detected = True
                 self.deadlock_time = self.current_time
-                logger.warning(f"DEADLOCK DETECTED at t={self.current_time:.3f}s")
+                relative_time = self.current_time - self.start_time
+                logger.warning(f"DEADLOCK DETECTED at t={relative_time:.3f}s (relative to start)")
                 break
+                
+        # Final check - simplified deadlock detection
+        # A system is deadlocked if:
+        # 1. Most nodes are waiting
+        # 2. The recorded events stopped (no more events after this)
+        # This works because the deadlock monitoring stops recording when deadlocked
+        
+        if not self.deadlock_detected and sorted_events:
+            waiting_count = sum(1 for sim in self.nodes.values() if sim.state == NodeState.WAITING)
+            total_nodes = len(self.nodes)
+            waiting_ratio = waiting_count / max(1, total_nodes)
+            
+            # For real deadlock traces from DNNE:
+            # - The trace ends when deadlock is detected by the monitor
+            # - Most nodes will be waiting (typically > 80%)
+            # - We see the characteristic pattern of barriers waiting for SGD triggers
+            
+            if waiting_ratio > 0.8:  # 80% or more nodes waiting
+                # This is likely a deadlock since the trace ended here
+                self.deadlock_detected = True
+                self.deadlock_time = sorted_events[-1].get('timestamp', 0)
+                relative_time = self.deadlock_time - self.start_time
+                logger.warning(f"DEADLOCK DETECTED at t={relative_time:.3f}s")
+                logger.warning(f"  {waiting_count}/{total_nodes} nodes waiting ({waiting_ratio:.1%})")
+                logger.warning(f"  System stopped producing events (trace ended)")
                 
         # Final analysis
         return self._analyze_results()
@@ -188,6 +219,7 @@ class DataflowSimulator:
                     if simulator.can_execute() and simulator.state == NodeState.READY:
                         self._try_execute_node(target_id)
                         
+        # Update last progress time when data flows
         self.last_progress_time = self.current_time
         
     def _handle_queue_get_success(self, event: Dict[str, Any]):
@@ -210,6 +242,7 @@ class DataflowSimulator:
             if simulator.can_execute() and simulator.state == NodeState.READY:
                 self._try_execute_node(node_id)
                 
+        # Update last progress time when data is consumed
         self.last_progress_time = self.current_time
         
     def _handle_queue_wait(self, event: Dict[str, Any]):
@@ -270,20 +303,18 @@ class DataflowSimulator:
             
     def _is_deadlocked(self) -> bool:
         """Check if system is deadlocked"""
-        # Simple timeout-based detection for now
+        # Only check for deadlock after some initial time has passed
+        # (nodes need time to initialize)
+        elapsed = self.current_time - self.start_time
+        if elapsed < 0.1:  # Give 100ms for initialization
+            return False
+            
+        # Timeout-based detection - no progress for deadlock_timeout seconds
         if self.current_time - self.last_progress_time > self.deadlock_timeout:
             return True
             
-        # Check if all nodes are waiting and no pending data
-        all_waiting = all(
-            node.state == NodeState.WAITING 
-            for node in self.nodes.values()
-        )
-        
-        if all_waiting and not self.pending_data:
-            # Nothing can progress
-            return True
-            
+        # Don't use the all_waiting check during event replay
+        # The events tell us what happened, we shouldn't second-guess them
         return False
         
     def _analyze_results(self) -> Dict[str, Any]:
