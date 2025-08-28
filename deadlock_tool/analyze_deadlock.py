@@ -72,12 +72,12 @@ def convert_logs_if_needed() -> bool:
                     
                 elif entry_type == 'QUEUE_PUT':
                     event['event_type'] = 'QUEUE_PUT'
-                    event['output_name'] = entry.get('queue', 'output')
+                    event['output_name'] = entry.get('output', 'output')
                     event['data'] = entry.get('data', {})
                     
                 elif entry_type == 'QUEUE_PUT_BLOCKED':
                     event['event_type'] = 'QUEUE_PUT_BLOCKED'
-                    event['output_name'] = entry.get('queue', 'output')
+                    event['output_name'] = entry.get('output', 'output')
                     
                 elif entry_type == 'NODE_START':
                     event['event_type'] = 'NODE_START'
