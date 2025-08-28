@@ -37,7 +37,7 @@ class SGDOptimizerExporter(ExportableNode):
             for node in all_nodes:
                 node_type = node.get("class_type") or node.get("type")
                 if node_type == "Network":
-                    network_node_id = f"node_{node['id']}"
+                    network_node_id = str(node['id'])  # Just the ID, no "node_" prefix
                     break
         
         if not network_node_id:
