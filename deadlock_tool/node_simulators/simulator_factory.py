@@ -13,6 +13,9 @@ from .concat_node_queue_sim import ConcatNodeSimulator
 from .sgd_optimizer_queue_sim import SGDOptimizerSimulator
 from .isaac_gym_sim_queue_sim import IsaacGymSimulator
 from .network_node_queue_sim import NetworkNodeSimulator
+from .split_node_queue_sim import SplitNodeSimulator
+from .simulation_tracker_queue_sim import SimulationTrackerSimulator
+from .tensor_node_queue_sim import TensorNodeSimulator
 
 # Logger for factory
 logger = logging.getLogger("SimulatorFactory")
@@ -22,13 +25,13 @@ SIMULATOR_REGISTRY = {
     'BarrierNode': BarrierNodeSimulator,
     'Eat_NNode': EatNNodeSimulator,
     'ConcatNode': ConcatNodeSimulator,
-    'SplitNode': BaseNodeSimulator,  # Use base for now
+    'SplitNode': SplitNodeSimulator,
     'SGDOptimizerNode': SGDOptimizerSimulator,
     'IsaacGymSimNode': IsaacGymSimulator,
     'NetworkNode': NetworkNodeSimulator,
     'CustomComputationNode': NetworkNodeSimulator,  # Treat as network for now
-    'SimulationTracker': BaseNodeSimulator,  # Use base for passive nodes
-    'TensorNode': BaseNodeSimulator,  # Use base for simple data nodes
+    'SimulationTracker': SimulationTrackerSimulator,
+    'TensorNode': TensorNodeSimulator,
 }
 
 def extract_base_class(node_class: str) -> str:
@@ -75,8 +78,16 @@ def create_simulator(node_id: str, node_config: Dict[str, Any]) -> BaseNodeSimul
         logger.debug(f"Creating {simulator_class.__name__} for {node_id} (class: {node_class})")
         return simulator_class(node_id, node_config)
     else:
-        logger.warning(f"No specific simulator for {base_class}, using BaseNodeSimulator for {node_id}")
-        return BaseNodeSimulator(node_id, node_config)
+        # FAIL FAST - don't silently use base simulator
+        error_msg = (
+            f"FAIL-FAST: No simulator found for node type '{base_class}'!\n"
+            f"  Node ID: {node_id}\n"
+            f"  Node Class: {node_class}\n" 
+            f"  Available simulators: {list(SIMULATOR_REGISTRY.keys())}\n"
+            f"  Please implement a simulator for this node type."
+        )
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
 def register_simulator(base_class: str, simulator_class):
     """

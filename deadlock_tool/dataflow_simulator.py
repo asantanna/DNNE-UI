@@ -246,8 +246,14 @@ class DataflowSimulator:
             # Post-execution cleanup
             simulator.post_execute()
             
+        except NotImplementedError as e:
+            # FAIL FAST on missing simulators
+            logger.error(f"CRITICAL: {e}")
+            raise
         except Exception as e:
             logger.error(f"Error executing {node_id}: {e}")
+            # Still fail fast on unexpected errors
+            raise RuntimeError(f"Execution failed for {node_id}: {e}") from e
             
     def _process_outputs(self, node_id: str, outputs: Dict[str, Any], timestamp: float):
         """Process outputs from node execution"""

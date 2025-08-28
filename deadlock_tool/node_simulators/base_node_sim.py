@@ -104,7 +104,11 @@ class BaseNodeSimulator:
         Returns:
             Dict mapping output names to produced data
         """
-        raise NotImplementedError(f"{self.__class__.__name__} must implement execute()")
+        raise NotImplementedError(
+            f"FAIL-FAST: Node {self.node_id} ({self.node_class}) has no simulator!\n"
+            f"The {self.__class__.__name__} base class cannot simulate execution.\n"
+            f"A specific simulator must be implemented for node type: {self.node_type}"
+        )
         
     def post_execute(self):
         """
