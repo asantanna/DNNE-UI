@@ -71,8 +71,8 @@ def create_parser():
                        help='Use fixed random seed for deterministic execution')
     
     # Advanced overrides
-    parser.add_argument('--override', type=str, default=None,
-                       help='Override node configuration values. Use node IDs or subsystems (e.g., --override 56:checkpoint_enabled=True,training:learning_rate=0.001,rl:gamma=0.99)')
+    parser.add_argument('--override', action='append', default=[],
+                       help='Override node configuration values. Can be used multiple times. Use node IDs or subsystems (e.g., --override 56:checkpoint_enabled=True --override training:learning_rate=0.001)')
     
     # Telemetry
     parser.add_argument('--enable-telemetry', type=str, nargs='?', const='all', default=None,

@@ -311,9 +311,11 @@ async def main():
     # Process node-specific configuration
     node_configs = process_node_args(args, workflow_nodes)
     
-    # Process generic overrides
+    # Process generic overrides (concatenate multiple --override flags)
     if args.override:
-        override_configs, override_errors = parse_override_args(args.override, subsystem_to_nodes)
+        # Join all override strings with comma separator
+        override_string = ','.join(args.override)
+        override_configs, override_errors = parse_override_args(override_string, subsystem_to_nodes)
         if override_errors:
             print('\n❌ Override argument errors:')
             for error in override_errors:

@@ -143,11 +143,12 @@
       "switch": "--override",
       "type": "text",
       "label": "Advanced Overrides",
-      "description": "Override node configuration values (supports subsystems)",
+      "description": "Override node configuration values. Can be used multiple times.",
       "placeholder": "e.g., 56:checkpoint_enabled=True or training:lr=0.001",
       "label_on_same_line": false,
       "column": 2,
-      "order": 7
+      "order": 7,
+      "multiple": true
     }
   },
   "argument_order": [
