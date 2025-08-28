@@ -45,8 +45,13 @@ class BaseNodeSimulator:
         self.execution_count = 0
         self.last_execution_time = None
         
-        # Logging
-        self.logger = logging.getLogger(f"NodeSim.{self.node_id}")
+        # Logging - use node type for clarity
+        # Extract base type from class name (e.g., "SGDOptimizerNode_1" -> "SGD")
+        base_type = self.node_class.split('_')[0] if self.node_class else 'Node'
+        base_type = base_type.replace('OptimizerNode', '').replace('Node', '')
+        if not base_type:
+            base_type = 'Node'
+        self.logger = logging.getLogger(f"{base_type}.{self.node_id}")
         
     def add_input_connection(self, input_name: str, source_node: str, source_output: str):
         """Register an incoming connection"""
