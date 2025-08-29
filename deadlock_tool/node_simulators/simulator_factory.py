@@ -16,6 +16,15 @@ from .network_node_queue_sim import NetworkNodeSimulator
 from .split_node_queue_sim import SplitNodeSimulator
 from .simulation_tracker_queue_sim import SimulationTrackerSimulator
 from .tensor_node_queue_sim import TensorNodeSimulator
+from .mnist_dataset_queue_sim import MNISTDatasetNodeSimulator
+from .ml_node_sims import (
+    BatchSamplerNodeSimulator,
+    CIFAR10DatasetNodeSimulator,
+    GetBatchNodeSimulator,
+    LossNodeSimulator,
+    EpochTrackerNodeSimulator,
+    BalancerNodeSimulator
+)
 
 # Logger for factory
 logger = logging.getLogger("SimulatorFactory")
@@ -32,6 +41,13 @@ SIMULATOR_REGISTRY = {
     'CustomComputationNode': NetworkNodeSimulator,  # Treat as network for now
     'SimulationTracker': SimulationTrackerSimulator,
     'TensorNode': TensorNodeSimulator,
+    'MNISTDatasetNode': MNISTDatasetNodeSimulator,
+    'BatchSamplerNode': BatchSamplerNodeSimulator,
+    'CIFAR10DatasetNode': CIFAR10DatasetNodeSimulator,
+    'GetBatchNode': GetBatchNodeSimulator,
+    'LossNode': LossNodeSimulator,
+    'EpochTrackerNode': EpochTrackerNodeSimulator,
+    'BalancerNode': BalancerNodeSimulator,
 }
 
 def extract_base_class(node_class: str) -> str:

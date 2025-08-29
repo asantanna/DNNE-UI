@@ -109,6 +109,10 @@ def convert_logs_if_needed() -> bool:
                     event['event_type'] = 'QUEUE_STATE'
                     event['queue_depths'] = entry.get('queue_depths', {})
                     
+                elif entry_type == 'USER_CANCELLATION':
+                    event['event_type'] = 'USER_CANCELLATION'
+                    event['reason'] = entry.get('reason', 'keyboard_interrupt')
+                    
                 else:
                     # Keep original type for unmapped events
                     event['event_type'] = entry_type
@@ -385,6 +389,13 @@ def analyze_pattern_break(events: List[Dict], graph: Dict) -> Dict:
 
 def analyze_deadlock(graph: Dict, events: List) -> Tuple:
     """Run deadlock analysis"""
+    # Check for user cancellation in events
+    user_cancelled = False
+    for event in events:
+        if event.get('event_type') == 'USER_CANCELLATION':
+            user_cancelled = True
+            break
+    
     # Create simulator (suppress debug logs)
     simulator = DataflowSimulator(graph)
     
@@ -393,6 +404,9 @@ def analyze_deadlock(graph: Dict, events: List) -> Tuple:
     
     # Run simulation
     results = simulator.replay_events(events)
+    
+    # Add user cancellation flag to results
+    results['user_cancelled'] = user_cancelled
     
     # Add pattern break analysis if deadlock detected
     if results['deadlock_detected']:
@@ -432,6 +446,11 @@ def print_results(graph: Dict, events: List, results: Dict, simulator, bootstrap
     if results['deadlock_detected']:
         relative_deadlock_time = results['deadlock_time'] - start_time if events else 0
         print(f"  ❌ DEADLOCK DETECTED at {relative_deadlock_time:.3f}s")
+        if results.get('user_cancelled'):
+            print(f"  🛑 Workflow was subsequently cancelled by user (Ctrl-C)")
+    elif results.get('user_cancelled'):
+        print(f"  🛑 Workflow cancelled by user (Ctrl-C)")
+        print(f"  ✅ No deadlocks detected before cancellation")
     else:
         print(f"  ✅ No deadlock detected")
     

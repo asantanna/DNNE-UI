@@ -222,6 +222,10 @@ class GraphRunner:
         except KeyboardInterrupt:
             self.exit_reason = "keyboard_interrupt"
             self.logger.info("Interrupted by user")
+            # Log cancellation for deadlock analysis
+            if g.deadlock_debug:
+                from .deadlock_utils import log_user_cancellation
+                log_user_cancellation()
         finally:
             # Cancel heartbeat task if running
             if heartbeat_task and not heartbeat_task.done():

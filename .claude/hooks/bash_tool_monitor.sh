@@ -50,4 +50,11 @@ if [[ "$tool_name" == "Bash" ]] && [[ "$command" =~ (^|[[:space:]])timeout[[:spa
     exit 2
 fi
 
+# Check for pip install pyyaml
+if [[ "$tool_name" == "Bash" ]] && [[ "$command" =~ (^|[[:space:]])pip[[:space:]]+install[[:space:]]+[^[:space:]]*pyyaml ]]; then
+    echo "BLOCKED: YAML already installed, you did not activate the correct conda environment!" >&2
+    echo "Use: source /home/asantanna/miniconda/bin/activate DNNE_PY38 && your_command" >&2
+    exit 2
+fi
+
 exit 0

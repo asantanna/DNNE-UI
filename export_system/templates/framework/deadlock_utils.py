@@ -234,3 +234,13 @@ def log_eat_n_trigger(node_id: str, trigger_type: str):
             node=node_id,
             trigger_type=trigger_type
         )
+
+
+def log_user_cancellation():
+    """Log that the user cancelled execution with Ctrl-C"""
+    from .globals import Global as g
+    if g.deadlock_logger:
+        g.deadlock_logger.log_event(
+            "USER_CANCELLATION",
+            reason="keyboard_interrupt"
+        )

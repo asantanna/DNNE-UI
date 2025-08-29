@@ -173,20 +173,38 @@ class DataflowSimulator:
         # This works because the deadlock monitoring stops recording when deadlocked
         
         if not self.deadlock_detected and sorted_events:
-            waiting_count = sum(1 for sim in self.nodes.values() if sim.state == NodeState.WAITING)
-            total_nodes = len(self.nodes)
-            waiting_ratio = waiting_count / max(1, total_nodes)
+            # Check if the trace ends with user cancellation
+            # If so, don't assume deadlock just because nodes are waiting
+            last_event = sorted_events[-1] if sorted_events else {}
+            is_user_cancelled = last_event.get('event_type') == 'USER_CANCELLATION'
             
-            # For real deadlock traces from DNNE:
-            # - The trace ends when deadlock is detected by the monitor
-            # - Most nodes will be waiting (typically > 80%)
-            # - We see the characteristic pattern of barriers waiting for SGD triggers
+            # Also check if there's a cancellation within the last few milliseconds
+            if not is_user_cancelled and len(sorted_events) > 1:
+                last_timestamp = sorted_events[-1].get('timestamp', 0)
+                # Check last 100ms of events for cancellation
+                for event in reversed(sorted_events):
+                    if event.get('timestamp', 0) < last_timestamp - 0.1:
+                        break
+                    if event.get('event_type') == 'USER_CANCELLATION':
+                        is_user_cancelled = True
+                        break
             
-            if waiting_ratio > 0.8:  # 80% or more nodes waiting
-                # This is likely a deadlock since the trace ended here
-                self.deadlock_detected = True
-                self.deadlock_time = sorted_events[-1].get('timestamp', 0)
-                relative_time = self.deadlock_time - self.start_time
+            # Only check for deadlock if NOT user cancelled
+            if not is_user_cancelled:
+                waiting_count = sum(1 for sim in self.nodes.values() if sim.state == NodeState.WAITING)
+                total_nodes = len(self.nodes)
+                waiting_ratio = waiting_count / max(1, total_nodes)
+                
+                # For real deadlock traces from DNNE:
+                # - The trace ends when deadlock is detected by the monitor
+                # - Most nodes will be waiting (typically > 80%)
+                # - We see the characteristic pattern of barriers waiting for SGD triggers
+                
+                if waiting_ratio > 0.8:  # 80% or more nodes waiting
+                    # This is likely a deadlock since the trace ended here
+                    self.deadlock_detected = True
+                    self.deadlock_time = sorted_events[-1].get('timestamp', 0)
+                    relative_time = self.deadlock_time - self.start_time
                 logger.warning(f"DEADLOCK DETECTED at t={relative_time:.3f}s")
                 logger.warning(f"  {waiting_count}/{total_nodes} nodes waiting ({waiting_ratio:.1%})")
                 logger.warning(f"  System stopped producing events (trace ended)")
