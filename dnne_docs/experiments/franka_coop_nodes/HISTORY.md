@@ -1,5 +1,50 @@
 # Franka Cooperative Control Nodes - Implementation History
 
+## 2025-08-29: Critical Deadlock Fix - System Runs Forever!
+
+### Problem
+The Franka_Coop_Nodes workflow was experiencing deadlocks after 12-13 iterations where:
+- IsaacGymSim (node 25) would stop producing outputs
+- SimulationTracker nodes (72, 132) would fail with TypeError when receiving partial inputs
+- System would hang with all nodes idle but messages queued
+
+### Root Causes
+1. **IsaacGym Custom Queue Handling**: Complex custom run() method with internal queueing caused "double-getter deadlock"
+2. **SimulationTracker Partial Inputs**: Required positional args (observation, loss) but MultiWaiter would call compute() with just optional inputs
+3. **Misleading Documentation**: base_nodes.py comment incorrectly stated when to override run()
+4. **Workflow Bug**: Eat_N trigger wasn't connected to barriers
+
+### Solutions Implemented
+
+#### 1. Simplified IsaacGymSim to Use Standard MultiWaiter
+- Removed custom queue handling entirely
+- Changed to: `self.setup_inputs(required=[], optional=["action", "reset"])`
+- Fixed syntax error with nested quotes in f-strings
+- Template: `export_system/templates/nodes/isaac_gym_sim_queue.tpl`
+
+#### 2. Fixed SimulationTracker to Handle Partial Inputs
+- Made observation and loss optional with None defaults
+- Added guards to only process inputs that are provided
+- Prevents TypeError when optional inputs arrive alone
+- Template: `export_system/templates/nodes/simulation_tracker_queue.py`
+
+#### 3. Fixed Misleading Comment in base_nodes.py
+- Clarified that inputs is always a dict from MultiWaiter
+- Override run() only for exotic cases like manual queue reads
+- File: `export_system/templates/framework/base_nodes.py`
+
+#### 4. Connected Eat_N Trigger to Barriers (User fix)
+- Ensures proper data flow through the pipeline
+- Workflow: `user/default/workflows/Franka_Coop_Nodes.json`
+
+### Testing Results
+- System runs indefinitely without deadlock!
+- Deadlock analyzer confirms no issues
+- All nodes continue processing data correctly
+
+### Commits
+- `32603cbb`: Fix critical deadlock in DNNE queue framework
+
 ## 2025-01-18: Circular Dependency Resolution
 
 ### Problem

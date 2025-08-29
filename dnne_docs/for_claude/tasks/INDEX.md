@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-24*  
+*Last Updated: 2025-08-29*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
@@ -17,8 +17,16 @@
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
 | **Node System** | 🟢 Complete | Eat_N & Barrier synchronization nodes | - | 2025-08-21 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
-| **Franka Coop Control** | 🟢 Complete | Manual reset control & target-based done | - | 2025-08-20 |
+| **Franka Coop Control** | 🟢 Complete | DEADLOCK FIXED! Runs forever without hanging! | - | 2025-08-29 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
+
+## Today's Achievements (2025-08-29)
+
+✅ **CRITICAL DEADLOCK FIX**: Fixed deadlock in Franka_Coop_Nodes workflow
+- Simplified IsaacGymSim to use standard MultiWaiter infrastructure
+- Fixed SimulationTracker to handle partial inputs gracefully  
+- System now runs indefinitely without hanging!
+- Commit: `32603cbb`
 
 ## Active Priority Items
 
