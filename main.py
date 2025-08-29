@@ -1,21 +1,55 @@
 import os
 import sys
 import logging
+import time
+from datetime import datetime
 
 # Set up basic logging VERY early to catch any import/startup errors
 # This must happen before ANY other imports that might fail
 if __name__ == "__main__":
+    
+    class RelativeTimeFormatter(logging.Formatter):
+        """Custom formatter that shows elapsed time since program start"""
+        
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.start_time = time.time()
+            self.start_logged = False
+            
+        def formatTime(self, record, datefmt=None):
+            # Log the absolute start time once
+            if not self.start_logged:
+                self.start_logged = True
+                abs_time = datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+                # This will be included in the first log message
+                return f"Program started at {abs_time}\n00:00:00.000"
+            
+            # Calculate elapsed time
+            elapsed_seconds = record.created - self.start_time
+            hours = int(elapsed_seconds // 3600)
+            minutes = int((elapsed_seconds % 3600) // 60)
+            seconds = int(elapsed_seconds % 60)
+            milliseconds = int((elapsed_seconds % 1) * 1000)
+            
+            # Format as HH:MM:SS.mmm (hours can be > 24)
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
+    
     # Basic logging configuration to capture early errors
     import os as _early_os
     _early_log_dir = _early_os.path.join(_early_os.path.dirname(__file__), 'dnne_logs')
     _early_os.makedirs(_early_log_dir, exist_ok=True)
     
+    # File handler with standard timestamps (for debugging)
+    file_handler = logging.FileHandler(_early_os.path.join(_early_log_dir, 'DNNE.log'), mode='w', encoding='utf-8')
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    
+    # Console handler with relative time (if we have a console)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(RelativeTimeFormatter('%(asctime)s - %(levelname)s - %(message)s'))
+    
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(_early_os.path.join(_early_log_dir, 'DNNE.log'), mode='w', encoding='utf-8')
-        ]
+        handlers=[file_handler, console_handler]
     )
     logging.info("DNNE starting - initial logging configured")
     logging.info(f"DNNE command line arguments: {sys.argv}")

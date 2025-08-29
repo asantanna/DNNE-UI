@@ -28,6 +28,33 @@ from aiohttp import web
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from dnne_config import DNNEConfig
 
+
+class RelativeTimeFormatter(logging.Formatter):
+    """Custom formatter that shows elapsed time since program start"""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.start_time = time.time()
+        self.start_logged = False
+        
+    def formatTime(self, record, datefmt=None):
+        # Log the absolute start time once
+        if not self.start_logged:
+            self.start_logged = True
+            abs_time = datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+            # This will be included in the first log message
+            return f"Program started at {abs_time}\n00:00:00.000"
+        
+        # Calculate elapsed time
+        elapsed_seconds = record.created - self.start_time
+        hours = int(elapsed_seconds // 3600)
+        minutes = int((elapsed_seconds % 3600) // 60)
+        seconds = int(elapsed_seconds % 60)
+        milliseconds = int((elapsed_seconds % 1) * 1000)
+        
+        # Format as HH:MM:SS.mmm (hours can be > 24)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
+
 # Configure logging
 # Set up logging to dnne_logs directory
 import os as _os
@@ -35,17 +62,21 @@ _log_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dnne_logs')
 _os.makedirs(_log_dir, exist_ok=True)
 
 # Configure logging with UTF-8 support for file output
+# Create console handler with RelativeTimeFormatter
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(RelativeTimeFormatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+# Create file handler with standard timestamp formatter
+file_handler = logging.FileHandler(
+    os.path.join(_log_dir, 'dnne_agent_server.log'), 
+    mode='w',
+    encoding='utf-8'  # UTF-8 encoding for file to handle emojis
+)
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),  # Use regular stdout, not wrapped
-        logging.FileHandler(
-            os.path.join(_log_dir, 'dnne_agent_server.log'), 
-            mode='w',
-            encoding='utf-8'  # UTF-8 encoding for file to handle emojis
-        )
-    ]
+    handlers=[console_handler, file_handler]
 )
 logger = logging.getLogger('dnne_server')
 

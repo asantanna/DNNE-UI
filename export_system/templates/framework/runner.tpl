@@ -56,6 +56,7 @@ import logging
 from framework import GraphRunner
 from framework.override_parser import parse_override_args
 from framework.arg_parser import create_parser, process_args
+from framework.logging_utils import RelativeTimeFormatter
 # NOTE: Removed 'from nodes import *' - caused double Isaac Gym initialization
 # All required nodes are imported explicitly above
 
@@ -73,7 +74,8 @@ def configure_logging(verbose=None, debug=None):
     else:
         format_str = '%(asctime)s - %(name)s - %(message)s'
     
-    formatter = logging.Formatter(format_str)
+    # Use RelativeTimeFormatter for cleaner timestamps
+    formatter = RelativeTimeFormatter(format_str)
     console_handler.setFormatter(formatter)
     
     # Handle 'all' modes using basicConfig with stdout

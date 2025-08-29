@@ -4,10 +4,38 @@ import io
 import logging
 import sys
 import threading
+import time
 
 logs = None
 stdout_interceptor = None
 stderr_interceptor = None
+
+
+class RelativeTimeFormatter(logging.Formatter):
+    """Custom formatter that shows elapsed time since program start"""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.start_time = time.time()
+        self.start_logged = False
+        
+    def formatTime(self, record, datefmt=None):
+        # Log the absolute start time once
+        if not self.start_logged:
+            self.start_logged = True
+            abs_time = datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+            # This will be included in the first log message
+            return f"Program started at {abs_time}\n00:00:00.000"
+        
+        # Calculate elapsed time
+        elapsed_seconds = record.created - self.start_time
+        hours = int(elapsed_seconds // 3600)
+        minutes = int((elapsed_seconds % 3600) // 60)
+        seconds = int(elapsed_seconds % 60)
+        milliseconds = int((elapsed_seconds % 1) * 1000)
+        
+        # Format as HH:MM:SS.mmm (hours can be > 24)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
 
 
 class LogInterceptor(io.TextIOWrapper):
@@ -81,7 +109,8 @@ def setup_logger(log_level: str = 'INFO', capacity: int = 300, use_stdout: bool 
     import codecs
     utf8_stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, errors='replace')
     stream_handler = logging.StreamHandler(utf8_stderr)
-    stream_handler.setFormatter(logging.Formatter("%(message)s"))
+    # Use RelativeTimeFormatter for console output
+    stream_handler.setFormatter(RelativeTimeFormatter("%(asctime)s - %(levelname)s - %(message)s"))
 
     if use_stdout:
         # Only errors and critical to stderr
@@ -90,7 +119,7 @@ def setup_logger(log_level: str = 'INFO', capacity: int = 300, use_stdout: bool 
         # Lesser to stdout - also wrap in UTF-8
         utf8_stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, errors='replace')
         stdout_handler = logging.StreamHandler(utf8_stdout)
-        stdout_handler.setFormatter(logging.Formatter("%(message)s"))
+        stdout_handler.setFormatter(RelativeTimeFormatter("%(asctime)s - %(levelname)s - %(message)s"))
         stdout_handler.addFilter(lambda record: record.levelno < logging.ERROR)
         logger.addHandler(stdout_handler)
 
