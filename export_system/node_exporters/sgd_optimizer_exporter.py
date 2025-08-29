@@ -17,13 +17,14 @@ class SGDOptimizerExporter(ExportableNode):
         param_specs = [
             {'name': 'learning_rate', 'widget_index': 0},
             {'name': 'momentum', 'widget_index': 1},
-            {'name': 'weight_decay', 'widget_index': 2}
+            {'name': 'weight_decay', 'widget_index': 2},
+            {'name': 'enable_bootstrap', 'widget_index': 3}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
         
         # Validate required parameters are present
-        required_params = ['learning_rate', 'momentum', 'weight_decay']
+        required_params = ['learning_rate', 'momentum', 'weight_decay', 'enable_bootstrap']
         missing_params = [p for p in required_params if p not in params or params[p] is None]
         if missing_params:
             raise ValueError(
@@ -49,6 +50,7 @@ class SGDOptimizerExporter(ExportableNode):
             "LEARNING_RATE": params['learning_rate'],
             "MOMENTUM": params['momentum'],
             "WEIGHT_DECAY": params['weight_decay'],
+            "ENABLE_BOOTSTRAP": params['enable_bootstrap'],  # No default - fail-fast!
             "NETWORK_NODE_ID": network_node_id  # Pass the network node ID for virtual connection
         }
     

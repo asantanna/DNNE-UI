@@ -51,6 +51,10 @@ class SGDOptimizerNode(RoboticsNodeBase):
                     "max": 0.1,
                     "step": 0.0001,
                     "tooltip": "L2 penalty (regularization). Helps prevent overfitting. Try 0.0001 to 0.001."
+                }),
+                "enable_bootstrap": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Send initial step_complete signal to start training loop. Disable if manually controlling flow."
                 })
             }
         }

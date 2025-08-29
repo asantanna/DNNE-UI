@@ -22,6 +22,7 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
         self.learning_rate = {LEARNING_RATE}
         self.momentum = {MOMENTUM}
         self.weight_decay = {WEIGHT_DECAY}
+        self.enable_bootstrap = {ENABLE_BOOTSTRAP}
         self.optimizer = None
         
         # Virtual connection to network node - will be resolved in run()
@@ -49,10 +50,8 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
                 )
                 self.node_logger.info(f"Created SGD optimizer with {len(all_params)} parameter groups: lr={self.learning_rate}, momentum={self.momentum}")
                 
-                # Send initial step_complete signal to start the training loop
-                # Can be disabled with --override all:no_bootstrap_trigger=True
-                no_bootstrap = g.get_node_config(self.node_id, 'no_bootstrap_trigger', False)
-                if not no_bootstrap:
+                # Send initial step_complete signal to start the training loop if enabled
+                if self.enable_bootstrap:
                     import time
                     step_signal = {
                         "signal_type": "step_complete",
@@ -63,7 +62,7 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
                     await self.send_output("step_complete", step_signal)
                     self.node_logger.info(f"Sent startup step_complete signal")
                 else:
-                    self.node_logger.info(f"Bootstrap trigger disabled by override")
+                    self.node_logger.info(f"Bootstrap trigger disabled by widget setting")
                 
                 # Now run normal compute loop for loss inputs
                 await super().run()
