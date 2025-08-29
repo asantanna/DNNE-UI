@@ -1587,68 +1587,38 @@ class PlaceholderNode_{node_id}(QueueNode):
         framework_init = self._load_template("framework/__init__.py")
         (framework_dir / "__init__.py").write_text(framework_init, encoding='utf-8')
         
-        # Export exceptions.py
-        exceptions_content = self._load_template("framework/exceptions.py")
-        (framework_dir / "exceptions.py").write_text(exceptions_content, encoding='utf-8')
+        # Define framework files to export
+        # Format: (template_path, output_name, description, required)
+        framework_files = [
+            ("framework/exceptions.py", "exceptions.py", None, True),
+            ("framework/base_nodes.py", "base_nodes.py", None, True),
+            ("framework/graph_runner.py", "graph_runner.py", None, True),
+            ("framework/checkpoint.py", "checkpoint.py", None, True),
+            ("framework/globals.py", "globals.py", None, True),
+            ("framework/globals_threadsafe.py", "globals_threadsafe.py", "thread-safe yielding support", True),
+            ("framework/dnne_exceptions.py", "dnne_exceptions.py", None, True),
+            ("framework/metrics_logger.py", "metrics_logger.py", "balancing node support", True),
+            ("framework/multi_waiter.py", "multi_waiter.py", "efficient async input handling", True),
+            ("framework/override_parser.py", "override_parser.py", "runtime parameter overrides", True),
+            ("framework/arg_parser.tpl", "arg_parser.py", "command-line argument parsing", True),
+            ("framework/telemetry.py", "telemetry.py", "telemetry support", True),
+            ("framework/deadlock_utils.py", "deadlock_utils.py", "deadlock debugging", True),
+            ("framework/logging_utils.py", "logging_utils.py", "relative time logging", True),
+        ]
         
-        # Export base_nodes.py
-        base_nodes_content = self._load_template("framework/base_nodes.py")
-        (framework_dir / "base_nodes.py").write_text(base_nodes_content, encoding='utf-8')
-        
-        # Export graph_runner.py
-        graph_runner_content = self._load_template("framework/graph_runner.py")
-        (framework_dir / "graph_runner.py").write_text(graph_runner_content, encoding='utf-8')
-        
-        # Export checkpoint.py (formerly run_utils.py)
-        checkpoint_content = self._load_template("framework/checkpoint.py")
-        (framework_dir / "checkpoint.py").write_text(checkpoint_content, encoding='utf-8')
-        
-        # Export globals.py
-        globals_content = self._load_template("framework/globals.py")
-        (framework_dir / "globals.py").write_text(globals_content, encoding='utf-8')
-        
-        # Export globals_threadsafe.py if it exists
-        try:
-            globals_threadsafe_content = self._load_template("framework/globals_threadsafe.py")
-            (framework_dir / "globals_threadsafe.py").write_text(globals_threadsafe_content, encoding='utf-8')
-            self.logger.debug("Exported globals_threadsafe.py for thread-safe yielding support")
-        except FileNotFoundError:
-            self.logger.error("globals_threadsafe.py not found in templates")
-            raise FileNotFoundError("globals_threadsafe.py not found in templates")
-        
-        # Export dnne_exceptions.py
-        dnne_exceptions_content = self._load_template("framework/dnne_exceptions.py")
-        (framework_dir / "dnne_exceptions.py").write_text(dnne_exceptions_content, encoding='utf-8')
-        
-        # Export metrics_logger.py (required by BalancerNode)
-        metrics_logger_content = self._load_template("framework/metrics_logger.py")
-        (framework_dir / "metrics_logger.py").write_text(metrics_logger_content, encoding='utf-8')
-        self.logger.debug("Exported metrics_logger.py for balancing node support")
-        
-        # Export multi_waiter.py (required for efficient async input handling)
-        multi_waiter_content = self._load_template("framework/multi_waiter.py")
-        (framework_dir / "multi_waiter.py").write_text(multi_waiter_content, encoding='utf-8')
-        self.logger.debug("Exported multi_waiter.py for efficient async input handling")
-        
-        # Export override_parser.py (required for --override functionality)
-        override_parser_content = self._load_template("framework/override_parser.py")
-        (framework_dir / "override_parser.py").write_text(override_parser_content, encoding='utf-8')
-        self.logger.debug("Exported override_parser.py for runtime parameter overrides")
-        
-        # Export arg_parser.py (required for command-line argument parsing)
-        arg_parser_content = self._load_template("framework/arg_parser.tpl")
-        (framework_dir / "arg_parser.py").write_text(arg_parser_content, encoding='utf-8')
-        self.logger.debug("Exported arg_parser.py for command-line argument parsing")
-        
-        # Export telemetry.py (required by balancing node and others)
-        telemetry_content = self._load_template("framework/telemetry.py")
-        (framework_dir / "telemetry.py").write_text(telemetry_content, encoding='utf-8')
-        self.logger.debug("Exported telemetry.py for telemetry support")
-        
-        # Export deadlock_utils.py (for deadlock debugging)
-        deadlock_utils_content = self._load_template("framework/deadlock_utils.py")
-        (framework_dir / "deadlock_utils.py").write_text(deadlock_utils_content, encoding='utf-8')
-        self.logger.debug("Exported deadlock_utils.py for deadlock debugging")
+        # Export all framework files
+        for template_path, output_name, description, required in framework_files:
+            try:
+                content = self._load_template(template_path)
+                (framework_dir / output_name).write_text(content, encoding='utf-8')
+                if description:
+                    self.logger.debug(f"Exported {output_name} for {description}")
+            except FileNotFoundError:
+                if required:
+                    self.logger.error(f"{template_path} not found in templates")
+                    raise FileNotFoundError(f"{template_path} not found in templates")
+                else:
+                    self.logger.warning(f"Optional file {template_path} not found, skipping")
         
         # Copy dnne_config.py and dnne_config.json from root
         import shutil
