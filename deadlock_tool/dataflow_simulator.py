@@ -50,13 +50,32 @@ class DataflowSimulator:
         # Initialize graph
         self._build_graph()
         
+    def _get_node_name(self, node_id: str) -> str:
+        """Get a friendly name for a node like 'Barrier(75)' instead of 'dnne.node.75'"""
+        if node_id not in self.graph.get('nodes', {}):
+            return node_id
+            
+        node_config = self.graph['nodes'][node_id]
+        node_class = node_config.get('class', 'Unknown')
+        
+        # Extract the base type (e.g., 'BarrierNode_75' -> 'Barrier')
+        if '_' in node_class:
+            base_type = node_class.rsplit('_', 1)[0]
+            # Remove 'Node' suffix if present
+            if base_type.endswith('Node'):
+                base_type = base_type[:-4]
+        else:
+            base_type = node_class
+            
+        return f"{base_type}({node_id})"
+    
     def _build_graph(self):
         """Build the simulation graph from structure"""
         # Create node simulators
         for node_id, node_config in self.graph.get('nodes', {}).items():
             simulator = create_simulator(node_id, node_config)
             self.nodes[node_id] = simulator
-            logger.debug(f"Created simulator for {node_id}: {simulator.__class__.__name__}")
+            logger.debug(f"Created simulator for {self._get_node_name(node_id)}: {simulator.__class__.__name__}")
             
         # Parse connections
         self.connections = self.graph.get('connections', [])
@@ -97,12 +116,12 @@ class DataflowSimulator:
                 # Check if this node CAN bootstrap (not if it WILL)
                 if hasattr(simulator, 'bootstrap_enabled') and simulator.bootstrap_enabled:
                     if not simulator.no_bootstrap_trigger:
-                        logger.debug(f"Node {node_id} has bootstrap capability")
+                        logger.debug(f"{self._get_node_name(node_id)} has bootstrap capability")
                         bootstrap_capable.append(node_id)
                     
             # Check IsaacGym bootstrap capability
             elif hasattr(simulator, 'can_bootstrap') and simulator.can_bootstrap:
-                logger.debug(f"Node {node_id} can bootstrap with null action")
+                logger.debug(f"{self._get_node_name(node_id)} can bootstrap with null action")
                 bootstrap_capable.append(node_id)
                     
         return bootstrap_capable
@@ -196,7 +215,7 @@ class DataflowSimulator:
         node_id = event['node_id']
         output_name = event.get('output_name', 'output')
         
-        logger.debug(f"Node {node_id} produced output '{output_name}'")
+        logger.debug(f"{self._get_node_name(node_id)} produced output '{output_name}'")
         
         # Find connections from this output
         for conn in self.connections:
@@ -227,7 +246,7 @@ class DataflowSimulator:
         node_id = event['node_id']
         input_name = event.get('input_name', 'input')
         
-        logger.debug(f"Node {node_id} received input '{input_name}'")
+        logger.debug(f"{self._get_node_name(node_id)} received input '{input_name}'")
         
         # Remove from pending data
         for key in list(self.pending_data.keys()):
@@ -250,7 +269,7 @@ class DataflowSimulator:
         node_id = event['node_id']
         input_name = event.get('input_name', 'input')
         
-        logger.debug(f"Node {node_id} waiting for input '{input_name}'")
+        logger.debug(f"{self._get_node_name(node_id)} waiting for input '{input_name}'")
         
         if node_id in self.nodes:
             self.nodes[node_id].state = NodeState.WAITING
@@ -258,7 +277,7 @@ class DataflowSimulator:
     def _handle_queue_blocked(self, event: Dict[str, Any]):
         """Handle node blocked on output"""
         node_id = event['node_id']
-        logger.debug(f"Node {node_id} blocked on output")
+        logger.debug(f"{self._get_node_name(node_id)} blocked on output")
         self.blocked_nodes.add(node_id)
         
     def _try_execute_node(self, node_id: str):

@@ -27,6 +27,25 @@ logging.basicConfig(
     format='%(message)s'
 )
 
+def get_node_name(node_id: str, graph: Dict) -> str:
+    """Get a friendly name for a node like 'Barrier(75)' instead of just '75'"""
+    if node_id not in graph.get('nodes', {}):
+        return node_id
+        
+    node_config = graph['nodes'][node_id]
+    node_class = node_config.get('class', 'Unknown')
+    
+    # Extract the base type (e.g., 'BarrierNode_75' -> 'Barrier')
+    if '_' in node_class:
+        base_type = node_class.rsplit('_', 1)[0]
+        # Remove 'Node' suffix if present
+        if base_type.endswith('Node'):
+            base_type = base_type[:-4]
+    else:
+        base_type = node_class
+        
+    return f"{base_type}({node_id})"
+
 def convert_logs_if_needed() -> bool:
     """Convert data_flow.log to events.json if needed"""
     data_dir = Path('/tmp/dnne_deadlock_data')
@@ -443,7 +462,8 @@ def print_results(graph: Dict, events: List, results: Dict, simulator, bootstrap
             print(f"\n  {node_type} ({len(nodes)} nodes):")
             for node_id, info in nodes:
                 waiting = info.get('waiting_for', [])
-                print(f"    {node_id}: waiting for {waiting}")
+                node_name = get_node_name(node_id, graph)
+                print(f"    {node_name}: waiting for {waiting}")
     
     # Detailed deadlock analysis
     if results['deadlock_detected']:
@@ -466,13 +486,13 @@ def print_results(graph: Dict, events: List, results: Dict, simulator, bootstrap
                 if pb['missing_nodes']:
                     print(f"\n  ⚠️ Nodes that didn't execute in final cycle:")
                     for node_id in pb['missing_nodes']:
-                        node_class = graph['nodes'].get(node_id, {}).get('class', 'Unknown')
-                        print(f"    - Node {node_id} ({node_class})")
+                        node_name = get_node_name(node_id, graph)
+                        print(f"    - {node_name}")
                 
                 if pb['critical_node']:
-                    critical_class = graph['nodes'].get(pb['critical_node'], {}).get('class', 'Unknown')
+                    critical_name = get_node_name(pb['critical_node'], graph)
                     print(f"\n  🎯 Critical failure point:")
-                    print(f"    Node {pb['critical_node']} ({critical_class}) at t={pb['critical_time']:.3f}s")
+                    print(f"    {critical_name} at t={pb['critical_time']:.3f}s")
                     print(f"    This node produced output but didn't continue its cycle")
         
         # Get detailed state
