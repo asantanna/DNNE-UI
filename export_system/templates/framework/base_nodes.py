@@ -119,8 +119,10 @@ class QueueNode(ABC):
                 # Get inputs using MultiWaiter
                 if self.input_waiter:
                     inputs = await self.input_waiter.get()
-                    # For "all" mode: inputs is a dict
-                    # For "any" mode: nodes that use "any" should override run()
+                    # inputs is always a dict, regardless of mode ("all" or "any")
+                    # If using "any" mode AND doing something exotic like reading queues manually
+                    # (e.g. one-time messages), you must override run() to prevent "double-getter deadlock"
+                    # See dnne_docs/architecture/queue_framework.md for details
                 else:
                     # No inputs required (e.g., sensor nodes)
                     inputs = {}
