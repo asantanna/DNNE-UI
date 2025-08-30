@@ -1,8 +1,8 @@
 # DNNE Tasks
 
 ## Current Status
-Virtual connections implemented - UI-only connections resolved at runtime via g.graph_runner.get_node().
-Export system validates all required input connections at export time, preventing runtime failures.
+MultiWaiter race condition fixed - proper synchronization for required/optional inputs.
+DataStreamer external sync mode working correctly with wait_for_optionals parameter.
 
 ## Active TODOs
 

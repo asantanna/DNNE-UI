@@ -1,5 +1,37 @@
 # DNNE Task History
 
+## Completed Features (Aug 2025)
+
+### Session: MultiWaiter Race Condition & DataStreamer Synchronization Fix
+**Date**: Aug 30, 2025
+
+#### Completed:
+1. **MultiWaiter Race Condition Fix**
+   - Identified race condition in MultiWaiter listener blocking mechanism
+   - Changed from `required_data` to `required_and_received` tracking
+   - Moved required input tracking into listener loop before queue insertion
+   - Eliminated race between checking and setting required data state
+   - Fixed FAIL-FAST error "MultiWaiter listener did not block observation!"
+
+2. **DataStreamer Synchronization Fix**
+   - Added `wait_for_optionals` parameter to MultiWaiter and base_nodes
+   - DataStreamer uses sync as required input in external mode
+   - Fixed busy loop issue (1.2M+ NODE_COMPUTE events reduced to proper execution)
+   - Added reset checking in streaming loops for none/timed modes
+   - Disabled auto_first_row to prevent duplicate initial actions
+
+3. **Deadlock Analysis Tool Enhancement**
+   - Created DataStreamerNodeSimulator for deadlock analysis
+   - Added support for DataStreamer synchronization modes
+   - Verified proper alternation of observations and step_complete signals
+   - Confirmed lockstep execution between simulation and training
+
+4. **Shadow_Train Workflow Fix**
+   - Fixed circular dependency between Sim, Eat_N, and DataStreamer
+   - Proper sequence: obs(0) → trigger → act(0) → obs(1) → step_complete → act(1)
+   - Training now runs correctly without gradient computation errors
+   - Eliminated simulator running ahead of optimizer issue
+
 ## Completed Features (Jan 2025)
 
 ### Session: Virtual Connection System Implementation

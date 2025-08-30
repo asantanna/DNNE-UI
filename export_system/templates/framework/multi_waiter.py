@@ -44,7 +44,7 @@ class MultiWaiter:
         
         if self.wait_mode == "any":
             # For "any" mode with required inputs
-            self.required_data = {}
+            self.required_and_received = {}
             self.have_all_required = asyncio.Event()
             self.have_all_required.clear()  # Initially blocked
             
@@ -74,8 +74,12 @@ class MultiWaiter:
                 data = await input_queue.get()
                 
                 # Block if this is a duplicate required input
-                if input_name in self.required and input_name in self.required_data:
-                    await self.have_all_required.wait()
+                if input_name in self.required:
+                    if input_name in self.required_and_received:
+                        # Block if this is a duplicate required input
+                        await self.have_all_required.wait()
+                    # no longer a duplicate but the next one will be
+                    self.required_and_received[input_name] = data
                 
                 # Forward to internal queue as tuple (payload, source)
                 await self.internal_queue.put((data, input_name))
@@ -105,25 +109,27 @@ class MultiWaiter:
                 log_queue_state(self.node_id, queue_states)
             
             for input_name in self.input_names:
-                if input_name in self.input_queues:
-                    # Log wait start if deadlock debugging
-                    if g.deadlock_debug:
-                        log_queue_get_wait(self.node_id, input_name)
-                        import time
-                        wait_start = time.time()
-                    
-                    data = await self.input_queues[input_name].get()
-                    
-                    # Log successful get
-                    if g.deadlock_debug:
-                        wait_time = time.time() - wait_start
-                        log_queue_get_success(self.node_id, input_name, wait_time)
-                    
-                    collected[input_name] = data
+                # Log wait start if deadlock debugging
+                if g.deadlock_debug:
+                    log_queue_get_wait(self.node_id, input_name)
+                    import time
+                    wait_start = time.time()
+                
+                data = await self.input_queues[input_name].get()
+                
+                # Log successful get
+                if g.deadlock_debug:
+                    wait_time = time.time() - wait_start
+                    log_queue_get_success(self.node_id, input_name, wait_time)
+                
+                collected[input_name] = data
+                
             # Track activity after collecting all inputs
             g.update_node_activity(self.node_id)
             return collected
+        
         else:  # "any" mode (handles both pure-any and mixed)
+            
             while True:
                 # Check if we should skip waiting for optionals
                 if not self.wait_for_optionals and self.internal_queue.empty():
@@ -133,16 +139,11 @@ class MultiWaiter:
                 g.update_node_activity(self.node_id)
                 
                 if input_name in self.required:
-                    # Fail-fast check
-                    if input_name in self.required_data:
-                        raise RuntimeError(f"MultiWaiter listener did not block {input_name}! Internal logic error!")
                     
-                    self.required_data[input_name] = data
-                    
-                    if len(self.required_data) == len(self.required):
+                    if len(self.required_and_received) == len(self.required):
                         # Have all required inputs
-                        result = self.required_data.copy()
-                        self.required_data.clear()
+                        result = self.required_and_received.copy()
+                        self.required_and_received.clear()
                         
                         # Unblock listeners
                         self.have_all_required.set()
@@ -160,7 +161,7 @@ class MultiWaiter:
         if self.wait_mode == "any":
             # Clear partially collected required inputs
             if hasattr(self, 'required_data'):
-                self.required_data.clear()
+                self.required_and_received.clear()
                 # Unblock listeners
                 self.have_all_required.set()
                 self.have_all_required.clear()
