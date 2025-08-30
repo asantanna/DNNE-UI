@@ -100,9 +100,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             
             # Log streaming mode (actual streaming happens in run())
             if self.sync_mode == "none":
+                self.node_logger.info("Streaming mode: none (as fast as possible)")
             elif self.sync_mode == "timed":
+                self.node_logger.info(f"Streaming mode: timed at {{self.frequency_hz}}Hz")
             elif self.sync_mode == "external":
-                
+                self.node_logger.info("Streaming mode: external (waiting for sync trigger)")
         except Exception as e:
             self.node_logger.error(f"Failed to initialize data streamer: {{e}}")
             raise
