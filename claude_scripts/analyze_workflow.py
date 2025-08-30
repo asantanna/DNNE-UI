@@ -659,22 +659,23 @@ class WorkflowAnalyzer:
                     
                     # Check multiple links
                     link_ids = input_info.get("links", [])
-                    for link_id in link_ids:
-                        link_found = False
-                        for link in self.links:
-                            if len(link) > 0 and link[0] == link_id:
-                                link_found = True
-                                # Check if the source node exists
-                                source_node = str(link[1]) if len(link) > 1 else None
-                                if source_node and source_node not in self.nodes:
-                                    error_msg = f"Node[{node_id}] input '{input_info.get('name', '')}' connects via link {link_id} to non-existent node[{source_node}]"
-                                    issues.append(error_msg)
-                                    self.add_error(error_msg)
-                                break
-                        if not link_found:
-                            error_msg = f"Node[{node_id}] input '{input_info.get('name', '')}' references non-existent link ID {link_id}"
-                            issues.append(error_msg)
-                            self.add_error(error_msg)
+                    if link_ids:  # Add null check
+                        for link_id in link_ids:
+                            link_found = False
+                            for link in self.links:
+                                if len(link) > 0 and link[0] == link_id:
+                                    link_found = True
+                                    # Check if the source node exists
+                                    source_node = str(link[1]) if len(link) > 1 else None
+                                    if source_node and source_node not in self.nodes:
+                                        error_msg = f"Node[{node_id}] input '{input_info.get('name', '')}' connects via link {link_id} to non-existent node[{source_node}]"
+                                        issues.append(error_msg)
+                                        self.add_error(error_msg)
+                                    break
+                            if not link_found:
+                                error_msg = f"Node[{node_id}] input '{input_info.get('name', '')}' references non-existent link ID {link_id}"
+                                issues.append(error_msg)
+                                self.add_error(error_msg)
         
         # Check label connections using property-based system
         label_count = 0
@@ -792,68 +793,170 @@ class WorkflowAnalyzer:
         
         return False
     
+    
     def repair_broken_connections(self):
-        """Repair workflow by removing broken connections to non-existent nodes"""
+        """Repair workflow by removing ALL broken elements including orphaned labels"""
         import shutil
         from datetime import datetime
+        import re
         
         # Create backup
         backup_path = self.workflow_path.with_suffix(f'.backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json')
         shutil.copy2(self.workflow_path, backup_path)
         print(f"✓ Created backup: {backup_path.name}")
         
-        repairs_made = 0
+        total_repairs = 0
+        pass_number = 0
+        max_passes = 10  # Prevent infinite loops
         
-        # Find all valid node IDs
-        valid_node_ids = set(self.nodes.keys())
-        
-        # Fix broken links - remove links that reference non-existent nodes
-        new_links = []
-        removed_links = []
-        for link in self.links:
-            if len(link) >= 4:
-                source_node = str(link[1])
-                target_node = str(link[3])
-                link_id = link[0] if len(link) > 0 else None
-                
-                if source_node not in valid_node_ids or target_node not in valid_node_ids:
-                    removed_links.append(link_id)
-                    repairs_made += 1
-                    print(f"  ✗ Removing link {link_id}: connects node {source_node} to node {target_node}")
+        # Keep running repair passes until no more repairs are needed
+        while pass_number < max_passes:
+            pass_number += 1
+            repairs_made = 0
+            
+            if pass_number > 1:
+                print(f"\n--- Pass {pass_number} ---")
+            
+            # Re-parse the workflow data for each pass
+            valid_node_ids = set()
+            for node in self.workflow_data.get("nodes", []):
+                valid_node_ids.add(str(node.get("id")))
+            
+            # Step 1: Fix broken links - remove links that reference non-existent nodes
+            new_links = []
+            removed_links = []
+            for link in self.workflow_data.get("links", []):
+                if len(link) >= 4:
+                    source_node = str(link[1])
+                    target_node = str(link[3])
+                    link_id = link[0] if len(link) > 0 else None
+                    
+                    if source_node not in valid_node_ids or target_node not in valid_node_ids:
+                        removed_links.append(link_id)
+                        repairs_made += 1
+                        print(f"  ✗ Removing link {link_id}: connects node {source_node} to node {target_node}")
+                    else:
+                        new_links.append(link)
                 else:
                     new_links.append(link)
-            else:
-                new_links.append(link)
-        
-        self.workflow_data["links"] = new_links
-        
-        # Get all valid link IDs from the remaining links
-        valid_link_ids = {link[0] for link in new_links if len(link) > 0}
-        
-        # Fix node inputs - remove references to deleted or non-existent links
-        for node in self.workflow_data.get("nodes", []):
-            node_id = str(node.get("id"))
-            inputs = node.get("inputs", [])
             
-            for input_info in inputs:
-                # Fix single link references
-                link_id = input_info.get("link")
-                if link_id is not None and link_id not in valid_link_ids:
-                    input_info["link"] = None
-                    repairs_made += 1
-                    print(f"  ✗ Cleared broken link {link_id} from Node[{node_id}].{input_info.get('name', '')}")
+            self.workflow_data["links"] = new_links
+            
+            # Get all valid link IDs from the remaining links
+            valid_link_ids = {link[0] for link in new_links if len(link) > 0}
+            
+            # Step 2: Fix node inputs - remove references to deleted or non-existent links
+            for node in self.workflow_data.get("nodes", []):
+                node_id = str(node.get("id"))
+                inputs = node.get("inputs", [])
                 
-                # Fix multiple link references
-                link_ids = input_info.get("links", [])
-                if link_ids:
-                    new_link_ids = [lid for lid in link_ids if lid in valid_link_ids]
-                    if len(new_link_ids) != len(link_ids):
-                        input_info["links"] = new_link_ids if new_link_ids else None
+                for input_info in inputs:
+                    # Fix single link references
+                    link_id = input_info.get("link")
+                    if link_id is not None and link_id not in valid_link_ids:
+                        input_info["link"] = None
                         repairs_made += 1
-                        removed_count = len(link_ids) - len(new_link_ids)
-                        print(f"  ✗ Removed {removed_count} broken link(s) from Node[{node_id}].{input_info.get('name', '')}")
+                        print(f"  ✗ Cleared broken link {link_id} from Node[{node_id}].{input_info.get('name', '')}")
+                    
+                    # Fix multiple link references
+                    link_ids = input_info.get("links", [])
+                    if link_ids:
+                        new_link_ids = [lid for lid in link_ids if lid in valid_link_ids]
+                        if len(new_link_ids) != len(link_ids):
+                            input_info["links"] = new_link_ids if new_link_ids else None
+                            repairs_made += 1
+                            removed_count = len(link_ids) - len(new_link_ids)
+                            print(f"  ✗ Removed {removed_count} broken link(s) from Node[{node_id}].{input_info.get('name', '')}")
+            
+            # Step 3: Remove orphaned label nodes
+            nodes_to_remove = []
+            for node in self.workflow_data.get("nodes", []):
+                if node.get("type") == "Label":
+                    node_id = str(node.get("id"))
+                    props = node.get("properties", {})
+                    should_remove = False
+                    
+                    # Check all node references in properties
+                    # For input labels with connectedToLabel
+                    if "connectedToLabel" in props:
+                        # Extract node ID from "NodeType(ID).output" format
+                        match = re.search(r'\((\d+)\)', props["connectedToLabel"])
+                        if match:
+                            ref_node_id = match.group(1)
+                            if ref_node_id not in valid_node_ids:
+                                should_remove = True
+                                print(f"  ✗ Removing label {node_id}: references non-existent node {ref_node_id} in '{props['connectedToLabel']}'")
+                    
+                    # For output labels with sourceNodeId
+                    if "sourceNodeId" in props:
+                        source_id = str(props["sourceNodeId"])
+                        if source_id and source_id not in valid_node_ids:
+                            should_remove = True
+                            print(f"  ✗ Removing label {node_id}: source node {source_id} doesn't exist")
+                    
+                    # For target references (both targetNodeId and target_node)
+                    if "targetNodeId" in props:
+                        target_id = str(props["targetNodeId"]) 
+                        if target_id and target_id not in valid_node_ids:
+                            should_remove = True
+                            print(f"  ✗ Removing label {node_id}: target node {target_id} doesn't exist")
+                    
+                    if "target_node" in props:
+                        target_id = str(props["target_node"])
+                        if target_id and target_id not in valid_node_ids:
+                            should_remove = True
+                            print(f"  ✗ Removing label {node_id}: target node {target_id} doesn't exist")
+                    
+                    if should_remove:
+                        nodes_to_remove.append(node_id)
+                        repairs_made += 1
+            
+            # Remove the orphaned nodes
+            if nodes_to_remove:
+                self.workflow_data["nodes"] = [
+                    n for n in self.workflow_data["nodes"] 
+                    if str(n.get("id")) not in nodes_to_remove
+                ]
+                print(f"  ✗ Removed {len(nodes_to_remove)} orphaned label node(s)")
+                
+                # Step 4: Clean up any links pointing to/from removed labels
+                new_links = []
+                for link in self.workflow_data.get("links", []):
+                    if len(link) >= 4:
+                        source = str(link[1])
+                        target = str(link[3])
+                        if source not in nodes_to_remove and target not in nodes_to_remove:
+                            new_links.append(link)
+                        else:
+                            repairs_made += 1
+                            print(f"  ✗ Removing link {link[0]}: connects to removed label")
+                    else:
+                        new_links.append(link)
+                self.workflow_data["links"] = new_links
+            
+            # Step 5: Remove duplicate links
+            seen_links = set()
+            unique_links = []
+            for link in self.workflow_data.get("links", []):
+                link_tuple = tuple(link)
+                if link_tuple not in seen_links:
+                    seen_links.add(link_tuple)
+                    unique_links.append(link)
+                else:
+                    repairs_made += 1
+                    print(f"  ✗ Removing duplicate link {link[0] if len(link) > 0 else 'unknown'}")
+            self.workflow_data["links"] = unique_links
+            
+            # Add to total and check if we're done
+            total_repairs += repairs_made
+            
+            if repairs_made == 0:
+                # No more repairs needed, exit the loop
+                break
+                
+        # End of while loop
         
-        if repairs_made == 0:
+        if total_repairs == 0:
             print("✓ No broken connections found - workflow is already valid")
             return False
         
@@ -862,12 +965,28 @@ class WorkflowAnalyzer:
             json.dump(self.workflow_data, f, indent=2)
         
         print(f"\n✓ Repaired workflow saved to: {self.workflow_path}")
-        print(f"  Fixed {repairs_made} broken connection(s)")
+        print(f"  Fixed {total_repairs} issue(s) in {pass_number} pass(es)")
         print(f"  Backup saved as: {backup_path.name}")
         
-        return True
-    
-    
+        # Report what needs manual fixing
+        print("\n⚠ Manual fixes may be needed for:")
+        manual_fixes_needed = False
+        for node in self.workflow_data.get("nodes", []):
+            if node.get("type") == "Barrier":
+                for inp in node.get("inputs", []):
+                    if inp.get("name") == "release" and not inp.get("link"):
+                        print(f"  - Barrier node {node['id']}: needs 'release' trigger connection")
+                        manual_fixes_needed = True
+            elif node.get("type") == "Concat":
+                for inp in node.get("inputs", []):
+                    if inp.get("name") in ["input_a", "input_b"] and not inp.get("link"):
+                        print(f"  - Concat node {node['id']}: missing {inp['name']} connection")
+                        manual_fixes_needed = True
+        
+        if not manual_fixes_needed:
+            print("  None - workflow should be loadable!")
+        
+        return True    
     def save_all_outputs(self):
         """Save all analysis outputs to files"""
         # All files go in the dedicated directory
