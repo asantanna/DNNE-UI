@@ -17,23 +17,26 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=[])  # No blocking inputs - DataStreamer generates data autonomously
-        self.setup_outputs(["data", "done", "metadata"])
-        
-        # Create input queues for optional inputs that might be connected
-        from asyncio import Queue
-        self.input_queues["sync"] = Queue(maxsize=1)  # Trigger signal - size 1
-        self.input_queues["reset"] = Queue(maxsize=1)  # Trigger signal - size 1
         
         # Configuration
-        self.file_path = "{FILE_PATH}"
         self.sync_mode = "{SYNC_MODE}"
+        self.file_path = "{FILE_PATH}"
         self.frequency_hz = {FREQUENCY_HZ}
         self.auto_first_row = {AUTO_FIRST_ROW}
         self.loop_data = {LOOP_DATA}
         self.eof_mode = "{EOF_MODE}"
         self.delimiter = "{DELIMITER}"
         self.skip_header = {SKIP_HEADER}
+        
+        # Set up inputs based on sync mode
+        if self.sync_mode == "external":
+            # In external mode, sync is required - we must wait for sync signals
+            self.setup_inputs(required=["sync"], optional=["reset"])
+        else:
+            # In other modes (none, timed), check for reset but don't block
+            self.setup_inputs(required=[], optional=["sync", "reset"], wait_for_optionals=False)
+        
+        self.setup_outputs(["data", "done", "metadata"])
         
         # Runtime state
         self.data = None
@@ -161,6 +164,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     async def _continuous_stream(self):
         """Stream data continuously for 'none' mode"""
         while not self.eof_reached:
+            # Check for reset signal (non-blocking due to wait_for_optionals=False)
+            if self.input_waiter:
+                inputs = await self.input_waiter.get()
+                if inputs and 'reset' in inputs:
+                    self.current_row = 0
+                    self.eof_reached = False
+                    self.first_row_sent = False
+                    self.node_logger.info("Reset to beginning of data")
+            
             if self.current_row < self.total_rows:
                 await self._send_current_row()
             else:
@@ -175,6 +187,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         while not self.eof_reached:
             start_time = time.time()
+            
+            # Check for reset signal (non-blocking due to wait_for_optionals=False)
+            if self.input_waiter:
+                inputs = await self.input_waiter.get()
+                if inputs and 'reset' in inputs:
+                    self.current_row = 0
+                    self.eof_reached = False
+                    self.first_row_sent = False
+                    self.node_logger.info("Reset to beginning of data")
             
             if self.current_row < self.total_rows or self.eof_mode == "hold_last":
                 await self._send_current_row()
@@ -216,7 +237,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             self.running = False
     
     async def compute(self, **kwargs) -> Dict[str, Any]:
-        """Handle sync and reset inputs (only called in external mode)"""
+        """Handle sync and reset inputs"""
         sync = kwargs.get('sync')
         reset = kwargs.get('reset')
         
@@ -231,13 +252,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if self.auto_first_row:
                 await self._send_current_row()
                 self.first_row_sent = True
-            return {{}}
+            return {{}}  # Reset handled, no output this cycle
         
         # Handle sync input for 'external' mode
-        if self.sync_mode == "external" and sync is not None:
-            if not self.eof_reached:
+        if self.sync_mode == "external":
+            if sync is not None and not self.eof_reached:
                 await self._send_current_row()
-            return {{}}
+            return {{}}  # Data sent via send_output, not returned
         
-        # For other modes, compute is a no-op
+        # For non-external modes, compute() shouldn't be called frequently
+        # due to wait_for_optionals=False. If called, just return empty.
         return {{}}

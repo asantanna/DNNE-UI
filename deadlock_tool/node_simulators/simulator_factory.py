@@ -17,6 +17,7 @@ from .split_node_queue_sim import SplitNodeSimulator
 from .simulation_tracker_queue_sim import SimulationTrackerSimulator
 from .tensor_node_queue_sim import TensorNodeSimulator
 from .mnist_dataset_queue_sim import MNISTDatasetNodeSimulator
+from .data_streamer_queue_sim import DataStreamerNodeSimulator
 from .ml_node_sims import (
     BatchSamplerNodeSimulator,
     CIFAR10DatasetNodeSimulator,
@@ -42,6 +43,7 @@ SIMULATOR_REGISTRY = {
     'SimulationTracker': SimulationTrackerSimulator,
     'TensorNode': TensorNodeSimulator,
     'MNISTDatasetNode': MNISTDatasetNodeSimulator,
+    'DataStreamerNode': DataStreamerNodeSimulator,
     'BatchSamplerNode': BatchSamplerNodeSimulator,
     'CIFAR10DatasetNode': CIFAR10DatasetNodeSimulator,
     'GetBatchNode': GetBatchNodeSimulator,

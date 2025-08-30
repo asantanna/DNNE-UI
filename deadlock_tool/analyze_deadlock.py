@@ -519,11 +519,11 @@ def print_results(graph: Dict, events: List, results: Dict, simulator, bootstrap
         
         # Check for common patterns
         barriers = [nid for nid, info in detailed['nodes'].items() 
-                   if 'Barrier' in info['class'] and info['state'] == 'WAITING']
+                   if 'Barrier' in info.get('class', info.get('node_class', '')) and info.get('state') == 'WAITING']
         networks = [nid for nid, info in detailed['nodes'].items()
-                   if 'Network' in info['class'] and info['state'] == 'WAITING']
+                   if 'Network' in info.get('class', info.get('node_class', '')) and info.get('state') == 'WAITING']
         sgds = [nid for nid, info in detailed['nodes'].items()
-              if 'SGD' in info['class'] and info['state'] == 'WAITING']
+              if 'SGD' in info.get('class', info.get('node_class', '')) and info.get('state') == 'WAITING']
         
         if barriers and networks and sgds:
             print("\n🔄 Circular Dependency Detected:")

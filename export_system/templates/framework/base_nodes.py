@@ -31,13 +31,15 @@ class QueueNode(ABC):
         # Register this node with the system
         g.register_node(node_id)
     
-    def setup_inputs(self, required: List[str] = None, optional: List[str] = None, queue_size: int = 10):
+    def setup_inputs(self, required: List[str] = None, optional: List[str] = None, 
+                     queue_size: int = 10, wait_for_optionals: bool = True):
         """Setup input queues
         
         Args:
             required: List of required input names (must wait for all)
             optional: List of optional input names (can proceed with any)
             queue_size: Maximum size for each queue
+            wait_for_optionals: If False, don't block waiting for optional inputs (default True)
         """
         if required is None:
             required = []
@@ -57,7 +59,8 @@ class QueueNode(ABC):
             self.input_waiter = MultiWaiter(
                 required, optional,
                 self.input_queues,
-                self.node_id
+                self.node_id,
+                wait_for_optionals
             )
     
     def setup_outputs(self, outputs: List[str]):
@@ -124,8 +127,8 @@ class QueueNode(ABC):
                     # (e.g. one-time messages), you must override run() to prevent "double-getter deadlock"
                     # See dnne_docs/architecture/queue_framework.md for details
                 else:
-                    # No inputs required (e.g., sensor nodes)
-                    inputs = {}
+                    # Node has no inputs (e.g., sensor nodes)
+                    inputs = None
                 
                 # Execute compute
                 if g.deadlock_debug:

@@ -17,7 +17,8 @@ class MultiWaiter:
     """
     
     def __init__(self, required: List[str], optional: List[str], 
-                 input_queues: Dict[str, asyncio.Queue], node_id: str):
+                 input_queues: Dict[str, asyncio.Queue], node_id: str,
+                 wait_for_optionals: bool = True):
         """
         Initialize the MultiWaiter.
         
@@ -26,12 +27,14 @@ class MultiWaiter:
             optional: List of optional input names (can proceed with any)
             input_queues: Dictionary mapping input names to their queues
             node_id: ID of the node this waiter belongs to (for activity tracking)
+            wait_for_optionals: If False, don't block waiting for optional inputs (default True)
         """
         self.required = required
         self.optional = optional
         self.input_names = required + optional
         self.input_queues = input_queues
         self.node_id = node_id
+        self.wait_for_optionals = wait_for_optionals
         
         # Auto-infer wait mode
         if len(self.required) == len(self.input_names):
@@ -122,6 +125,10 @@ class MultiWaiter:
             return collected
         else:  # "any" mode (handles both pure-any and mixed)
             while True:
+                # Check if we should skip waiting for optionals
+                if not self.wait_for_optionals and self.internal_queue.empty():
+                    return {}
+                
                 data, input_name = await self.internal_queue.get()
                 g.update_node_activity(self.node_id)
                 
