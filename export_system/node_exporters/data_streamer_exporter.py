@@ -154,3 +154,104 @@ class DataStreamerExporter(ExportableNode):
     @classmethod
     def get_subsystem(cls):
         return SUBSYSTEM_DATA
+    
+    @classmethod
+    def _resolve_schema_value(cls, key, parent_schema, node_data, connections, 
+                            node_registry, all_nodes, all_links):
+        """DataStreamer doesn't need dynamic schema resolution - all values are determined from CSV file"""
+        return None
+    
+    @classmethod
+    def get_initial_output_schema(cls, node_data):
+        """Return initial output schema for DataStreamer node.
+        
+        Must read the CSV file to determine the actual tensor shape.
+        Following DNNE tensor dimension standards:
+        - Dim 0: batch dimension (1 for streaming single rows)
+        - Dim 1: feature dimension (number of CSV columns)
+        """
+        import pandas as pd
+        import os
+        
+        # Get node_id for error messages
+        node_id = node_data.get('id', 'unknown')
+        
+        # Get the src_path parameter to find the CSV file
+        param_specs = [
+            {'name': 'src_path', 'widget_index': 0},
+            {'name': 'skip_header', 'widget_index': 8},
+        ]
+        
+        params = cls.get_node_parameters_batch(node_data, param_specs)
+        src_path = params.get('src_path', '').strip() if 'src_path' in params else ''
+        skip_header = bool(params.get('skip_header', True))
+        
+        # If no src_path specified, we can't determine the shape
+        if not src_path:
+            raise ValueError(
+                f"DataStreamer node {node_id}: Cannot determine output schema without src_path. "
+                f"Please specify a CSV file path in the node parameters."
+            )
+        
+        # Check if the file exists
+        if not os.path.exists(src_path):
+            raise ValueError(
+                f"DataStreamer node {node_id}: CSV file not found at {src_path}. "
+                f"Cannot determine output schema without the actual file."
+            )
+        
+        # Read the CSV to determine number of columns
+        try:
+            # Read just the first row to get column count
+            if skip_header:
+                df = pd.read_csv(src_path, nrows=2)  # Read header + 1 data row
+                if len(df) < 1:
+                    raise ValueError(
+                        f"DataStreamer node {node_id}: CSV file {src_path} has no data rows after header."
+                    )
+                num_columns = len(df.columns)
+            else:
+                df = pd.read_csv(src_path, nrows=1, header=None)  # Read first row, no header
+                if len(df) < 1:
+                    raise ValueError(
+                        f"DataStreamer node {node_id}: CSV file {src_path} is empty."
+                    )
+                num_columns = len(df.columns)
+            
+            # Set the shape following DNNE tensor dimension standards
+            # DataStreamer outputs one row at a time: [1, num_features]
+            # Dim 0 = batch (1 for single row streaming)
+            # Dim 1 = features (number of CSV columns)
+            shape = (1, num_columns)
+            
+            # Calculate flattened_size (product of all dimensions)
+            flattened_size = num_columns  # Since first dimension is 1
+            
+            # Build the complete schema
+            schema = {
+                'outputs': {
+                    'data': {
+                        'type': 'tensor',
+                        'shape': shape,
+                        'flattened_size': flattened_size,
+                        'dtype': 'float32'
+                    },
+                    'done': {
+                        'type': 'bool',
+                        'shape': None,  # Scalar
+                        'dtype': 'bool'
+                    },
+                    'metadata': {
+                        'type': 'dict',
+                        'shape': None,  # Not applicable for dict
+                        'dtype': 'dict'
+                    }
+                }
+            }
+            
+        except Exception as e:
+            raise ValueError(
+                f"DataStreamer node {node_id}: Failed to read CSV file {src_path} to determine schema: {e}"
+            )
+        
+        return schema

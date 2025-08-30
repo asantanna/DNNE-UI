@@ -15,7 +15,14 @@ from export_system.graph_exporter import GraphExporter
 from export_system.node_exporters import register_all_exporters
 
 def export_workflow(workflow_name="Cartpole_PPO"):
-    """Export the specified workflow programmatically"""
+    """Export the specified workflow programmatically
+    
+    Args:
+        workflow_name: Can be:
+            - Just the workflow name (e.g., "Shadow_Train")
+            - A relative path (e.g., "user/default/workflows/Shadow_Train.json")
+            - An absolute path (e.g., "/home/user/workflows/Shadow_Train.json")
+    """
     print(f"🚀 Starting programmatic export of {workflow_name}...")
     
     # Create exporter and register all node types
@@ -24,12 +31,48 @@ def export_workflow(workflow_name="Cartpole_PPO"):
     
     print(f"✓ Loaded export system with {len(exporter.node_registry)} node types")
     
-    # Load the workflow file
-    workflow_path = Path(f"user/default/workflows/{workflow_name}.json")
+    # Determine the workflow path based on input format
+    workflow_path = None
+    original_name = workflow_name
     
+    # Check if it's an absolute or relative path
+    if os.path.sep in workflow_name or workflow_name.endswith('.json'):
+        # It's a path
+        workflow_path = Path(workflow_name)
+        
+        # If relative and doesn't exist, try from current directory
+        if not workflow_path.is_absolute() and not workflow_path.exists():
+            workflow_path = Path.cwd() / workflow_path
+        
+        # Extract the workflow name from the path
+        if workflow_path.exists():
+            workflow_name = workflow_path.stem  # Get filename without extension
+    else:
+        # It's just a workflow name - use default location
+        workflow_path = Path(f"user/default/workflows/{workflow_name}.json")
+    
+    # Check if the file exists
     if not workflow_path.exists():
         print(f"❌ Workflow file not found: {workflow_path}")
-        return False
+        
+        # Try some common variations
+        alternatives = []
+        if not str(workflow_path).endswith('.json'):
+            alternatives.append(Path(str(workflow_path) + '.json'))
+        
+        # If it was just a name, try looking in current directory too
+        if os.path.sep not in original_name:
+            alternatives.append(Path(f"{workflow_name}.json"))
+            alternatives.append(Path.cwd() / f"{workflow_name}.json")
+        
+        for alt in alternatives:
+            if alt.exists():
+                workflow_path = alt
+                print(f"✓ Found workflow at: {workflow_path}")
+                break
+        else:
+            print(f"Tried alternatives: {[str(a) for a in alternatives]}")
+            return False
         
     print(f"📁 Loading workflow: {workflow_path}")
     
