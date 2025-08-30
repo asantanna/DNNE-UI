@@ -107,36 +107,77 @@ Implemented proper distance-based loss:
 3. Computes L2 distance using `torch.norm`
 4. Returns scalar loss (mean for batching)
 
-### 3. Joint Locking Strategy ⚠️ TODO
-For 2-3 joint control while Franka has 7 DOF:
+### 3. Joint Selection and Locking Strategy ✅ RESEARCHED
 
-**Current Implementation**: Zero torque (joints 3-6 free to move)
+#### Franka Joint Structure
+The Franka Panda robot has 7 revolute joints (+ 2 gripper fingers):
 
-**Better Options to Implement**:
-1. **Position Hold**: PD controller to maintain initial position
-   - Add PD control nodes for joints 3-6
-   - Use initial joint positions as setpoints
-2. **High Damping**: Apply `-k_d * joint_velocity` torques
-   - Would need joint velocities in observations
-3. **Gravity Compensation**: Counter gravity effects on unused joints
-   - Requires dynamics model
+| Joint Index | URDF Name | Description | Typical Role |
+|------------|-----------|-------------|--------------|
+| 0 | panda_joint1 | Base rotation | Rotates around vertical axis |
+| 1 | panda_joint2 | Shoulder pitch | First major arm movement |
+| 2 | panda_joint3 | Shoulder roll | Secondary shoulder movement |
+| 3 | panda_joint4 | Elbow pitch | Elbow flexion/extension |
+| 4 | panda_joint5 | Forearm roll | Forearm rotation |
+| 5 | panda_joint6 | Wrist pitch | Wrist up/down |
+| 6 | panda_joint7 | Wrist roll | Wrist rotation |
+| 7-8 | gripper | Finger joints | Gripper open/close |
+
+#### Recommended 3-Joint Configuration
+For simplified control with good workspace coverage:
+- **Joint 0 (Base)**: Provides rotation around vertical axis for orientation control
+- **Joint 1 (Shoulder)**: Provides vertical reach and primary arm movement
+- **Joint 3 (Elbow)**: Provides extension/retraction for reaching targets
+
+Note: Skipping joint 2 (shoulder roll) and using joint 3 (elbow) gives better workspace coverage than consecutive joints.
+
+#### Freezing Non-Controlled Joints
+
+**Option 1: Position Control Mode (Recommended)**
+Set joints [2, 4, 5, 6] to position control mode with high stiffness:
+```python
+# For frozen joints
+franka_dof_props['driveMode'][i] = gymapi.DOF_MODE_POS
+franka_dof_props['stiffness'][i] = 5000.0  # High stiffness to lock in place
+franka_dof_props['damping'][i] = 100.0      # High damping for stability
+```
+
+**Option 2: Zero Torque with Damping**
+Keep joints in effort mode but apply zero torque and rely on damping:
+```python
+# For frozen joints in effort mode
+franka_dof_props['driveMode'][i] = gymapi.DOF_MODE_EFFORT
+franka_dof_props['stiffness'][i] = 0.0
+franka_dof_props['damping'][i] = 50.0  # Damping prevents drift
+# Then always apply zero torque to these joints
+```
+
+#### Safe Torque Limits for Training
+For safe initial training with untrained networks:
+- Joint 0 (Base): ±1.0 Nm
+- Joint 1 (Shoulder): ±1.0 Nm  
+- Joint 3 (Elbow): ±1.0 Nm
+
+These are much smaller than the robot's actual limits but prevent instability during early training.
 
 ## Experimental Phases
 
 ### Phase 1: Two-Joint Control (Simplified)
-- **Active Joints**: 0 (base), 2 (elbow)
-- **Locked Joint**: 1 (shoulder) - needs position hold
-- **Free Joints**: 3-6 (wrist/gripper) - currently zero torque
+- **Active Joints**: 0 (base), 3 (elbow)
+- **Locked Joints**: 1 (shoulder), 2 (shoulder roll) - position hold
+- **Frozen Joints**: 4-6 (wrist/forearm) - position hold
 - **Expected Behavior**: Planar reaching in cylindrical coordinates
 - **Success Criteria**: Consistent reaching within 5cm of target
 
-### Phase 2: Three-Joint Control (Current)
-- **Active Joints**: 0 (base), 1 (shoulder), 2 (elbow)
-- **Free Joints**: 3-6 (zero torque)
+### Phase 2: Three-Joint Control (Recommended)
+- **Active Joints**: 0 (base), 1 (shoulder), 3 (elbow)
+- **Locked Joint**: 2 (shoulder roll) - position hold
+- **Frozen Joints**: 4-6 (wrist/forearm) - position hold
 - **Expected Behavior**: Full 3D reaching capability
 - **Coordination Test**: Do joints learn complementary strategies?
   - Base for azimuth positioning
-  - Shoulder/elbow for elevation and distance
+  - Shoulder for elevation
+  - Elbow for reach extension
 
 ### Phase 3: Analysis
 - **Emergent Behaviors to Look For**:
@@ -181,15 +222,65 @@ All nodes use async queue-based patterns for real-time performance, similar to R
 ### Balancer Nodes
 Three balancer nodes (44, 50, 64) ensure synchronized execution across parallel training paths.
 
+## CSV Data Generation for Training
+
+### Requirements for Exploration Data
+For training data collection with 3-joint control, we need slow, controlled torque changes to allow the robot to respond and reach steady states.
+
+### Two CSV Generation Modes
+
+#### Mode 1: Smooth Sinusoidal Exploration
+Generate smooth, continuous torque commands using sinusoidal patterns:
+```python
+# Example pattern for each joint
+torque_joint0 = 0.5 * sin(2π * 0.1 * t + phase0)  # Slow 10-second period
+torque_joint1 = 0.5 * sin(2π * 0.15 * t + phase1) # Different frequency
+torque_joint3 = 0.5 * sin(2π * 0.08 * t + phase3) # Another frequency
+```
+- Use different frequencies for each joint (0.05-0.2 Hz)
+- Random phase offsets to create variety
+- Amplitude range: [-1.0, 1.0] Nm
+- Benefits: Smooth trajectories, continuous exploration, no sudden jerks
+
+#### Mode 2: Step-and-Hold Exploration
+Generate random torque values and hold them steady for extended periods:
+```python
+# Pseudocode
+every 1-2 seconds:
+    torque_joint0 = random.uniform(-1.0, 1.0)
+    torque_joint1 = random.uniform(-1.0, 1.0)
+    torque_joint3 = random.uniform(-1.0, 1.0)
+    hold these values for next 1-2 seconds
+```
+- Hold duration: 1-2 seconds (randomized)
+- Allows robot to reach steady state
+- Creates long sweeping motions
+- Benefits: Clear cause-effect relationships, steady-state data points
+
+### Data Fields to Collect
+For both modes, collect at 100 Hz:
+- **Applied torques** (3 values for joints 0, 1, 3)
+- **All joint positions** (7 values in radians)
+- **All joint velocities** (7 values in rad/s)
+- **End-effector position** (3 values: x, y, z)
+- **End-effector quaternion** (4 values: x, y, z, w)
+- **Target position** (3 values: x, y, z) - can be constant or varying
+- **Timestamp** (seconds from start)
+
+### File Naming Convention
+- `franka_sinusoidal_exploration_001.csv` - For smooth sinusoidal data
+- `franka_step_hold_exploration_001.csv` - For step-and-hold data
+
 ## Next Steps
 
-1. **Test Export**: Run `programmatic_export.py Franka_Coop_Nodes`
-2. **Implement Joint Locking**: Add PD controllers for unused joints
-3. **Run Training**: Monitor convergence and coordination patterns
-4. **Iterate on Architecture**:
-   - Adjust network sizes (currently 128→128→1)
-   - Tune learning rates (currently 0.01)
-   - Experiment with different activation functions
+1. **Implement Joint Configuration**: Modify `franka_dnne.py` to use joints [0, 1, 3] with others locked
+2. **Create CSV Generators**: Build both sinusoidal and step-hold data generation scripts
+3. **Test Export**: Run `programmatic_export.py Shadow_Train` with generated CSV
+4. **Run Training**: Monitor convergence and coordination patterns
+5. **Iterate on Architecture**:
+   - Adjust network sizes
+   - Tune learning rates
+   - Experiment with different loss functions
 
 ## Related Files
 

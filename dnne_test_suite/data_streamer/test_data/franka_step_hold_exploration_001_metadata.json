@@ -1,0 +1,36 @@
+{
+  "description": "Franka 3-joint torque control exploration data (step_hold)",
+  "controlled_joints": [
+    0,
+    1,
+    3
+  ],
+  "frozen_joints": [
+    2,
+    4,
+    5,
+    6
+  ],
+  "torque_limits_nm": {
+    "0": 1.0,
+    "1": 1.0,
+    "3": 1.0
+  },
+  "frequency_hz": 100.0,
+  "mode": "step_hold",
+  "mode_params": {
+    "frequency_hz": 100.0,
+    "min_hold_time": 1.0,
+    "max_hold_time": 2.0
+  },
+  "columns": {
+    "timestamp": "Time in seconds",
+    "torque_joint0": "Base joint torque (Nm)",
+    "torque_joint1": "Shoulder joint torque (Nm)",
+    "torque_joint2": "Shoulder roll torque (Nm) - frozen",
+    "torque_joint3": "Elbow joint torque (Nm)",
+    "torque_joint4": "Forearm roll torque (Nm) - frozen",
+    "torque_joint5": "Wrist pitch torque (Nm) - frozen",
+    "torque_joint6": "Wrist roll torque (Nm) - frozen"
+  }
+}
