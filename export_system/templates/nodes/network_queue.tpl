@@ -9,7 +9,8 @@ template_vars = {
     "CHECKPOINT_ENABLED": False,
     "CHECKPOINT_TRIGGER_TYPE": "epoch",
     "CHECKPOINT_TRIGGER_VALUE": "50",
-    "CHECKPOINT_LOAD_ON_START": False
+    "CHECKPOINT_LOAD_ON_START": False,
+    "OPTIMIZER_NODE_ID": "optimizer_1"
 }
 
 from framework.globals import Global as g
@@ -31,6 +32,11 @@ class NetworkNode_{NODE_ID}(QueueNode):
         # Move to GPU if available
         self.device = torch.device(g.get_device())
         self.network = self.network.to(self.device)
+        
+        # Sync checking with optimizer
+        self.execution_count = 0
+        self.optimizer_node_id = "{OPTIMIZER_NODE_ID}"
+        self.optimizer_node = None
         
         # Set network to eval mode if in inference
         if g.inference_mode:
@@ -229,6 +235,17 @@ class NetworkNode_{NODE_ID}(QueueNode):
         self.node_logger.info(f"Starting node {self.node_id}")
         
         try:
+            # Resolve optimizer connection for sync checking
+            if self.optimizer_node_id and self.optimizer_node_id != "None":
+                self.optimizer_node = g.graph_runner.get_node(self.optimizer_node_id)
+                if self.optimizer_node:
+                    if g.disable_sync_check:
+                        self.node_logger.info(f"Network({self.node_id}) sync checking disabled by user")
+                    else:
+                        self.node_logger.info(f"Network({self.node_id}) sync checking enabled with Optimizer({self.optimizer_node_id})")
+                else:
+                    self.node_logger.warning(f"Could not find optimizer node {self.optimizer_node_id} for sync checking")
+            
             # Run the normal compute loop using MultiWaiter
             while self.running:
                 # Use MultiWaiter to get inputs efficiently
@@ -251,7 +268,26 @@ class NetworkNode_{NODE_ID}(QueueNode):
         finally:
             self.running = False
     
+    def get_execution_count(self) -> int:
+        """Get current execution count for sync checking"""
+        return self.execution_count
+    
     async def compute(self, input) -> Dict[str, Any]:
+        # Sync check with optimizer (enabled by default, disable with --disable-sync-check)
+        if self.optimizer_node and not g.inference_mode and not g.disable_sync_check:
+            optimizer_count = self.optimizer_node.get_execution_count()
+            if self.execution_count != optimizer_count:
+                raise RuntimeError(
+                    f"🔥 SYNC VIOLATION DETECTED! 🔥\n"
+                    f"Network execution count: {self.execution_count}\n"
+                    f"Optimizer execution count: {optimizer_count}\n"
+                    f"Network is running ahead of optimizer - this will corrupt training!\n"
+                    f"Check your dataflow connections or use --disable-sync-check to bypass."
+                )
+        
+        # Increment execution count after sync check
+        self.execution_count += 1
+        
         # Ensure input is on correct device
         x = input.to(self.device)
         

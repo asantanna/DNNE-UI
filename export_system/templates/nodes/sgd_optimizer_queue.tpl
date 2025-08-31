@@ -29,6 +29,9 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
         self.model_node_id = "{NETWORK_NODE_ID}"
         self.model_node = None
         
+        # Sync checking with network
+        self.execution_count = 0
+        
     async def run(self):
         """Override run to setup optimizer with network node"""
         self.running = True
@@ -75,6 +78,10 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
         finally:
             self.running = False
     
+    def get_execution_count(self) -> int:
+        """Get current execution count for sync checking"""
+        return self.execution_count
+    
     async def compute(self, loss) -> Dict[str, Any]:
         """Perform training step when loss is received"""
         if self.optimizer is None:
@@ -96,6 +103,9 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
             loss.backward(retain_graph=retain_graph)
             
             self.optimizer.step()
+            
+            # Increment execution count after successful step
+            self.execution_count += 1
         
         # Send step_complete signal for next batch
         import time

@@ -35,6 +35,8 @@ def create_parser():
                        help='Enable heartbeat monitoring with deadlock detection (shows node activity every 5 seconds)')
     parser.add_argument('--debug-deadlock', action='store_true',
                        help='Enable deadlock data collection to /tmp/dnne_deadlock_data/ for offline analysis')
+    parser.add_argument('--disable-sync-check', action='store_true',
+                       help='Disable network/optimizer execution sync checking (not recommended)')
     
     # Checkpoint arguments
     parser.add_argument('--save-checkpoint', action='store_true',

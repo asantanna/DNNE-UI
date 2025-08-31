@@ -193,7 +193,8 @@ async def main():
         profiling=args.dnne_profiling,
         fixed_seed=args.fixed_seed,
         heartbeat=args.heartbeat,
-        deadlock_debug=args.debug_deadlock
+        deadlock_debug=args.debug_deadlock,
+        disable_sync_check=args.disable_sync_check
     )
 
     # Set fixed seed if provided for deterministic execution

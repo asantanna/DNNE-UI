@@ -167,6 +167,7 @@ class Global:
     heartbeat: bool = False  # Enable heartbeat monitoring
     deadlock_debug: bool = False  # Enable deadlock data collection
     deadlock_logger: Optional[Any] = None  # DeadlockLogger instance when enabled
+    disable_sync_check: bool = False  # Disable network/optimizer sync checking
     
     # === Training Settings ===
     epochs_override: Optional[int] = None
@@ -225,6 +226,24 @@ class Global:
         Args:
             **kwargs: Settings to override defaults
         """
+        # FAIL-FAST: Define all known parameters
+        known_params = {
+            'inference_mode', 'visual_mode', 'headless_mode',
+            'verbose', 'profiling', 'debug', 'fixed_seed', 'heartbeat', 
+            'deadlock_debug', 'disable_sync_check',
+            'epochs_override', 'no_yield',
+            'save_checkpoint_dir', 'load_checkpoint_dir', 'device'
+        }
+        
+        # FAIL-FAST: Check for unknown parameters
+        unknown_params = set(kwargs.keys()) - known_params
+        if unknown_params:
+            raise ValueError(
+                f"Unknown parameters passed to Global.initialize: {unknown_params}\n"
+                f"Known parameters: {sorted(known_params)}\n"
+                f"This is a FAIL-FAST check - add new parameters to both known_params and the initialization code."
+            )
+        
         # Set execution modes
         cls.inference_mode = kwargs.get('inference_mode', False)
         cls.training_mode = not cls.inference_mode
@@ -243,6 +262,7 @@ class Global:
         cls.fixed_seed = kwargs.get('fixed_seed', None)
         cls.heartbeat = kwargs.get('heartbeat', False)
         cls.deadlock_debug = kwargs.get('deadlock_debug', False)
+        cls.disable_sync_check = kwargs.get('disable_sync_check', False)
         
         # Training settings
         cls.epochs_override = kwargs.get('epochs_override', None)

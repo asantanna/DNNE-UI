@@ -84,6 +84,14 @@
       "column": 1,
       "order": 9
     },
+    "disable_sync_check": {
+      "switch": "--disable-sync-check",
+      "type": "checkbox",
+      "label": "Disable Sync Check",
+      "description": "Disable network/optimizer sync checking (not recommended)",
+      "column": 1,
+      "order": 10
+    },
     "epochs": {
       "switch": "--epochs",
       "type": "text",
@@ -161,6 +169,7 @@
     "visual",
     "heartbeat",
     "debug_deadlock",
+    "disable_sync_check",
     "epochs",
     "max_iterations",
     "learning_rate",

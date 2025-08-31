@@ -142,6 +142,20 @@ class NetworkExporter(ExportableNode):
         # Get final output size
         output_size = layers_info[-1]["output_size"]
         
+        # Find the connected optimizer node ID by following the model output
+        # Network's model output connects to optimizer's model input
+        optimizer_node_id = export_utils.follow_node_connection(node_id, "model")
+        
+        # FAIL-FAST: Network must have an optimizer connected (except in inference mode)
+        if not optimizer_node_id:
+            # Check if this might be an inference-only workflow
+            # (could add a check for g.inference_mode in the future)
+            raise ValueError(
+                f"Network node {node_id}: No optimizer connected to 'model' output! "
+                f"Networks must be connected to an optimizer for training. "
+                f"Connect Network.model → SGDOptimizer.model to enable sync checking."
+            )
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "NetworkNode",
@@ -153,7 +167,8 @@ class NetworkExporter(ExportableNode):
             "CHECKPOINT_ENABLED": checkpoint_enabled,
             "CHECKPOINT_TRIGGER_TYPE": checkpoint_trigger_type,
             "CHECKPOINT_TRIGGER_VALUE": checkpoint_trigger_value,
-            "CHECKPOINT_LOAD_ON_START": checkpoint_load_on_start
+            "CHECKPOINT_LOAD_ON_START": checkpoint_load_on_start,
+            "OPTIMIZER_NODE_ID": optimizer_node_id  # Pass the optimizer node ID for sync checking
         }
     
     @classmethod
