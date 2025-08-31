@@ -53,7 +53,7 @@ class SimulationTracker_{NODE_ID}(QueueNode):
     
     
     async def compute(self, observation=None, loss=None, 
-                     done=False, reward=None, custom_metrics=None):
+                     done=None, reward=None, custom_metrics=None):
         """
         Track simulation progress and compute control metrics.
         """
@@ -170,21 +170,21 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         # Check max episodes
         if self.episode_count >= self.max_episodes:
             training_done = True
-            if self.telemetry_enabled:
-                robotics_logger.info(f"SimulationTracker_{NODE_ID}: Reached max episodes ({self.max_episodes})")
+            # if self.telemetry_enabled:
+            #     robotics_logger.info(f"SimulationTracker_{NODE_ID}: Reached max episodes ({self.max_episodes})")
         
         # Check success threshold
         if success_rate >= self.success_threshold and self.episode_count >= self.window_size:
             training_done = True
-            if self.telemetry_enabled:
-                robotics_logger.info(f"SimulationTracker_{NODE_ID}: Reached success threshold ({success_rate:.2%} >= {self.success_threshold:.2%})")
+            # if self.telemetry_enabled:
+            #     robotics_logger.info(f"SimulationTracker_{NODE_ID}: Reached success threshold ({success_rate:.2%} >= {self.success_threshold:.2%})")
         
         # Check for convergence (no improvement in last N episodes)
         convergence_window = min(500, self.max_episodes // 10)
         if self.episode_count - self.last_improvement_episode > convergence_window:
             training_done = True
-            if self.telemetry_enabled:
-                robotics_logger.info(f"SimulationTracker_{NODE_ID}: Converged (no improvement in {convergence_window} episodes)")
+            # if self.telemetry_enabled:
+            #     robotics_logger.info(f"SimulationTracker_{NODE_ID}: Converged (no improvement in {convergence_window} episodes)")
         
         # Build control metrics dictionary
         control_metrics = {
