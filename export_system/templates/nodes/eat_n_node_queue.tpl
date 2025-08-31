@@ -118,9 +118,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             await self.send_output("output", data)
             self.total_passed += 1
             
-            self.node_logger.debug(
-                f"Eat_N: Passthrough input (shape: {shape_info}, total passed: {self.total_passed})"
-            )
+            #self.node_logger.debug(
+            #    f"Eat_N: Passthrough input (shape: {shape_info}, total passed: {self.total_passed})"
+            #)
     
     async def compute(self, **inputs) -> Dict[str, Any]:
         """Required by abstract base class - not used since we override run()"""
