@@ -16,5 +16,9 @@
             "path": "../DNNE-LINUX-SUPPORT"
         }
     ],
-    "settings": {}
+    "settings": {
+        "files.associations": {
+            "*.tpl": "python"
+        }
+    }
 }
