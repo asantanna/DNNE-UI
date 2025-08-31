@@ -13,7 +13,7 @@ class SimulationTrackerExporter(ExportableNode):
     @classmethod
     def get_template_name(cls):
         """Get the template file for this node type"""
-        return "nodes/simulation_tracker_queue.py"
+        return "nodes/simulation_tracker_queue.tpl"
     
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
