@@ -80,9 +80,10 @@ class SimulationTracker_{NODE_ID}(QueueNode):
                 from framework import telemetry
                 telemetry.report_custom(self.node_id, "loss", float(loss))
         
-        # Episode completed (done defaults to False if not provided)
+        # Episode completed - ANY value on done input triggers episode end
+        # (done is None if no signal received)
         episode_done = False
-        if done:
+        if done is not None:
             episode_done = True
             self.episode_count += 1
             

@@ -140,23 +140,28 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         
         # Handle end of file
         if self.current_row >= self.total_rows:
+            # Always handle EOF (send done signal if configured)
+            await self._handle_eof()
+            
             if self.loop_data:
                 self.current_row = 0
                 self.node_logger.debug("Looping back to start of data")
-            else:
-                await self._handle_eof()
     
     async def _handle_eof(self):
         """Handle end of file based on eof_mode"""
         if self.eof_mode == "pulse_done":
             await self.send_output("done", True)
-            self.node_logger.info("End of file reached, sent done signal")
-            if not self.loop_data:
+            if self.loop_data:
+                self.node_logger.info("Dataset pass complete, sent done signal, looping...")
+            else:
+                self.node_logger.info("End of file reached, sent done signal")
                 self.eof_reached = True
         elif self.eof_mode == "hold_last":
             # Keep current_row at last row
             self.current_row = self.total_rows - 1
             self.node_logger.info("End of file reached, holding last row")
+            if not self.loop_data:
+                self.eof_reached = True
         else:  # "stop"
             self.eof_reached = True
             self.node_logger.info("End of file reached, stopping stream")
