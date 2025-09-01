@@ -50,6 +50,18 @@ class SimulationTrackerNode(RoboticsNodeBase):
                     "max": 1.0,
                     "tooltip": "Success rate threshold for early stopping. Training stops when achieved."
                 }),
+                "telemetry_mode": (["time", "steps", "episodes"], {
+                    "default": "time",
+                    "tooltip": "Telemetry reporting mode: time-based, step-based, or episode-based intervals."
+                }),
+                "telemetry_interval": ("STRING", {
+                    "default": "10s",
+                    "tooltip": "Reporting interval. For time: '10s', '5m', '2m30s'. For steps/episodes: integer like '100'."
+                }),
+                "telemetry_stats": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "Include statistical aggregations (min/max/mean/std) in telemetry reports."
+                }),
             }
         }
 
