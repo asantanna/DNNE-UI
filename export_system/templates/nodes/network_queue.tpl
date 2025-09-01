@@ -14,6 +14,36 @@ template_vars = {
 }
 
 from framework.globals import Global as g
+from contextvars import ContextVar
+
+# Global context variable to track which optimizer is currently running backward pass
+CURRENT_OPTIMIZER_ID = ContextVar("CURRENT_OPTIMIZER_ID", default=None)
+
+def zero_grad_if_unauthorized(module: nn.Module, authorized_id: str):
+    """
+    Register gradient hooks that zero gradients from unauthorized optimizers.
+    This allows gradient flow through the network while preventing unauthorized weight updates.
+    
+    Args:
+        module: The neural network module to protect
+        authorized_id: The ID of the authorized optimizer (e.g., "SGD(122)")
+    
+    Returns:
+        List of hook handles for potential removal
+    """
+    handles = []
+    for param in module.parameters():
+        def make_hook():
+            def hook(grad):
+                current_opt = CURRENT_OPTIMIZER_ID.get()
+                if current_opt == authorized_id:
+                    return grad  # Allow gradient update from authorized optimizer
+                else:
+                    # Block update but let gradient flow through
+                    return torch.zeros_like(grad)
+            return hook
+        handles.append(param.register_hook(make_hook()))
+    return handles
 
 class NetworkNode_{NODE_ID}(QueueNode):
     """Neural network with multiple layers"""
@@ -81,6 +111,16 @@ class NetworkNode_{NODE_ID}(QueueNode):
             except ValueError as e:
                 self.node_logger.error(f"Checkpoint configuration error: {e}")
                 self.checkpoint_enabled = False
+        
+        # Register gradient isolation hooks if we have an authorized optimizer
+        # This ensures only the linked optimizer can modify this network's weights
+        self.gradient_hook_handles = []
+        if self.optimizer_node_id and self.optimizer_node_id != "None":
+            authorized_optimizer_id = f"SGD({self.optimizer_node_id})"
+            self.gradient_hook_handles = zero_grad_if_unauthorized(
+                self.network, authorized_optimizer_id
+            )
+            self.node_logger.info(f"Gradient isolation enabled: only {authorized_optimizer_id} can update weights")
         
         self.node_logger.info(f"Created network with {NUM_LAYERS} layers: {INPUT_SIZE} -> {OUTPUT_SIZE}")
         

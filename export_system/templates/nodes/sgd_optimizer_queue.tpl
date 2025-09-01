@@ -8,6 +8,27 @@ template_vars = {
 }
 
 from framework.globals import Global as g
+from contextvars import ContextVar
+
+# Import the same context variable used by Network nodes
+try:
+    from network_queue import CURRENT_OPTIMIZER_ID
+except ImportError:
+    # Define it here if not already imported
+    CURRENT_OPTIMIZER_ID = ContextVar("CURRENT_OPTIMIZER_ID", default=None)
+
+class OptimizerContext:
+    """Context manager to set current optimizer ID during backward pass"""
+    def __init__(self, optimizer_id: str):
+        self.optimizer_id = optimizer_id
+        self.token = None
+    
+    def __enter__(self):
+        self.token = CURRENT_OPTIMIZER_ID.set(self.optimizer_id)
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        CURRENT_OPTIMIZER_ID.reset(self.token)
 
 class SGDOptimizerNode_{NODE_ID}(QueueNode):
     """SGD Optimizer node that performs training steps"""
@@ -95,12 +116,16 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
             # Standard training step - let PyTorch fail-fast if gradients missing
             self.optimizer.zero_grad()
             
-            # Check for retain_graph override (for multiple optimizers sharing loss)
-            # Can be set via: --override all:retain_graph=True
-            retain_graph = g.get_node_config(self.node_id, 'retain_graph', False)
-            if retain_graph:
-                self.node_logger.debug(f"Using retain_graph=True for backward pass")
-            loss.backward(retain_graph=retain_graph)
+            # Set context to identify this optimizer during backward pass
+            # This allows Network nodes to know which optimizer is running
+            optimizer_id = f"SGD({self.node_id})"
+            with OptimizerContext(optimizer_id):
+                # Check for retain_graph override (for multiple optimizers sharing loss)
+                # Can be set via: --override all:retain_graph=True
+                retain_graph = g.get_node_config(self.node_id, 'retain_graph', False)
+                if retain_graph:
+                    self.node_logger.debug(f"Using retain_graph=True for backward pass")
+                loss.backward(retain_graph=retain_graph)
             
             self.optimizer.step()
             

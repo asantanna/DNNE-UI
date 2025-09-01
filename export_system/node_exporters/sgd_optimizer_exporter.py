@@ -32,17 +32,36 @@ class SGDOptimizerExporter(ExportableNode):
                 f"The UI must provide all optimizer parameters."
             )
         
-        # Find the Network node ID for virtual connection
-        network_node_id = None
-        if all_nodes:
-            for node in all_nodes:
-                node_type = node.get("class_type") or node.get("type")
-                if node_type == "Network":
-                    network_node_id = str(node['id'])  # Just the ID, no "node_" prefix
-                    break
+        # Find the Network node ID by tracing the "model" input connection
+        # SGDOptimizer.model <- Network.model (virtual connection)
         
+        # The model input should tell us which network node is connected
+        network_node_id = None
+        if "model" in connections.get("inputs", {}):
+            model_connections = connections["inputs"]["model"]
+            if model_connections and len(model_connections) > 0:
+                # Get the first (and should be only) connection to model input
+                model_conn = model_connections[0]
+                network_node_id = str(model_conn.get("from_node", ""))
+                
+                # Validate that it's actually a Network node
+                if network_node_id and all_nodes:
+                    network_node = next((n for n in all_nodes if str(n.get('id')) == network_node_id), None)
+                    if network_node:
+                        node_type = network_node.get("class_type") or network_node.get("type")
+                        if node_type != "Network":
+                            raise ValueError(
+                                f"SGDOptimizer node {node_id}: Model input connected to {node_type} node {network_node_id}, "
+                                f"but expected a Network node. Connect Network.model → SGDOptimizer.model."
+                            )
+        
+        # FAIL-FAST: SGDOptimizer MUST have a Network connected
         if not network_node_id:
-            network_node_id = "network_1"  # Default placeholder
+            raise ValueError(
+                f"SGDOptimizer node {node_id}: No Network node connected to 'model' input! "
+                f"SGDOptimizer requires a Network connection for parameter access. "
+                f"Connect Network.model → SGDOptimizer.model to establish the link."
+            )
         
         return {
             "NODE_ID": node_id,
