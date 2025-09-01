@@ -60,7 +60,7 @@ class TestConnectionValidation:
         output_path = project_root / "export_system/exports/test_missing_sgd_loss"
         
         try:
-            with pytest.raises(ValueError) as exc_info:
+            with pytest.raises(RuntimeError) as exc_info:
                 exporter.export_workflow(modified_workflow, output_path)
             
             error_msg = str(exc_info.value)
@@ -78,7 +78,7 @@ class TestConnectionValidation:
         output_path = project_root / "export_system/exports/test_missing_ce_predictions"
         
         try:
-            with pytest.raises(ValueError) as exc_info:
+            with pytest.raises(RuntimeError) as exc_info:
                 exporter.export_workflow(modified_workflow, output_path)
             
             error_msg = str(exc_info.value)

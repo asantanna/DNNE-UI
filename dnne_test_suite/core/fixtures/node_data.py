@@ -42,14 +42,7 @@ NETWORK_DATA = {
 }
 
 SGD_OPTIMIZER_DATA = {
-    "inputs": {
-        "learning_rate": 0.01,
-        "momentum": 0.9,
-        "weight_decay": 0.0001
-    },
-    "widgets": {
-        "nesterov": False
-    }
+    "widgets_values": [0.01, 0.9, 0.0001, True]  # learning_rate, momentum, weight_decay, enable_bootstrap
 }
 
 CROSS_ENTROPY_LOSS_DATA = {

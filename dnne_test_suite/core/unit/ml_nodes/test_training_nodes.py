@@ -190,15 +190,22 @@ class TestSGDOptimizerNode:
         
         # Mock node data with SGD parameters
         mock_data = {
-            "widgets_values": [0.01, 0.9, 0.0]  # learning_rate, momentum, weight_decay
+            "widgets_values": [0.01, 0.9, 0.0, True]  # learning_rate, momentum, weight_decay, enable_bootstrap
         }
         mock_connections = {
-            "network": [("node_1", "model")]
+            "inputs": {
+                "model": [{"from_node": "node_1", "from_slot": "model"}]
+            }
         }
+        
+        # Mock all_nodes to include a Network node
+        all_nodes = [
+            {"id": "node_1", "type": "Network"}
+        ]
         
         # Test template variable preparation
         template_vars = SGDOptimizerExporter.prepare_template_vars(
-            "test_1", mock_data, mock_connections
+            "test_1", mock_data, mock_connections, all_nodes=all_nodes
         )
         
         # Validate the variables

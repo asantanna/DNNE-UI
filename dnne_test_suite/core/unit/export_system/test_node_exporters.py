@@ -176,23 +176,33 @@ class TestSGDOptimizerExporter:
         """Test extraction of optimizer parameters."""
         # Use ComfyUI format with widgets_values
         node_data = {
-            "widgets_values": [0.001, 0.8, 0.0]  # learning_rate, momentum, weight_decay
+            "widgets_values": [0.001, 0.8, 0.0, True]  # learning_rate, momentum, weight_decay, enable_bootstrap
         }
         
+        # SGDOptimizer requires a Network node connection
+        connections = {
+            "inputs": {
+                "model": [{"from_node": "network_1", "from_slot": "model"}]
+            }
+        }
+        all_nodes = [
+            {"id": "network_1", "type": "Network"}
+        ]
+        
         template_vars = SGDOptimizerExporter.prepare_template_vars(
-            "opt_node", node_data, {}
+            "opt_node", node_data, connections, all_nodes=all_nodes
         )
         
         # Should extract parameters from widgets_values
         assert template_vars["LEARNING_RATE"] == 0.001
         assert template_vars["MOMENTUM"] == 0.8
-        
-        # Weight decay is fixed (not configurable in this node type)
         assert template_vars["WEIGHT_DECAY"] == 0.0
+        assert template_vars["ENABLE_BOOTSTRAP"] == True
         
         # Should have node identification
         assert template_vars["NODE_ID"] == "opt_node"
         assert template_vars["CLASS_NAME"] == "SGDOptimizerNode"
+        assert template_vars["NETWORK_NODE_ID"] == "network_1"
     
     @pytest.mark.export
     def test_imports(self):
@@ -331,9 +341,21 @@ class TestExporterIntegration:
         ]
         
         for exporter_class, sample_data in exporters:
-            template_vars = exporter_class.prepare_template_vars(
-                "test_node", sample_data, {}
-            )
+            # SGDOptimizer needs special handling for connections
+            if exporter_class == SGDOptimizerExporter:
+                connections = {
+                    "inputs": {
+                        "model": [{"from_node": "network_1", "from_slot": "model"}]
+                    }
+                }
+                all_nodes = [{"id": "network_1", "type": "Network"}]
+                template_vars = exporter_class.prepare_template_vars(
+                    "test_node", sample_data, connections, all_nodes=all_nodes
+                )
+            else:
+                template_vars = exporter_class.prepare_template_vars(
+                    "test_node", sample_data, {}
+                )
             
             # All exporters should provide NODE_ID and CLASS_NAME
             assert "NODE_ID" in template_vars

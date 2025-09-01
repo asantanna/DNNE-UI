@@ -183,8 +183,14 @@ def create_temp_export_dir(create_dir: bool = False) -> Path:
     import uuid
     import os
     
-    # Get project root - should be the working directory
-    project_root = Path.cwd()
+    # Get project root - handle when tests are run from different directories
+    current_dir = Path.cwd()
+    if "dnne_test_suite" in str(current_dir):
+        # Running from within test suite, go up to project root
+        project_root = Path("/home/asantanna/DNNE/DNNE-UI")
+    else:
+        # Running from project root
+        project_root = current_dir
     export_base = project_root / "export_system" / "exports"
     
     # Create unique test directory name
