@@ -804,6 +804,37 @@ class GraphExporter:
         
         return connections, label_connections_dict
     
+    def _validate_workflow_integrity(self, nodes: List, links: List) -> None:
+        """Validate that all links reference existing nodes. Fail fast on broken references."""
+        # Build set of valid node IDs
+        valid_node_ids = {str(node.get("id")) for node in nodes}
+        
+        # Check all links for broken references
+        broken_links = []
+        for link in links:
+            if len(link) >= 5:
+                link_id = link[0]
+                from_node = str(link[1])
+                to_node = str(link[3])
+                
+                missing_nodes = []
+                if from_node not in valid_node_ids:
+                    missing_nodes.append(f"source node {from_node}")
+                if to_node not in valid_node_ids:
+                    missing_nodes.append(f"target node {to_node}")
+                
+                if missing_nodes:
+                    broken_links.append(f"Link {link_id}: references non-existent {' and '.join(missing_nodes)}")
+        
+        if broken_links:
+            error_msg = "Export failed due to broken connections:\n"
+            for broken_link in broken_links:
+                error_msg += f"  • {broken_link}\n"
+            error_msg += "\nPlease fix the workflow before exporting. You can use:\n"
+            error_msg += "  python claude_scripts/analyze_workflow.py <workflow_name> --repair-workflow\n"
+            error_msg += "to automatically remove broken connections."
+            raise ValueError(error_msg)
+    
     def export_workflow(self, workflow: Dict, output_path: Optional[Path] = None) -> str:
         """Convert workflow JSON to modular Python package"""
         # Validate that runner_args.json is up-to-date
@@ -812,6 +843,9 @@ class GraphExporter:
         nodes = workflow.get("nodes", [])
         links = workflow.get("links", [])
         metadata = workflow.get("metadata", {})
+        
+        # Validate workflow integrity BEFORE any processing
+        self._validate_workflow_integrity(nodes, links)
         
         # Generate label connections but DON'T add them to links yet
         # We need to fix corrupted slots first, then add label connections
@@ -878,121 +912,146 @@ class GraphExporter:
             workflow_name = metadata.get("workflow_name", "unnamed")
             output_path = Path(__file__).parent / "exports" / f"{workflow_name}_{timestamp}"
         
-        # Create package structure
-        framework_dir, nodes_dir = self._create_package_structure(output_path)
-        
-        # Create metadata.json with workflow information
-        import hashlib
-        from datetime import datetime
-        
-        # Generate workflow ID from content hash
-        workflow_json = json.dumps(workflow, sort_keys=True)
-        content_hash = hashlib.sha256(workflow_json.encode()).hexdigest()[:12]
-        workflow_id = f"wf_{content_hash}"
-        
-        # Extract workflow name (from path or metadata)
-        workflow_name = output_path.name if output_path.name else metadata.get("workflow_name", "unnamed")
-        
-        metadata_content = {
-            "workflow_id": workflow_id,
-            "workflow_name": workflow_name,
-            "export_timestamp": datetime.now().isoformat(),
-            "node_count": len(nodes),
-            "link_count": len(links),
-            "framework_version": "1.0.0",
-            "exported_by": "DNNE Export System"
-        }
-        
-        metadata_path = output_path / "metadata.json"
-        with open(metadata_path, 'w', encoding='utf-8') as f:
-            json.dump(metadata_content, f, indent=2)
-        
-        self.logger.debug(f"Created metadata.json with workflow_id: {workflow_id}, name: {workflow_name}")
-        
-        # Export framework
-        self._export_framework(framework_dir)
-        
-        # Track node information for __init__.py generation
-        node_classes = []
-        node_instances = []
-        virtual_nodes = {}  # Track virtual nodes for connection handling
-        
-        # First pass: identify virtual nodes
-        for node in nodes:
-            node_id = str(node["id"])
-            node_type = node.get("class_type") or node.get("type")
+        # Wrap entire export process in try-except to clean up on failure
+        export_successful = False
+        try:
+            # Create package structure
+            framework_dir, nodes_dir = self._create_package_structure(output_path)
             
-            if self._is_virtual_node(node_type):
-                virtual_nodes[node_id] = node
-        
-        for node in nodes:
-            node_id = str(node["id"])
-            node_type = node.get("class_type") or node.get("type")
+            # Create metadata.json with workflow information
+            import hashlib
+            from datetime import datetime
             
-            # Skip virtual nodes (configuration-only nodes)
-            if self._is_virtual_node(node_type):
-                self.logger.debug(f"Skipping virtual node {node_id} ({node_type}) - configuration only")
-                continue
+            # Generate workflow ID from content hash
+            workflow_json = json.dumps(workflow, sort_keys=True)
+            content_hash = hashlib.sha256(workflow_json.encode()).hexdigest()[:12]
+            workflow_id = f"wf_{content_hash}"
             
-            if node_type in self.node_registry:
-                node_class = self.node_registry[node_type]
+            # Extract workflow name (from path or metadata)
+            workflow_name = output_path.name if output_path.name else metadata.get("workflow_name", "unnamed")
+            
+            metadata_content = {
+                "workflow_id": workflow_id,
+                "workflow_name": workflow_name,
+                "export_timestamp": datetime.now().isoformat(),
+                "node_count": len(nodes),
+                "link_count": len(links),
+                "framework_version": "1.0.0",
+                "exported_by": "DNNE Export System"
+            }
+            
+            metadata_path = output_path / "metadata.json"
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                json.dump(metadata_content, f, indent=2)
+            
+            self.logger.debug(f"Created metadata.json with workflow_id: {workflow_id}, name: {workflow_name}")
+            
+            # Export framework
+            self._export_framework(framework_dir)
+            
+            # Track node information for __init__.py generation
+            node_classes = []
+            node_instances = []
+            virtual_nodes = {}  # Track virtual nodes for connection handling
+            
+            # First pass: identify virtual nodes
+            for node in nodes:
+                node_id = str(node["id"])
+                node_type = node.get("class_type") or node.get("type")
                 
-                # Get template and prepare variables
-                template_name = node_class.get_template_name()
-                template_vars = node_class.prepare_template_vars_with_validation(
-                    node_id, node, self._get_node_connections(node_id, links, nodes), 
-                    self.node_registry, nodes, links
-                )
+                if self._is_virtual_node(node_type):
+                    virtual_nodes[node_id] = node
+            
+            for node in nodes:
+                node_id = str(node["id"])
+                node_type = node.get("class_type") or node.get("type")
                 
-                # Load and process template
-                template_content = self._load_template(template_name)
-                node_code = self._process_template(template_content, template_vars)
+                # Skip virtual nodes (configuration-only nodes)
+                if self._is_virtual_node(node_type):
+                    self.logger.debug(f"Skipping virtual node {node_id} ({node_type}) - configuration only")
+                    continue
                 
-                # Get node-specific imports
-                node_imports = list(node_class.get_imports())
-                
-                # Export node to file and get class name
-                class_name = self._export_node_to_file(nodes_dir, node_id, node_type, node_code, node_imports)
-                node_classes.append((node_id, node_type, class_name))
-                
-                # Create instance
-                instance_name = f"node_{node_id}"
-                
-                # Check if node has custom instance code
-                if hasattr(node_class, 'get_instance_code'):
-                    node_connections = self._get_node_connections(node_id, links, nodes)
-                    instance_code = node_class.get_instance_code(node_id, node, node_connections)
-                    node_instances.append(instance_code)
+                if node_type in self.node_registry:
+                    node_class = self.node_registry[node_type]
+                    
+                    # Get template and prepare variables
+                    template_name = node_class.get_template_name()
+                    template_vars = node_class.prepare_template_vars_with_validation(
+                        node_id, node, self._get_node_connections(node_id, links, nodes), 
+                        self.node_registry, nodes, links
+                    )
+                    
+                    # Load and process template
+                    template_content = self._load_template(template_name)
+                    node_code = self._process_template(template_content, template_vars)
+                    
+                    # Get node-specific imports
+                    node_imports = list(node_class.get_imports())
+                    
+                    # Export node to file and get class name
+                    class_name = self._export_node_to_file(nodes_dir, node_id, node_type, node_code, node_imports)
+                    node_classes.append((node_id, node_type, class_name))
+                    
+                    # Create instance
+                    instance_name = f"node_{node_id}"
+                    
+                    # Check if node has custom instance code
+                    if hasattr(node_class, 'get_instance_code'):
+                        node_connections = self._get_node_connections(node_id, links, nodes)
+                        instance_code = node_class.get_instance_code(node_id, node, node_connections)
+                        node_instances.append(instance_code)
+                    else:
+                        node_instances.append(f'{instance_name} = {class_name}("{node_id}")')
+                    
                 else:
-                    node_instances.append(f'{instance_name} = {class_name}("{node_id}")')
-                
+                    self.logger.warning(f"Unknown node type: {node_type}")
+                    # Generate placeholder
+                    placeholder_code = self._generate_placeholder_node(node_id, node_type)
+                    class_name = f"PlaceholderNode_{node_id}"
+                    
+                    # Export placeholder to file
+                    self._export_node_to_file(nodes_dir, node_id, node_type, placeholder_code, [])
+                    node_classes.append((node_id, node_type, class_name))
+                    node_instances.append(f'node_{node_id} = {class_name}("{node_id}")')
+            
+            # Collect and process file copy requests from all nodes
+            self._process_file_copy_requests(nodes, output_path)
+        
+            # Generate nodes/__init__.py
+            self._generate_node_init(nodes_dir, node_classes)
+            
+            # Generate connections
+            connections = self._generate_connections(links, nodes)
+            
+            # Generate minimal runner.py
+            self._generate_minimal_runner(output_path, node_instances, connections, nodes, metadata)
+            
+            # Mark export as successful
+            export_successful = True
+            
+            self.logger.info(f"Exported modular package to: {output_path}")
+            
+        except Exception as e:
+            # Clean up partial export on failure
+            if output_path.exists():
+                import shutil
+                self.logger.error(f"Export failed, cleaning up partial export at: {output_path}")
+                shutil.rmtree(output_path)
+            
+            # Clear export context even on failure
+            export_utils.clear_export_context()
+            
+            # Re-raise the exception with additional context if needed
+            if "non-existent" in str(e):
+                # Already has a good error message
+                raise
             else:
-                self.logger.warning(f"Unknown node type: {node_type}")
-                # Generate placeholder
-                placeholder_code = self._generate_placeholder_node(node_id, node_type)
-                class_name = f"PlaceholderNode_{node_id}"
-                
-                # Export placeholder to file
-                self._export_node_to_file(nodes_dir, node_id, node_type, placeholder_code, [])
-                node_classes.append((node_id, node_type, class_name))
-                node_instances.append(f'node_{node_id} = {class_name}("{node_id}")')
+                # Add context to other errors
+                raise RuntimeError(f"Export failed: {e}") from e
         
-        # Collect and process file copy requests from all nodes
-        self._process_file_copy_requests(nodes, output_path)
-        
-        # Generate nodes/__init__.py
-        self._generate_node_init(nodes_dir, node_classes)
-        
-        # Generate connections
-        connections = self._generate_connections(links, nodes)
-        
-        # Generate minimal runner.py
-        self._generate_minimal_runner(output_path, node_instances, connections, nodes, metadata)
-        
-        self.logger.info(f"Exported modular package to: {output_path}")
-        
-        # Clear export context
-        export_utils.clear_export_context()
+        finally:
+            # Always clear export context
+            export_utils.clear_export_context()
         
         # Return the path to the runner for backward compatibility
         return str(output_path / "runner.py")
@@ -1372,16 +1431,24 @@ class GraphExporter:
                 
                 # Get actual output name
                 if from_node not in node_info:
-                    self.logger.warning(f"From node {from_node} not in node_info, skipping connection")
-                    continue
+                    # This should never happen after validation, but fail fast if it does
+                    raise ValueError(
+                        f"Export failed: Link {link[0] if len(link) > 0 else 'unknown'} references "
+                        f"non-existent source node {from_node}. This indicates a workflow integrity issue.\n"
+                        f"Please run: python claude_scripts/analyze_workflow.py <workflow_name> --repair-workflow"
+                    )
                     
                 outputs = node_info[from_node]["outputs"]
                 output_name = outputs[from_slot] if from_slot < len(outputs) else f"output_{from_slot}"
                 
                 # Get input name
                 if to_node not in node_info:
-                    self.logger.warning(f"To node {to_node} not in node_info, skipping connection")
-                    continue
+                    # This should never happen after validation, but fail fast if it does
+                    raise ValueError(
+                        f"Export failed: Link {link[0] if len(link) > 0 else 'unknown'} references "
+                        f"non-existent target node {to_node}. This indicates a workflow integrity issue.\n"
+                        f"Please run: python claude_scripts/analyze_workflow.py <workflow_name> --repair-workflow"
+                    )
                     
                 to_node_class = node_info[to_node]["class"]
                 if to_node_class and hasattr(to_node_class, 'get_input_names'):
@@ -1399,12 +1466,12 @@ class GraphExporter:
                 
                 # Check if output is virtual
                 if self._is_virtual_output(from_node_type, from_slot):
-                    self.logger.info(f"Skipping virtual output connection: {from_node_type}[{from_slot}] -> {to_node_type}")
+                    self.logger.debug(f"Skipping virtual output connection: {from_node_type}[{from_slot}] -> {to_node_type}")
                     continue
                 
                 # Check if input is virtual
                 if self._is_virtual_input(to_node_type, input_name):
-                    self.logger.info(f"Skipping virtual input connection: {from_node_type} -> {to_node_type}[{input_name}]")
+                    self.logger.debug(f"Skipping virtual input connection: {from_node_type} -> {to_node_type}[{input_name}]")
                     continue
                 
                 connections.append(

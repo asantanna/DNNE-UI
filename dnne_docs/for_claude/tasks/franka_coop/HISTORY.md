@@ -1,5 +1,30 @@
 # Franka Cooperative Control - History
 
+## 2025-08-31: Export System Hardening & Workflow Repair
+
+### Export System Improvements
+- **Fail-fast validation**: Added `_validate_workflow_integrity()` to check all links before export
+- **No partial exports**: Wrapped export in try-except with automatic cleanup on failure
+- **Clear error messages**: Lists ALL broken connections with repair suggestions
+- **Changed warnings to errors**: Missing nodes now raise `ValueError` instead of logging warnings
+
+### Workflow Repair
+- **Removed 4 phantom connections**:
+  - Link 153 → non-existent node 85
+  - Link 182 → non-existent node 114
+  - Link 184 → non-existent node 116
+  - Link 187 → non-existent node 119
+- **Fixed Barrier nodes**: Nodes 74, 75, 76 had broken release inputs
+- **Successful export**: Workflow now exports cleanly to `export_system/exports/Franka_Coop_Nodes/`
+
+### Tools Enhanced
+- `analyze_workflow.py --repair-workflow`: Safely removes broken connections
+- Creates timestamped backups before modifications
+- Multi-pass cleaning handles cascading issues
+- Never adds new connections (only removes broken ones)
+
+---
+
 ## 2025-08-18 (Later): MAJOR MILESTONE - Tensor Standards & Gradient Flow Fixed 🎉
 
 ### What We Accomplished

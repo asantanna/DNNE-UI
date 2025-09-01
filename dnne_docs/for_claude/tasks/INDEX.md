@@ -1,32 +1,36 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-29*  
+*Last Updated: 2025-08-31*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
 
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
+| **Export System** | 🟢 Complete | Fail-fast validation, no partial exports | - | 2025-08-31 |
+| **Franka Coop Control** | 🟢 Complete | Workflow repaired and exports cleanly | - | 2025-08-31 |
 | **Label Connections** | 🟢 Complete | Rats nest + workflow repair tool | - | 2025-08-24 |
 | **Type System** | 🟢 Complete | 100% - Color system fixed | - | 2025-08-15 |
 | **MCP Integration** | 🟢 Complete | 42 tools implemented | Low | 2025-08-12 |
 | **DNNE Agent** | 🟢 Complete | Fully functional | - | 2025-08-11 |
 | **Log Viewer** | 🟡 Working | ~95% - Stream end issue | Medium | 2025-08-15 |
 | **Core Infrastructure** | 🟢 Complete | 100% - All features done | - | 2025-08-15 |
-| **Export System** | 🟢 Complete | 100% - System init barrier implemented | - | 2025-08-19 |
 | **Runner Args Dialog** | 🟢 Complete | 100% - All features done | - | 2025-08-12 |
 | **Node System** | 🟢 Complete | Eat_N & Barrier synchronization nodes | - | 2025-08-21 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
-| **Franka Coop Control** | 🟢 Complete | DEADLOCK FIXED! Runs forever without hanging! | - | 2025-08-29 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
 
-## Today's Achievements (2025-08-29)
+## Today's Achievements (2025-08-31)
 
-✅ **CRITICAL DEADLOCK FIX**: Fixed deadlock in Franka_Coop_Nodes workflow
-- Simplified IsaacGymSim to use standard MultiWaiter infrastructure
-- Fixed SimulationTracker to handle partial inputs gracefully  
-- System now runs indefinitely without hanging!
-- Commit: `32603cbb`
+✅ **Export System Hardening**: Fail-fast validation prevents invalid exports
+- Added `_validate_workflow_integrity()` for pre-export checks
+- Automatic cleanup of partial exports on failure
+- Clear error messages with repair suggestions
+
+✅ **Franka_Coop_Nodes Repair**: Workflow now exports cleanly
+- Removed 4 phantom connections to non-existent nodes
+- Fixed Barrier nodes' broken release inputs
+- Ready for cooperative control experiments
 
 ## Active Priority Items
 
