@@ -14,6 +14,65 @@ class SplitExporter(ExportableNode):
         return "nodes/split_node_queue.tpl"
     
     @classmethod
+    def parse_index_ranges(cls, split_pos, node_id):
+        """Parse index ranges from split_pos string for 'by index' mode.
+        
+        Supports formats:
+        - Single indices: "3" or "3, 5, 7"
+        - Ranges (inclusive): "3:5" means indices 3,4,5
+        - Bracketed ranges: "[3:5]" same as above
+        - Mixed: "[3:5], 10, [15:18]"
+        
+        Returns:
+            List of tuples: [(start, end), ...] where end is exclusive
+        """
+        import re
+        
+        entries = [x.strip() for x in split_pos.split(',') if x.strip()]
+        if not entries:
+            raise ValueError(
+                f"SplitNode {node_id}: split_pos '{split_pos}' resulted in empty list"
+            )
+        
+        ranges = []
+        for entry in entries:
+            # Remove optional brackets
+            entry = entry.strip('[]')
+            
+            if ':' in entry:
+                # It's a range like "3:5" (inclusive)
+                parts = entry.split(':')
+                if len(parts) != 2:
+                    raise ValueError(
+                        f"SplitNode {node_id}: Invalid range format '{entry}'. "
+                        f"Expected 'start:end' format (e.g., '3:5')"
+                    )
+                try:
+                    start = int(parts[0].strip())
+                    end_inclusive = int(parts[1].strip())
+                    # Convert inclusive end to exclusive for Python
+                    end_exclusive = end_inclusive + 1
+                    ranges.append((start, end_exclusive))
+                except ValueError:
+                    raise ValueError(
+                        f"SplitNode {node_id}: Invalid range values in '{entry}'. "
+                        f"Expected integers (e.g., '3:5')"
+                    )
+            else:
+                # Single index
+                try:
+                    idx = int(entry)
+                    # Single index becomes a range of size 1
+                    ranges.append((idx, idx + 1))
+                except ValueError:
+                    raise ValueError(
+                        f"SplitNode {node_id}: Invalid index '{entry}'. "
+                        f"Expected integer or range format (e.g., '3' or '3:5')"
+                    )
+        
+        return ranges
+    
+    @classmethod
     def parse_split_positions(cls, split_pos, observation_schema, node_id):
         """Parse split positions string and resolve to ranges.
         
@@ -172,8 +231,14 @@ class SplitExporter(ExportableNode):
             split_values = [[start, end] for start, end in split_ranges]
             # Keep as "by name" but with resolved ranges
             
-        else:
-            # Original parsing for "by index" and "by size" modes
+        elif split_mode == "by index":
+            # Parse index ranges for "by index" mode
+            split_ranges = cls.parse_index_ranges(split_pos, node_id)
+            # Convert tuples to lists for template (same format as "by name")
+            split_values = [[start, end] for start, end in split_ranges]
+            
+        elif split_mode == "by size":
+            # Original parsing for "by size" mode
             try:
                 split_values = [int(x.strip()) for x in split_pos.split(',') if x.strip()]
             except ValueError as e:

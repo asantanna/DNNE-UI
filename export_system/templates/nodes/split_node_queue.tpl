@@ -40,19 +40,25 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         outputs = {}
         
         if self.split_mode == "by index":
-            # Split at specific indices
-            # Example: split_values=[10, 20, 30] creates splits [0:10], [10:20], [20:30], [30:]
-            indices = [0] + self.split_values + [dim_size]
+            # Split using index ranges
+            # split_values can be either:
+            # 1. List of integers (legacy): [10, 20, 30] creates splits [0:10], [10:20], [20:30], [30:]
+            # 2. List of ranges (new): [[3, 6], [10, 19]] extracts features [3:6] and [10:19]
             
-            # Create slices
-            for i, output_name in enumerate(["output_a", "output_b", "output_c", "output_d"]):
-                if i < len(indices) - 1:
-                    start_idx = indices[i]
-                    end_idx = indices[i + 1]
-                    
-                    if start_idx >= dim_size:
-                        # This output and all subsequent ones will be empty
+            output_names = ["output_a", "output_b", "output_c", "output_d"]
+            
+            # Check if we have the new range format or legacy integer format
+            if self.split_values and isinstance(self.split_values[0], list):
+                # New range format: [[start, end], ...]
+                for i, range_pair in enumerate(self.split_values):
+                    if i >= len(output_names):
                         break
+                    
+                    start_idx, end_idx = range_pair
+                    
+                    # Skip if range starts beyond dimension size
+                    if start_idx >= dim_size:
+                        continue
                     
                     # Clamp end_idx to dim_size
                     end_idx = min(end_idx, dim_size)
@@ -62,7 +68,30 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                     slice_indices[self.dimension] = slice(start_idx, end_idx)
                     
                     output_slice = input_tensor[tuple(slice_indices)]
-                    outputs[output_name] = output_slice
+                    outputs[output_names[i]] = output_slice
+            else:
+                # Legacy integer format for backward compatibility
+                indices = [0] + self.split_values + [dim_size]
+                
+                # Create slices
+                for i, output_name in enumerate(output_names):
+                    if i < len(indices) - 1:
+                        start_idx = indices[i]
+                        end_idx = indices[i + 1]
+                        
+                        if start_idx >= dim_size:
+                            # This output and all subsequent ones will be empty
+                            break
+                        
+                        # Clamp end_idx to dim_size
+                        end_idx = min(end_idx, dim_size)
+                        
+                        # Create slice indices for the feature dimension
+                        slice_indices = [slice(None)] * input_tensor.ndim
+                        slice_indices[self.dimension] = slice(start_idx, end_idx)
+                        
+                        output_slice = input_tensor[tuple(slice_indices)]
+                        outputs[output_name] = output_slice
         
         elif self.split_mode == "by size":
             # Split into chunks of specific sizes
