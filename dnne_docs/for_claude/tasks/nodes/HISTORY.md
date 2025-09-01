@@ -2,6 +2,30 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-09-01 - SimulationTracker Telemetry Improvements
+
+### SimulationTracker Telemetry System ✅
+- Reduced telemetry volume from per-timestep to configurable periodic reporting
+- Added three reporting modes: time-based ("10s", "5m"), step-based, episode-based
+- Implemented statistical aggregation (min/max/mean/std/percentiles) for buffered data
+- Created shared time_utils.py for duration parsing ("2m30s" format support)
+- Added UI configuration: telemetry_mode, telemetry_interval, telemetry_stats parameters
+- Aligned with EpochTracker's efficient telemetry pattern
+- Added time_utils.py to framework export list for proper deployment
+- Created comprehensive documentation at dnne_docs/nodes/robotics/simulation_tracker.md
+
+### Split Node Range Support ✅
+- Enhanced Split node to accept index ranges in "by index" mode
+- Supports notation like "[3:5], [10:18]" where ranges are inclusive
+- Maintains backward compatibility with legacy integer format
+- Added parse_index_ranges() method in split_exporter.py
+- Created comprehensive unit tests (23 tests) for range parsing
+
+### Documentation Cleanup ✅
+- Removed all TASKS.md and HISTORY.md files outside dnne_docs/for_claude/tasks
+- Deleted 4 redundant files from dnne_docs/nodes/ and dnne_docs/experiments/
+- All task tracking now centralized in proper location
+
 ## Session: 2025-08-21 - Eat_N and Barrier Synchronization Nodes
 
 ### Eat_N Node Implementation ✅

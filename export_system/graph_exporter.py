@@ -1671,6 +1671,7 @@ class PlaceholderNode_{node_id}(QueueNode):
             ("framework/telemetry.py", "telemetry.py", "telemetry support", True),
             ("framework/deadlock_utils.py", "deadlock_utils.py", "deadlock debugging", True),
             ("framework/logging_utils.py", "logging_utils.py", "relative time logging", True),
+            ("framework/time_utils.py", "time_utils.py", "time duration parsing", True),
         ]
         
         # Export all framework files

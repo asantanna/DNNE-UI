@@ -1,6 +1,6 @@
 # DNNE Task Index
 
-*Last Updated: 2025-08-31*  
+*Last Updated: 2025-09-01*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
@@ -20,17 +20,22 @@
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
 
-## Today's Achievements (2025-08-31)
+## Today's Achievements (2025-09-01)
 
-✅ **Export System Hardening**: Fail-fast validation prevents invalid exports
-- Added `_validate_workflow_integrity()` for pre-export checks
-- Automatic cleanup of partial exports on failure
-- Clear error messages with repair suggestions
+✅ **SimulationTracker Telemetry**: Reduced volume with configurable reporting
+- Added time/step/episode-based reporting modes with intervals
+- Implemented statistical aggregation (min/max/mean/std/percentiles)
+- Created shared time_utils.py for duration parsing ("10s", "2m30s")
+- Added comprehensive documentation at dnne_docs/nodes/robotics/
 
-✅ **Franka_Coop_Nodes Repair**: Workflow now exports cleanly
-- Removed 4 phantom connections to non-existent nodes
-- Fixed Barrier nodes' broken release inputs
-- Ready for cooperative control experiments
+✅ **Split Node Enhancement**: Index range support for cleaner workflows
+- Added support for inclusive ranges like "[3:5], [10:18]"
+- Maintains backward compatibility with integer format
+- Created 23 unit tests for comprehensive coverage
+
+✅ **Documentation Cleanup**: Centralized all TASKS.md/HISTORY.md files
+- Removed 4 redundant files outside dnne_docs/for_claude/tasks
+- All task tracking now in proper location
 
 ## Active Priority Items
 
