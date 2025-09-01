@@ -8,7 +8,7 @@ __pycache__/
 !custom_nodes/example_node.py.example
 extra_model_paths.yaml
 /.vs
-# ALS - so it saves launch.json
+# ALS - commented out so it saves launch.json
 #.vscode/
 .idea/
 venv/
@@ -17,22 +17,26 @@ venv/
 !/web/extensions/logging.js.example
 !/web/extensions/core/
 /tests-ui/data/object_info.json
-
-/user/
-!/user/default/workflows/
-!/user/default/custom_compute_funcs/
-
 *.log
 web_custom_versions/
 .DS_Store
 openapi.yaml
 filtered-openapi.yaml
 uv.lock
+.coverage*
+
+###### DNNE #######
+
+# User workflows and custom compute functions
+/user/
+!/user/default/workflows/
+!/user/default/custom_compute_funcs/
 
 # DNNE - specific ignores
-
 "_DISABLED_*"  
 *.backup*
+claude_scripts/tmp/*
+claude_scripts/ppo_agent_profile.stats
 
 export_system/exports/*
 # !export_system/exports/Cartpole_PPO/
@@ -41,14 +45,8 @@ export_system/exports/*
 # Ignore downloaded data in exports
 export_system/exports/*/data/
 
-claude_scripts/ppo_agent_profile.stats
-
-.coverage*
-
-# Training runs output
+# run logs and telemetry logs
 runs/
-
-# execution and telemetry logs
 remote_clients/
 
 # User-specific configuration files
