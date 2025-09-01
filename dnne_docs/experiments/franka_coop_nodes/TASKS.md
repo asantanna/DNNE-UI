@@ -5,14 +5,14 @@
 ## Pending TODOs
 
 ### High Priority
-- [ ] Fix --timeout to be more reliable (almost never works currently)
-- [ ] Test complete workflow execution to verify control loop works
+- [x] Fix --timeout to be more reliable (almost never works currently)
+- [x] Test complete workflow execution to verify control loop works
 
 ### Medium Priority  
 - [ ] Add caching for YAML files in get_task_schema_info
 - [ ] Update PPOAgent and PPOConfig when IsaacGymEnvs changes (for other workflows)
 - [ ] Fix set_connections() not being called for Concat nodes
-- [ ] Implement proper connection tracking instead of hardcoding
+- [x] Implement proper connection tracking instead of hardcoding
 
 ### Low Priority
 - [ ] Add more subtasks beyond random_target (reach_pose, trajectory_follow)
