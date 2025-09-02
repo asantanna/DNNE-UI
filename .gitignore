@@ -59,3 +59,7 @@ mcp_dnne_ui/tests/test_results_comprehensive.json
 
 # test suite datasets
 dnne_test_suite/DATASETS/cifar10/cifar-10-python.tar.gz
+
+# shadow_train_standalone
+dnne_docs/experiments/franka_coop_nodes/*.npy
+dnne_docs/experiments/franka_coop_nodes/*.png
