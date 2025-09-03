@@ -11,17 +11,17 @@ DNNE provides a visual approach to creating machine learning training workflows.
 #### Basic Classification Pipeline
 ```
 Dataset → BatchSampler → GetBatch → Network → Loss
-                              ↓         ↓
-                         Optimizer → TrainingStep
-                                         ↓
-                                    EpochTracker
+                              ↓                 ↓
+                         Labels → CrossEntropy → SGDOptimizer
+                                                      ↓
+                                                 EpochTracker
 ```
 
 #### Components
 - **Data Pipeline**: Dataset → BatchSampler → GetBatch
-- **Model**: Network node or individual layer nodes
-- **Training Loop**: Loss + Optimizer → TrainingStep
-- **Monitoring**: EpochTracker, Accuracy, TensorVisualizer
+- **Model**: Network node (consolidates LinearLayer nodes)
+- **Training Loop**: Loss → SGDOptimizer (handles backward pass and step)
+- **Monitoring**: EpochTracker, Accuracy metrics
 
 ### 2. Reinforcement Learning Workflows
 
@@ -96,6 +96,7 @@ DNNE uses event-driven patterns:
 - Nodes trigger on data availability
 - Async execution for parallel processing
 - Queue-based communication
+- SGDOptimizer handles backward pass and parameter updates directly
 
 ## Common Workflow Patterns
 
@@ -143,9 +144,9 @@ Easy Tasks → Medium Tasks → Hard Tasks
 
 #### Implementation
 ```
-Epoch → LR Scheduler → Optimizer
-           ↓
-    Update learning rate
+SGDOptimizer (contains learning rate parameter)
+     ↓
+Configurable via widgets or runtime overrides
 ```
 
 ### 2. Gradient Management
@@ -153,7 +154,7 @@ Epoch → LR Scheduler → Optimizer
 #### Gradient Clipping
 Prevent exploding gradients:
 ```
-TrainingStep → Gradient Clipper → Optimizer
+Loss → SGDOptimizer (with gradient clipping enabled)
 ```
 
 #### Gradient Accumulation
@@ -196,9 +197,9 @@ Layer1(GPU1) → Layer2(GPU2) → Layer3(GPU3)
 
 #### Visualization
 ```
-Metrics → TensorBoard Writer
-    ↓
-Real-time Plots
+EpochTracker → Console Output
+      ↓
+Training Statistics
 ```
 
 ### 2. Checkpointing
@@ -215,7 +216,7 @@ checkpoint = {
 
 #### Workflow Integration
 ```
-TrainingStep → Checkpoint Manager
+Network Node → Checkpoint Manager
                      ↓
               Save/Load Models
 ```
@@ -305,26 +306,27 @@ model_int8 = torch.quantization.quantize_dynamic(
 
 ## Example Workflows
 
-### 1. MNIST Classification
+### 1. MNIST Classification (MNIST_Test.json)
 Complete supervised learning pipeline with:
-- Data loading and preprocessing
-- CNN architecture
-- Training with validation
-- Metric tracking
+- MNISTDataset node for data loading
+- Network node consolidating LinearLayer nodes
+- CrossEntropyLoss for classification
+- SGDOptimizer handling training steps
+- EpochTracker for progress monitoring
 
-### 2. Cartpole PPO
-Reinforcement learning workflow featuring:
-- Isaac Gym environment
-- PPO agent configuration
-- Parallel training
-- Reward monitoring
+### 2. Shadow_Train Workflow
+Physics prediction workflow featuring:
+- Isaac Gym FrankaDNNE environment
+- Network learning forward dynamics
+- DataStreamer for trajectory data
+- Real-time simulation integration
 
-### 3. Image Segmentation
-Advanced workflow with:
-- U-Net architecture
-- Custom loss functions
-- Data augmentation
-- Multi-GPU training
+### 3. Franka_Coop_Nodes
+Cooperative learning workflow with:
+- Multiple networks (control and shadow)
+- Shared loss computation
+- Independent optimizers
+- Physics-based learning
 
 ## Troubleshooting
 
