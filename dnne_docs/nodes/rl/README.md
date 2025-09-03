@@ -37,6 +37,8 @@ PPO uses two main components:
 ## Integration with Isaac Gym
 
 The RL nodes are designed to work with:
+- [PPO_Agent]
+- [PPO_Config]
 - [IsaacGymSim](../robotics/isaac_gym_sim.md) - Physics simulation
 - [IsaacGymEnvs](../robotics/isaac_gym_envs.md) - Pre-built RL environments
 
