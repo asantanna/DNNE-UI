@@ -50,7 +50,7 @@ class EpochTrackerExporter(ExportableNode):
     
     @classmethod
     def get_output_names(cls):
-        return ["training_summary"]
+        return []  # No outputs - all metrics go through telemetry
     
     @classmethod
     def get_input_names(cls):
@@ -59,12 +59,7 @@ class EpochTrackerExporter(ExportableNode):
     @classmethod
     def get_initial_output_schema(cls, node_data):
         return {
-            "outputs": {
-                "training_summary": {
-                    "type": "dict",
-                    "dtype": "dict"
-                }
-            }
+            "outputs": {}  # No outputs - all metrics go through telemetry
         }
     
     @classmethod

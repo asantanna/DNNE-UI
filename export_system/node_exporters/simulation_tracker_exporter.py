@@ -50,14 +50,13 @@ class SimulationTrackerExporter(ExportableNode):
     @classmethod  
     def get_input_names(cls):
         """Get the ordered list of input names for this node type"""
-        # From SimulationTrackerNode.INPUT_TYPES
-        return ["observation", "done", "loss", "custom_metrics"]
+        # From SimulationTrackerNode.INPUT_TYPES - all optional now
+        return ["step_done", "episode_done", "loss", "custom_metrics"]
     
     @classmethod
     def get_output_names(cls):
         """Get the ordered list of output names for this node type"""
-        # From SimulationTrackerNode.RETURN_NAMES
-        return ["control_metrics"]
+        return []  # No outputs - all metrics go through telemetry
     
     @classmethod
     def get_imports(cls):
@@ -73,22 +72,7 @@ class SimulationTrackerExporter(ExportableNode):
     @classmethod
     def get_initial_output_schema(cls, node_data):
         """Get the initial output schema for this node"""
-        # Return initial control metrics structure
-        return {
-            "control_metrics": {
-                "episode": 0,
-                "timestep": 0,
-                "done": False,
-                "episode_done": False,
-                "episode_loss": 0.0,
-                "avg_loss": 0.0,
-                "success_rate": 0.0,
-                "improvement_rate": 0.0,
-                "best_loss": float('inf'),
-                "avg_episode_length": 0.0,
-                "episodes_since_improvement": 0,
-            }
-        }
+        return {}  # No outputs - all metrics go through telemetry
 
     @classmethod
     def get_subsystem(cls):

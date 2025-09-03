@@ -1,5 +1,6 @@
 # Get logger from globals
 from framework.globals import Global as g, dnne_logging
+from framework.exceptions import CauseExitException
 from framework.time_utils import parse_duration
 import time
 import statistics
@@ -9,8 +10,9 @@ robotics_logger = dnne_logging.getLogger("robotics")
 
 class SimulationTracker_{NODE_ID}(QueueNode):
     """
-    Simulation Tracker - Tracks RL/robotics training progress.
-    Monitors episodes, rewards, and performance metrics.
+    Simulation Tracker - Tracks training progress for simulations.
+    Monitors episodes, loss metrics, and custom metrics via telemetry.
+    All inputs are optional - connect only what you need to track.
     """
     
     def __init__(self, node_id: str):
@@ -19,11 +21,10 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         self.node_logger = robotics_logger  # Use robotics subsystem logger
         
         # Set up input and output queues
-        # Required: observation, loss (must be present every timestep)
-        # Optional: done, custom_metrics (episodic or additional metrics)
-        self.setup_inputs(required=["observation", "loss"], 
-                         optional=["done", "custom_metrics"])
-        self.setup_outputs(["control_metrics"])
+        # All inputs are optional - connect what you need to track
+        self.setup_inputs(required=[], 
+                         optional=["step_done", "episode_done", "loss", "custom_metrics"])
+        self.setup_outputs([])  # No outputs - all metrics go through telemetry
         
         self.max_episodes = {MAX_EPISODES}
         self.success_threshold = {SUCCESS_THRESHOLD}
@@ -91,18 +92,19 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         self.last_episode_time = None
     
     
-    async def compute(self, observation=None, loss=None, 
-                     done=None, custom_metrics=None):
+    async def compute(self, step_done=None, episode_done=None, 
+                     loss=None, custom_metrics=None):
         """
-        Track simulation progress and compute control metrics.
+        Track simulation progress and report telemetry.
         """
-        # Initialize timing on first observation
+        # Initialize timing on first call
         if self.start_time is None:
             self.start_time = time.time()
             self.last_episode_time = self.start_time
         
-        # Update timestep count only if observation is present
-        if observation is not None:
+        # Track step completion for step-based intervals
+        step_completed = step_done is not None
+        if step_completed:
             self.timestep_count += 1
             self.current_episode_length += 1
         
@@ -120,11 +122,10 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             if self.telemetry_level != "off":
                 self.telemetry_loss_buffer.append(loss_value)
         
-        # Episode completed - ANY value on done input triggers episode end
-        # (done is None if no signal received)
-        episode_done = False
-        if done is not None:
-            episode_done = True
+        # Episode completed - ANY value on episode_done input triggers episode end
+        episode_completed = False
+        if episode_done is not None:
+            episode_completed = True
             self.episode_count += 1
             
             # Calculate average loss for the episode
@@ -158,19 +159,21 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         
         # Check if we should report telemetry
         if self.telemetry_level != "off":
-            should_report = self._should_report_telemetry(episode_done)
+            should_report = self._should_report_telemetry(step_completed, episode_completed)
             if should_report:
                 self._report_telemetry()
         
-        # Compute control metrics
-        control_metrics = self._compute_control_metrics(episode_done)
+        # Check if training is done (for internal tracking)
+        if episode_completed:
+            training_done = self._check_training_done()
+            if training_done:
+                print(f"\n🎯 SIMULATION COMPLETE! Episode {self.episode_count}\n")
+                raise CauseExitException(f"Training completed after {self.episode_count} episodes")
         
-        # Output control metrics
-        await self.send_output("control_metrics", control_metrics)
-        
-        return control_metrics
+        # No outputs - all metrics sent via telemetry
+        return {}
     
-    def _should_report_telemetry(self, episode_done):
+    def _should_report_telemetry(self, step_completed, episode_completed):
         """Determine if telemetry should be reported based on configured mode and interval."""
         if self.telemetry_level == "off":
             return False
@@ -181,12 +184,15 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             return time_elapsed >= self.telemetry_interval
         
         elif self.telemetry_mode == 'steps':
-            steps_elapsed = self.timestep_count - self.telemetry_last_report_step
-            return steps_elapsed >= self.telemetry_interval
+            # Only count when step_done signal is received
+            if step_completed:
+                steps_elapsed = self.timestep_count - self.telemetry_last_report_step
+                return steps_elapsed >= self.telemetry_interval
+            return False
         
         elif self.telemetry_mode == 'episodes':
-            # Report on episode completion and check interval
-            if episode_done:
+            # Only count when episode_done signal is received
+            if episode_completed:
                 episodes_elapsed = self.episode_count - self.telemetry_last_report_episode
                 return episodes_elapsed >= self.telemetry_interval
             return False
@@ -278,86 +284,33 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             success_rate = sum(recent_successes) / len(recent_successes)
             telemetry.report_custom(self.node_id, "success_rate", success_rate)
     
-    def _compute_control_metrics(self, episode_done):
+    def _check_training_done(self):
         """
-        Compute control metrics for downstream nodes.
+        Check if training should stop based on various criteria.
         """
-        # Calculate running averages
-        avg_loss = 0.0
-        avg_length = 0.0
+        # Calculate success rate if we have data
         success_rate = 0.0
-        
-        if self.episode_losses:
-            recent_losses = self.episode_losses[-self.window_size:]
-            avg_loss = sum(recent_losses) / len(recent_losses)
-            
-        if self.episode_lengths:
-            recent_lengths = self.episode_lengths[-self.window_size:]
-            avg_length = sum(recent_lengths) / len(recent_lengths)
-            
         if self.episode_successes:
             recent_successes = self.episode_successes[-self.window_size:]
             success_rate = sum(recent_successes) / len(recent_successes)
         
-        # Calculate improvement rate (negative is good for loss)
-        improvement_rate = 0.0
-        if len(self.episode_losses) > self.window_size:
-            old_avg = sum(self.episode_losses[-2*self.window_size:-self.window_size]) / self.window_size
-            new_avg = avg_loss
-            if old_avg != 0:
-                improvement_rate = (old_avg - new_avg) / abs(old_avg)  # Positive means loss decreased
-        
-        # Determine if training is done
-        training_done = False
-        
         # Check max episodes
         if self.episode_count >= self.max_episodes:
-            training_done = True
-            # if self.telemetry_level != "off":
-            #     robotics_logger.info(f"SimulationTracker_{NODE_ID}: Reached max episodes ({self.max_episodes})")
+            robotics_logger.info(f"SimulationTracker: Reached max episodes ({self.max_episodes})")
+            return True
         
         # Check success threshold
         if success_rate >= self.success_threshold and self.episode_count >= self.window_size:
-            training_done = True
-            # if self.telemetry_level != "off":
-            #     robotics_logger.info(f"SimulationTracker_{NODE_ID}: Reached success threshold ({success_rate:.2%} >= {self.success_threshold:.2%})")
+            robotics_logger.info(f"SimulationTracker: Reached success threshold ({success_rate:.2%} >= {self.success_threshold:.2%})")
+            return True
         
         # Check for convergence (no improvement in last N episodes)
         convergence_window = min(500, self.max_episodes // 10)
         if self.episode_count - self.last_improvement_episode > convergence_window:
-            training_done = True
-            # if self.telemetry_level != "off":
-            #     robotics_logger.info(f"SimulationTracker_{NODE_ID}: Converged (no improvement in {convergence_window} episodes)")
+            robotics_logger.info(f"SimulationTracker: Converged (no improvement in {convergence_window} episodes)")
+            return True
         
-        # Build control metrics dictionary
-        control_metrics = {
-            # Core control
-            "episode": self.episode_count,
-            "timestep": self.timestep_count,
-            "done": training_done,
-            
-            # Episode metrics
-            "episode_done": episode_done,
-            "episode_loss": self.episode_losses[-1] if self.episode_losses else 0.0,
-            "avg_loss": avg_loss,
-            
-            # Performance tracking
-            "success_rate": success_rate,
-            "improvement_rate": improvement_rate,
-            "best_loss": self.best_loss,
-            
-            # Additional statistics
-            "avg_episode_length": avg_length,
-            "episodes_since_improvement": self.episode_count - self.last_improvement_episode,
-        }
-        
-        # Add latest loss if available
-        if self.losses:
-            control_metrics["latest_loss"] = self.losses[-1]
-            if len(self.losses) >= self.window_size:
-                control_metrics["avg_loss"] = sum(self.losses[-self.window_size:]) / self.window_size
-        
-        return control_metrics
+        return False
     
     def get_state(self):
         """Get node state for checkpointing."""
