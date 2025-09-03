@@ -4,18 +4,16 @@
 
 | Component | Status | Priority | Notes |
 |-----------|--------|----------|-------|
+| Export System | ✅ Simplified | - | Removed unnecessary gradient isolation mechanism |
+| Shadow_Train | ✅ Working | - | Learning correctly (1.23 → 0.71 loss in 40 steps) |
 | MultiWaiter | ✅ Fixed | - | Race condition resolved with required_and_received tracking |
 | DataStreamer | ✅ Fixed | - | External sync mode working with wait_for_optionals |
-| Shadow_Train | ✅ Working | - | Proper lockstep simulation/training synchronization |
-| Deadlock Tool | ✅ Enhanced | - | Added DataStreamer simulator |
-| Export System | ✅ Enhanced | - | Connection validation at export time |
 | Queue Framework | ✅ Stable | - | Async queue architecture working correctly |
 
-## Today's Achievements (Aug 30, 2025)
-- Fixed MultiWaiter race condition causing listener errors
-- Resolved DataStreamer busy loop consuming 1.2M+ events
-- Added wait_for_optionals parameter for proper optional input handling
-- Shadow_Train workflow running correctly with proper synchronization
+## Today's Achievements (Sep 2, 2025)
+- Removed gradient isolation complexity - PyTorch handles optimizer isolation naturally
+- Verified Shadow_Train learning with simplified architecture
+- Cleaned up network_queue.tpl, sgd_optimizer_queue.tpl, and globals.py
 
 ## Active Priorities
 

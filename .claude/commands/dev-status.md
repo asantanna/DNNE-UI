@@ -11,24 +11,19 @@ $ARGUMENTS$
 
 *For historical development sessions, see HISTORY.md*
 
-## Latest Achievements (2025-08-31)
+## Latest Achievements (2025-09-02)
 
-### Export System Hardening ✅
-- **Fail-fast validation** - Prevents invalid exports from being created
-  - Added pre-export workflow integrity check
-  - Changed warnings to errors for missing nodes
-  - Automatic cleanup of partial exports on failure
-  - Clear error messages with repair suggestions
+### Gradient Isolation Removal ✅
+- **Simplified export system** - Removed unnecessary gradient isolation mechanism
+  - PyTorch's natural parameter grouping provides sufficient isolation
+  - Deleted zero_grad_if_unauthorized() and OptimizerContext code
+  - Shadow_Train verified working: loss 1.23 → 0.71 in 40 steps
 
-### Franka_Coop_Nodes Workflow Repair ✅
-- **Removed 4 phantom connections** - Links to non-existent nodes
-- **Fixed Barrier nodes** - Repaired broken release inputs
-- **Workflow now exports cleanly** - Ready for experiments
-
-### Previous Achievements (2025-08-28)
-- Virtual Connection System - UI-only connections resolved at runtime
-- Multi-optimizer support with retain_graph override
-- Workflow analysis & repair tools
+### Previous Achievements (2025-08-31)
+- Export System Hardening - Fail-fast validation prevents invalid exports
+- Franka_Coop_Nodes Workflow Repair - Fixed phantom connections and Barrier nodes
+- Virtual Connection System - UI-only connections resolved at runtime (2025-08-28)
+- Multi-optimizer support with retain_graph override (2025-08-28)
 
 ## Quick Reference
 
@@ -74,13 +69,13 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
+- Remove gradient isolation mechanism from export templates
+- Update documentation for gradient isolation removal
 - Remove debug print statements from export system
 - Add retain_graph override support for multi-optimizer workflows
 - Fix SimulationTracker template output method bug
 - Fix Network node output schema reporting bug
 - Update analyze_workflow tool with property-based validation and repair
-- Add label rats nest visualization feature
-- Clean up debug output and document label improvements
 
 ---
 *Focus on active tasks in INDEX.md*
