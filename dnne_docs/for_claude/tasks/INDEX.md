@@ -19,8 +19,31 @@
 | **Node System** | 🟢 Complete | Eat_N & Barrier synchronization nodes | - | 2025-08-21 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
+| **Telemetry System** | 🟡 In Progress | Phase 3/4 - Templates done, TelemetryClient pending | High | 2025-09-03 |
 
-## Today's Achievements (2025-09-01)
+## Today's Achievements (2025-09-03)
+
+✅ **Telemetry System Implementation**: Phases 1-3 complete
+- **Phase 1**: Deleted MetricsLogger system entirely
+- **Phase 2**: Updated all UI nodes and exporters
+  - Added report_interval to BalancerNode
+  - Added telemetry_level to all nodes
+  - Removed window-based telemetry from EpochTracker
+  - Updated SimulationTracker to simplified interval format
+- **Phase 3**: Updated node templates
+  - Implemented telemetry levels (off/essential/extended/debug)
+  - Made all intervals configurable
+  - Simplified metrics to essential only
+- **Remaining**: TelemetryClient enhancement and testing
+
+✅ **Telemetry System Planning**: Complete refactoring plan created
+- Analyzed current system and identified redundancies
+- Created policy document defining essential vs optional metrics
+- Designed phase-based implementation plan
+- SimulationTracker refocused on loss (simulator-specific, not RL)
+- All intervals will be configurable via --override flags
+
+## Previous Achievements (2025-09-01)
 
 ✅ **SimulationTracker Telemetry**: Reduced volume with configurable reporting
 - Added time/step/episode-based reporting modes with intervals
@@ -56,6 +79,13 @@
 5. **Node System**: Rename GeometricLoss output to "loss"
 
 ## Component Details
+
+### Telemetry System (`telemetry/TASKS.md`)
+- Complete refactoring to eliminate redundancy
+- Single TelemetryClient system (removing MetricsLogger)
+- Configurable intervals via --override
+- 50% reduction in data volume target
+- Phase-based implementation planned
 
 ### Type System (`nodes/type_system.md`)
 - Refined types implemented (e.g., BATCH_IMAGE_TENSOR, NETWORK_MODEL_OBJ)

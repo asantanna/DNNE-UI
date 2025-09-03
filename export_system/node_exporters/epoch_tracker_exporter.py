@@ -14,9 +14,10 @@ class EpochTrackerExporter(ExportableNode):
     @classmethod
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
         # Use universal parameter reader - FAIL-FAST: no defaults
-        # The widgets_values array contains only max_epochs at index 0
+        # The widgets_values array contains max_epochs at index 0 and telemetry_level at index 1
         param_specs = [
-            {'name': 'max_epochs', 'widget_index': 0}
+            {'name': 'max_epochs', 'widget_index': 0},
+            {'name': 'telemetry_level', 'widget_index': 1}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
@@ -33,10 +34,14 @@ class EpochTrackerExporter(ExportableNode):
         if not isinstance(max_epochs, (int, float)) or max_epochs <= 0:
             raise ValueError(f"EpochTracker node {node_id}: max_epochs must be a positive number, got: {max_epochs}")
         
+        # Default telemetry_level to "off" if not present (for compatibility)
+        telemetry_level = params.get('telemetry_level', 'off')
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "EpochTrackerNode",
-            "MAX_EPOCHS": int(max_epochs)
+            "MAX_EPOCHS": int(max_epochs),
+            "TELEMETRY_LEVEL": f'"{telemetry_level}"'  # String needs quotes
         }
     
     @classmethod

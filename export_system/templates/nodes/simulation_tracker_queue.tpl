@@ -20,56 +20,66 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         
         # Set up input and output queues
         # Required: observation, loss (must be present every timestep)
-        # Optional: done, reward, custom_metrics (episodic or additional metrics)
+        # Optional: done, custom_metrics (episodic or additional metrics)
         self.setup_inputs(required=["observation", "loss"], 
-                         optional=["done", "reward", "custom_metrics"])
+                         optional=["done", "custom_metrics"])
         self.setup_outputs(["control_metrics"])
         
         self.max_episodes = {MAX_EPISODES}
         self.success_threshold = {SUCCESS_THRESHOLD}
         
         # Telemetry reporting configuration
-        self.telemetry_mode = {TELEMETRY_MODE}  # 'time', 'steps', or 'episodes'
-        self.telemetry_interval_str = {TELEMETRY_INTERVAL}
-        self.telemetry_stats = {TELEMETRY_STATS}
+        self.telemetry_interval_str = {TELEMETRY_INTERVAL}  # e.g., "100_steps", "10_episodes", "30s"
+        self.telemetry_level = {TELEMETRY_LEVEL}  # "off", "essential", "extended", "debug"
         
         # Episode tracking
         self.episode_count = 0
         self.timestep_count = 0
-        self.current_episode_reward = 0.0
         self.current_episode_length = 0
+        self.current_episode_loss_sum = 0.0  # Track loss per episode
         
         # Performance tracking
-        self.episode_rewards = []
+        self.episode_losses = []  # Average loss per episode
         self.episode_lengths = []
         self.episode_successes = []
-        self.losses = []
+        self.losses = []  # All loss values
         
         # Running statistics
         self.window_size = 100  # For rolling averages
-        self.best_reward = float('-inf')
+        self.best_loss = float('inf')  # Lower is better for loss
         self.last_improvement_episode = 0
         
         # Telemetry configuration
-        self.telemetry_enabled = g.get_node_config(self.node_id, 'telemetry_enabled', False)
-        if self.telemetry_enabled:
-            # Parse telemetry interval based on mode
-            if self.telemetry_mode == 'time':
-                self.telemetry_interval = parse_duration(self.telemetry_interval_str)
-                self.node_logger.info(f"SimulationTracker_{NODE_ID}: Telemetry enabled with {self.telemetry_mode} interval: {self.telemetry_interval:.1f}s")
-            else:
+        # Allow runtime override via --override
+        self.telemetry_level = g.get_node_config(self.node_id, 'telemetry_level', self.telemetry_level)
+        
+        # Parse telemetry interval using simplified format
+        self.telemetry_mode = None  # Will be set based on interval format
+        self.telemetry_interval = None
+        
+        if self.telemetry_level != "off":
+            # Parse interval format: "100_steps", "10_episodes", "30s", "5m"
+            if '_' in self.telemetry_interval_str:
+                parts = self.telemetry_interval_str.split('_')
                 try:
-                    self.telemetry_interval = int(self.telemetry_interval_str)
-                except ValueError:
-                    self.telemetry_interval = 100  # Default fallback
-                    self.node_logger.warning(f"Invalid interval '{self.telemetry_interval_str}' for {self.telemetry_mode} mode, using default: 100")
-                self.node_logger.info(f"SimulationTracker_{NODE_ID}: Telemetry enabled with {self.telemetry_mode} interval: {self.telemetry_interval}")
+                    self.telemetry_interval = int(parts[0])
+                    self.telemetry_mode = parts[1]  # "steps" or "episodes"
+                except (ValueError, IndexError):
+                    self.telemetry_interval = 100
+                    self.telemetry_mode = "steps"
+                    self.node_logger.warning(f"Invalid interval format '{self.telemetry_interval_str}', using default: 100_steps")
+            else:
+                # Time-based interval (e.g., "30s", "5m")
+                self.telemetry_mode = "time"
+                self.telemetry_interval = parse_duration(self.telemetry_interval_str)
+            
+            self.node_logger.info(f"SimulationTracker telemetry: level={self.telemetry_level}, interval={self.telemetry_interval_str}")
             
             # Telemetry buffers for aggregation
             self.telemetry_loss_buffer = []
-            self.telemetry_reward_buffer = []
-            self.telemetry_episode_reward_buffer = []
+            self.telemetry_episode_loss_buffer = []
             self.telemetry_episode_length_buffer = []
+            self.telemetry_episode_success_buffer = []
             
             # Telemetry counters
             self.telemetry_last_report_time = time.time()
@@ -82,7 +92,7 @@ class SimulationTracker_{NODE_ID}(QueueNode):
     
     
     async def compute(self, observation=None, loss=None, 
-                     done=None, reward=None, custom_metrics=None):
+                     done=None, custom_metrics=None):
         """
         Track simulation progress and compute control metrics.
         """
@@ -96,14 +106,10 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             self.timestep_count += 1
             self.current_episode_length += 1
         
-        # Accumulate reward
-        if reward is not None:
-            reward_value = float(reward)
-            self.current_episode_reward += reward_value
-            
-            # Buffer reward for telemetry aggregation
-            if self.telemetry_enabled:
-                self.telemetry_reward_buffer.append(reward_value)
+        # Accumulate loss for episode average
+        if loss is not None:
+            loss_value = float(loss)
+            self.current_episode_loss_sum += loss_value
         
         # Track loss (only if present)
         if loss is not None:
@@ -111,7 +117,7 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             self.losses.append(loss_value)
             
             # Buffer loss for telemetry aggregation
-            if self.telemetry_enabled:
+            if self.telemetry_level != "off":
                 self.telemetry_loss_buffer.append(loss_value)
         
         # Episode completed - ANY value on done input triggers episode end
@@ -121,34 +127,37 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             episode_done = True
             self.episode_count += 1
             
+            # Calculate average loss for the episode
+            avg_episode_loss = self.current_episode_loss_sum / max(1, self.current_episode_length)
+            
             # Record episode statistics
-            self.episode_rewards.append(self.current_episode_reward)
+            self.episode_losses.append(avg_episode_loss)
             self.episode_lengths.append(self.current_episode_length)
             
-            # Check for improvement
-            if self.current_episode_reward > self.best_reward:
-                self.best_reward = self.current_episode_reward
+            # Check for improvement (lower loss is better)
+            if avg_episode_loss < self.best_loss:
+                self.best_loss = avg_episode_loss
                 self.last_improvement_episode = self.episode_count
             
-            # Determine success (task-specific, could be from custom_metrics)
+            # Determine success (task-specific, from custom_metrics)
             success = False
             if custom_metrics and "success" in custom_metrics:
-                success = custom_metrics["success"]
-            elif self.current_episode_reward > 0:  # Simple heuristic
-                success = True
+                success = bool(custom_metrics["success"])
+            # Could also use loss threshold: success = avg_episode_loss < threshold
             self.episode_successes.append(success)
             
             # Buffer episode metrics for telemetry
-            if self.telemetry_enabled:
-                self.telemetry_episode_reward_buffer.append(self.current_episode_reward)
+            if self.telemetry_level != "off":
+                self.telemetry_episode_loss_buffer.append(avg_episode_loss)
                 self.telemetry_episode_length_buffer.append(self.current_episode_length)
+                self.telemetry_episode_success_buffer.append(success)
             
             # Reset for next episode
-            self.current_episode_reward = 0.0
+            self.current_episode_loss_sum = 0.0
             self.current_episode_length = 0
         
         # Check if we should report telemetry
-        if self.telemetry_enabled:
+        if self.telemetry_level != "off":
             should_report = self._should_report_telemetry(episode_done)
             if should_report:
                 self._report_telemetry()
@@ -163,7 +172,7 @@ class SimulationTracker_{NODE_ID}(QueueNode):
     
     def _should_report_telemetry(self, episode_done):
         """Determine if telemetry should be reported based on configured mode and interval."""
-        if not self.telemetry_enabled:
+        if self.telemetry_level == "off":
             return False
         
         # Mode-specific checks
@@ -186,7 +195,7 @@ class SimulationTracker_{NODE_ID}(QueueNode):
     
     def _report_telemetry(self):
         """Report aggregated telemetry statistics."""
-        if not self.telemetry_enabled:
+        if self.telemetry_level == "off":
             return
         
         from framework import telemetry
@@ -208,7 +217,7 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             losses = self.telemetry_loss_buffer
             telemetry.report_custom(self.node_id, "loss_samples", float(len(losses)))
             
-            if self.telemetry_stats:
+            if self.telemetry_level in ["extended", "debug"]:
                 # Calculate statistics
                 loss_mean = statistics.mean(losses)
                 loss_min = min(losses)
@@ -235,57 +244,33 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             # Clear buffer
             self.telemetry_loss_buffer = []
         
-        # Report reward statistics
-        if self.telemetry_reward_buffer:
-            rewards = self.telemetry_reward_buffer
-            telemetry.report_custom(self.node_id, "reward_samples", float(len(rewards)))
-            
-            if self.telemetry_stats:
-                reward_mean = statistics.mean(rewards)
-                reward_min = min(rewards)
-                reward_max = max(rewards)
-                
-                telemetry.report_custom(self.node_id, "reward_mean", reward_mean)
-                telemetry.report_custom(self.node_id, "reward_min", reward_min)
-                telemetry.report_custom(self.node_id, "reward_max", reward_max)
-                
-                if len(rewards) > 1:
-                    reward_std = statistics.stdev(rewards)
-                    telemetry.report_custom(self.node_id, "reward_std", reward_std)
-            else:
-                telemetry.report_custom(self.node_id, "reward_latest", rewards[-1])
-            
-            # Clear buffer
-            self.telemetry_reward_buffer = []
+        # Report episode loss statistics (essential metric)
         
         # Report episode statistics
-        if self.telemetry_episode_reward_buffer:
-            ep_rewards = self.telemetry_episode_reward_buffer
+        if self.telemetry_episode_loss_buffer:
+            ep_losses = self.telemetry_episode_loss_buffer
             ep_lengths = self.telemetry_episode_length_buffer
+            ep_successes = self.telemetry_episode_success_buffer
             
-            telemetry.report_custom(self.node_id, "episodes_completed", float(len(ep_rewards)))
+            # Essential metrics
+            telemetry.report_custom(self.node_id, "episodes_completed", float(len(ep_losses)))
+            telemetry.report_custom(self.node_id, "loss_mean", statistics.mean(ep_losses))
+            telemetry.report_custom(self.node_id, "timesteps_total", float(self.timestep_count))
             
-            if self.telemetry_stats and ep_rewards:
-                # Episode reward stats
-                telemetry.report_custom(self.node_id, "episode_reward_mean", statistics.mean(ep_rewards))
-                telemetry.report_custom(self.node_id, "episode_reward_min", min(ep_rewards))
-                telemetry.report_custom(self.node_id, "episode_reward_max", max(ep_rewards))
-                
-                # Episode length stats
+            if self.telemetry_level in ["extended", "debug"]:
+                # Extended metrics
                 if ep_lengths:
                     telemetry.report_custom(self.node_id, "episode_length_mean", statistics.mean(ep_lengths))
-                    telemetry.report_custom(self.node_id, "episode_length_min", float(min(ep_lengths)))
-                    telemetry.report_custom(self.node_id, "episode_length_max", float(max(ep_lengths)))
-            else:
-                # Just report latest
-                if ep_rewards:
-                    telemetry.report_custom(self.node_id, "episode_reward_latest", ep_rewards[-1])
-                if ep_lengths:
-                    telemetry.report_custom(self.node_id, "episode_length_latest", float(ep_lengths[-1]))
+                if ep_successes:
+                    success_rate = sum(ep_successes) / len(ep_successes)
+                    telemetry.report_custom(self.node_id, "success_rate", success_rate)
+                if len(ep_losses) > 1:
+                    telemetry.report_custom(self.node_id, "loss_std", statistics.stdev(ep_losses))
             
             # Clear buffers
-            self.telemetry_episode_reward_buffer = []
+            self.telemetry_episode_loss_buffer = []
             self.telemetry_episode_length_buffer = []
+            self.telemetry_episode_success_buffer = []
         
         # Report success rate if we have data
         if self.episode_successes:
@@ -298,13 +283,13 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         Compute control metrics for downstream nodes.
         """
         # Calculate running averages
-        avg_reward = 0.0
+        avg_loss = 0.0
         avg_length = 0.0
         success_rate = 0.0
         
-        if self.episode_rewards:
-            recent_rewards = self.episode_rewards[-self.window_size:]
-            avg_reward = sum(recent_rewards) / len(recent_rewards)
+        if self.episode_losses:
+            recent_losses = self.episode_losses[-self.window_size:]
+            avg_loss = sum(recent_losses) / len(recent_losses)
             
         if self.episode_lengths:
             recent_lengths = self.episode_lengths[-self.window_size:]
@@ -314,13 +299,13 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             recent_successes = self.episode_successes[-self.window_size:]
             success_rate = sum(recent_successes) / len(recent_successes)
         
-        # Calculate improvement rate
+        # Calculate improvement rate (negative is good for loss)
         improvement_rate = 0.0
-        if len(self.episode_rewards) > self.window_size:
-            old_avg = sum(self.episode_rewards[-2*self.window_size:-self.window_size]) / self.window_size
-            new_avg = avg_reward
+        if len(self.episode_losses) > self.window_size:
+            old_avg = sum(self.episode_losses[-2*self.window_size:-self.window_size]) / self.window_size
+            new_avg = avg_loss
             if old_avg != 0:
-                improvement_rate = (new_avg - old_avg) / abs(old_avg)
+                improvement_rate = (old_avg - new_avg) / abs(old_avg)  # Positive means loss decreased
         
         # Determine if training is done
         training_done = False
@@ -328,20 +313,20 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         # Check max episodes
         if self.episode_count >= self.max_episodes:
             training_done = True
-            # if self.telemetry_enabled:
+            # if self.telemetry_level != "off":
             #     robotics_logger.info(f"SimulationTracker_{NODE_ID}: Reached max episodes ({self.max_episodes})")
         
         # Check success threshold
         if success_rate >= self.success_threshold and self.episode_count >= self.window_size:
             training_done = True
-            # if self.telemetry_enabled:
+            # if self.telemetry_level != "off":
             #     robotics_logger.info(f"SimulationTracker_{NODE_ID}: Reached success threshold ({success_rate:.2%} >= {self.success_threshold:.2%})")
         
         # Check for convergence (no improvement in last N episodes)
         convergence_window = min(500, self.max_episodes // 10)
         if self.episode_count - self.last_improvement_episode > convergence_window:
             training_done = True
-            # if self.telemetry_enabled:
+            # if self.telemetry_level != "off":
             #     robotics_logger.info(f"SimulationTracker_{NODE_ID}: Converged (no improvement in {convergence_window} episodes)")
         
         # Build control metrics dictionary
@@ -353,13 +338,13 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             
             # Episode metrics
             "episode_done": episode_done,
-            "episode_reward": self.episode_rewards[-1] if self.episode_rewards else 0.0,
-            "avg_reward": avg_reward,
+            "episode_loss": self.episode_losses[-1] if self.episode_losses else 0.0,
+            "avg_loss": avg_loss,
             
             # Performance tracking
             "success_rate": success_rate,
             "improvement_rate": improvement_rate,
-            "best_reward": self.best_reward,
+            "best_loss": self.best_loss,
             
             # Additional statistics
             "avg_episode_length": avg_length,
@@ -379,11 +364,11 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         return {
             "episode_count": self.episode_count,
             "timestep_count": self.timestep_count,
-            "episode_rewards": self.episode_rewards,
+            "episode_losses": self.episode_losses,
             "episode_lengths": self.episode_lengths,
             "episode_successes": self.episode_successes,
             "losses": self.losses,
-            "best_reward": self.best_reward,
+            "best_loss": self.best_loss,
             "last_improvement_episode": self.last_improvement_episode,
         }
     
@@ -391,9 +376,9 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         """Restore node state from checkpoint."""
         self.episode_count = state.get("episode_count", 0)
         self.timestep_count = state.get("timestep_count", 0)
-        self.episode_rewards = state.get("episode_rewards", [])
+        self.episode_losses = state.get("episode_losses", [])
         self.episode_lengths = state.get("episode_lengths", [])
         self.episode_successes = state.get("episode_successes", [])
         self.losses = state.get("losses", [])
-        self.best_reward = state.get("best_reward", float('-inf'))
+        self.best_loss = state.get("best_loss", float('inf'))
         self.last_improvement_episode = state.get("last_improvement_episode", 0)

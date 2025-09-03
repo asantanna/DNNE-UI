@@ -27,6 +27,8 @@ template_vars = {
     "MAX_LATENCY_MS": -1.0,
     "WINDOW_SIZE": 100,
     "LOG_VIOLATIONS": True,
+    "REPORT_INTERVAL": 100,
+    "TELEMETRY_LEVEL": "off",
 }
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
@@ -52,6 +54,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.max_latency_ms = {MAX_LATENCY_MS}
         self.window_size = {WINDOW_SIZE}
         self.log_violations = {LOG_VIOLATIONS}
+        self.report_interval = {REPORT_INTERVAL}
+        self.telemetry_level = {TELEMETRY_LEVEL}
         
         # Performance tracking
         self.last_execution_time = None
@@ -77,7 +81,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self._register_with_global()
     
     def _register_with_global(self):
-        """Register performance targets with metrics logger and Global system"""
+        """Register performance targets with Global system"""
         if not self.enabled:
             return
             
@@ -100,11 +104,6 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 "max_latency_ms": self.max_latency_ms if self.max_latency_ms >= 0 else None,
             }
         }
-        
-        # Register with metrics logger (fail-fast if not available)
-        from framework.metrics_logger import get_metrics_logger
-        logger = get_metrics_logger()
-        logger.register_node(self.node_id, f"BalancerNode_{self.node_id}", config)
         
         # Always register with Global balancing system to track throughput
         # TODO: The subgraph name should be determined from workflow connections
@@ -139,17 +138,25 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         if len(self.latency_window) > 0:
             self.average_latency = sum(self.latency_window) / len(self.latency_window)
         
-        # Report telemetry metrics if enabled via --override
-        if Global.get_node_config(self.node_id, 'telemetry_enabled', False):
-            telemetry.report_throughput(self.node_id, self.current_frequency)
-            telemetry.report_latency(self.node_id, self.current_latency)
+        # Check violations
+        violations = self._check_violations()
         
-        # Report queue depths periodically if telemetry enabled
-        if Global.get_node_config(self.node_id, 'telemetry_enabled', False) and self.execution_count % 10 == 0:
+        # Report telemetry metrics based on level
+        # Note: telemetry level can be overridden at runtime via --override
+        telemetry_level = Global.get_node_config(self.node_id, 'telemetry_level', self.telemetry_level)
+        
+        if telemetry_level != "off" and telemetry_level in ["essential", "extended", "debug"]:
+            # Essential metrics - always reported when telemetry is enabled
+            if self.execution_count % self.report_interval == 0:
+                telemetry.report_custom(self.node_id, "frequency_current", self.current_frequency)
+                telemetry.report_custom(self.node_id, "latency_avg", self.average_latency)
+                if len(violations) > 0:
+                    telemetry.report_custom(self.node_id, "violation_count", len(violations))
+        
+        # Extended metrics - includes queue depths
+        if telemetry_level in ["extended", "debug"] and self.execution_count % self.report_interval == 0:
             for name, queue in self.input_queues.items():
                 telemetry.report_queue_depth(self.node_id, f"input_{name}", queue.qsize())
-            # Note: output_subscribers contains lists of subscriber queues, not direct queues
-            # So we report the number of subscribers per output instead
             for name, subscribers in self.output_subscribers.items():
                 telemetry.report_queue_depth(self.node_id, f"output_{name}_subscribers", len(subscribers))
         
@@ -158,33 +165,13 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         subgraph_name = "mnist"  # Default to mnist, should be determined from workflow
         await Global.async_adaptive_yield(subgraph=subgraph_name, is_item_ref=True)
         
-        # Use metrics logger (fail-fast if not available)
-        from framework.metrics_logger import get_metrics_logger
-        logger = get_metrics_logger()
-        
-        # Record current metrics
-        logger.record_metric(self.node_id, f"BalancerNode_{self.node_id}", "frequency", 
-                           self.current_frequency)
-        logger.record_metric(self.node_id, f"BalancerNode_{self.node_id}", "latency", 
-                           self.current_latency)
-        
-        # Check violations
-        violations = self._check_violations()
-        
-        # Report violations via telemetry if enabled
-        if Global.get_node_config(self.node_id, 'telemetry_enabled', False):
+        # Debug level includes detailed violation info
+        if telemetry_level == "debug":
             for v in violations:
                 telemetry.report_violation(
                     self.node_id, v["type"], 
                     v["expected"], v["actual"]
                 )
-        
-        # Always record violations in metrics logger for persistence
-        for v in violations:
-            logger.record_violation(
-                self.node_id, f"BalancerNode_{self.node_id}",
-                v["type"], v["expected"], v["actual"], False  # guaranteed param still needed for metrics logger
-            )
         
         # NOTE: Removed max_hz throttling - measurement only
         
@@ -193,19 +180,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         self.current_latency = (end_time - start_time) * 1000  # ms
         self.latency_window.append(self.current_latency)
         
-        # Report metrics periodically (both to logger and telemetry)
-        if self.execution_count % 100 == 0:
+        # Report metrics periodically based on configurable interval
+        if self.report_interval > 0 and self.execution_count % self.report_interval == 0:
             self._report_metrics()
-            
-            # Send telemetry for current metrics if enabled
-            if Global.get_node_config(self.node_id, 'telemetry_enabled', False):
-                telemetry.report_custom(self.node_id, "frequency", self.average_frequency)
-                telemetry.report_custom(self.node_id, "latency_ms", self.average_latency)
-                # Report queue depths
-                for name, queue in self.input_queues.items():
-                    telemetry.report_queue_depth(self.node_id, f"input_{name}", queue.qsize())
-                for name, subscribers in self.output_subscribers.items():
-                    telemetry.report_queue_depth(self.node_id, f"output_{name}_subscribers", len(subscribers))
         
         # Forward input unchanged
         return {"output": input}

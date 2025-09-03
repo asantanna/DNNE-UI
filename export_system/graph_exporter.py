@@ -1664,7 +1664,6 @@ class PlaceholderNode_{node_id}(QueueNode):
             ("framework/globals.py", "globals.py", None, True),
             ("framework/globals_threadsafe.py", "globals_threadsafe.py", "thread-safe yielding support", True),
             ("framework/dnne_exceptions.py", "dnne_exceptions.py", None, True),
-            ("framework/metrics_logger.py", "metrics_logger.py", "balancing node support", True),
             ("framework/multi_waiter.py", "multi_waiter.py", "efficient async input handling", True),
             ("framework/override_parser.py", "override_parser.py", "runtime parameter overrides", True),
             ("framework/arg_parser.tpl", "arg_parser.py", "command-line argument parsing", True),

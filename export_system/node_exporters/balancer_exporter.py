@@ -29,6 +29,8 @@ class BalancerExporter(ExportableNode):
             {'name': 'max_latency_ms', 'widget_index': 8},
             {'name': 'window_size', 'widget_index': 9},
             {'name': 'log_violations', 'widget_index': 10},
+            {'name': 'report_interval', 'widget_index': 11},
+            {'name': 'telemetry_level', 'widget_index': 12},
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
@@ -36,7 +38,7 @@ class BalancerExporter(ExportableNode):
         # Validate required parameters are present
         required_params = ['item_name', 'enabled', 'min_hz', 'max_hz', 'target_hz', 
                           'target_percentage', 'priority', 'guaranteed', 'max_latency_ms',
-                          'window_size', 'log_violations']
+                          'window_size', 'log_violations', 'report_interval', 'telemetry_level']
         missing_params = [p for p in required_params if params.get(p) is None]
         if missing_params:
             raise ValueError(
@@ -58,6 +60,8 @@ class BalancerExporter(ExportableNode):
             "MAX_LATENCY_MS": params['max_latency_ms'],
             "WINDOW_SIZE": params['window_size'],
             "LOG_VIOLATIONS": params['log_violations'],
+            "REPORT_INTERVAL": params['report_interval'],
+            "TELEMETRY_LEVEL": f'"{params["telemetry_level"]}"',  # String needs quotes
         }
     
     @classmethod

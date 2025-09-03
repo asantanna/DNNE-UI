@@ -31,10 +31,7 @@ class SimulationTrackerNode(RoboticsNodeBase):
             },
             "optional": {
                 "loss": ("*LOSS_SCALAR", {
-                    "tooltip": "Optional training loss from policy/value networks for tracking learning progress."
-                }),
-                "reward": ("*REWARD_SCALAR", {
-                    "tooltip": "Current step reward from the environment. Used to compute episode rewards."
+                    "tooltip": "Training loss from networks for tracking learning progress. Primary metric for biologically plausible algorithms."
                 }),
                 "custom_metrics": ("*METRICS_PYDICT", {
                     "tooltip": "Optional task-specific metrics like distance to target, energy used, etc."
@@ -51,17 +48,13 @@ class SimulationTrackerNode(RoboticsNodeBase):
                     "max": 1.0,
                     "tooltip": "Success rate threshold for early stopping. Training stops when achieved."
                 }),
-                "telemetry_mode": (["time", "steps", "episodes"], {
-                    "default": "time",
-                    "tooltip": "Telemetry reporting mode: time-based, step-based, or episode-based intervals."
-                }),
                 "telemetry_interval": ("STRING", {
-                    "default": "10s",
-                    "tooltip": "Reporting interval. For time: '10s', '5m', '2m30s'. For steps/episodes: integer like '100'."
+                    "default": "100_steps",
+                    "tooltip": "Reporting interval. Examples: '100_steps', '10_episodes', '30s', '5m'"
                 }),
-                "telemetry_stats": ("BOOLEAN", {
-                    "default": True,
-                    "tooltip": "Include statistical aggregations (min/max/mean/std) in telemetry reports."
+                "telemetry_level": (["off", "essential", "extended", "debug"], {
+                    "default": "off",
+                    "tooltip": "Level of telemetry data to send"
                 }),
             }
         }

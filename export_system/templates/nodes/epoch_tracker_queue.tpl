@@ -1,7 +1,8 @@
 # Template variables - replaced during export
 template_vars = {
     "NODE_ID": "epoch_tracker_1",
-    "MAX_EPOCHS": 100
+    "MAX_EPOCHS": 100,
+    "TELEMETRY_LEVEL": "off"
 }
 
 from framework.globals import Global as g, dnne_logging
@@ -42,29 +43,10 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
         # Flag to track if we've shown the training starting message
         self.training_started = False
         
-        # Telemetry configuration - only initialize if telemetry is enabled
-        self.telemetry_enabled = g.get_node_config(self.node_id, 'telemetry_enabled', False)
-        if self.telemetry_enabled:
-            # Only create buffers and config if telemetry is actually enabled
-            # Support both batch-based and time-based windows
-            self.telemetry_batch_window = g.get_node_config(self.node_id, 'telemetry_batch_window', None)
-            self.telemetry_time_window = g.get_node_config(self.node_id, 'telemetry_time_window', None)
-            
-            # Default to 100 batches if neither specified
-            if self.telemetry_batch_window is None and self.telemetry_time_window is None:
-                self.telemetry_batch_window = 100
-                
-            self.telemetry_loss_buffer = []
-            self.telemetry_accuracy_buffer = []
-            self.telemetry_window_counter = 0
-            self.telemetry_last_report_time = time.time()
-            
-            if self.telemetry_time_window:
-                self.node_logger.info(f"Telemetry enabled with time window: {self.telemetry_time_window} seconds")
-            elif self.telemetry_batch_window:
-                self.node_logger.info(f"Telemetry enabled with batch window: {self.telemetry_batch_window} batches")
-            else:
-                self.node_logger.info(f"Telemetry enabled")
+        # Telemetry configuration
+        self.telemetry_level = {TELEMETRY_LEVEL}
+        # Allow runtime override via --override
+        self.telemetry_level = g.get_node_config(self.node_id, 'telemetry_level', self.telemetry_level)
         
     async def compute(self, epoch_stats, loss, accuracy) -> Dict[str, Any]:
         # Show training starting message once
@@ -78,31 +60,6 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
         self.epoch_losses.append(loss_value)
         self.epoch_accuracies.append(accuracy_value)
         self.batch_count += 1
-        
-        # Collect telemetry data if enabled (no overhead when disabled)
-        if self.telemetry_enabled:
-            self.telemetry_loss_buffer.append(loss_value)
-            self.telemetry_accuracy_buffer.append(accuracy_value)
-            self.telemetry_window_counter += 1
-            
-            # Check if we should report based on window type
-            should_report = False
-            current_time = time.time()
-            
-            # Time-based window check
-            if self.telemetry_time_window:
-                time_elapsed = current_time - self.telemetry_last_report_time
-                if time_elapsed >= self.telemetry_time_window and len(self.telemetry_loss_buffer) > 0:
-                    should_report = True
-            
-            # Batch-based window check
-            elif self.telemetry_batch_window:
-                if self.telemetry_window_counter >= self.telemetry_batch_window and len(self.telemetry_loss_buffer) > 0:
-                    should_report = True
-            
-            if should_report:
-                self._report_window_telemetry()
-                self.telemetry_last_report_time = current_time
         
         # Check if epoch completed
         if epoch_stats.get("completed", False):
@@ -118,12 +75,22 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             print(f"   Avg Accuracy: {avg_accuracy:.2%}")
             print("=" * 60)
             
-            # Report epoch telemetry if enabled
-            if self.telemetry_enabled:
-                telemetry.report_custom(self.node_id, "epoch_completed", float(epoch_num + 1))
-                telemetry.report_custom(self.node_id, "epoch_avg_loss", avg_loss)
-                telemetry.report_custom(self.node_id, "epoch_avg_accuracy", avg_accuracy)
-                telemetry.report_custom(self.node_id, "epoch_total_batches", float(len(self.epoch_losses)))
+            # Report epoch telemetry based on level
+            if self.telemetry_level != "off":
+                # Essential metrics - reported at epoch completion
+                telemetry.report_custom(self.node_id, "epoch", float(epoch_num + 1))
+                telemetry.report_custom(self.node_id, "loss_mean", avg_loss)
+                telemetry.report_custom(self.node_id, "accuracy_mean", avg_accuracy)
+                
+                # Extended metrics - includes batch count
+                if self.telemetry_level in ["extended", "debug"]:
+                    telemetry.report_custom(self.node_id, "batches", float(len(self.epoch_losses)))
+                
+                # Debug metrics - includes loss trends (std deviation)
+                if self.telemetry_level == "debug":
+                    if len(self.epoch_losses) > 1:
+                        loss_std = statistics.stdev(self.epoch_losses)
+                        telemetry.report_custom(self.node_id, "loss_std", loss_std)
                 
             # Reset for next epoch
             self.epoch_losses = []
@@ -159,74 +126,3 @@ class EpochTrackerNode_{NODE_ID}(QueueNode):
             
             # Return None for control_metrics during the epoch (not complete yet)
             return {"control_metrics": None}
-    
-    def _report_window_telemetry(self):
-        """Report telemetry statistics for the current window of batches"""
-        if not self.telemetry_enabled or len(self.telemetry_loss_buffer) == 0:
-            return
-            
-        # Calculate statistics for loss
-        losses = self.telemetry_loss_buffer
-        loss_mean = statistics.mean(losses)
-        loss_min = min(losses)
-        loss_max = max(losses)
-        loss_std = statistics.stdev(losses) if len(losses) > 1 else 0.0
-        
-        # Calculate percentiles for loss
-        if len(losses) >= 4:
-            loss_quartiles = statistics.quantiles(losses, n=4)
-            loss_p25 = loss_quartiles[0]
-            loss_p50 = loss_quartiles[1]  # median
-            loss_p75 = loss_quartiles[2]
-        else:
-            # Not enough data for quartiles, use simple approximations
-            loss_p25 = loss_min
-            loss_p50 = statistics.median(losses)
-            loss_p75 = loss_max
-        
-        # Calculate statistics for accuracy
-        accs = self.telemetry_accuracy_buffer
-        acc_mean = statistics.mean(accs)
-        acc_min = min(accs)
-        acc_max = max(accs)
-        acc_std = statistics.stdev(accs) if len(accs) > 1 else 0.0
-        
-        # Calculate percentiles for accuracy
-        if len(accs) >= 4:
-            acc_quartiles = statistics.quantiles(accs, n=4)
-            acc_p25 = acc_quartiles[0]
-            acc_p50 = acc_quartiles[1]  # median
-            acc_p75 = acc_quartiles[2]
-        else:
-            # Not enough data for quartiles, use simple approximations
-            acc_p25 = acc_min
-            acc_p50 = statistics.median(accs)
-            acc_p75 = acc_max
-        
-        # Report all loss statistics
-        telemetry.report_custom(self.node_id, "train_loss_mean", loss_mean)
-        telemetry.report_custom(self.node_id, "train_loss_min", loss_min)
-        telemetry.report_custom(self.node_id, "train_loss_max", loss_max)
-        telemetry.report_custom(self.node_id, "train_loss_std", loss_std)
-        telemetry.report_custom(self.node_id, "train_loss_p25", loss_p25)
-        telemetry.report_custom(self.node_id, "train_loss_p50", loss_p50)
-        telemetry.report_custom(self.node_id, "train_loss_p75", loss_p75)
-        
-        # Report all accuracy statistics
-        telemetry.report_custom(self.node_id, "train_acc_mean", acc_mean)
-        telemetry.report_custom(self.node_id, "train_acc_min", acc_min)
-        telemetry.report_custom(self.node_id, "train_acc_max", acc_max)
-        telemetry.report_custom(self.node_id, "train_acc_std", acc_std)
-        telemetry.report_custom(self.node_id, "train_acc_p25", acc_p25)
-        telemetry.report_custom(self.node_id, "train_acc_p50", acc_p50)
-        telemetry.report_custom(self.node_id, "train_acc_p75", acc_p75)
-        
-        # Report meta information
-        telemetry.report_custom(self.node_id, "train_window_size", float(len(losses)))
-        telemetry.report_custom(self.node_id, "train_total_batches", float(self.batch_count))
-        telemetry.report_custom(self.node_id, "train_current_epoch", float(self.current_epoch + 1))
-        
-        # Clear buffers for next window
-        self.telemetry_loss_buffer = []
-        self.telemetry_accuracy_buffer = []
-        self.telemetry_window_counter = 0

@@ -148,6 +148,48 @@ class TelemetryClient:
             return
         self._send_metric(metric_name, node_id, value)
     
+    def report_metric(self, node_id: str, metric_name: str, value: float, aggregate: bool = True):
+        """
+        Report a metric with aggregation hint.
+        
+        Args:
+            node_id: Unique identifier for the node
+            metric_name: Name of the metric
+            value: Metric value
+            aggregate: Hint for aggregation behavior (not used in UDP implementation)
+        """
+        # For UDP implementation, just forward to report_custom
+        # The aggregation hint could be used by future implementations
+        self.report_custom(node_id, metric_name, value)
+    
+    def start_window(self, node_id: str, window_type: str):
+        """
+        Start a telemetry window for aggregation.
+        
+        Args:
+            node_id: Unique identifier for the node
+            window_type: Type of window (e.g., "epoch", "episode", "batch")
+        """
+        # For UDP implementation, this is a no-op
+        # Future implementations could use this for stateful aggregation
+        pass
+    
+    def end_window(self, node_id: str, stats_dict: Dict[str, Any]):
+        """
+        End a telemetry window and report aggregated stats.
+        
+        Args:
+            node_id: Unique identifier for the node
+            stats_dict: Dictionary of aggregated statistics to report
+        """
+        if not self.enabled:
+            return
+        
+        # Report each stat as a separate metric
+        for metric_name, value in stats_dict.items():
+            if isinstance(value, (int, float)):
+                self.report_custom(node_id, metric_name, float(value))
+    
     def report_violation(self, node_id: str, violation_type: str, 
                         expected: float, actual: float, extra_args: str = None):
         """

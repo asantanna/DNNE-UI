@@ -38,6 +38,10 @@ class EpochTrackerNode(RoboticsNodeBase):
                     "max": 1000,
                     "tooltip": "Maximum number of training epochs. Training will stop when this limit is reached or manually interrupted."
                 }),
+                "telemetry_level": (["off", "essential", "extended", "debug"], {
+                    "default": "off",
+                    "tooltip": "Level of telemetry data to send"
+                }),
             }
         }
 

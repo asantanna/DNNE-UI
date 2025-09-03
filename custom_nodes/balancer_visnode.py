@@ -120,6 +120,18 @@ class BalancerNode(RoboticsNodeBase):
                     "default": True,
                     "tooltip": "Log when performance targets are violated"
                 }),
+                
+                # Telemetry settings
+                "report_interval": ("INT", {
+                    "default": 100,
+                    "min": 1,
+                    "max": 10000,
+                    "tooltip": "How often to report metrics (every N executions)"
+                }),
+                "telemetry_level": (["off", "essential", "extended", "debug"], {
+                    "default": "off",
+                    "tooltip": "Level of telemetry data to send"
+                }),
             }
         }
 
