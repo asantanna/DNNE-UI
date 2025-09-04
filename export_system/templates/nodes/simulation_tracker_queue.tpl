@@ -214,22 +214,24 @@ class SimulationTracker_{NODE_ID}(QueueNode):
         self.telemetry_last_report_episode = self.episode_count
         
         # Report timing info
-        telemetry.report_custom(self.node_id, "report_time_window", time_window)
-        telemetry.report_custom(self.node_id, "report_timestep", float(self.timestep_count))
-        telemetry.report_custom(self.node_id, "report_episode", float(self.episode_count))
+        telemetry.report_custom(self.node_id, "elapsed_seconds", time_window)
+        telemetry.report_custom(self.node_id, "total_timesteps", float(self.timestep_count))
+        telemetry.report_custom(self.node_id, "total_episodes", float(self.episode_count))
         
         # Report loss statistics
         if self.telemetry_loss_buffer:
             losses = self.telemetry_loss_buffer
-            telemetry.report_custom(self.node_id, "loss_samples", float(len(losses)))
+            # No need to report sample size - it's determined by the interval
+            
+            # Always calculate and report mean (essential metric)
+            loss_mean = statistics.mean(losses)
+            telemetry.report_custom(self.node_id, "loss_mean", loss_mean)
             
             if self.telemetry_level in ["extended", "debug"]:
-                # Calculate statistics
-                loss_mean = statistics.mean(losses)
+                # Extended statistics
                 loss_min = min(losses)
                 loss_max = max(losses)
                 
-                telemetry.report_custom(self.node_id, "loss_mean", loss_mean)
                 telemetry.report_custom(self.node_id, "loss_min", loss_min)
                 telemetry.report_custom(self.node_id, "loss_max", loss_max)
                 
@@ -243,9 +245,10 @@ class SimulationTracker_{NODE_ID}(QueueNode):
                     telemetry.report_custom(self.node_id, "loss_p25", quartiles[0])
                     telemetry.report_custom(self.node_id, "loss_p50", quartiles[1])
                     telemetry.report_custom(self.node_id, "loss_p75", quartiles[2])
-            else:
-                # Just report the latest value
-                telemetry.report_custom(self.node_id, "loss_latest", losses[-1])
+                
+                # Debug level adds latest value
+                if self.telemetry_level == "debug":
+                    telemetry.report_custom(self.node_id, "loss_latest", losses[-1])
             
             # Clear buffer
             self.telemetry_loss_buffer = []

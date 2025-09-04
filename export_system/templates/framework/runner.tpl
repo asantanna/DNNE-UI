@@ -335,9 +335,11 @@ async def main():
     # Process telemetry enablement using same mechanism
     if args.enable_telemetry:
         if args.enable_telemetry == 'all':
-            # Enable telemetry for all nodes
+            # Enable telemetry for all nodes at essential level
             for node_id in workflow_nodes.keys():
-                node_configs.setdefault(node_id, {{}})['telemetry_enabled'] = True
+                # Only set telemetry_level if not already set (don't override explicit --override settings)
+                if 'telemetry_level' not in node_configs.get(node_id, {{}}):
+                    node_configs.setdefault(node_id, {{}})['telemetry_level'] = 'essential'
         else:
             # Enable for specific nodes or subsystems
             for target in args.enable_telemetry.split(','):
@@ -346,10 +348,14 @@ async def main():
                 if target in subsystem_to_nodes:
                     # Expand subsystem to all its nodes
                     for node_id in subsystem_to_nodes[target]:
-                        node_configs.setdefault(node_id, {{}})['telemetry_enabled'] = True
+                        # Only set telemetry_level if not already set
+                        if 'telemetry_level' not in node_configs.get(node_id, {{}}):
+                            node_configs.setdefault(node_id, {{}})['telemetry_level'] = 'essential'
                 elif target in workflow_nodes:
                     # It's a specific node ID
-                    node_configs.setdefault(target, {{}})['telemetry_enabled'] = True
+                    # Only set telemetry_level if not already set
+                    if 'telemetry_level' not in node_configs.get(target, {{}}):
+                        node_configs.setdefault(target, {{}})['telemetry_level'] = 'essential'
                 else:
                     print(f"⚠️  Warning: Unknown node ID or subsystem '{{target}}' in --enable-telemetry")
     

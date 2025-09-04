@@ -1,12 +1,13 @@
 # DNNE Task Index
 
-*Last Updated: 2025-09-01*  
+*Last Updated: 2025-09-03*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
 
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
+| **Telemetry System** | 🟢 Complete | Single unified system, 50% data reduction | - | 2025-09-03 |
 | **Export System** | 🟢 Complete | Fail-fast validation, no partial exports | - | 2025-08-31 |
 | **Franka Coop Control** | 🟢 Complete | Workflow repaired and exports cleanly | - | 2025-08-31 |
 | **Label Connections** | 🟢 Complete | Rats nest + workflow repair tool | - | 2025-08-24 |
@@ -19,46 +20,16 @@
 | **Node System** | 🟢 Complete | Eat_N & Barrier synchronization nodes | - | 2025-08-21 |
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
-| **Telemetry System** | 🟡 In Progress | Phase 3/4 - Templates done, TelemetryClient pending | High | 2025-09-03 |
 
 ## Today's Achievements (2025-09-03)
 
-✅ **Telemetry System Implementation**: Phases 1-3 complete
-- **Phase 1**: Deleted MetricsLogger system entirely
-- **Phase 2**: Updated all UI nodes and exporters
-  - Added report_interval to BalancerNode
-  - Added telemetry_level to all nodes
-  - Removed window-based telemetry from EpochTracker
-  - Updated SimulationTracker to simplified interval format
-- **Phase 3**: Updated node templates
-  - Implemented telemetry levels (off/essential/extended/debug)
-  - Made all intervals configurable
-  - Simplified metrics to essential only
-- **Remaining**: TelemetryClient enhancement and testing
-
-✅ **Telemetry System Planning**: Complete refactoring plan created
-- Analyzed current system and identified redundancies
-- Created policy document defining essential vs optional metrics
-- Designed phase-based implementation plan
-- SimulationTracker refocused on loss (simulator-specific, not RL)
-- All intervals will be configurable via --override flags
-
-## Previous Achievements (2025-09-01)
-
-✅ **SimulationTracker Telemetry**: Reduced volume with configurable reporting
-- Added time/step/episode-based reporting modes with intervals
-- Implemented statistical aggregation (min/max/mean/std/percentiles)
-- Created shared time_utils.py for duration parsing ("10s", "2m30s")
-- Added comprehensive documentation at dnne_docs/nodes/robotics/
-
-✅ **Split Node Enhancement**: Index range support for cleaner workflows
-- Added support for inclusive ranges like "[3:5], [10:18]"
-- Maintains backward compatibility with integer format
-- Created 23 unit tests for comprehensive coverage
-
-✅ **Documentation Cleanup**: Centralized all TASKS.md/HISTORY.md files
-- Removed 4 redundant files outside dnne_docs/for_claude/tasks
-- All task tracking now in proper location
+✅ **Telemetry System Complete**: All 4 phases finished
+- Merged TelemetryClient and MetricsLogger into single system
+- Implemented configurable intervals with runtime overrides  
+- Removed all reward tracking (biologically plausible loss-only)
+- Fixed --enable-telemetry flag to properly set telemetry_level
+- Improved metric naming: `elapsed_seconds`, `total_timesteps`, `loss_mean`
+- Created 28 unit tests (all passing)
 
 ## Active Priority Items
 
@@ -81,11 +52,10 @@
 ## Component Details
 
 ### Telemetry System (`telemetry/TASKS.md`)
-- Complete refactoring to eliminate redundancy
-- Single TelemetryClient system (removing MetricsLogger)
+- ✅ Complete - Single unified TelemetryClient system
 - Configurable intervals via --override
-- 50% reduction in data volume target
-- Phase-based implementation planned
+- 50% reduction in data volume achieved
+- All metrics now meaningful and actionable
 
 ### Type System (`nodes/type_system.md`)
 - Refined types implemented (e.g., BATCH_IMAGE_TENSOR, NETWORK_MODEL_OBJ)

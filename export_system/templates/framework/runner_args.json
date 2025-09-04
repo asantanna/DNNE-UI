@@ -141,7 +141,7 @@
       "switch": "--enable-telemetry",
       "type": "select_or_text",
       "label": "Enable Telemetry",
-      "description": "Enable telemetry reporting for nodes or subsystems",
+      "description": "Enable telemetry reporting at essential level. For other levels use --override node_id:telemetry_level=extended",
       "options": ["all", "custom"],
       "placeholder": "e.g., training,10,11 or rl",
       "column": 2,

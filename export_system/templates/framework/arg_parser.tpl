@@ -78,7 +78,7 @@ def create_parser():
     
     # Telemetry
     parser.add_argument('--enable-telemetry', type=str, nargs='?', const='all', default=None,
-                       help='Enable telemetry reporting. Optional: comma-separated node IDs, subsystems, or "all" (e.g., --enable-telemetry training,10,11 or --enable-telemetry rl)')
+                       help='Enable telemetry reporting at essential level. Optional: comma-separated node IDs, subsystems, or "all" (e.g., --enable-telemetry training,10,11 or --enable-telemetry rl). For other levels use --override node_id:telemetry_level=extended')
     
     return parser
 
