@@ -17,13 +17,13 @@ $ARGUMENTS
 - Session-by-session accomplishments
 - Testing records of completed features
 
-**INDEX.md** - Keep only:
+**INDEX.md** (`dnne_docs/for_claude/tasks/INDEX.md`) - Keep only:
 - Status overview table
 - Active priority items
 - Component summaries (1-2 lines each)
 - Today's achievements (if any)
 
-**dev-status.md** - Keep only:
+**dev-status.md** (`.claude/commands/dev-status.md`) - Keep only:
 - Latest achievements (current week)
 - Essential commands & references
 - Do not modify anything in the "Essential Commands", "Key Ports" and "Key Documentation" sections!
@@ -32,10 +32,10 @@ $ARGUMENTS
 
 ### Update Steps
 
-1. Check TODO list and update TASKS.md files accordingly
+1. Check TODO list and update TASKS.md files accordingly (in `dnne_docs/for_claude/tasks/`)
 2. Move completed work from TASKS.md to HISTORY.md
-3. Update INDEX.md with current priorities
-4. Update dev-status.md with latest achievements
+3. Update INDEX.md with current priorities (`dnne_docs/for_claude/tasks/INDEX.md`)
+4. Update dev-status.md with latest achievements (`.claude/commands/dev-status.md`)
 5. Keep all files concise for efficient context loading
 
 

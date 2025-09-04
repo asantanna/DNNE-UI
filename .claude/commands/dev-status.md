@@ -11,19 +11,25 @@ $ARGUMENTS$
 
 *For historical development sessions, see HISTORY.md*
 
-## Latest Achievements (2025-09-02)
+## Latest Achievements (2025-09-03)
 
-### Gradient Isolation Removal ✅
-- **Simplified export system** - Removed unnecessary gradient isolation mechanism
-  - PyTorch's natural parameter grouping provides sufficient isolation
-  - Deleted zero_grad_if_unauthorized() and OptimizerContext code
-  - Shadow_Train verified working: loss 1.23 → 0.71 in 40 steps
+### Telemetry System Complete ✅
+- **Unified system** - Merged TelemetryClient and MetricsLogger
+  - Single fire-and-forget UDP telemetry client
+  - Configurable intervals with runtime overrides
+  - 50% reduction in telemetry data volume achieved
+- **Biologically plausible** - Removed all reward tracking
+  - Loss-only tracking for biological algorithms
+  - Split done inputs: step_done/episode_done for clarity
+- **Improved metrics** - Better naming and essential-only defaults
+  - `elapsed_seconds`, `total_timesteps`, `loss_mean`
+  - Fixed --enable-telemetry flag to set telemetry_level
+- **Testing** - 28 unit tests created (all passing)
 
-### Previous Achievements (2025-08-31)
+### Previous Achievements (2025-09-02)
+- Gradient Isolation Removal - Simplified export by removing unnecessary mechanism
 - Export System Hardening - Fail-fast validation prevents invalid exports
 - Franka_Coop_Nodes Workflow Repair - Fixed phantom connections and Barrier nodes
-- Virtual Connection System - UI-only connections resolved at runtime (2025-08-28)
-- Multi-optimizer support with retain_graph override (2025-08-28)
 
 ## Quick Reference
 
@@ -69,13 +75,11 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
-- Remove gradient isolation mechanism from export templates
-- Update documentation for gradient isolation removal
-- Remove debug print statements from export system
+- Complete telemetry system refactoring (2025-09-03)
+- Fix --enable-telemetry flag to set telemetry_level
+- Improve telemetry metric naming and remove redundant metrics
+- Remove gradient isolation mechanism from export templates (2025-09-02)
 - Add retain_graph override support for multi-optimizer workflows
-- Fix SimulationTracker template output method bug
-- Fix Network node output schema reporting bug
-- Update analyze_workflow tool with property-based validation and repair
 
 ---
 *Focus on active tasks in INDEX.md*
