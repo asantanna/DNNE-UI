@@ -27,11 +27,6 @@ uv.lock
 
 ###### DNNE #######
 
-# User workflows and custom compute functions
-/user/
-!/user/default/workflows/
-!/user/default/custom_compute_funcs/
-
 # DNNE - specific ignores
 "_DISABLED_*"  
 *.backup*
