@@ -216,6 +216,8 @@ class SplitExporter(ExportableNode):
             
             # The schema might be nested in different ways depending on the upstream node
             if isinstance(input_info, dict):
+                # First check if observation_schema is directly in the input_info
+                # (This is where IsaacGymSim puts it)
                 observation_schema = input_info.get('observation_schema')
             
             if not observation_schema:
@@ -316,7 +318,12 @@ class SplitExporter(ExportableNode):
                 )
             
             input_info = input_schema['input']
-            observation_schema = input_info.get('observation_schema') if isinstance(input_info, dict) else None
+            observation_schema = None
+            
+            # The schema might be nested in different ways depending on the upstream node
+            if isinstance(input_info, dict):
+                # Check if observation_schema is directly in the input_info
+                observation_schema = input_info.get('observation_schema')
             
             # FAIL-FAST: Require observation schema for "by name" mode
             if not observation_schema:
