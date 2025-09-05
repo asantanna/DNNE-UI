@@ -874,6 +874,18 @@ class GraphExporter:
                 ]
                 links.append(new_link)
                 self.logger.debug(f"Added resolved label link: from node {from_node} slot {from_slot} to node {to_node} slot {to_slot}")
+            
+            # Remove all links to/from Label nodes now that we have resolved connections
+            # This prevents follow_node_connection from finding Label nodes instead of the resolved targets
+            label_node_ids = {str(node.get("id")) for node in nodes if node.get("type") == "Label"}
+            if label_node_ids:
+                original_link_count = len(links)
+                links[:] = [link for link in links if len(link) >= 5 and 
+                           str(link[1]) not in label_node_ids and  # from_node not a Label
+                           str(link[3]) not in label_node_ids]     # to_node not a Label
+                removed_count = original_link_count - len(links)
+                if removed_count > 0:
+                    self.logger.debug(f"Removed {removed_count} links to/from Label nodes after resolution")
         
         # Set export context for utility functions
         export_utils.set_export_context({

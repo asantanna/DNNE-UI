@@ -4,7 +4,7 @@ template_vars = {
     "LEARNING_RATE": 0.01,
     "MOMENTUM": 0.9,
     "WEIGHT_DECAY": 0.0,
-    "NETWORK_NODE_ID": "network_1"  # Virtual connection to network node
+    "MODEL_NODE_IDS": '["33"]'  # List of connected model node IDs (can be one or many)
 }
 
 from framework.globals import Global as g
@@ -23,54 +23,76 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
         self.momentum = {MOMENTUM}
         self.weight_decay = {WEIGHT_DECAY}
         self.enable_bootstrap = {ENABLE_BOOTSTRAP}
-        self.optimizer = None
         
-        # Virtual connection to network node - will be resolved in run()
-        self.model_node_id = "{NETWORK_NODE_ID}"
-        self.model_node = None
+        # Virtual connections to model nodes - will be resolved in run()
+        self.model_node_ids = {MODEL_NODE_IDS}  # Always a list (can be 1 or many)
+        self.model_nodes = []
+        self.optimizers = []  # One optimizer per model
         
         # Sync checking with network
         self.execution_count = 0
         
     async def run(self):
-        """Override run to setup optimizer with network node"""
+        """Override run to setup optimizer(s) with network node(s)"""
         self.running = True
         self.node_logger.info(f"Starting node {self.node_id}")
         
         try:
-            # Resolve virtual connection now that all nodes are created
-            self.model_node = g.graph_runner.get_node(self.model_node_id)
-            
-            # Create optimizer using the connected model node's parameters
-            if self.model_node and hasattr(self.model_node, 'get_parameters'):
-                all_params = list(self.model_node.get_parameters())
+            # Resolve virtual connections now that all nodes are created
+            for model_node_id in self.model_node_ids:
+                model_node = g.graph_runner.get_node(model_node_id)
+                if not model_node:
+                    self.node_logger.error(f"FATAL: Model node {model_node_id} not found in graph")
+                    raise RuntimeError(f"Model node {model_node_id} not found - check workflow connections")
                 
-                self.optimizer = optim.SGD(
+                if not hasattr(model_node, 'get_parameters'):
+                    self.node_logger.error(f"FATAL: Model node {model_node_id} has no get_parameters() method")
+                    raise RuntimeError(f"Model node {model_node_id} is not a valid model node")
+                
+                self.model_nodes.append(model_node)
+                
+                # Create optimizer for this model
+                all_params = list(model_node.get_parameters())
+                if not all_params:
+                    self.node_logger.error(f"FATAL: Model node {model_node_id} has no trainable parameters")
+                    raise RuntimeError(f"Model node {model_node_id} returned no parameters to optimize")
+                
+                optimizer = optim.SGD(
                     all_params,
                     lr=self.learning_rate,
                     momentum=self.momentum,
                     weight_decay=self.weight_decay
                 )
-                self.node_logger.info(f"Created SGD optimizer with {len(all_params)} parameter groups: lr={self.learning_rate}, momentum={self.momentum}")
-                
-                # Send initial step_complete signal to start the training loop if enabled
-                if self.enable_bootstrap:
-                    import time
-                    step_signal = {
-                        "signal_type": "step_complete",
-                        "timestamp": time.time(),
-                        "source_node": self.node_id,
-                        "metadata": {"phase": "startup"}
-                    }
-                    await self.send_output("step_complete", step_signal)
-                    self.node_logger.info(f"Sent startup step_complete signal")
-                else:
-                    self.node_logger.info(f"Bootstrap trigger disabled by widget setting")
-                
-                # Now run normal compute loop for loss inputs
-                await super().run()
+                self.optimizers.append(optimizer)
+                self.node_logger.info(f"Created SGD optimizer for model {model_node_id} with {len(all_params)} parameter groups")
+            
+            # FAIL-FAST: Must have exactly one optimizer per model
+            if len(self.optimizers) != len(self.model_node_ids):
+                self.node_logger.error(f"FATAL: Expected {len(self.model_node_ids)} optimizers but created {len(self.optimizers)}")
+                raise RuntimeError(f"Failed to create optimizers for all models - check connections")
+            
+            num_models = len(self.optimizers)
+            if num_models > 1:
+                self.node_logger.info(f"Managing {num_models} models with shared loss - using single backward pass")
             else:
-                self.node_logger.error("No model node received - cannot create optimizer")
+                self.node_logger.info(f"Managing 1 model: lr={self.learning_rate}, momentum={self.momentum}")
+            
+            # Send initial step_complete signal to start the training loop if enabled
+            if self.enable_bootstrap:
+                import time
+                step_signal = {
+                    "signal_type": "step_complete",
+                    "timestamp": time.time(),
+                    "source_node": self.node_id,
+                    "metadata": {"phase": "startup"}
+                }
+                await self.send_output("step_complete", step_signal)
+                self.node_logger.info(f"Sent startup step_complete signal")
+            else:
+                self.node_logger.info(f"Bootstrap trigger disabled by widget setting")
+            
+            # Now run normal compute loop for loss inputs
+            await super().run()
                 
         except asyncio.CancelledError:
             self.node_logger.info(f"Node {self.node_id} cancelled")
@@ -84,25 +106,30 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
     
     async def compute(self, loss) -> Dict[str, Any]:
         """Perform training step when loss is received"""
-        if self.optimizer is None:
+        if not self.optimizers:
             raise RuntimeError(
-                f"SGDOptimizerNode {self.node_id}: No optimizer created. "
-                f"Check that Network node is connected and working properly."
+                f"SGDOptimizerNode {self.node_id}: No optimizers created. "
+                f"Check that Network nodes are connected and working properly."
             )
             
         # Perform training step (skip in inference mode)
         if not g.inference_mode:
-            # Standard training step - let PyTorch fail-fast if gradients missing
-            self.optimizer.zero_grad()
+            # Zero gradients for ALL models
+            for optimizer in self.optimizers:
+                optimizer.zero_grad()
             
-            # Check for retain_graph override (for multiple optimizers sharing loss)
+            # Check for retain_graph override (useful for complex architectures)
             # Can be set via: --override all:retain_graph=True
             retain_graph = g.get_node_config(self.node_id, 'retain_graph', False)
             if retain_graph:
                 self.node_logger.debug(f"Using retain_graph=True for backward pass")
+            
+            # Single backward pass - gradients flow to all connected models
             loss.backward(retain_graph=retain_graph)
             
-            self.optimizer.step()
+            # Step all optimizers
+            for optimizer in self.optimizers:
+                optimizer.step()
             
             # Increment execution count after successful step
             self.execution_count += 1

@@ -2,6 +2,22 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-09-05 - Multi-Model SGDOptimizer Support
+
+### Multi-Model SGDOptimizer Implementation ✅
+- **Modified SGDOptimizer to manage multiple networks with single backward pass**
+  - Changed template to accept list of model node IDs instead of single ID
+  - One optimizer created per model, all share same loss tensor
+  - Single `loss.backward()` call propagates gradients to all models
+  - Eliminates concurrent backward pass conflicts
+
+### Label Node Link Resolution Fix ✅  
+- **Fixed Network nodes finding Label IDs instead of SGDOptimizer**
+  - `follow_node_connection` was returning Label node IDs (163/164/165)
+  - Solution: Remove all links to/from Label nodes after resolution
+  - Clean export with only resolved connections in links array
+  - Networks now correctly find SGDOptimizer for sync checking
+
 ## Session: 2025-09-02 - Gradient Isolation Removal
 
 ### Gradient Isolation Mechanism Removed ✅

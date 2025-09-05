@@ -3,12 +3,15 @@
 *For historical accomplishments, see HISTORY.md*
 
 ## Current Status
-✅ **Complete** - Export system fully operational, gradient isolation removed
-- Simplified architecture: PyTorch's natural parameter isolation handles optimizer separation
-- Shadow_Train workflow working: loss decreasing correctly (1.23 → 0.71 in 40 steps)
+🔧 **Active** - Multi-model SGDOptimizer support implemented, investigating gradient conflicts
+- Fixed sync checking for multi-model optimizers
+- Label node links removed after resolution for clean exports
 
 ## 📋 Active TODOs
-None - Export system is fully operational
+- [ ] Resolve gradient conflict between multiple SGDOptimizers
+  - SGDOptimizer 40 (3 control networks) conflicts with SGDOptimizer 81 (shadow network)
+  - Error: InPlace operation on [128, 20] tensor in AsStridedBackward0
+  - Works when SGDOptimizer 81 disabled
 
 ## Low Priority
 - [ ] Make other IsaacGym environments DNNE-compatible (add dnne: sections to YAMLs)

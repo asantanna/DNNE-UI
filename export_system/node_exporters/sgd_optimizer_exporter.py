@@ -32,34 +32,34 @@ class SGDOptimizerExporter(ExportableNode):
                 f"The UI must provide all optimizer parameters."
             )
         
-        # Find the Network node ID by tracing the "model" input connection
-        # SGDOptimizer.model <- Network.model (virtual connection)
+        # Find ALL Network node IDs by tracing the "model" input connections
+        # SGDOptimizer.model <- Network.model (virtual connection - can be multiple!)
         
-        # The model input should tell us which network node is connected
-        network_node_id = None
+        model_node_ids = []
         if "model" in connections.get("inputs", {}):
             model_connections = connections["inputs"]["model"]
             if model_connections and len(model_connections) > 0:
-                # Get the first (and should be only) connection to model input
-                model_conn = model_connections[0]
-                network_node_id = str(model_conn.get("from_node", ""))
-                
-                # Validate that it's actually a Network node
-                if network_node_id and all_nodes:
-                    network_node = next((n for n in all_nodes if str(n.get('id')) == network_node_id), None)
-                    if network_node:
-                        node_type = network_node.get("class_type") or network_node.get("type")
-                        if node_type != "Network":
-                            raise ValueError(
-                                f"SGDOptimizer node {node_id}: Model input connected to {node_type} node {network_node_id}, "
-                                f"but expected a Network node. Connect Network.model → SGDOptimizer.model."
-                            )
+                # Collect all connected model nodes
+                for model_conn in model_connections:
+                    network_node_id = str(model_conn.get("from_node", ""))
+                    
+                    # Validate that it's actually a Network node
+                    if network_node_id and all_nodes:
+                        network_node = next((n for n in all_nodes if str(n.get('id')) == network_node_id), None)
+                        if network_node:
+                            node_type = network_node.get("class_type") or network_node.get("type")
+                            if node_type != "Network":
+                                raise ValueError(
+                                    f"SGDOptimizer node {node_id}: Model input connected to {node_type} node {network_node_id}, "
+                                    f"but expected a Network node. Connect Network.model → SGDOptimizer.model."
+                                )
+                            model_node_ids.append(network_node_id)
         
-        # FAIL-FAST: SGDOptimizer MUST have a Network connected
-        if not network_node_id:
+        # FAIL-FAST: SGDOptimizer MUST have at least one Network connected
+        if not model_node_ids:
             raise ValueError(
-                f"SGDOptimizer node {node_id}: No Network node connected to 'model' input! "
-                f"SGDOptimizer requires a Network connection for parameter access. "
+                f"SGDOptimizer node {node_id}: No Network nodes connected to 'model' input! "
+                f"SGDOptimizer requires Network connections for parameter access. "
                 f"Connect Network.model → SGDOptimizer.model to establish the link."
             )
         
@@ -70,7 +70,7 @@ class SGDOptimizerExporter(ExportableNode):
             "MOMENTUM": params['momentum'],
             "WEIGHT_DECAY": params['weight_decay'],
             "ENABLE_BOOTSTRAP": params['enable_bootstrap'],  # No default - fail-fast!
-            "NETWORK_NODE_ID": network_node_id  # Pass the network node ID for virtual connection
+            "MODEL_NODE_IDS": model_node_ids  # Pass the list of model node IDs
         }
     
     @classmethod
