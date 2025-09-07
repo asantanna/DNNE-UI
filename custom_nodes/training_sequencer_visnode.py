@@ -10,7 +10,7 @@ from custom_nodes.utils.node_colors import get_node_colors
 from .utils.dnne_decorator import dnne_node
 
 @dnne_node(is_virtual=False)
-class TrainingSequencer(RoboticsNodeBase):
+class TrainingSequencerNode(RoboticsNodeBase):
     """
     Orchestrates training for multiple optimizers to prevent gradient conflicts.
     Accepts multiple losses and coordinates backward passes in specified order.
@@ -52,7 +52,7 @@ class TrainingSequencer(RoboticsNodeBase):
 
 # Node registration
 NODE_CLASS_MAPPINGS = {
-    "TrainingSequencer": TrainingSequencer
+    "TrainingSequencer": TrainingSequencerNode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
