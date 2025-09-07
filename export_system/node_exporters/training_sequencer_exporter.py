@@ -4,6 +4,7 @@ Exporter for TrainingSequencer node
 """
 
 from ..graph_exporter import ExportableNode
+from ..utils import export_utils
 
 class TrainingSequencerExporter(ExportableNode):
     """Exporter for the Training Sequencer node"""
@@ -30,10 +31,10 @@ class TrainingSequencerExporter(ExportableNode):
         
         for i in range(1, 5):  # loss1 through loss4
             loss_name = f"loss{i}"
-            if loss_name in connections:
+            if "inputs" in connections and loss_name in connections["inputs"]:
                 connected_losses.append(i)
                 # Store the connection info for later use
-                loss_connections[i] = connections[loss_name]
+                loss_connections[i] = connections["inputs"][loss_name]
         
         if not connected_losses:
             raise ValueError(f"TrainingSequencer {node_id}: No loss inputs connected")
@@ -66,14 +67,11 @@ class TrainingSequencerExporter(ExportableNode):
             output_name = f"to_opt{i}"
             
             # Use follow_node_connection to find optimizer
-            opt_connection = cls.follow_node_connection(
-                node_data, connections, all_nodes, all_links,
-                output_name, "SGDOptimizer"
-            )
+            opt_node_id = export_utils.follow_node_connection(node_id, output_name)
             
-            if opt_connection and i in connected_losses:
+            if opt_node_id and i in connected_losses:
                 # Only include if corresponding loss is connected
-                optimizer_node_ids.append(str(opt_connection['node_id']))
+                optimizer_node_ids.append(str(opt_node_id))
         
         if len(optimizer_node_ids) != len(connected_losses):
             raise ValueError(
@@ -109,5 +107,5 @@ class TrainingSequencerExporter(ExportableNode):
     
     @classmethod
     def get_subsystem(cls):
-        from ..subsystems import SUBSYSTEM_ML
-        return SUBSYSTEM_ML
+        from ..subsystems import SUBSYSTEM_TRAINING
+        return SUBSYSTEM_TRAINING
