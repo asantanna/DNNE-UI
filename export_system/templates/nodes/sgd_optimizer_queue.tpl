@@ -104,6 +104,29 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
         """Get current execution count for sync checking"""
         return self.execution_count
     
+    def get_parameters(self):
+        """Return all managed parameters for requires_grad toggling by TrainingSequencer"""
+        params = []
+        for model_node in self.model_nodes:
+            params.extend(model_node.get_parameters())
+        return params
+    
+    def zero_grad_only(self):
+        """Zero gradients without backward - used by TrainingSequencer"""
+        for optimizer in self.optimizers:
+            optimizer.zero_grad()
+    
+    def backward_only(self, loss, retain_graph=False):
+        """Perform backward without step - used by TrainingSequencer"""
+        loss.backward(retain_graph=retain_graph)
+    
+    def step_only(self):
+        """Step optimizer without backward - used by TrainingSequencer"""
+        if not g.inference_mode:
+            for optimizer in self.optimizers:
+                optimizer.step()
+            self.execution_count += 1
+    
     async def compute(self, loss) -> Dict[str, Any]:
         """Perform training step when loss is received"""
         if not self.optimizers:

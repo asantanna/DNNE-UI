@@ -110,23 +110,3 @@ class BatchSamplerExporter(ExportableNode):
     @classmethod
     def get_subsystem(cls):
         return SUBSYSTEM_DATA
-    
-
-# Registration function
-def register_ml_exporters(exporter):
-    """Register all ML node exporters"""
-    exporter.register_node("MNISTDataset", MNISTDatasetExporter)
-    exporter.register_node("CIFAR10Dataset", CIFAR10DatasetExporter)
-    exporter.register_node("LinearLayer", LinearLayerExporter)
-    exporter.register_node("Loss", LossExporter)
-    exporter.register_node("Optimizer", OptimizerExporter)
-    exporter.register_node("Display", DisplayExporter)
-    exporter.register_node("GetBatch", GetBatchExporter)
-    exporter.register_node("SGDOptimizer", SGDOptimizerExporter)
-    exporter.register_node("TrainingStep", TrainingStepExporter)
-    exporter.register_node("EpochTracker", EpochTrackerExporter)
-    exporter.register_node("BatchSampler", BatchSamplerExporter)
-    exporter.register_node("CrossEntropyLoss", CrossEntropyLossExporter)
-    exporter.register_node("Network", NetworkExporter)
-    # Aliases for compatibility
-    exporter.register_node("Linear", LinearLayerExporter)
