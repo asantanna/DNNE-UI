@@ -11,25 +11,22 @@ $ARGUMENTS$
 
 *For historical development sessions, see HISTORY.md*
 
-## Latest Achievements (2025-09-03)
+## Latest Achievements (2025-09-07)
 
-### Telemetry System Complete ✅
-- **Unified system** - Merged TelemetryClient and MetricsLogger
-  - Single fire-and-forget UDP telemetry client
-  - Configurable intervals with runtime overrides
-  - 50% reduction in telemetry data volume achieved
-- **Biologically plausible** - Removed all reward tracking
-  - Loss-only tracking for biological algorithms
-  - Split done inputs: step_done/episode_done for clarity
-- **Improved metrics** - Better naming and essential-only defaults
-  - `elapsed_seconds`, `total_timesteps`, `loss_mean`
-  - Fixed --enable-telemetry flag to set telemetry_level
-- **Testing** - 28 unit tests created (all passing)
+### TrainingSequencer Complete ✅
+- **Fixed deadlock** - Resolved Franka_Coop_V2 circular dependency
+  - Added step_complete signals to SGDOptimizer.step_only()
+  - Made step_only() async and properly awaited
+- **Export system fixes** - TrainingSequencerExporter working
+  - Fixed missing import of export_utils
+  - Changed SUBSYSTEM_ML to SUBSYSTEM_TRAINING
+- **Template improvements** - Pass loss tensors, not metadata dicts
 
-### Previous Achievements (2025-09-02)
-- Gradient Isolation Removal - Simplified export by removing unnecessary mechanism
-- Export System Hardening - Fail-fast validation prevents invalid exports
-- Franka_Coop_Nodes Workflow Repair - Fixed phantom connections and Barrier nodes
+### Previous Achievements (2025-09-03)
+- Telemetry System Complete - Unified client, 50% data reduction
+- Gradient Isolation Removal - Simplified export templates
+- Export System Hardening - Fail-fast validation
+- Franka_Coop Workflow Repair - Fixed phantom connections
 
 ## Quick Reference
 
@@ -75,11 +72,11 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
+- Fix TrainingSequencer deadlock in Franka_Coop_V2 (2025-09-07)
+- Add step_complete signals to SGDOptimizer.step_only()
+- Fix TrainingSequencerExporter imports and subsystem
 - Complete telemetry system refactoring (2025-09-03)
-- Fix --enable-telemetry flag to set telemetry_level
-- Improve telemetry metric naming and remove redundant metrics
 - Remove gradient isolation mechanism from export templates (2025-09-02)
-- Add retain_graph override support for multi-optimizer workflows
 
 ---
 *Focus on active tasks in INDEX.md*

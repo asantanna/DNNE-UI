@@ -1,12 +1,13 @@
 # DNNE Task Index
 
-*Last Updated: 2025-09-03*  
+*Last Updated: 2025-09-07*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
 
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
+| **TrainingSequencer** | 🟢 Complete | Deadlock fixed, Franka_Coop_V2 working | - | 2025-09-07 |
 | **Telemetry System** | 🟢 Complete | Single unified system, 50% data reduction | - | 2025-09-03 |
 | **Export System** | 🟢 Complete | Fail-fast validation, no partial exports | - | 2025-08-31 |
 | **Franka Coop Control** | 🟢 Complete | Workflow repaired and exports cleanly | - | 2025-08-31 |
@@ -21,15 +22,13 @@
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
 
-## Today's Achievements (2025-09-03)
+## Today's Achievements (2025-09-07)
 
-✅ **Telemetry System Complete**: All 4 phases finished
-- Merged TelemetryClient and MetricsLogger into single system
-- Implemented configurable intervals with runtime overrides  
-- Removed all reward tracking (biologically plausible loss-only)
-- Fixed --enable-telemetry flag to properly set telemetry_level
-- Improved metric naming: `elapsed_seconds`, `total_timesteps`, `loss_mean`
-- Created 28 unit tests (all passing)
+✅ **TrainingSequencer Complete**: Fixed deadlock in Franka_Coop_V2
+- Fixed exporter bugs (missing imports, wrong subsystem)
+- Added step_complete signals to SGDOptimizer.step_only() method
+- Updated TrainingSequencer to await async step_only() calls
+- Resolved circular dependency preventing dataflow
 
 ## Active Priority Items
 

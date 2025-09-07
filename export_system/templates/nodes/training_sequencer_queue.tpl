@@ -136,7 +136,7 @@ class TrainingSequencer_{NODE_ID}(QueueNode):
         
         # After all backward passes, step all optimizers
         for optimizer in self.optimizers:
-            optimizer.step_only()
+            await optimizer.step_only()
         
         # Pass through the loss values to the optimizers
         # The optimizers need the actual loss tensors, not signals

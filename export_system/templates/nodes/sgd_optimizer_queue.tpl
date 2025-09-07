@@ -120,12 +120,25 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
         """Perform backward without step - used by TrainingSequencer"""
         loss.backward(retain_graph=retain_graph)
     
-    def step_only(self):
+    async def step_only(self):
         """Step optimizer without backward - used by TrainingSequencer"""
         if not g.inference_mode:
             for optimizer in self.optimizers:
                 optimizer.step()
             self.execution_count += 1
+            
+            # Send step_complete signal after stepping
+            import time
+            step_signal = {
+                "signal_type": "step_complete",
+                "timestamp": time.time(),
+                "source_node": self.node_id,
+                "metadata": {"phase": "training_sequencer_step"}
+            }
+            await self.send_output("step_complete", step_signal)
+            
+            if g.verbose:
+                self.node_logger.debug(f"Sent step_complete from step_only()")
     
     async def compute(self, loss) -> Dict[str, Any]:
         """Perform training step when loss is received"""
