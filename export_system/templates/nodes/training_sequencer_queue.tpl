@@ -138,17 +138,14 @@ class TrainingSequencer_{NODE_ID}(QueueNode):
         for optimizer in self.optimizers:
             optimizer.step_only()
         
-        # Send signals to optimizers (they may use these for logging/tracking)
-        import time
+        # Pass through the loss values to the optimizers
+        # The optimizers need the actual loss tensors, not signals
         outputs = {}
-        for i, opt in enumerate(self.optimizers):
-            output_key = f"to_opt{self.connected_losses[i]}"
-            outputs[output_key] = {
-                "signal_type": "training_complete",
-                "timestamp": time.time(),
-                "source_node": self.node_id,
-                "optimizer_id": opt.node_id
-            }
+        for i in self.connected_losses:
+            output_key = f"to_opt{i}"
+            loss_key = f"loss{i}"
+            if loss_key in losses:
+                outputs[output_key] = losses[loss_key]
         
         if g.verbose:
             self.node_logger.info(f"Sequenced training complete for {len(self.optimizers)} optimizers")

@@ -18,6 +18,7 @@ from .simulation_tracker_queue_sim import SimulationTrackerSimulator
 from .tensor_node_queue_sim import TensorNodeSimulator
 from .mnist_dataset_queue_sim import MNISTDatasetNodeSimulator
 from .data_streamer_queue_sim import DataStreamerNodeSimulator
+from .training_sequencer_queue_sim import TrainingSequencerSimulator
 from .ml_node_sims import (
     BatchSamplerNodeSimulator,
     CIFAR10DatasetNodeSimulator,
@@ -50,6 +51,7 @@ SIMULATOR_REGISTRY = {
     'LossNode': LossNodeSimulator,
     'EpochTrackerNode': EpochTrackerNodeSimulator,
     'BalancerNode': BalancerNodeSimulator,
+    'TrainingSequencer': TrainingSequencerSimulator,
 }
 
 def extract_base_class(node_class: str) -> str:
