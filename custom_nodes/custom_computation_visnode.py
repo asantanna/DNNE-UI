@@ -31,6 +31,11 @@ class CustomComputationNode(RoboticsNodeBase):
                     "multiline": False,
                     "tooltip": "Path to Python file containing compute(input: Tensor) -> Tensor function"
                 }),
+                "config": ("STRING", {
+                    "default": "{}",
+                    "multiline": False,
+                    "tooltip": "Python dict for configuration, e.g. {\"DEBUG\": True, \"scale\": 2.0}"
+                }),
             }
         }
         

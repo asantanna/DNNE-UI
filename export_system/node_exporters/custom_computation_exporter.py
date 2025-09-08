@@ -20,7 +20,8 @@ class CustomComputationExporter(ExportableNode):
     def prepare_template_vars(cls, node_id, node_data, connections, node_registry=None, all_nodes=None, all_links=None):
         # Use universal parameter reader - FAIL-FAST: no defaults
         param_specs = [
-            {'name': 'src_path', 'widget_index': 0}
+            {'name': 'src_path', 'widget_index': 0},
+            {'name': 'config', 'widget_index': 1}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
@@ -63,11 +64,17 @@ class CustomComputationExporter(ExportableNode):
         file_name = os.path.basename(src_path)
         exported_path = f"custom_compute_funcs/{file_name}"
         
+        # Get config parameter (defaults to empty dict if not provided)
+        config_str = params.get('config', '{}').strip()
+        if not config_str:
+            config_str = '{}'
+        
         return {
             "NODE_ID": node_id,
             "CLASS_NAME": "CustomComputationNode",
             "SRC_PATH": exported_path,  # Use relative path in the export
-            "MODULE_NAME": module_name
+            "MODULE_NAME": module_name,
+            "CONFIG": config_str  # Pass config string for substitution
         }
     
     @classmethod

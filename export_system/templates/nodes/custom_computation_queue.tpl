@@ -3,7 +3,8 @@ template_vars = {
     "NODE_ID": "custom_1",
     "CLASS_NAME": "CustomComputationNode",
     "SRC_PATH": "/path/to/custom.py",
-    "MODULE_NAME": "custom_module"
+    "MODULE_NAME": "custom_module",
+    "CONFIG": "{}"  # Python dict as string, e.g. {"DEBUG": True, "scale": 2.0}
 }
 
 class {CLASS_NAME}_{NODE_ID}(QueueNode):
@@ -40,6 +41,14 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         params = list(sig.parameters.keys())
         if len(params) != 1:
             raise ValueError(f"compute() function must accept exactly 1 parameter (input tensor), got {len(params)}")
+        
+        # Set config if the script supports it
+        config = {CONFIG}  # This gets substituted during export
+        if hasattr(self.custom_module, 'set_config_info'):
+            try:
+                self.custom_module.set_config_info(config)
+            except Exception as e:
+                raise RuntimeError(f"Failed to set config for {src_path}: {e}")
         
         # Get device from global configuration
         from framework.globals import Global as g
