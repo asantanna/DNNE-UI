@@ -1,12 +1,13 @@
 # DNNE Task Index
 
-*Last Updated: 2025-09-07*  
+*Last Updated: 2025-09-08*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
 
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
+| **SGDOptimizer** | 🟢 Complete | Gradient accumulation feature added | - | 2025-09-08 |
 | **TrainingSequencer** | 🟢 Complete | Deadlock fixed, Franka_Coop_V2 working | - | 2025-09-07 |
 | **Telemetry System** | 🟢 Complete | Single unified system, 50% data reduction | - | 2025-09-03 |
 | **Export System** | 🟢 Complete | Fail-fast validation, no partial exports | - | 2025-08-31 |
@@ -22,13 +23,14 @@
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
 
-## Today's Achievements (2025-09-07)
+## Today's Achievements (2025-09-08)
 
-✅ **TrainingSequencer Complete**: Fixed deadlock in Franka_Coop_V2
-- Fixed exporter bugs (missing imports, wrong subsystem)
-- Added step_complete signals to SGDOptimizer.step_only() method
-- Updated TrainingSequencer to await async step_only() calls
-- Resolved circular dependency preventing dataflow
+✅ **SGDOptimizer Gradient Accumulation**: Added batch_size parameter for gradient accumulation
+- Added batch_size widget (INT, default=1, range 1-128) to SGDOptimizer visual node
+- Implemented automatic gradient averaging via loss scaling (loss/batch_size)
+- Fixed sync checker by ensuring execution_count increments on every step
+- All 12 workflows export successfully with new feature
+- Independent batch sizes per optimizer supported
 
 ## Active Priority Items
 

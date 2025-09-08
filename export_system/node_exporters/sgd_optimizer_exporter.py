@@ -18,13 +18,14 @@ class SGDOptimizerExporter(ExportableNode):
             {'name': 'learning_rate', 'widget_index': 0},
             {'name': 'momentum', 'widget_index': 1},
             {'name': 'weight_decay', 'widget_index': 2},
-            {'name': 'enable_bootstrap', 'widget_index': 3}
+            {'name': 'batch_size', 'widget_index': 3},
+            {'name': 'enable_bootstrap', 'widget_index': 4}
         ]
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
         
         # Validate required parameters are present
-        required_params = ['learning_rate', 'momentum', 'weight_decay', 'enable_bootstrap']
+        required_params = ['learning_rate', 'momentum', 'weight_decay', 'batch_size', 'enable_bootstrap']
         missing_params = [p for p in required_params if p not in params or params[p] is None]
         if missing_params:
             raise ValueError(
@@ -69,6 +70,7 @@ class SGDOptimizerExporter(ExportableNode):
             "LEARNING_RATE": params['learning_rate'],
             "MOMENTUM": params['momentum'],
             "WEIGHT_DECAY": params['weight_decay'],
+            "BATCH_SIZE": params['batch_size'],
             "ENABLE_BOOTSTRAP": params['enable_bootstrap'],  # No default - fail-fast!
             "MODEL_NODE_IDS": model_node_ids  # Pass the list of model node IDs
         }

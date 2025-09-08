@@ -52,6 +52,13 @@ class SGDOptimizerNode(RoboticsNodeBase):
                     "step": 0.0001,
                     "tooltip": "L2 penalty (regularization). Helps prevent overfitting. Try 0.0001 to 0.001."
                 }),
+                "batch_size": ("INT", {
+                    "default": 1,
+                    "min": 1,
+                    "max": 128,
+                    "step": 1,
+                    "tooltip": "Gradient accumulation batch size. Accumulates gradients over N steps before updating weights. Default 1 = no accumulation."
+                }),
                 "enable_bootstrap": ("BOOLEAN", {
                     "default": True,
                     "tooltip": "Send initial step_complete signal to start training loop. Disable if manually controlling flow."

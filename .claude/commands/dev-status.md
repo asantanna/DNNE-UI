@@ -11,18 +11,22 @@ $ARGUMENTS$
 
 *For historical development sessions, see HISTORY.md*
 
-## Latest Achievements (2025-09-07)
+## Latest Achievements (2025-09-08)
 
-### TrainingSequencer Complete ✅
-- **Fixed deadlock** - Resolved Franka_Coop_V2 circular dependency
-  - Added step_complete signals to SGDOptimizer.step_only()
-  - Made step_only() async and properly awaited
-- **Export system fixes** - TrainingSequencerExporter working
-  - Fixed missing import of export_utils
-  - Changed SUBSYSTEM_ML to SUBSYSTEM_TRAINING
-- **Template improvements** - Pass loss tensors, not metadata dicts
+### SGDOptimizer Gradient Accumulation ✅
+- **Added batch_size widget** - Enables gradient accumulation over N steps
+  - Accumulates gradients without stepping optimizer
+  - Automatic averaging via loss scaling (loss/batch_size)
+  - Independent batch sizes per optimizer supported
+- **Fixed sync checker** - execution_count increments every step
+- **All workflows export** - 12/12 workflows tested successfully
 
-### Previous Achievements (2025-09-03)
+### Previous Achievements (2025-09-07)
+- TrainingSequencer Complete - Fixed Franka_Coop_V2 deadlock
+- Export system fixes - TrainingSequencerExporter working
+- Template improvements - Pass loss tensors, not metadata dicts
+
+### Earlier Achievements (2025-09-03)
 - Telemetry System Complete - Unified client, 50% data reduction
 - Gradient Isolation Removal - Simplified export templates
 - Export System Hardening - Fail-fast validation
@@ -72,11 +76,11 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
+- Add gradient accumulation to SGDOptimizer (2025-09-08)
+- Fix sync checker execution count for batch accumulation
 - Fix TrainingSequencer deadlock in Franka_Coop_V2 (2025-09-07)
 - Add step_complete signals to SGDOptimizer.step_only()
 - Fix TrainingSequencerExporter imports and subsystem
-- Complete telemetry system refactoring (2025-09-03)
-- Remove gradient isolation mechanism from export templates (2025-09-02)
 
 ---
 *Focus on active tasks in INDEX.md*

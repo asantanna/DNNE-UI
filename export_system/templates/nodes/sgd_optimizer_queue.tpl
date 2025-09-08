@@ -4,6 +4,7 @@ template_vars = {
     "LEARNING_RATE": 0.01,
     "MOMENTUM": 0.9,
     "WEIGHT_DECAY": 0.0,
+    "BATCH_SIZE": 1,  # Gradient accumulation batch size
     "MODEL_NODE_IDS": '["33"]'  # List of connected model node IDs (can be one or many)
 }
 
@@ -22,12 +23,17 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
         self.learning_rate = {LEARNING_RATE}
         self.momentum = {MOMENTUM}
         self.weight_decay = {WEIGHT_DECAY}
+        self.batch_size = {BATCH_SIZE}  # Gradient accumulation batch size
         self.enable_bootstrap = {ENABLE_BOOTSTRAP}
         
         # Virtual connections to model nodes - will be resolved in run()
         self.model_node_ids = {MODEL_NODE_IDS}  # Always a list (can be 1 or many)
         self.model_nodes = []
         self.optimizers = []  # One optimizer per model
+        
+        # Gradient accumulation state
+        self.curr_batch_idx = 0
+        self.accumulated_loss = 0.0
         
         # Sync checking with network
         self.execution_count = 0
@@ -118,27 +124,49 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
     
     def backward_only(self, loss, retain_graph=False):
         """Perform backward without step - used by TrainingSequencer"""
-        loss.backward(retain_graph=retain_graph)
+        # Scale loss for gradient accumulation
+        loss_scaled = loss / self.batch_size
+        loss_scaled.backward(retain_graph=retain_graph)
+        self.accumulated_loss += loss.item() if hasattr(loss, 'item') else float(loss)
     
     async def step_only(self):
         """Step optimizer without backward - used by TrainingSequencer"""
+        # Increment batch index
+        self.curr_batch_idx += 1
+        
+        # Only step optimizer at end of batch
+        if self.curr_batch_idx >= self.batch_size:
+            if not g.inference_mode:
+                for optimizer in self.optimizers:
+                    optimizer.step()
+                
+                if g.verbose and self.batch_size > 1:
+                    avg_loss = self.accumulated_loss / self.batch_size
+                    self.node_logger.info(f"Batch complete: avg_loss={avg_loss:.4f}, batch_size={self.batch_size}")
+            
+            # Reset for next batch
+            self.curr_batch_idx = 0
+            self.accumulated_loss = 0.0
+        
+        # ALWAYS increment execution count for sync checking (regardless of step)
         if not g.inference_mode:
-            for optimizer in self.optimizers:
-                optimizer.step()
             self.execution_count += 1
-            
-            # Send step_complete signal after stepping
-            import time
-            step_signal = {
-                "signal_type": "step_complete",
-                "timestamp": time.time(),
-                "source_node": self.node_id,
-                "metadata": {"phase": "training_sequencer_step"}
+        
+        # Always send step_complete signal for workflow synchronization
+        import time
+        step_signal = {
+            "signal_type": "step_complete",
+            "timestamp": time.time(),
+            "source_node": self.node_id,
+            "metadata": {
+                "phase": "training_sequencer_step",
+                "batch_progress": f"{self.curr_batch_idx}/{self.batch_size}"
             }
-            await self.send_output("step_complete", step_signal)
-            
-            if g.verbose:
-                self.node_logger.debug(f"Sent step_complete from step_only()")
+        }
+        await self.send_output("step_complete", step_signal)
+        
+        if g.verbose:
+            self.node_logger.debug(f"Sent step_complete from step_only() [batch {self.curr_batch_idx}/{self.batch_size}]")
     
     async def compute(self, loss) -> Dict[str, Any]:
         """Perform training step when loss is received"""
@@ -150,9 +178,11 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
             
         # Perform training step (skip in inference mode)
         if not g.inference_mode:
-            # Zero gradients for ALL models
-            for optimizer in self.optimizers:
-                optimizer.zero_grad()
+            # Zero gradients only at start of batch
+            if self.curr_batch_idx == 0:
+                for optimizer in self.optimizers:
+                    optimizer.zero_grad()
+                self.accumulated_loss = 0.0
             
             # Check for retain_graph override (useful for complex architectures)
             # Can be set via: --override all:retain_graph=True
@@ -160,14 +190,31 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
             if retain_graph:
                 self.node_logger.debug(f"Using retain_graph=True for backward pass")
             
-            # Single backward pass - gradients flow to all connected models
-            loss.backward(retain_graph=retain_graph)
+            # Scale loss for gradient accumulation (automatic averaging)
+            loss_scaled = loss / self.batch_size
+            loss_scaled.backward(retain_graph=retain_graph)
             
-            # Step all optimizers
-            for optimizer in self.optimizers:
-                optimizer.step()
+            # Track accumulated loss for logging
+            self.accumulated_loss += loss.item() if hasattr(loss, 'item') else float(loss)
             
-            # Increment execution count after successful step
+            # Increment batch counter
+            self.curr_batch_idx += 1
+            
+            # Step all optimizers only at end of batch
+            if self.curr_batch_idx >= self.batch_size:
+                for optimizer in self.optimizers:
+                    optimizer.step()
+                
+                # Log batch completion if using accumulation
+                if self.batch_size > 1 and g.verbose:
+                    avg_loss = self.accumulated_loss / self.batch_size
+                    self.node_logger.info(f"Batch complete: avg_loss={avg_loss:.4f}, batch_size={self.batch_size}")
+                
+                # Reset for next batch
+                self.curr_batch_idx = 0
+                self.accumulated_loss = 0.0
+            
+            # ALWAYS increment execution count for sync checking (regardless of step)
             self.execution_count += 1
         
         # Send step_complete signal for next batch
@@ -177,7 +224,7 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
             "timestamp": time.time(),
             "source_node": self.node_id,
             "metadata": {
-                "phase": "training_complete",
+                "phase": "training_sequencer_step",
                 "loss_value": loss.item() if hasattr(loss, 'item') else float(loss)
             }
         }
