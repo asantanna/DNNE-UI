@@ -139,7 +139,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 null_action_tensor = null_action_tensor.unsqueeze(0)
             
             # Step with null action to get proper initial observation
-            obs, _, _, _ = self.env.step(null_action_tensor)
+            obs, _, _, _ = self.env.step(null_action_tensor, None)
             if isinstance(obs, dict):
                 obs = obs["obs"]
             
@@ -172,7 +172,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             null_action_tensor = torch.tensor(self.null_action, device=self.device, dtype=torch.float32)
             if null_action_tensor.dim() == 1:
                 null_action_tensor = null_action_tensor.unsqueeze(0)
-            obs, _, _, _ = self.env.step(null_action_tensor)
+            obs, _, _, _ = self.env.step(null_action_tensor, None)
             if isinstance(obs, dict):
                 obs = obs["obs"]
             
@@ -195,8 +195,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             if action.dim() == 1:
                 action = action.unsqueeze(0)
             
-            # Step environment
-            obs, reward, done, info = self.env.step(action)
+            # Check if action has extra debug data appended
+            # Usage: To visualize debug sphere, set action.extra_args = {"debug_sphere_pos": [x, y, z]}
+            # This is useful for Franka_Coop_V2 to visualize shadow network's predicted end-effector position
+            extra_args = None
+            if hasattr(action, 'extra_args'):
+                extra_args = action.extra_args
+            
+            # Step environment (with optional extra_args for debug visualization)
+            obs, reward, done, info = self.env.step(action, extra_args)
             
             # Extract observation if dict
             if isinstance(obs, dict):
@@ -216,7 +223,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 null_action_tensor = torch.tensor(self.null_action, device=self.device, dtype=torch.float32)
                 if null_action_tensor.dim() == 1:
                     null_action_tensor = null_action_tensor.unsqueeze(0)
-                obs, _, _, _ = self.env.step(null_action_tensor)
+                obs, _, _, _ = self.env.step(null_action_tensor, None)
                 if isinstance(obs, dict):
                     obs = obs["obs"]
                 if not g.inference_mode:
