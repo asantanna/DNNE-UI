@@ -26,6 +26,11 @@ class CustomComputationExporter(ExportableNode):
         
         params = cls.get_node_parameters_batch(node_data, param_specs)
         
+        # Check if extra_args is connected
+        has_extra_args = False
+        if connections and "inputs" in connections and "extra_args" in connections["inputs"]:
+            has_extra_args = True
+        
         # Validate required parameters are present
         src_path = params.get('src_path', '').strip()
         if not src_path:
@@ -74,7 +79,8 @@ class CustomComputationExporter(ExportableNode):
             "CLASS_NAME": "CustomComputationNode",
             "SRC_PATH": exported_path,  # Use relative path in the export
             "MODULE_NAME": module_name,
-            "CONFIG": config_str  # Pass config string for substitution
+            "CONFIG": config_str,  # Pass config string for substitution
+            "HAS_EXTRA_ARGS": "True" if has_extra_args else "False"
         }
     
     @classmethod
@@ -93,7 +99,7 @@ class CustomComputationExporter(ExportableNode):
     
     @classmethod
     def get_input_names(cls):
-        return ["input"]
+        return ["input", "extra_args"]
     
     @classmethod
     def get_initial_output_schema(cls, node_data):

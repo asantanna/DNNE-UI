@@ -12,7 +12,11 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
     
     def __init__(self, node_id: str):
         super().__init__(node_id)
-        self.setup_inputs(required=["input"])
+        # Set up inputs based on whether extra_args is connected
+        if {HAS_EXTRA_ARGS}:
+            self.setup_inputs(required=["input", "extra_args"])
+        else:
+            self.setup_inputs(required=["input"])
         self.setup_outputs(["output"])
         
         # Import the custom module
@@ -39,8 +43,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         import inspect
         sig = inspect.signature(self.compute_fn)
         params = list(sig.parameters.keys())
-        if len(params) != 1:
-            raise ValueError(f"compute() function must accept exactly 1 parameter (input tensor), got {len(params)}")
+        if len(params) < 1 or len(params) > 2:
+            raise ValueError(f"compute() function must accept 1-2 parameters (input tensor, optional extra_args), got {len(params)}")
         
         # Set config if the script supports it
         config = {CONFIG}  # This gets substituted during export
@@ -54,15 +58,15 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
         from framework.globals import Global as g
         self.device = torch.device(g.get_device())
         
-    async def compute(self, input) -> Dict[str, Any]:
+    async def compute(self, input, extra_args=None) -> Dict[str, Any]:
         """Execute the custom computation function"""
         try:
             # Ensure input is on correct device
             input_tensor = input.to(self.device)
             
-            # Call the custom compute function
+            # Call the custom compute function with optional extra_args
             # Gradients are preserved automatically if input has them
-            output = self.compute_fn(input_tensor)
+            output = self.compute_fn(input_tensor, extra_args)
             
             # Handle None return (filter mode - no output emitted)
             if output is None:
