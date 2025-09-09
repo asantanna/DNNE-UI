@@ -2,6 +2,28 @@
 
 *This file contains the historical record of completed work moved from TASKS.md*
 
+## Session: 2025-09-09 - CustomComputation Debug Visualization
+
+### CustomComputation Node Enhancement ✅
+- Added extra_args optional input for dynamic tensor data
+- Implemented config widget for static Python dict configuration
+- Updated template to conditionally require extra_args if connected
+- Full fail-fast implementation - no defaults, RuntimeError on missing config
+
+### Debug Visualization System ✅
+- Created debug_augmenter.py script for action tensor augmentation
+- Attaches extra_args data to action.extra_args dictionary
+- Configurable key_name and extra_args_len parameters
+- Integrated with FrankaDNNE for debug sphere visualization
+- Compatible with Franka_Coop_V2 shadow network predictions
+
+### FrankaDNNE Debug Sphere ✅
+- Added visual-only debug sphere using collision filter bit mask
+- Small red sphere (radius 0.01) for unobtrusive visualization
+- Position updated dynamically from action.extra_args
+- No physics interactions - uses unique collision filter 0b1000
+- Properly integrated with 5-actor environment setup
+
 ## Session: 2025-09-01 - SimulationTracker Telemetry Improvements
 
 ### SimulationTracker Telemetry System ✅

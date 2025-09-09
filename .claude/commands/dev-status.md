@@ -11,17 +11,24 @@ $ARGUMENTS$
 
 *For historical development sessions, see HISTORY.md*
 
-## Latest Achievements (2025-09-08)
+## Latest Achievements (2025-09-09)
 
-### SGDOptimizer Gradient Accumulation ✅
-- **Added batch_size widget** - Enables gradient accumulation over N steps
-  - Accumulates gradients without stepping optimizer
-  - Automatic averaging via loss scaling (loss/batch_size)
-  - Independent batch sizes per optimizer supported
-- **Fixed sync checker** - execution_count increments every step
-- **All workflows export** - 12/12 workflows tested successfully
+### CustomComputation Debug Visualization ✅
+- **Enhanced node with extra_args** - Dynamic tensor input for debug data
+  - Optional extra_args input conditionally required when connected
+  - Config widget for static Python dict settings
+  - Fail-fast implementation (RuntimeError on missing config)
+- **Debug augmenter script** - Attaches data to action.extra_args
+- **FrankaDNNE integration** - Visual-only red debug sphere (0.01 radius)
+  - No physics interactions using collision filter bit mask 0b1000
+  - Updates position from action.extra_args dynamically
 
-### Previous Achievements (2025-09-07)
+### Previous Achievements (2025-09-08)
+- SGDOptimizer Gradient Accumulation - batch_size widget added
+- Fixed sync checker - execution_count increments every step  
+- All 12 workflows export successfully
+
+### Earlier Achievements (2025-09-07)
 - TrainingSequencer Complete - Fixed Franka_Coop_V2 deadlock
 - Export system fixes - TrainingSequencerExporter working
 - Template improvements - Pass loss tensors, not metadata dicts
@@ -76,11 +83,12 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
+- Fix debug sphere using collision filter bit mask (2025-09-09)
+- Add debug visualization support to CustomComputation node
+- Create debug_augmenter.py for action tensor augmentation
 - Add gradient accumulation to SGDOptimizer (2025-09-08)
 - Fix sync checker execution count for batch accumulation
 - Fix TrainingSequencer deadlock in Franka_Coop_V2 (2025-09-07)
-- Add step_complete signals to SGDOptimizer.step_only()
-- Fix TrainingSequencerExporter imports and subsystem
 
 ---
 *Focus on active tasks in INDEX.md*

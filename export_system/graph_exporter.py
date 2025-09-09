@@ -837,6 +837,10 @@ class GraphExporter:
     
     def export_workflow(self, workflow: Dict, output_path: Optional[Path] = None) -> str:
         """Convert workflow JSON to modular Python package"""
+        # Clear the schema cache to prevent stale data from previous exports
+        # The cache uses memory addresses as keys, which can be reused between exports
+        ExportableNode._schema_cache.clear()
+        
         # Validate that runner_args.json is up-to-date
         self._validate_runner_args_timestamps()
         

@@ -1,12 +1,13 @@
 # DNNE Task Index
 
-*Last Updated: 2025-09-08*  
+*Last Updated: 2025-09-09*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
 
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
+| **CustomComputation** | 🟢 Complete | Debug visualization with extra_args | - | 2025-09-09 |
 | **SGDOptimizer** | 🟢 Complete | Gradient accumulation feature added | - | 2025-09-08 |
 | **TrainingSequencer** | 🟢 Complete | Deadlock fixed, Franka_Coop_V2 working | - | 2025-09-07 |
 | **Telemetry System** | 🟢 Complete | Single unified system, 50% data reduction | - | 2025-09-03 |
@@ -23,14 +24,14 @@
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
 
-## Today's Achievements (2025-09-08)
+## Today's Achievements (2025-09-09)
 
-✅ **SGDOptimizer Gradient Accumulation**: Added batch_size parameter for gradient accumulation
-- Added batch_size widget (INT, default=1, range 1-128) to SGDOptimizer visual node
-- Implemented automatic gradient averaging via loss scaling (loss/batch_size)
-- Fixed sync checker by ensuring execution_count increments on every step
-- All 12 workflows export successfully with new feature
-- Independent batch sizes per optimizer supported
+✅ **CustomComputation Debug Visualization**: Enhanced node with extra_args input for dynamic debug data
+- Added optional extra_args tensor input for dynamic data flow
+- Implemented config widget for static Python dict configuration
+- Created debug_augmenter.py script for action tensor augmentation
+- Integrated FrankaDNNE with kinematic debug sphere (small red, non-physical)
+- Full fail-fast implementation throughout (no defaults, RuntimeError on missing config)
 
 ## Active Priority Items
 
