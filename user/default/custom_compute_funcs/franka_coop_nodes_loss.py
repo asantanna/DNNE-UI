@@ -38,7 +38,7 @@ def get_script_output_schema(initial=True, input_schema=None):
 # This function gets called at runtime
 #
 
-def compute(input: torch.Tensor) -> torch.Tensor:
+def compute(input: torch.Tensor, extra_args=None) -> torch.Tensor:
     """
     Compute distance-based loss from observations.
     
@@ -51,6 +51,7 @@ def compute(input: torch.Tensor) -> torch.Tensor:
     
     Args:
         input: Observation tensor from Isaac Gym simulator
+        extra_args: Optional additional arguments (unused in this function)
         
     Returns:
         Scalar loss value (L2 distance from end-effector to target)

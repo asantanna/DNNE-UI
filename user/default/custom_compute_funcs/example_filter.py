@@ -45,7 +45,7 @@ def get_script_output_schema(initial=True, input_schema=None):
 # This function gets called at runtime
 #
 
-def compute(input: torch.Tensor) -> Optional[torch.Tensor]:
+def compute(input: torch.Tensor, extra_args=None) -> Optional[torch.Tensor]:
     """
     Filter function - only passes through tensors with positive mean.
     
@@ -54,6 +54,7 @@ def compute(input: torch.Tensor) -> Optional[torch.Tensor]:
     
     Args:
         input: Input tensor to evaluate
+        extra_args: Optional additional arguments (unused in this function)
         
     Returns:
         The input tensor if mean > 0, None otherwise

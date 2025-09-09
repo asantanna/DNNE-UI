@@ -37,7 +37,7 @@ def get_script_output_schema(initial=True, input_schema=None):
 # This function gets called at runtime
 #
 
-def compute(input: torch.Tensor) -> Optional[torch.Tensor]:
+def compute(input: torch.Tensor, extra_args=None) -> Optional[torch.Tensor]:
     """
     Sink function - consumes input without producing output.
     
@@ -51,6 +51,7 @@ def compute(input: torch.Tensor) -> Optional[torch.Tensor]:
     
     Args:
         input: Input tensor to consume
+        extra_args: Optional additional arguments (unused in this function)
         
     Returns:
         Always None (no output)

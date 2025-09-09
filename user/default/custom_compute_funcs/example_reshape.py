@@ -84,7 +84,7 @@ def get_script_output_schema(initial=True, input_schema=None):
 # Counter for testing - exit after 5 calls
 _compute_counter = 0
 
-def compute(input: torch.Tensor) -> torch.Tensor:
+def compute(input: torch.Tensor, extra_args=None) -> torch.Tensor:
     """
     Reshape function - doubles first dimension, halves second dimension.
     
@@ -93,6 +93,7 @@ def compute(input: torch.Tensor) -> torch.Tensor:
     
     Args:
         input: Input tensor to reshape
+        extra_args: Optional extra arguments (unused in this example)
         
     Returns:
         Reshaped tensor with modified dimensions

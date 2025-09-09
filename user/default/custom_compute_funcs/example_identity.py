@@ -44,7 +44,7 @@ def get_script_output_schema(initial=True, input_schema=None):
 # This function gets called at runtime
 #
 
-def compute(input: torch.Tensor) -> torch.Tensor:
+def compute(input: torch.Tensor, extra_args=None) -> torch.Tensor:
     """
     Identity function - returns input unchanged.
     
@@ -53,6 +53,7 @@ def compute(input: torch.Tensor) -> torch.Tensor:
     
     Args:
         input: Any input tensor
+        extra_args: Optional additional arguments (unused in this function)
         
     Returns:
         The same tensor, unchanged

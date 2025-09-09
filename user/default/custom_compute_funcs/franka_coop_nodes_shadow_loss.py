@@ -40,7 +40,7 @@ def get_script_output_schema(initial=True, input_schema=None):
 # This function gets called at runtime
 #
 
-def compute(input: torch.Tensor) -> torch.Tensor:
+def compute(input: torch.Tensor, extra_args=None) -> torch.Tensor:
     """
     Compute prediction error between actual and predicted DYNAMIC elements.
     
@@ -56,6 +56,7 @@ def compute(input: torch.Tensor) -> torch.Tensor:
     Args:
         input: [obs(t+1), pred_obs(t+1)]
         Shape: [..., 40] where first 20 are actual, last 20 are predicted
+        extra_args: Optional additional arguments (unused in this function)
         
     Returns:
         Scalar loss value (weighted combination of eef and joint errors)
