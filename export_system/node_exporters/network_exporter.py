@@ -125,8 +125,8 @@ class NetworkExporter(ExportableNode):
         if not isinstance(checkpoint_enabled, bool):
             raise ValueError(f"Network node {node_id}: checkpoint_enabled must be boolean, got {type(checkpoint_enabled)}: {checkpoint_enabled}")
         
-        if checkpoint_trigger_type not in ["epoch", "time", "best_metric"]:
-            raise ValueError(f"Network node {node_id}: checkpoint_trigger_type must be 'epoch', 'time', or 'best_metric', got: {checkpoint_trigger_type}")
+        if checkpoint_trigger_type not in ["epoch", "time", "best_metric", "end"]:
+            raise ValueError(f"Network node {node_id}: checkpoint_trigger_type must be 'epoch', 'time', 'best_metric', or 'end', got: {checkpoint_trigger_type}")
         
         if not isinstance(checkpoint_load_on_start, bool):
             raise ValueError(f"Network node {node_id}: checkpoint_load_on_start must be boolean, got {type(checkpoint_load_on_start)}: {checkpoint_load_on_start}")

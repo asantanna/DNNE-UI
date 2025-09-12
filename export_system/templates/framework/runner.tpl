@@ -51,6 +51,7 @@ except (ImportError, RuntimeError) as e:
 
 import asyncio
 import logging
+import signal
 
 {NODE_IMPORTS_SECTION}
 from framework import GraphRunner
@@ -441,6 +442,14 @@ async def main():
 
 if __name__ == '__main__':
     import sys
+    
+    # Set up signal handler to convert SIGTERM to KeyboardInterrupt
+    def handle_sigterm(signum, frame):
+        print("\n🛑 Received termination signal (SIGTERM)")
+        raise KeyboardInterrupt()
+    
+    signal.signal(signal.SIGTERM, handle_sigterm)
+    
     try:
         # Run main and get exit code
         exit_code = asyncio.run(main())

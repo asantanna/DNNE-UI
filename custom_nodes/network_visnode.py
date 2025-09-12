@@ -27,7 +27,7 @@ class NetworkNode(RoboticsNodeBase):
                 "to_output": ("*TENSOR", {"tooltip": "Loop-back connection from the last layer output"}),
                 # Checkpoint parameters - must be widgets to save to widgets_values
                 "checkpoint_enabled": ("BOOLEAN", {"default": True, "widget": {"name": "checkpoint_enabled"}, "tooltip": "Enable automatic checkpoint saving for this network. Checkpoints saved to 'node_<ID>' subdirectories."}),
-                "checkpoint_trigger_type": (["epoch", "time", "best_metric"], {"default": "epoch", "widget": {"name": "checkpoint_trigger_type"}, "tooltip": "When to save checkpoints: every N steps, time intervals, or metric improvements"}),
+                "checkpoint_trigger_type": (["epoch", "time", "best_metric", "end"], {"default": "epoch", "widget": {"name": "checkpoint_trigger_type"}, "tooltip": "When to save checkpoints: every N steps, time intervals, metric improvements, or on program end (Ctrl-C)"}),
                 "checkpoint_trigger_value": ("STRING", {"default": "50", "widget": {"name": "checkpoint_trigger_value"}, "tooltip": "Trigger value: number (steps), time format (1h30m), or 'min'/'max' (metrics)"}),
                 "checkpoint_load_on_start": ("BOOLEAN", {"default": False, "widget": {"name": "checkpoint_load_on_start"}, "tooltip": "Automatically load saved checkpoint when network starts"}),
             },

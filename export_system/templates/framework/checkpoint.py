@@ -314,7 +314,7 @@ def validate_checkpoint_config(config: Dict[str, Any]) -> Dict[str, Any]:
     
     # Validate trigger type
     trigger_type = config.get('trigger_type', 'epoch')
-    if trigger_type not in ['epoch', 'time', 'best_metric']:
+    if trigger_type not in ['epoch', 'time', 'best_metric', 'end']:
         raise ValueError(f"Invalid trigger type: {trigger_type}")
     
     # Validate trigger value based on type
@@ -347,5 +347,8 @@ def validate_checkpoint_config(config: Dict[str, Any]) -> Dict[str, Any]:
                 raise ValueError("Best metric trigger type must be 'min' or 'max'")
         else:
             raise ValueError("Best metric trigger value must be string or dict")
+    elif trigger_type == 'end':
+        # End trigger doesn't need a trigger value - it saves on program exit
+        pass
     
     return config
