@@ -25,7 +25,6 @@
     "elbow_freq": 0.08
   },
   "columns": {
-    "timestamp": "Time in seconds",
     "torque_joint0": "Base joint torque (Nm)",
     "torque_joint1": "Shoulder joint torque (Nm)",
     "torque_joint2": "Shoulder roll torque (Nm) - frozen",
@@ -33,5 +32,6 @@
     "torque_joint4": "Forearm roll torque (Nm) - frozen",
     "torque_joint5": "Wrist pitch torque (Nm) - frozen",
     "torque_joint6": "Wrist roll torque (Nm) - frozen"
-  }
+  },
+  "has_timestamp": false
 }

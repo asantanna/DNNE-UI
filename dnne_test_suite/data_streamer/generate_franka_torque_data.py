@@ -26,7 +26,8 @@ TORQUE_LIMITS = {
 }
 
 def generate_sinusoidal_torques(num_samples=10000, frequency_hz=100.0, 
-                                base_freq=0.1, shoulder_freq=0.15, elbow_freq=0.08):
+                                base_freq=0.1, shoulder_freq=0.15, elbow_freq=0.08,
+                                add_timestamp=False):
     """
     Generate smooth sinusoidal torque commands for exploration.
     
@@ -36,6 +37,7 @@ def generate_sinusoidal_torques(num_samples=10000, frequency_hz=100.0,
         base_freq: Frequency for base joint oscillation (Hz)
         shoulder_freq: Frequency for shoulder joint oscillation (Hz)
         elbow_freq: Frequency for elbow joint oscillation (Hz)
+        add_timestamp: Whether to include timestamp column
     
     Returns:
         DataFrame with torque commands
@@ -67,7 +69,6 @@ def generate_sinusoidal_torques(num_samples=10000, frequency_hz=100.0,
     
     # Create DataFrame with all joint torques (7 total)
     data = {
-        'timestamp': t,
         'torque_joint0': torque_base,
         'torque_joint1': torque_shoulder,
         'torque_joint2': np.zeros(num_samples),  # Frozen
@@ -77,10 +78,15 @@ def generate_sinusoidal_torques(num_samples=10000, frequency_hz=100.0,
         'torque_joint6': np.zeros(num_samples),  # Frozen
     }
     
+    # Optionally add timestamp as first column
+    if add_timestamp:
+        data = {'timestamp': t, **data}
+    
     return pd.DataFrame(data)
 
 def generate_step_hold_torques(num_samples=10000, frequency_hz=100.0, 
-                               min_hold_time=1.0, max_hold_time=2.0):
+                               min_hold_time=1.0, max_hold_time=2.0,
+                               add_timestamp=False):
     """
     Generate step-and-hold torque commands for steady-state exploration.
     
@@ -89,6 +95,7 @@ def generate_step_hold_torques(num_samples=10000, frequency_hz=100.0,
         frequency_hz: Data collection frequency (Hz)
         min_hold_time: Minimum time to hold each torque (seconds)
         max_hold_time: Maximum time to hold each torque (seconds)
+        add_timestamp: Whether to include timestamp column
     
     Returns:
         DataFrame with torque commands
@@ -126,7 +133,6 @@ def generate_step_hold_torques(num_samples=10000, frequency_hz=100.0,
     
     # Create DataFrame with all joint torques
     data = {
-        'timestamp': t,
         'torque_joint0': torque_base,
         'torque_joint1': torque_shoulder,
         'torque_joint2': np.zeros(num_samples),  # Frozen
@@ -136,10 +142,28 @@ def generate_step_hold_torques(num_samples=10000, frequency_hz=100.0,
         'torque_joint6': np.zeros(num_samples),  # Frozen
     }
     
+    # Optionally add timestamp as first column
+    if add_timestamp:
+        data = {'timestamp': t, **data}
+    
     return pd.DataFrame(data)
 
-def add_metadata(df, mode, params):
+def add_metadata(df, mode, params, add_timestamp=False):
     """Add metadata as JSON comment in first row"""
+    columns_desc = {
+        "torque_joint0": "Base joint torque (Nm)",
+        "torque_joint1": "Shoulder joint torque (Nm)",
+        "torque_joint2": "Shoulder roll torque (Nm) - frozen",
+        "torque_joint3": "Elbow joint torque (Nm)",
+        "torque_joint4": "Forearm roll torque (Nm) - frozen",
+        "torque_joint5": "Wrist pitch torque (Nm) - frozen",
+        "torque_joint6": "Wrist roll torque (Nm) - frozen"
+    }
+    
+    # Add timestamp description if included
+    if add_timestamp:
+        columns_desc = {"timestamp": "Time in seconds", **columns_desc}
+    
     metadata = {
         "description": f"Franka 3-joint torque control exploration data ({mode})",
         "controlled_joints": CONTROLLED_JOINTS,
@@ -148,16 +172,8 @@ def add_metadata(df, mode, params):
         "frequency_hz": params.get("frequency_hz", 100.0),
         "mode": mode,
         "mode_params": params,
-        "columns": {
-            "timestamp": "Time in seconds",
-            "torque_joint0": "Base joint torque (Nm)",
-            "torque_joint1": "Shoulder joint torque (Nm)",
-            "torque_joint2": "Shoulder roll torque (Nm) - frozen",
-            "torque_joint3": "Elbow joint torque (Nm)",
-            "torque_joint4": "Forearm roll torque (Nm) - frozen",
-            "torque_joint5": "Wrist pitch torque (Nm) - frozen",
-            "torque_joint6": "Wrist roll torque (Nm) - frozen"
-        }
+        "columns": columns_desc,
+        "has_timestamp": add_timestamp
     }
     
     # Add metadata as comment in CSV (will be ignored by pd.read_csv)
@@ -188,6 +204,10 @@ def main():
     parser.add_argument('--max_hold', type=float, default=2.0,
                        help='Maximum hold time in seconds')
     
+    # Add timestamp option
+    parser.add_argument('--add-timestamp', action='store_true',
+                       help='Include timestamp column in output CSV')
+    
     args = parser.parse_args()
     
     # Create output directory
@@ -202,7 +222,8 @@ def main():
             frequency_hz=args.frequency,
             base_freq=args.base_freq,
             shoulder_freq=args.shoulder_freq,
-            elbow_freq=args.elbow_freq
+            elbow_freq=args.elbow_freq,
+            add_timestamp=args.add_timestamp
         )
         
         # Save with metadata
@@ -212,7 +233,7 @@ def main():
             "shoulder_freq": args.shoulder_freq,
             "elbow_freq": args.elbow_freq
         }
-        metadata, df_sin = add_metadata(df_sin, "sinusoidal", params)
+        metadata, df_sin = add_metadata(df_sin, "sinusoidal", params, args.add_timestamp)
         
         # Save CSV
         output_file = output_dir / "franka_sinusoidal_exploration_001.csv"
@@ -234,7 +255,8 @@ def main():
             num_samples=args.samples,
             frequency_hz=args.frequency,
             min_hold_time=args.min_hold,
-            max_hold_time=args.max_hold
+            max_hold_time=args.max_hold,
+            add_timestamp=args.add_timestamp
         )
         
         # Save with metadata
@@ -243,7 +265,7 @@ def main():
             "min_hold_time": args.min_hold,
             "max_hold_time": args.max_hold
         }
-        metadata, df_step = add_metadata(df_step, "step_hold", params)
+        metadata, df_step = add_metadata(df_step, "step_hold", params, args.add_timestamp)
         
         # Save CSV
         output_file = output_dir / "franka_step_hold_exploration_001.csv"
