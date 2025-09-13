@@ -13,6 +13,7 @@ template_vars = {
     "OPTIMIZER_NODE_ID": "optimizer_1"
 }
 
+from pathlib import Path
 from framework.globals import Global as g
 
 class NetworkNode_{NODE_ID}(QueueNode):
@@ -51,36 +52,52 @@ class NetworkNode_{NODE_ID}(QueueNode):
         self.checkpoint_save_on_exit = True  # Default to save on exit
         self.checkpoint_manager = None
         
-        # Initialize checkpoint manager if enabled
-        if self.checkpoint_enabled:
+        # Always create checkpoint manager if we need to load OR save checkpoints
+        # This allows loading even when checkpoint saving is disabled
+        if self.checkpoint_enabled or g.load_checkpoint_dir:
             from framework import CheckpointManager, validate_checkpoint_config
             
-            # Validate checkpoint configuration
-            checkpoint_config = {{
-                'enabled': self.checkpoint_enabled,
-                'trigger_type': self.checkpoint_trigger_type,
-                'trigger_value': self.checkpoint_trigger_value
-            }}
-            
-            try:
-                validate_checkpoint_config(checkpoint_config)
-                # Get checkpoint directory from global settings
-                self.checkpoint_manager = CheckpointManager(
-                    node_id=node_id,
-                    checkpoint_dir=str(g.save_checkpoint_dir) if g.save_checkpoint_dir else None
-                )
-                self.node_logger.info(f"Checkpoint manager initialized: {self.checkpoint_trigger_type} trigger")
+            # Only validate checkpoint config if saving is enabled
+            if self.checkpoint_enabled:
+                # Validate checkpoint configuration
+                checkpoint_config = {{
+                    'enabled': self.checkpoint_enabled,
+                    'trigger_type': self.checkpoint_trigger_type,
+                    'trigger_value': self.checkpoint_trigger_value
+                }}
                 
-                # Load checkpoint on start if requested, or always in inference mode
-                if (self.checkpoint_load_on_start and g.load_checkpoint_dir) or (g.inference_mode and g.load_checkpoint_dir):
-                    if g.inference_mode:
-                        self.node_logger.info("🔍 Inference mode: Loading checkpoint automatically")
+                try:
+                    validate_checkpoint_config(checkpoint_config)
+                except ValueError as e:
+                    self.node_logger.error(f"Checkpoint configuration error: {e}")
+                    self.checkpoint_enabled = False
+            
+            # Create checkpoint manager for loading/saving
+            self.checkpoint_manager = CheckpointManager(
+                node_id=node_id,
+                checkpoint_dir=str(g.save_checkpoint_dir) if g.save_checkpoint_dir else None
+            )
+            
+            if self.checkpoint_enabled:
+                self.node_logger.info(f"Checkpoint manager initialized: {self.checkpoint_trigger_type} trigger")
+        
+        # Handle checkpoint loading - always load if --load-checkpoint-dir is specified
+        if g.load_checkpoint_dir:
+            # Try to load checkpoint
+            if self.checkpoint_manager:
+                checkpoint_path = Path(g.load_checkpoint_dir) / f"node_{node_id}"
+                if (checkpoint_path / "model.pt").exists():
+                    self.node_logger.info(f"Loading checkpoint {checkpoint_path} for node {node_id}")
                     if not self.load_checkpoint(str(g.load_checkpoint_dir)):
-                        raise RuntimeError(f"Failed to load checkpoint from {g.load_checkpoint_dir}. Ensure a checkpoint was saved in a previous run.")
-                    
-            except ValueError as e:
-                self.node_logger.error(f"Checkpoint configuration error: {e}")
-                self.checkpoint_enabled = False
+                        # Fail-fast: checkpoint exists but couldn't be loaded
+                        raise RuntimeError(f"Failed to load checkpoint from {checkpoint_path}. The checkpoint file exists but could not be loaded.")
+                else:
+                    self.node_logger.info(f"No checkpoint found for node {node_id}, initializing normally")
+                    if g.inference_mode:
+                        raise RuntimeError(f"No checkpoint found at {checkpoint_path}. Inference mode requires a saved checkpoint.")
+        elif self.checkpoint_enabled and self.checkpoint_load_on_start:
+            # Legacy behavior - load on start if configured (when no explicit load dir)
+            self.node_logger.debug("No explicit load directory specified, checkpoint_load_on_start ignored")
         
         self.node_logger.info(f"Created network with {NUM_LAYERS} layers: {INPUT_SIZE} -> {OUTPUT_SIZE}")
         
