@@ -33,10 +33,10 @@ class SGDOptimizerNode(RoboticsNodeBase):
                 }),
                 "learning_rate": ("FLOAT", {
                     "default": 0.01,
-                    "min": 0.0001,
+                    "min": 0.0,
                     "max": 1.0,
                     "step": 0.0001,
-                    "tooltip": "Learning rate controls step size. Start with 0.01 or 0.001, adjust based on loss curve."
+                    "tooltip": "Learning rate controls step size. Start with 0.01 or 0.001, adjust based on loss curve. Set to 0 to freeze weights."
                 }),
                 "momentum": ("FLOAT", {
                     "default": 0.9,
