@@ -16,10 +16,10 @@
     "1": 1.0,
     "3": 1.0
   },
-  "frequency_hz": 100.0,
+  "frequency_hz": 60.0,
   "mode": "sinusoidal",
   "mode_params": {
-    "frequency_hz": 100.0,
+    "frequency_hz": 60.0,
     "base_freq": 0.1,
     "shoulder_freq": 0.15,
     "elbow_freq": 0.08
