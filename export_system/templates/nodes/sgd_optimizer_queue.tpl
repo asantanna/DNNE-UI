@@ -119,15 +119,17 @@ class SGDOptimizerNode_{NODE_ID}(QueueNode):
     
     def zero_grad_only(self):
         """Zero gradients without backward - used by TrainingSequencer"""
-        for optimizer in self.optimizers:
-            optimizer.zero_grad()
+        if not g.inference_mode:
+            for optimizer in self.optimizers:
+                optimizer.zero_grad()
     
     def backward_only(self, loss, retain_graph=False):
         """Perform backward without step - used by TrainingSequencer"""
-        # Scale loss for gradient accumulation
-        loss_scaled = loss / self.batch_size
-        loss_scaled.backward(retain_graph=retain_graph)
-        self.accumulated_loss += loss.item() if hasattr(loss, 'item') else float(loss)
+        if not g.inference_mode:
+            # Scale loss for gradient accumulation
+            loss_scaled = loss / self.batch_size
+            loss_scaled.backward(retain_graph=retain_graph)
+            self.accumulated_loss += loss.item() if hasattr(loss, 'item') else float(loss)
     
     async def step_only(self):
         """Step optimizer without backward - used by TrainingSequencer"""
