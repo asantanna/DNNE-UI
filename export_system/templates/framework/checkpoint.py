@@ -166,6 +166,11 @@ class CheckpointManager:
                 self.best_metric_value = current_metric
                 return True
             return False
+        
+        elif trigger_type == 'end':
+            # End trigger - save checkpoint on program exit
+            # Always return True for explicit end-of-run checkpoint
+            return True
             
         else:
             raise ValueError(f"Unknown trigger type: {trigger_type}")

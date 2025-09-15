@@ -431,7 +431,7 @@ async def main():
                         'reason': 'end_of_run',
                         'final_checkpoint': True
                     }}
-                    node.save_checkpoint(trigger_type='external', metadata=metadata)
+                    node.save_checkpoint(trigger_type='end', metadata=metadata)
         
         # Call cleanup if available (for profiling and other cleanup tasks)
         if hasattr(node, 'cleanup'):
