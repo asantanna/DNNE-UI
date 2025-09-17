@@ -263,7 +263,7 @@ class SimulationTracker_{NODE_ID}(QueueNode):
             
             # Essential metrics
             telemetry.report_custom(self.node_id, "episodes_completed", float(len(ep_losses)))
-            telemetry.report_custom(self.node_id, "loss_mean", statistics.mean(ep_losses))
+            telemetry.report_custom(self.node_id, "episode_loss_mean", statistics.mean(ep_losses))
             telemetry.report_custom(self.node_id, "timesteps_total", float(self.timestep_count))
             
             if self.telemetry_level in ["extended", "debug"]:

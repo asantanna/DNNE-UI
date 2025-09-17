@@ -205,6 +205,9 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Step environment (with optional extra_args for debug visualization)
             obs, reward, done, info = self.env.step(action, extra_args)
             
+            # Save episode completion state BEFORE reset
+            episode_completed = done.any()
+            
             # Extract observation if dict
             if isinstance(obs, dict):
                 obs = obs["obs"]
@@ -215,7 +218,7 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
                 obs = obs.detach().requires_grad_(True)
             
             # Auto-reset if done and configured
-            if done.any() and self.reset_when_done:
+            if episode_completed and self.reset_when_done:
                 obs = self.env.reset()
                 if isinstance(obs, dict):
                     obs = obs["obs"]
@@ -232,8 +235,8 @@ class {CLASS_NAME}_{NODE_ID}(QueueNode):
             # Prepare outputs
             outputs = {{"observation": obs}}
             
-            # Send done signal if episode ended
-            if done.any():
+            # Send done signal if episode ended (use saved state)
+            if episode_completed:
                 outputs["done"] = True
             
             return outputs
