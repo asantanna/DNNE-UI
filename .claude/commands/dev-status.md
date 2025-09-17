@@ -11,33 +11,31 @@ $ARGUMENTS$
 
 *For historical development sessions, see HISTORY.md*
 
-## Latest Achievements (2025-09-09)
+## Latest Achievements (2025-09-17)
 
-### CustomComputation Debug Visualization ✅
-- **Enhanced node with extra_args** - Dynamic tensor input for debug data
-  - Optional extra_args input conditionally required when connected
-  - Config widget for static Python dict settings
-  - Fail-fast implementation (RuntimeError on missing config)
-- **Debug augmenter script** - Attaches data to action.extra_args
-- **FrankaDNNE integration** - Visual-only red debug sphere (0.01 radius)
-  - No physics interactions using collision filter bit mask 0b1000
-  - Updates position from action.extra_args dynamically
+### Debug Sphere Visual Rendering ✅
+- **Replaced physics-based sphere with visual-only wireframe**
+  - Uses WireframeSphereGeometry for pure visual rendering
+  - No physics interactions - eliminated collision issues
+  - Increased density to 24x24 for better visibility
+  - Always visible when position set (independent of debug_viz mode)
 
-### Previous Achievements (2025-09-08)
+### Episode Tracking Fix ✅
+- **Fixed done signal propagation in SimulationTracker**
+  - Save episode state before auto-reset to prevent signal loss
+  - Separated loss_mean from episode_loss_mean metrics
+  - Eliminated jumps in loss graphs from mixed averaging methods
+  - Episodes now correctly counted in telemetry
+
+### Previous Achievements (2025-09-09)
+- CustomComputation Debug Visualization - extra_args for dynamic debug data
+- Debug augmenter script - Attaches data to action.extra_args
+- FrankaDNNE integration - Initial debug sphere implementation
+
+### Earlier Achievements (2025-09-08)
 - SGDOptimizer Gradient Accumulation - batch_size widget added
-- Fixed sync checker - execution_count increments every step  
+- Fixed sync checker - execution_count increments every step
 - All 12 workflows export successfully
-
-### Earlier Achievements (2025-09-07)
-- TrainingSequencer Complete - Fixed Franka_Coop_V2 deadlock
-- Export system fixes - TrainingSequencerExporter working
-- Template improvements - Pass loss tensors, not metadata dicts
-
-### Earlier Achievements (2025-09-03)
-- Telemetry System Complete - Unified client, 50% data reduction
-- Gradient Isolation Removal - Simplified export templates
-- Export System Hardening - Fail-fast validation
-- Franka_Coop Workflow Repair - Fixed phantom connections
 
 ## Quick Reference
 
@@ -83,12 +81,11 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
-- Fix debug sphere using collision filter bit mask (2025-09-09)
-- Add debug visualization support to CustomComputation node
-- Create debug_augmenter.py for action tensor augmentation
-- Add gradient accumulation to SGDOptimizer (2025-09-08)
-- Fix sync checker execution count for batch accumulation
-- Fix TrainingSequencer deadlock in Franka_Coop_V2 (2025-09-07)
+- Fix episode done signal propagation in IsaacGymSim and SimulationTracker (2025-09-17)
+- Replace physics-based debug sphere with visual-only wireframe rendering (2025-09-17)
+- Fix end-of-run checkpoint trigger type (2025-09-17)
+- Add inference mode checks to SGDOptimizer TrainingSequencer methods (2025-09-17)
+- Enable checkpoint loading via --load-checkpoint-dir (2025-09-16)
 
 ---
 *Focus on active tasks in INDEX.md*

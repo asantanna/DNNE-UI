@@ -2,6 +2,38 @@
 
 *This file contains the historical record of daily achievements moved from INDEX.md*
 
+## 2025-09-09
+
+### CustomComputation Debug Visualization
+- ✅ Enhanced node with extra_args - Dynamic tensor input for debug data
+- ✅ Optional extra_args input conditionally required when connected
+- ✅ Config widget for static Python dict settings
+- ✅ Fail-fast implementation (RuntimeError on missing config)
+- ✅ Debug augmenter script - Attaches data to action.extra_args
+- ✅ FrankaDNNE integration - Initial debug sphere implementation
+
+## 2025-09-08
+
+### SGDOptimizer Gradient Accumulation
+- ✅ Added batch_size widget for gradient accumulation
+- ✅ Fixed sync checker - execution_count increments every step
+- ✅ All 12 workflows export successfully
+
+## 2025-09-07
+
+### TrainingSequencer Deadlock Fix
+- ✅ Fixed Franka_Coop_V2 deadlock issue
+- ✅ Export system fixes - TrainingSequencerExporter working
+- ✅ Template improvements - Pass loss tensors, not metadata dicts
+
+## 2025-09-03
+
+### Telemetry System Complete
+- ✅ Unified client system with 50% data reduction
+- ✅ Gradient Isolation Removal - Simplified export templates
+- ✅ Export System Hardening - Fail-fast validation
+- ✅ Franka_Coop Workflow Repair - Fixed phantom connections
+
 ## 2025-08-17
 
 ### Tensor Constant Node Implementation

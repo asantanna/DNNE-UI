@@ -1,12 +1,14 @@
 # DNNE Task Index
 
-*Last Updated: 2025-09-09*  
+*Last Updated: 2025-09-17*  
 *For historical achievements, see HISTORY.md*
 
 ## Task Status Overview
 
 | Component | Status | Progress | Priority | Last Updated |
 |-----------|--------|----------|----------|--------------|
+| **Debug Sphere** | 🟢 Complete | Visual-only wireframe rendering | - | 2025-09-17 |
+| **Episode Tracking** | 🟢 Complete | Fixed done signal propagation | - | 2025-09-17 |
 | **CustomComputation** | 🟢 Complete | Debug visualization with extra_args | - | 2025-09-09 |
 | **SGDOptimizer** | 🟢 Complete | Gradient accumulation feature added | - | 2025-09-08 |
 | **TrainingSequencer** | 🟢 Complete | Deadlock fixed, Franka_Coop_V2 working | - | 2025-09-07 |
@@ -24,14 +26,17 @@
 | **DNNE Combo Widget** | 🟢 Complete | 100% - Generic WebSocket callbacks | - | 2025-08-16 |
 | **UI Proxy** | 🟡 Design | Architecture documented, ready for implementation | Medium | 2025-08-18 |
 
-## Today's Achievements (2025-09-09)
+## Today's Achievements (2025-09-17)
 
-✅ **CustomComputation Debug Visualization**: Enhanced node with extra_args input for dynamic debug data
-- Added optional extra_args tensor input for dynamic data flow
-- Implemented config widget for static Python dict configuration
-- Created debug_augmenter.py script for action tensor augmentation
-- Integrated FrankaDNNE with kinematic debug sphere (small red, non-physical)
-- Full fail-fast implementation throughout (no defaults, RuntimeError on missing config)
+✅ **Debug Sphere Visual Rendering**: Replaced physics-based debug sphere with pure visual wireframe
+- Eliminated unwanted physics interactions using WireframeSphereGeometry
+- Increased wireframe density to 24x24 for better visibility
+- Separated from debug_viz mode - always visible when position is set
+
+✅ **Episode Tracking Fix**: Fixed episode done signal propagation in SimulationTracker
+- Saved episode state before auto-reset to prevent signal loss
+- Separated loss_mean from episode_loss_mean metrics to eliminate graph jumps
+- Episodes now correctly counted in telemetry
 
 ## Active Priority Items
 
