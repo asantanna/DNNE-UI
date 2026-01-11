@@ -1,5 +1,7 @@
 # DNNE Export System Architecture
 
+*See also: [Templates](templates.md), [Queue Framework](queue_framework.md)*
+
 ## Overview
 
 The DNNE export system transforms visual node graphs into standalone, executable Python code. This is the core innovation that allows visual workflows to run efficiently on production systems, cloud providers, and robotics simulators.

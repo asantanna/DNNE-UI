@@ -1,67 +1,84 @@
 # DNNE Documentation Index
 
-## System Status Overview
-
-| Component | Status | Priority | Notes |
-|-----------|--------|----------|-------|
-| Export System | 🔧 Active | HIGH | Multi-model SGDOptimizer working, gradient conflict investigation |
-| Multi-Model SGD | ✅ Working | - | Single optimizer manages multiple networks |
-| Label Resolution | ✅ Fixed | - | Label node links removed after resolution |
-| Shadow_Train | ✅ Working | - | Learning correctly (1.23 → 0.71 loss in 40 steps) |
-| Queue Framework | ✅ Stable | - | Async queue architecture working correctly |
-
-## Today's Achievements (Sep 5, 2025)
-- Implemented multi-model SGDOptimizer support (one-to-many networks)
-- Fixed sync checking for multi-model optimizers
-- Fixed Label node resolution - Networks now find correct optimizer IDs
-- Investigating gradient conflicts between multiple SGDOptimizers
-
-## Active Priorities
-
-### CRITICAL - Remove HACKS
-1. Fix UI dimension configuration (concat/split using wrong dims)
-2. Fix device management (tensors on wrong device)
-3. Enable gradient tracking for Isaac Gym observations
-4. Fix tensor shape consistency in Network nodes
-
-### High Priority
-1. Fix --timeout to be more reliable (almost never works)
-2. Test complete Franka workflow with actual training
-
-### Medium Priority  
-1. Add YAML caching for get_task_schema_info
-2. Update PPOAgent/PPOConfig on IsaacGymEnvs changes
-
-### Low Priority
-1. Add more FrankaDNNE subtasks (reach_pose, trajectory_follow)
-2. Export profiling and metrics
+*Last Updated: 2026-01-11*
 
 ## Documentation Structure
 
 ### Core Documentation
-- [`CLAUDE.md`](../CLAUDE.md) - AI assistant instructions
-- [`dev-status.md`](dev-status.md) - Development status
+- [`README.md`](README.md) - User-facing overview and navigation
+- [`CLAUDE.md`](../CLAUDE.md) - Project overview and AI assistant context
 
-### Architecture
-- [`architecture/`](architecture/) - System design
-  - [`ui_callbacks.md`](architecture/ui_callbacks.md) - WebSocket-based UI widget callback system
-  - [`websocket_not_rest.md`](architecture/websocket_not_rest.md) - WebSocket communication principles
-- [`nodes/`](nodes/) - Node guides
-- [`tasks/`](tasks/) - Task tracking
+### Architecture (`architecture/`)
+System design and technical details:
+- `export_system.md` - Workflow to Python code conversion
+- `queue_framework.md` - Async queue-based execution
+- `templates.md` - Code generation templates
+- `adaptive_yielding.md` - Cooperative multitasking
+- `system_balancing.md` - Load balancing and scheduling
+- `telemetry.md` - Metrics and monitoring
+- `design_rationale.md` - Why things are the way they are
+- `ui_callbacks.md` - WebSocket-based UI widget callback system
+- `websocket_not_rest.md` - WebSocket communication principles
 
-## Quick Access
+### Development (`development/`)
+Practical guides for developers:
+- `gotchas.md` - Common pitfalls and solutions
+- `debugging-techniques.md` - Non-obvious debugging approaches
+- `code-quality-checklist.md` - Quality standards
+- `deadlock_analysis.md` - Deadlock detection and prevention
+- `sync_check.md` - Synchronization checking
 
-### Commands
+### Nodes (`nodes/`)
+Node reference documentation:
+- `ml/` - ML nodes (datasets, layers, training)
+- `rl/` - RL nodes (PPO agent/config)
+- `robotics/` - Isaac Gym integration
+- `utility/` - Data flow and control nodes
+
+### Examples (`examples/`)
+Complete working examples:
+- `mnist_classification.md` - Supervised learning
+- `cartpole_ppo.md` - RL with PPO
+- `isaac_gym_integration.md` - Robotics integration
+
+### Theory (`theory/`)
+Research and advanced concepts:
+- `shadow_environment.md` - Differentiable control through non-differentiable simulators
+
+### Experiments (`experiments/`)
+Research and experimental work:
+- `franka_coop_nodes/` - Franka robot collaboration research
+- `performance/` - Performance analysis
+- `archive/` - Completed experiments (yield_tests)
+
+### Future (`future/`)
+Planned features and improvements:
+- Organized by category (ML, robotics, system, UI)
+- Priority and effort estimates
+
+### For Claude (`for_claude/`)
+Claude Code session context:
+- `tasks/INDEX.md` - Current task status overview
+- Per-component task tracking and history
+
+## Quick Links
+
+| Need | Location |
+|------|----------|
+| Current tasks | `for_claude/tasks/INDEX.md` |
+| Common gotchas | `development/gotchas.md` |
+| Design decisions | `architecture/design_rationale.md` |
+| Export details | `architecture/export_system.md` |
+
+## Commands Reference
+
 ```bash
 # Activate environment
 source /home/asantanna/miniconda/bin/activate DNNE_PY38
 
-# Test all exports
-python claude_scripts/test_all_exports.py
+# Export workflow
+python claude_scripts/programmatic_export.py WORKFLOW_NAME
 
-# Run unit tests
+# Run tests
 ./dnne_test quick
-
-# Start server (Windows)
-dnne.bat
 ```

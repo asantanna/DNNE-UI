@@ -1,5 +1,7 @@
 # System Balancer in DNNE
 
+*See also: [Adaptive Yielding](adaptive_yielding.md) for the yielding mechanism*
+
 ## Overview
 
 System balancing in DNNE is about ensuring different parts of a workflow execute at their optimal rates, not about giving each node equal execution time. Different nodes have fundamentally different performance requirements based on their role in the system.

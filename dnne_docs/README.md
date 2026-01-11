@@ -1,28 +1,36 @@
 # DNNE Documentation
 
-Welcome to the DNNE (Drag and Drop Neural Network Environment) documentation. This documentation covers the machine learning capabilities, architecture, and usage patterns of DNNE.
+*Last Updated: 2026-01-11*
+
+Welcome to the DNNE (Drag and Drop Neural Network Environment) documentation.
 
 ## Documentation Structure
 
 ### Node Reference
 - **[Node Overview](nodes/)** - Complete reference for all DNNE nodes
-- **[ML Nodes](nodes/ml/)** - Data processing, layers, training, activation nodes
-- **[RL Nodes](nodes/rl/)** - Reinforcement learning nodes (PPO)
-- **[Robotics Nodes](nodes/robotics/)** - Isaac Gym and control nodes
-- **[Utility Nodes](nodes/utility/)** - Data flow and debugging nodes
+- **[ML Nodes](nodes/ml/)** - Datasets, layers, training nodes
+- **[RL Nodes](nodes/rl/)** - PPO agent and configuration
+- **[Robotics Nodes](nodes/robotics/)** - Isaac Gym integration
+- **[Utility Nodes](nodes/utility/)** - Synchronization and data flow
 
 ### Examples
-- **[Example Workflows](examples/)** - Complete working examples
-- **[MNIST Classification](examples/mnist_classification.md)** - Supervised learning example
-- **[Cartpole PPO](examples/cartpole_ppo.md)** - Reinforcement learning with PPO
+- **[MNIST Classification](examples/mnist_classification.md)** - Supervised learning
+- **[Cartpole PPO](examples/cartpole_ppo.md)** - Reinforcement learning
+- **[Isaac Gym Integration](examples/isaac_gym_integration.md)** - Robotics
 
-### Machine Learning (ML)
+### Machine Learning
 - **[PPO Architecture](ML/ppo_architecture.md)** - Deep dive into PPO algorithm
 - **[Training Workflows](ML/training_workflow.md)** - Guide to creating RL workflows
 
 ### Architecture
-- **[Export System](architecture/export_system.md)** - How DNNE converts visual workflows to Python
-- **[Queue Framework](architecture/queue_framework.md)** - Async queue-based architecture
+- **[Export System](architecture/export_system.md)** - Visual workflow to Python code
+- **[Queue Framework](architecture/queue_framework.md)** - Async runtime
+- **[Templates](architecture/templates.md)** - Code generation templates
+- **[Adaptive Yielding](architecture/adaptive_yielding.md)** - Cooperative multitasking
+
+### Development
+- **[Gotchas](development/gotchas.md)** - Common pitfalls and solutions
+- **[Debugging Techniques](development/debugging-techniques.md)** - Non-obvious debugging
 
 ### Future Features
 - **[Feature Roadmap](future/)** - Planned features and improvements

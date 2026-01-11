@@ -1,79 +1,70 @@
 # DNNE Node Reference Documentation
 
-This directory contains comprehensive documentation for all DNNE nodes organized by category.
+*Last Updated: 2026-01-11*
+
+This directory contains documentation for DNNE nodes organized by category.
 
 ## Node Categories
 
 ### [ML Nodes](ml/README.md)
-Machine learning nodes for building neural networks, handling datasets, and training models.
+Machine learning nodes for neural networks and training.
 
-- **Datasets**: MNIST, CIFAR-10
-- **Layers**: Linear, Conv2D, BatchNorm, Dropout, Flatten, Activation
-- **Training**: SGD Optimizer, Cross Entropy Loss, Training Step, Accuracy
-- **Utilities**: Batch Sampler, Get Batch, Epoch Tracker, Tensor Visualizer
-- **Networks**: Network (composite node)
+- **Datasets**: MNISTDataset, CIFAR10Dataset
+- **Layers**: LinearLayer, Network
+- **Training**: SGDOptimizer, CrossEntropyLoss, GeometricLoss, TrainingSequencer
+- **Data Flow**: BatchSampler, GetBatch, EpochTracker
 
 ### [RL Nodes](rl/README.md)
-Reinforcement learning nodes for PPO and other RL algorithms.
+Reinforcement learning nodes.
 
-- **Agents**: PPO Agent
-- **Configuration**: PPO Config
+- **Agents**: PPOAgent
+- **Configuration**: PPOConfig
 
 ### [Robotics Nodes](robotics/README.md)
-Robotics simulation nodes for Isaac Gym integration.
+Isaac Gym integration nodes.
 
-- **Simulation**: Isaac Gym Sim, Isaac Gym Envs
+- **Simulation**: IsaacGymSim, IsaacGymEnvs, SimulationTracker
 
 ### [Utility Nodes](utility/README.md)
-General utility nodes for workflow control and configuration.
+Workflow control and synchronization.
 
-- **Logic**: OR Node
-- **Configuration**: Balancer Config, Balancer Node
-
-## Node Documentation Format
-
-Each node documentation includes:
-- **Purpose**: What the node does
-- **Category**: Node category (ml, rl, robotics, utility)
-- **Inputs**: Required and optional inputs with types
-- **Outputs**: What the node produces
-- **Parameters**: Configuration parameters
-- **Usage Examples**: How to use the node in workflows
-- **Export Behavior**: How the node exports to Python code
+- **Synchronization**: Barrier, Eat_N
+- **Data Flow**: Tensor, Concat, Split, DataStreamer
+- **Balancing**: Balancer, BalancerConfig
+- **Custom**: CustomComputation
 
 ## Quick Reference
 
-| Node | Category | Primary Function |
-|------|----------|-----------------|
-| MNISTDataset | ML | Load MNIST digit dataset |
-| CIFAR10Dataset | ML | Load CIFAR-10 image dataset |
-| LinearLayer | ML | Fully connected neural network layer |
-| Conv2DLayer | ML | 2D convolutional layer |
-| BatchNorm | ML | Batch normalization layer |
-| Dropout | ML | Dropout regularization |
-| Flatten | ML | Flatten tensor dimensions |
-| Activation | ML | Apply activation functions (ReLU, Sigmoid, etc.) |
-| Network | ML | Composite node for sequential layers |
+| Node | Category | Purpose |
+|------|----------|---------|
+| MNISTDataset | ML | Load MNIST digits |
+| CIFAR10Dataset | ML | Load CIFAR-10 images |
+| LinearLayer | ML | Fully connected layer |
+| Network | ML | Sequential layer container |
 | BatchSampler | ML | Sample batches from datasets |
-| GetBatch | ML | Retrieve next batch from sampler |
-| SGDOptimizer | ML | Stochastic gradient descent optimizer |
-| CrossEntropyLoss | ML | Calculate cross-entropy loss |
-| TrainingStep | ML | Execute single training iteration |
-| Accuracy | ML | Calculate model accuracy |
-| EpochTracker | ML | Track training epochs and metrics |
-| TensorVisualizer | ML | Visualize tensor data |
-| PPOAgent | RL | Proximal Policy Optimization agent |
-| PPOConfig | RL | PPO hyperparameter configuration |
-| IsaacGymSim | Robotics | Isaac Gym physics simulator |
-| IsaacGymEnvs | Robotics | Isaac Gym RL environments |
-| ORNode | Utility | Logical OR operation |
-| BalancerConfig | Utility | Balancer task configuration |
-| BalancerNode | Utility | Balancer control logic |
+| GetBatch | ML | Retrieve next batch |
+| SGDOptimizer | ML | Gradient descent optimizer |
+| CrossEntropyLoss | ML | Classification loss |
+| GeometricLoss | ML | Geometric/MSE loss |
+| TrainingSequencer | ML | Coordinate training flow |
+| EpochTracker | ML | Track epochs and metrics |
+| PPOAgent | RL | PPO algorithm implementation |
+| PPOConfig | RL | PPO hyperparameters |
+| IsaacGymSim | Robotics | Physics simulator |
+| IsaacGymEnvs | Robotics | Pre-built RL environments |
+| SimulationTracker | Robotics | Track simulation metrics |
+| Barrier | Utility | Hold data until triggered |
+| Eat_N | Utility | Initial trigger generation |
+| Tensor | Utility | Tensor creation/manipulation |
+| Concat | Utility | Concatenate tensors (dim=1) |
+| Split | Utility | Split tensors (dim=1) |
+| DataStreamer | Utility | Stream data from files |
+| Balancer | Utility | Measure throughput |
+| BalancerConfig | Utility | Balancer configuration |
+| CustomComputation | Utility | User-defined Python code |
 
-## Implementation Location
+## Implementation
 
-All node implementations are located in `/home/asantanna/DNNE/DNNE-UI/custom_nodes/` with the naming pattern `*_visnode.py`.
-
-## Export Templates
-
-Export templates for each node are located in `/home/asantanna/DNNE/DNNE-UI/export_system/templates/nodes/` with queue-based async implementations.
+- **Node code**: `custom_nodes/*_visnode.py`
+- **Export templates**: `export_system/templates/nodes/*_queue.tpl`
+- **Node exporters**: `export_system/node_exporters/`

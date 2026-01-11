@@ -1,47 +1,49 @@
 # Utility Nodes Documentation
 
-General utility nodes for workflow control and configuration in DNNE.
+*Last Updated: 2026-01-11*
+
+Workflow control, synchronization, and data manipulation nodes.
 
 ## Available Nodes
 
-### [BalancerConfig](balancing_config.md)
-Configuration node for balancing task parameters.
+### Synchronization
+- **[Barrier](barrier_node.md)** - Hold data until triggered (FIFO queue)
+- **[Eat_N](eat_n_node.md)** - Consume first N inputs, then passthrough + trigger
 
-### [BalancerNode](balancing_node.md)
-Control logic for balancing tasks and simulations.
+### Data Flow
+- **Tensor** - Create/manipulate tensors
+- **Concat** - Concatenate tensors along dim=1
+- **Split** - Split tensors along dim=1
+- **DataStreamer** - Stream data from external files
 
-### [Eat_N](eat_n_node.md)
-Consume first N inputs then become passthrough - essential for temporal alignment.
+### Balancing
+- **Balancer** - Measure throughput and frequency
+- **BalancerConfig** - Configuration for balancer nodes
 
-### [Barrier](barrier_node.md)
-Hold and release data based on triggers - enables synchronization between pipeline stages.
+### Custom
+- **CustomComputation** - User-defined Python code execution
 
 ## Overview
 
-Utility nodes provide essential workflow control and configuration capabilities that support the ML and robotics nodes. These nodes handle:
+Utility nodes provide essential workflow control and configuration capabilities:
 
-- **Logic Operations**: Boolean logic for conditional execution
+- **Synchronization**: Temporal alignment and pipeline coordination
+- **Data Flow**: Tensor manipulation (concat, split, streaming)
 - **Configuration Management**: Task-specific parameter settings
-- **Control Flow**: Workflow orchestration and synchronization
-- **Task-Specific Utilities**: Specialized helpers for common tasks
+- **Control Flow**: Workflow orchestration
 
-## Node Categories
+## Key Concepts
 
-### Logic Nodes
-- Future: AND, NOT, XOR nodes (Note: OR functionality now built into all inputs via multiple connections)
+### Data Dimension Convention
+All tensor operations follow DNNE's dimension convention:
+- **Dim 0**: Batch/environment dimension
+- **Dim 1**: Feature dimension (Concat/Split operate here)
 
-### Configuration Nodes
-- **BalancerConfig**: Parameters for balance control tasks
-- Task-specific configuration management
-
-### Control Nodes
-- **BalancerNode**: Implements balancing control algorithms
-- Task execution and monitoring
-
-### Synchronization Nodes
-- **Eat_N**: Consume and pass through data with trigger generation
-- **Barrier**: FIFO-based data holding with triggered release
-- Enable temporal alignment and pipeline synchronization
+### Temporal Alignment for RL
+Synchronization nodes enable proper temporal relationships:
+- Align obs(t) with obs(t+1) for loss computation
+- Bootstrap initial observations with Eat_N
+- Synchronize gradient updates with Barrier nodes
 
 ## Common Use Cases
 
@@ -57,26 +59,13 @@ Configuration nodes:
 - Enable easy experimentation
 - Support configuration reuse
 
-### Control Algorithms
-Control nodes like BalancerNode:
-- Implement domain-specific algorithms
-- Bridge between RL agents and environments
-- Provide reference implementations
-
-### Temporal Alignment for RL
-Synchronization nodes enable proper temporal relationships:
-- Align obs(t) with obs(t+1) for loss computation
-- Bootstrap initial observations with Eat_N
-- Synchronize gradient updates with Barrier nodes
-- See [Temporal Alignment Pattern](../../patterns/temporal_alignment_rl.md) for detailed example
-
 ## Integration Patterns
 
 ### With ML Nodes
 ```
 BalancerConfig → parameters
         ↓
-  BalancerNode → control_signal
+     Balancer → metrics
         ↓
    Environment
 ```
@@ -142,7 +131,7 @@ When creating new utility nodes:
 ```python
 class ConfigNode(RoboticsNodeBase):
     CATEGORY = "utility"
-    
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -151,7 +140,7 @@ class ConfigNode(RoboticsNodeBase):
                 "param2": ("INT", {"default": 10})
             }
         }
-    
+
     RETURN_TYPES = ("CONFIG",)
 ```
 
@@ -159,14 +148,13 @@ class ConfigNode(RoboticsNodeBase):
 ```python
 class LogicNode(RoboticsNodeBase):
     CATEGORY = "utility"
-    
+
     def process(self, input_a, input_b):
         return (input_a or input_b,)
 ```
 
-## Implementation Details
+## Implementation
 
+- **Location**: `custom_nodes/*_visnode.py`
+- **Templates**: `export_system/templates/nodes/*_queue.tpl`
 - **Base Class**: All utility nodes inherit from `RoboticsNodeBase`
-- **Location**: `/home/asantanna/DNNE/DNNE-UI/custom_nodes/*_visnode.py`
-- **Templates**: `/home/asantanna/DNNE/DNNE-UI/export_system/templates/nodes/*_queue.py`
-- **Export**: Generates helper functions and control logic

@@ -1,5 +1,7 @@
 # DNNE Async Environment Design
 
+*See also: [Queue Framework](queue_framework.md), [Adaptive Yielding](adaptive_yielding.md)*
+
 ## Overview
 
 This document explains the architectural decisions behind DNNE's integration with Isaac Gym environments, particularly the async design choices and minimal intervention approach.
@@ -34,4 +36,4 @@ DNNE's vision is to enable complex, multi-modal AI systems that mirror biologica
 The async queue-based architecture is not just a technical choice - it's fundamental to achieving these goals.
 
 ## References
-- DNNE queue framework: `/mnt/e/ALS-Projects/DNNE/DNNE-UI/export_system/templates/base/queue_framework.py`
+- DNNE queue framework: `/home/asantanna/DNNE/DNNE-UI/export_system/templates/base/queue_framework.py`

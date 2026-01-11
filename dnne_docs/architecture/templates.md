@@ -1,5 +1,7 @@
 # DNNE Template System
 
+*See also: [Export System](export_system.md), [Queue Framework](queue_framework.md)*
+
 The template system is the **code generation engine** of DNNE's export system. It converts visual node graphs into executable Python code using a sophisticated template-based approach with variable substitution.
 
 ## Why Templates Exist (Not Just How They Work)

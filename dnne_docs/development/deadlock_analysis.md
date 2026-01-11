@@ -68,7 +68,7 @@ To understand the implementation and deadlock patterns in DNNE, read these docum
 3. **`dnne_docs/nodes/utility/eat_n_node.md`** - Eat_N node for temporal synchronization
 4. **`dnne_docs/nodes/utility/barrier_node.md`** - Barrier node for holding/releasing data
 5. **`dnne_docs/development/gotchas.md`** - Common pitfalls including double-getter deadlocks
-6. **`dnne_docs/patterns/temporal_alignment_rl.md`** - Complex synchronization patterns
+6. **`dnne_docs/nodes/utility/README.md`** - Temporal synchronization patterns and diagrams
 
 ## Data Collection & Analysis
 
@@ -435,5 +435,5 @@ If overhead exceeds 1%:
 
 - [Queue Framework](../architecture/queue_framework.md) - Core async architecture
 - [Debugging Techniques](../development/debugging-techniques.md) - General debugging guide
-- [Temporal Alignment](../patterns/temporal_alignment_rl.md) - RL synchronization patterns
+- [Temporal Alignment](../nodes/utility/README.md) - RL synchronization patterns
 - [Gotchas](../development/gotchas.md) - Common pitfalls and solutions

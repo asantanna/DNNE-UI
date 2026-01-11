@@ -1,12 +1,17 @@
 # Documentation Consolidation Todo List
 
-This document tracks the progress of consolidating and improving DNNE documentation.
+**Status: ARCHIVED (2026-01-11)**
+*Major consolidation completed 2025-07-28. Remaining items folded into ongoing documentation maintenance.*
 
-## Goals
-1. Reduce CLAUDE.md files to concise pointers (~80% size reduction)
-2. Eliminate duplicate documentation
-3. Create clear navigation structure
-4. Move documentation to appropriate locations in dnne_docs/
+---
+
+This document tracked the progress of consolidating and improving DNNE documentation.
+
+## Goals (Completed)
+1. ✅ Reduce CLAUDE.md files to concise pointers (~80% size reduction)
+2. ✅ Eliminate duplicate documentation
+3. ✅ Create clear navigation structure
+4. ✅ Move documentation to appropriate locations in dnne_docs/
 
 ## Progress Tracking
 

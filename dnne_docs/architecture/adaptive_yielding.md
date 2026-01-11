@@ -1,5 +1,7 @@
 # Adaptive Yielding System
 
+*See also: [System Balancing](system_balancing.md) for metrics tracking and balancer nodes*
+
 ## Overview
 
 DNNE's queue-based architecture supports multiple concurrent workflows, but compute-intensive nodes can starve other workflows of execution time. The Adaptive Yielding System provides a cooperative multitasking solution that ensures fair execution across all active workflows while maintaining high performance.

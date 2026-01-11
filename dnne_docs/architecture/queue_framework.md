@@ -1,5 +1,7 @@
 # Queue Framework Architecture
 
+*See also: [Export System](export_system.md), [Templates](templates.md), [Adaptive Yielding](adaptive_yielding.md)*
+
 ## Overview
 
 The DNNE Queue Framework provides the async, event-driven runtime for exported workflows. Inspired by ROS (Robot Operating System) and dataflow architectures, it enables real-time performance crucial for robotics and ML applications.
