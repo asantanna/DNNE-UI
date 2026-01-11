@@ -11,31 +11,24 @@ $ARGUMENTS$
 
 *For historical development sessions, see HISTORY.md*
 
-## Latest Achievements (2025-09-17)
+## Latest Achievements (2026-01-11)
 
-### Debug Sphere Visual Rendering ✅
-- **Replaced physics-based sphere with visual-only wireframe**
-  - Uses WireframeSphereGeometry for pure visual rendering
-  - No physics interactions - eliminated collision issues
-  - Increased density to 24x24 for better visibility
-  - Always visible when position set (independent of debug_viz mode)
+### Documentation Cleanup ✅
+- **Reorganized dnne_docs/ structure**
+  - Archived completed yield_tests/ experiments
+  - Moved features/ implementation notes to development/
+  - Fixed broken links and outdated paths
+  - Added cross-references between architecture docs
+  - Updated node documentation with accurate 25-node list
 
-### Episode Tracking Fix ✅
-- **Fixed done signal propagation in SimulationTracker**
-  - Save episode state before auto-reset to prevent signal loss
-  - Separated loss_mean from episode_loss_mean metrics
-  - Eliminated jumps in loss graphs from mixed averaging methods
-  - Episodes now correctly counted in telemetry
-
-### Previous Achievements (2025-09-09)
-- CustomComputation Debug Visualization - extra_args for dynamic debug data
-- Debug augmenter script - Attaches data to action.extra_args
-- FrankaDNNE integration - Initial debug sphere implementation
+### Previous Achievements (2025-09-17)
+- Debug Sphere Visual Rendering - wireframe geometry, no physics
+- Episode Tracking Fix - done signal propagation in SimulationTracker
+- CustomComputation Debug Visualization - extra_args for debug data
 
 ### Earlier Achievements (2025-09-08)
 - SGDOptimizer Gradient Accumulation - batch_size widget added
 - Fixed sync checker - execution_count increments every step
-- All 12 workflows export successfully
 
 ## Quick Reference
 
@@ -81,11 +74,11 @@ python runner.py --epochs 10
 - **WSL2 Access**: Server at `http://172.22.160.1:8188`
 
 ## Recent Commits
+- docs: Clean up and reorganize dnne_docs/ documentation (2026-01-11)
 - Fix episode done signal propagation in IsaacGymSim and SimulationTracker (2025-09-17)
 - Replace physics-based debug sphere with visual-only wireframe rendering (2025-09-17)
 - Fix end-of-run checkpoint trigger type (2025-09-17)
 - Add inference mode checks to SGDOptimizer TrainingSequencer methods (2025-09-17)
-- Enable checkpoint loading via --load-checkpoint-dir (2025-09-16)
 
 ---
 *Focus on active tasks in INDEX.md*
